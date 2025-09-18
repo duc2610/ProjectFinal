@@ -16,5 +16,11 @@ namespace ToeicGenius.Repositories.Implementations
 			return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 		}
 
+		public async Task<User?> GetByRefreshTokenAsync(string refreshToken)
+		{
+			return await _context.Users
+								.Include(u => u.RefreshTokens) // load refresh tokens
+								.FirstOrDefaultAsync(u => u.RefreshTokens.Any(rt => rt.Token == refreshToken));
+		}
 	}
 }

@@ -8,6 +8,7 @@ using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Shared.Constants;
 using ToeicGenius.Services.Interfaces;
+using ToeicGenius.Services.Implementations;
 
 namespace ToeicGenius.Controllers
 {
@@ -24,22 +25,32 @@ namespace ToeicGenius.Controllers
 		[HttpPost("login")]
 		public async Task<IActionResult> Login([FromBody] LoginRequestDto loginDto)
 		{
-			if (!ModelState.IsValid)
+			var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+			var result = await _authService.LoginAsync(loginDto, ipAddress);
+
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!, 400));
+
+			return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(result.Data!));
+		}
+		
+		// Logout
+		[HttpPost("logout")]
+		public async Task<IActionResult> Logout([FromBody] string refreshToken)
+		{
+			var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userId) || !Guid.TryParse(userId, out var guidUserId))
 			{
-				return BadRequest(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidRequest, 400));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.TokenInvalid));
 			}
 
-			try
-			{
-				var auth = await _authService.LoginAsync(loginDto);
-				return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(auth, SuccessMessages.UserLoggedIn));
-			}
-			catch (Exception ex)
-			{
-				var message = ex.Message == ErrorMessages.InvalidCredentials ? ErrorMessages.InvalidCredentials : ErrorMessages.OperationFailed;
-				var status = ex.Message == ErrorMessages.InvalidCredentials ? 400 : 500;
-				return StatusCode(status, ApiResponse<string>.ErrorResponse(message, status));
-			}
+			var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+			var result = await _authService.LogoutAsync(Guid.Parse(userId), refreshToken, ipAddress);
+
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!, 400));
+
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data!));
 		}
 
 
@@ -193,5 +204,20 @@ namespace ToeicGenius.Controllers
 			}
 			return BadRequest(ApiResponse<string>.ErrorResponse(message, 400));
 		}
+
+		[HttpPost("refresh-token")]
+		public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto dto)
+		{
+			var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+			var result = await _authService.RefreshTokenAsync(dto.RefreshToken, ipAddress);
+
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Refresh token failed"));
+
+			return Ok(ApiResponse<RefreshTokenResponseDto>.SuccessResponse(result.Data!));
+		}
+
+
 	}
 }

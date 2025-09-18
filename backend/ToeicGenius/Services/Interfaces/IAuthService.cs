@@ -13,8 +13,8 @@ namespace ToeicGenius.Services.Interfaces
 		/// </summary>
 		/// <param name="loginDto">Login request data containing email and password.</param>
     	/// <returns>Authentication result including JWT token if successful.</returns>
-		Task<LoginResponseDto> LoginAsync(LoginRequestDto loginDto);
-
+		Task<Result<LoginResponseDto>> LoginAsync(LoginRequestDto loginDto, string ipAddress);
+		Task<Result<string>> LogoutAsync(Guid userId, string refreshToken, string ipAddress);
 
 		// Send OTP code to email for registration verification.	
 		Task<string> SendRegistrationOtpAsync(RegisterRequestDto registerRequestDto);
@@ -47,6 +47,9 @@ namespace ToeicGenius.Services.Interfaces
 		/// <param name="code">Google authorization code from client.</param>
 		/// <returns>Tuple of JWT token and User entity if successful.</returns>
 		Task<(string jwtToken, User user)> LoginWithGoogleAsync(string code);
+
+		Task<Result<RefreshTokenResponseDto>> RefreshTokenAsync(string refreshToken, string ipAddress);
+
 
 	}
 }

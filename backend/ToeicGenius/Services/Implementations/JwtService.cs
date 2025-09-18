@@ -1,6 +1,7 @@
 ﻿using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Services.Interfaces;
@@ -15,7 +16,7 @@ namespace ToeicGenius.Services.Implementations
 			_configuration = config;
 		}
 
-		public string GenerateToken(User user)
+		public string GenerateAccessToken(User user)
 		{
 
 			var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]));
@@ -43,6 +44,21 @@ namespace ToeicGenius.Services.Implementations
 				);
 
 			return new JwtSecurityTokenHandler().WriteToken(token);
+		}
+
+		public RefreshToken GenerateRefreshToken(string ipAddress)
+		{
+			var randomBytes = new byte[64];
+			using var rng = RandomNumberGenerator.Create();
+			rng.GetBytes(randomBytes);
+
+			return new RefreshToken
+			{
+				Token = Convert.ToBase64String(randomBytes),
+				ExpiresAt = DateTime.UtcNow.AddDays(7),
+				CreatedByIp = ipAddress,
+				CreatedAt = DateTime.UtcNow,
+			};
 		}
 
 		public ClaimsPrincipal? ValidateToken(string token)

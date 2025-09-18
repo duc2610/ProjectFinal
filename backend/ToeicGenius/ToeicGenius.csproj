@@ -27,9 +27,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Domains\DTOs\Requests\Auth\" />
-    <Folder Include="Domains\DTOs\Requests\" />
-    <Folder Include="Domains\DTOs\Responses\Auth\" />
     <Folder Include="Tests\IntegrationTests\" />
     <Folder Include="Tests\UnitTests\" />
   </ItemGroup>

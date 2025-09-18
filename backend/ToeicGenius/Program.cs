@@ -1,15 +1,21 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json.Serialization;
 using ToeicGenius.Configurations;
+using ToeicGenius.Filters;
 using ToeicGenius.Repositories.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+{
+	options.Filters.Add<ValidateModelAttribute>();
+
+})
 	.AddJsonOptions(options =>
 	{
 		options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -57,7 +63,10 @@ builder.Services.AddHttpClient();
 
 // DI
 builder.Services.AddDependencyInjectionConfiguration(builder.Configuration);
-
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+	options.SuppressModelStateInvalidFilter = true;
+});
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

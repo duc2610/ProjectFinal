@@ -5,7 +5,8 @@ namespace ToeicGenius.Services.Interfaces
 {
 	public interface IJwtService
 	{
-		string GenerateToken(User user);
+		RefreshToken GenerateRefreshToken(string ipAddress);
+		string GenerateAccessToken(User user);
 		ClaimsPrincipal? ValidateToken(string token);
 	}
 }
