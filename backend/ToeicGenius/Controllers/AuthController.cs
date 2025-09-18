@@ -160,29 +160,6 @@ namespace ToeicGenius.Controllers
 		}
 		// RESET PASSWORD - End
 
-		// Profile
-		[HttpGet("profile")]
-		[Authorize]
-		public async Task<IActionResult> GetProfile()
-		{
-			var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
-			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.Unauthorized));
-			}
-
-			var user = await _authService.GetUserByIdAsync(userId);
-
-			if (user == null)
-			{
-				return NotFound(ApiResponse<string>.NotFoundResponse(ErrorMessages.UserNotFound));
-			}
-
-			var userDto = new { UserId = user.Id, Email = user.Email, FullName = user.FullName };
-			return Ok(ApiResponse<object>.SuccessResponse(userDto, SuccessMessages.OperationSuccess));
-		}
-
 		// Change password
 		[HttpPost("change-password")]
 		[Authorize]
