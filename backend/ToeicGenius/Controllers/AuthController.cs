@@ -114,9 +114,9 @@ namespace ToeicGenius.Controllers
 		{
 			try
 			{
-				var (jwt, user) = await _authService.LoginWithGoogleAsync(code);
-				var data = new { token = jwt, user };
-				return Ok(ApiResponse<object>.SuccessResponse(data, SuccessMessages.UserLoggedIn));
+				var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+				var loginResponse = await _authService.LoginWithGoogleAsync(code, ipAddress);
+				return Ok(ApiResponse<LoginResponseDto>.SuccessResponse(loginResponse, SuccessMessages.UserLoggedIn));
 			}
 			catch (Exception ex)
 			{

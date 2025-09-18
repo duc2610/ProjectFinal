@@ -46,7 +46,7 @@ namespace ToeicGenius.Services.Interfaces
 		/// </summary>
 		/// <param name="code">Google authorization code from client.</param>
 		/// <returns>Tuple of JWT token and User entity if successful.</returns>
-		Task<(string jwtToken, User user)> LoginWithGoogleAsync(string code);
+		Task<LoginResponseDto> LoginWithGoogleAsync(string code, string ipAddress);
 
 		Task<Result<RefreshTokenResponseDto>> RefreshTokenAsync(string refreshToken, string ipAddress);
 

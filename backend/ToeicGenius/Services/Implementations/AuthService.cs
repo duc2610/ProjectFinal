@@ -20,10 +20,11 @@ namespace ToeicGenius.Services.Implementations
 		private readonly IEmailService _emailService;
 		private readonly IUserOtpRepository _userOtpRepository;
 		private readonly IUserRepository _userRepository;
+		private readonly IRoleRepository _roleRepository;
 		private readonly HttpClient _httpClient;
 		private readonly IHttpClientFactory _httpClientFactory;
 		private readonly IGoogleAuthService _googleAuthService;
-		
+
 
 		public AuthService(
 			IConfiguration configuration,
@@ -32,7 +33,8 @@ namespace ToeicGenius.Services.Implementations
 			IUserOtpRepository userOtpRepository,
 			IUserRepository userRepository,
 			IHttpClientFactory httpClientFactory,
-			IGoogleAuthService googleAuthService)
+			IGoogleAuthService googleAuthService,
+			IRoleRepository roleRepository)
 		{
 			_configuration = configuration;
 			_jwtService = jwtService;
@@ -44,6 +46,7 @@ namespace ToeicGenius.Services.Implementations
 
 			// Khởi tạo HttpClient từ IHttpClientFactory
 			_httpClient = _httpClientFactory.CreateClient();
+			_roleRepository = roleRepository;
 		}
 
 		public async Task<string> ChangePasswordAsync(ChangePasswordDto changePasswordRequest, string userId)
@@ -65,7 +68,6 @@ namespace ToeicGenius.Services.Implementations
 				user.UpdatedAt = DateTime.UtcNow;
 
 				await _userRepository.UpdateAsync(user);
-				await _userRepository.SaveChangesAsync();
 
 				return "";
 			}
@@ -80,11 +82,9 @@ namespace ToeicGenius.Services.Implementations
 
 			// Update pass
 			await _userRepository.UpdateAsync(user);
-			await _userRepository.SaveChangesAsync();
 
 			return "";
 		}
-
 
 		public async Task<string> ConfirmResetPasswordAsync(ResetPasswordConfirmDto resetPasswordConfirmDto)
 		{
@@ -104,7 +104,6 @@ namespace ToeicGenius.Services.Implementations
 
 				// Cập nhật DB
 				await _userRepository.UpdateAsync(user);
-				await _userRepository.SaveChangesAsync();
 
 				return "";
 			}
@@ -113,7 +112,6 @@ namespace ToeicGenius.Services.Implementations
 				return ErrorMessages.OperationFailed;
 			}
 		}
-
 
 		public async Task<User?> GetUserByIdAsync(Guid userId)
 		{
@@ -127,36 +125,39 @@ namespace ToeicGenius.Services.Implementations
 			if (user == null || !user.IsActive || user.PasswordHash == null)
 				return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
 
-			if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
+			if (!SecurityHelper.VerifyPassword(loginDto.Password, user.PasswordHash))
 				return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
 
+			// Generate refresh token & access token
 			var token = _jwtService.GenerateAccessToken(user);
 			var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
 			user.RefreshTokens.Add(refreshToken);
 			await _userRepository.UpdateAsync(user);
-			await _userRepository.SaveChangesAsync();
+
 			var response = new LoginResponseDto
 			{
 				Token = token,
 				RefreshToken = refreshToken.Token,
 				Fullname = user.FullName,
-				UserId = user.Id
+				Email = user.Email,
+				UserId = user.Id,
+				ExpireAt = DateTime.UtcNow.AddMinutes(30)
 			};
 
 			return Result<LoginResponseDto>.Success(response);
 		}
 
-
-		public async Task<(string jwtToken, User user)> LoginWithGoogleAsync(string code)
+		public async Task<LoginResponseDto> LoginWithGoogleAsync(string code, string ipAddress)
 		{
 			// 1. Exchange code for tokens
-			var (idToken, accessToken) = await _googleAuthService.ExchangeCodeForTokensAsync(code);
+			var googleToken = await _googleAuthService.ExchangeCodeForTokensAsync(code);
 
 			// 2. Validate id_token
-			var payload = await _googleAuthService.ValidateIdTokenAsync(idToken);
+			var payload = await _googleAuthService.ValidateIdTokenAsync(googleToken.IdToken);
 
 			// 3. Check user in DB
 			var user = await _userRepository.GetByEmailAsync(payload.Email);
+
 			if (user == null)
 			{
 				user = new User
@@ -166,13 +167,40 @@ namespace ToeicGenius.Services.Implementations
 					FullName = payload.Name ?? "",
 					GoogleId = payload.Subject
 				};
+
+				// Assign default role (User)
+				var defaultRole = await _roleRepository.GetByIdAsync((int)UserRole.User);
+				if (defaultRole != null)
+				{
+					user.Roles.Add(defaultRole);
+				}
 				await _userRepository.AddAsync(user);
 			}
+			else
+			{
+				user.GoogleId = payload.Subject;
+				user.UpdatedAt = DateTime.UtcNow;
 
-			// 4. Generate JWT
-			var jwt = _jwtService.GenerateAccessToken(user);
+				await _userRepository.UpdateAsync(user);
+			}
+			// 4. Generate JWT & Refresh token
+			var accessToken = _jwtService.GenerateAccessToken(user);
+			var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
 
-			return (jwt, user);
+			// 5. Lưu refresh token vào DB
+			user.RefreshTokens.Add(refreshToken);
+			await _userRepository.UpdateAsync(user);
+
+			// 5. Trả về response
+			return new LoginResponseDto
+			{
+				UserId = user.Id,
+				Fullname = user.FullName,
+				Email = user.Email,
+				Token = accessToken,
+				RefreshToken = refreshToken.Token,
+				ExpireAt = DateTime.UtcNow.AddMinutes(30)
+			};
 		}
 
 		public async Task<string> SendRegistrationOtpAsync(RegisterRequestDto registerRequestDto)
@@ -185,7 +213,7 @@ namespace ToeicGenius.Services.Implementations
 					return ErrorMessages.EmailAlreadyExists;
 				}
 
-				var otpCode = await GenerateAndStoreOtpAsync(registerRequestDto.Email,(int)OtpType.Registration);
+				var otpCode = await GenerateAndStoreOtpAsync(registerRequestDto.Email, (int)OtpType.Registration);
 				await SendOtpByEmailAsync(registerRequestDto.Email, otpCode, "OTP Đăng ký");
 
 				return "";
@@ -241,9 +269,13 @@ namespace ToeicGenius.Services.Implementations
 					CreatedAt = DateTime.UtcNow,
 					IsActive = true
 				};
-
+				// Assign default role (User)
+				var defaultRole = await _roleRepository.GetByIdAsync((int)UserRole.User) ;
+				if (defaultRole != null)
+				{
+					user.Roles.Add(defaultRole);
+				}
 				await _userRepository.AddAsync(user);
-				await _userRepository.SaveChangesAsync();
 
 				await MarkOtpAsUsedAsync(registerDto.Email, (int)OtpType.Registration);
 				return "";
@@ -279,7 +311,6 @@ namespace ToeicGenius.Services.Implementations
 				ExpiresAt = DateTime.UtcNow.AddMinutes(10)
 			};
 			await _userOtpRepository.AddAsync(entity);
-			await _userOtpRepository.SaveChangesAsync();
 			return otp;
 		}
 
@@ -297,7 +328,6 @@ namespace ToeicGenius.Services.Implementations
 			{
 				record.UsedAt = DateTime.UtcNow;
 				await _userOtpRepository.UpdateAsync(record);
-				await _userOtpRepository.SaveChangesAsync();
 			}
 		}
 
@@ -314,6 +344,7 @@ namespace ToeicGenius.Services.Implementations
 			if (user == null)
 				return Result<RefreshTokenResponseDto>.Failure("Invalid refresh token");
 
+			// Check condition
 			var existingToken = user.RefreshTokens.FirstOrDefault(rt => rt.Token == refreshToken);
 			if (existingToken == null || existingToken.ExpiresAt <= DateTime.UtcNow || existingToken.RevokeAt != null)
 				return Result<RefreshTokenResponseDto>.Failure("Refresh token expired or revoked");
@@ -331,7 +362,6 @@ namespace ToeicGenius.Services.Implementations
 
 			user.RefreshTokens.Add(newRefreshToken);
 			await _userRepository.UpdateAsync(user);
-			await _userRepository.SaveChangesAsync();
 
 			var result = new RefreshTokenResponseDto
 			{
@@ -345,9 +375,18 @@ namespace ToeicGenius.Services.Implementations
 		public async Task<Result<string>> LogoutAsync(Guid userId, string refreshToken, string ipAddress)
 		{
 			var user = await _userRepository.GetByRefreshTokenAsync(refreshToken);
+
 			if (user == null || user.Id != userId)
 				return Result<string>.Failure("Refresh token không hợp lệ");
+
 			var existingToken = user.RefreshTokens.FirstOrDefault(rt => rt.Token == refreshToken);
+
+			if (existingToken == null)
+				return Result<string>.Failure("Không tìm thấy refresh token");
+
+			if (existingToken.RevokeAt != null)
+				return Result<string>.Failure("Refresh token đã bị hủy trước đó");
+
 			existingToken.RevokeAt = DateTime.UtcNow;
 			existingToken.RevokeByIp = ipAddress;
 

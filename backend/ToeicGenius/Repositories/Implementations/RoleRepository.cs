@@ -5,7 +5,7 @@ using ToeicGenius.Repositories.Persistence;
 
 namespace ToeicGenius.Repositories.Implementations
 {
-	public class RoleRepository : BaseRepository<Role, Guid>, IRoleRepository
+	public class RoleRepository : BaseRepository<Role, int>, IRoleRepository
 	{
 		public RoleRepository(ToeicGeniusDbContext context) : base(context) { }
 
