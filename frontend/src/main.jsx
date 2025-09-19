@@ -4,10 +4,13 @@ import App from "./App.jsx";
 import { BrowserRouter } from "react-router-dom";
 import "antd/dist/reset.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { AuthProvider } from "@app/providers/AuthProvider";
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

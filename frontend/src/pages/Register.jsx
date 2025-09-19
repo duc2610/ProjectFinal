@@ -1,184 +1,353 @@
-import React, { useState } from "react";
-import { Card, Form, Input, Button, Typography, Tooltip } from "antd";
-import { InfoCircleOutlined } from "@ant-design/icons";
-
+import React, { useEffect, useState } from "react";
+import {
+  Card,
+  Form,
+  Input,
+  Button,
+  Typography,
+  Divider,
+  DatePicker,
+  Select,
+  Checkbox,
+  Row,
+  Col,
+  message,
+  notification,
+} from "antd";
+import { ArrowRightOutlined } from "@ant-design/icons";
+import logo from "@assets/images/logo.png";
 const { Title, Text, Link } = Typography;
-
+import { useNavigate } from "react-router-dom";
+import { register as svcRegister } from "@services/authService";
 export default function Register() {
   const [form] = Form.useForm();
-  const [password, setPassword] = useState("");
-  const [level, setLevel] = useState(0);
+  const [cities, setCities] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [wards, setWards] = useState([]);
+  const navigate = useNavigate();
 
-  // Kiểm tra strength theo rule đơn giản
-  const checkStrength = (pwd) => {
-    let score = 0;
-    if (!pwd) return 0;
-    if (pwd.length >= 6) score++;
-    if (/[A-Z]/.test(pwd)) score++;
-    if (/[0-9]/.test(pwd)) score++;
-    if (/[^A-Za-z0-9]/.test(pwd)) score++;
-    return score;
+  const [selectedCityId, setSelectedCityId] = useState(null);
+  const [selectedDistrictId, setSelectedDistrictId] = useState(null);
+
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        const res = await fetch("http://localhost:3001/posts");
+        const data = await res.json();
+        setCities(data);
+      } catch (error) {
+        console.error("Error fetching cities:", error);
+      }
+    };
+    fetchCities();
+  }, []);
+  console.log("cities:", cities);
+
+  const handleCityChange = (value) => {
+    setSelectedCityId(value || null);
+    const city = cities.find((c) => c?.Id === value);
+    const d = city?.Districts ?? [];
+    setDistricts(d);
+    setWards([]);
+    setSelectedDistrictId(null);
+    form.setFieldsValue({ district: undefined, ward: undefined });
   };
 
-  const handlePasswordChange = (e) => {
-    const value = e.target.value;
-    setPassword(value);
-    setLevel(checkStrength(value));
-    form.validateFields(["confirmPassword"]);
+  const handleDistrictChange = (value) => {
+    setSelectedDistrictId(value || null);
+    const district = districts.find((d) => d?.Id === value);
+    const w = district?.Wards ?? [];
+    setWards(w);
+    form.setFieldsValue({ ward: undefined });
   };
 
-  const getLevelText = () => {
-    switch (level) {
-      case 0:
-        return { text: "Very Weak", color: "red" };
-      case 1:
-        return { text: "Weak", color: "orangered" };
-      case 2:
-        return { text: "Medium", color: "orange" };
-      case 3:
-        return { text: "Strong", color: "green" };
-      case 4:
-        return { text: "Very Strong", color: "darkgreen" };
-      default:
-        return { text: "", color: "" };
+  const onFinish = async (values) => {
+    try {
+      const res = await svcRegister(values);
+
+      if (res.success) {
+        notification.success({
+          message: "Đăng ký thành công",
+          description: "Bạn đã đăng ký tài khoản thành công.",
+        });
+        form.resetFields();
+        navigate("/login");
+        return;
+      }
+
+      if (res.errors) {
+        form.setFields(
+          Object.entries(res.errors).map(([name, msg]) => ({
+            name,
+            errors: [msg],
+          }))
+        );
+      } else {
+        notification.error({
+          message: "Đăng ký thất bại",
+          description: res.message || "Có lỗi xảy ra, vui lòng thử lại.",
+        });
+      }
+    } catch (error) {
+      notification.error({
+        message: "Đăng ký thất bại",
+        description: error.message,
+      });
     }
   };
-
-  const onFinish = (values) => {
-    console.log("Register form values:", values);
-  };
-
-  const levelInfo = getLevelText();
 
   return (
     <div
       style={{
         minHeight: "100vh",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #2a5298 0%, #1e3c72 100%)",
+        background: "#f7f7fb",
         padding: 16,
       }}
     >
+      <img src={logo} alt="Logo" style={{ height: 90, margin: 16 }} />
       <Card
         style={{
-          width: 420,
+          width: 750,
           borderRadius: 16,
           padding: "32px 24px",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
         }}
       >
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <Title level={3}>Create an Account</Title>
-          <Text type="secondary">Sign up to start using HMS System</Text>
+        <div style={{ textAlign: "center", marginBottom: 10 }}>
+          <Title level={3} style={{ marginBottom: 4 }}>
+            Đăng ký tài khoản
+          </Title>
+          <Text type="secondary">Tạo tài khoản mới để sử dụng dịch vụ</Text>
         </div>
 
         <Form form={form} layout="vertical" onFinish={onFinish}>
-          <Form.Item
-            label="Full Name"
-            name="name"
-            rules={[{ required: true, message: "Please enter your name!" }]}
-          >
-            <Input placeholder="Enter your full name" size="large" />
-          </Form.Item>
-
-          <Form.Item
-            label="Email"
-            name="email"
-            rules={[{ required: true, message: "Please enter your email!" }]}
-          >
-            <Input placeholder="Enter your email" size="large" />
-          </Form.Item>
-
-          <Form.Item
-            label={
-              <span>
-                Password&nbsp;
-                <Tooltip title="Ít nhất 6 ký tự, có chữ hoa, số và ký tự đặc biệt.">
-                  <InfoCircleOutlined style={{ color: "#999" }} />
-                </Tooltip>
-              </span>
-            }
-            name="password"
-            rules={[{ required: true, message: "Please enter your password!" }]}
-          >
-            <Input.Password
-              placeholder="Enter your password"
-              size="large"
-              value={password}
-              onChange={handlePasswordChange}
-            />
-          </Form.Item>
-
-          {/* Thanh strength 4 nấc */}
-          {password && (
-            <div style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  height: 8,
-                  display: "flex",
-                  gap: 4,
-                  marginBottom: 4,
-                }}
+          <Divider orientation="left">Thông tin cá nhân</Divider>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Họ"
+                name="lastName"
+                rules={[{ required: true, message: "Vui lòng nhập họ" }]}
               >
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    style={{
-                      flex: 1,
-                      borderRadius: 4,
-                      backgroundColor:
-                        i <= level ? getLevelText().color : "rgba(0,0,0,0.1)",
-                    }}
-                  />
-                ))}
-              </div>
-              <Text
-                type="secondary"
-                style={{ fontSize: 12, color: levelInfo.color }}
+                <Input placeholder="Nhập họ" size="large" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Tên"
+                name="firstName"
+                rules={[{ required: true, message: "Vui lòng nhập tên" }]}
               >
-                {levelInfo.text}
-              </Text>
-            </div>
-          )}
+                <Input placeholder="Nhập tên" size="large" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Email"
+                name="email"
+                rules={[{ required: true, message: "Vui lòng nhập email" }]}
+              >
+                <Input placeholder="Nhập email" size="large" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Số điện thoại"
+                name="phone"
+                rules={[
+                  { required: true, message: "Vui lòng nhập số điện thoại" },
+                ]}
+              >
+                <Input placeholder="Nhập số điện thoại" size="large" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Ngày sinh" name="dob">
+                <DatePicker
+                  style={{ width: "100%" }}
+                  size="large"
+                  placeholder="mm/dd/yyyy"
+                  format="MM/DD/YYYY"
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Giới tính" name="gender">
+                <Select
+                  size="large"
+                  placeholder="Chọn giới tính"
+                  options={[
+                    { label: "Nam", value: "male" },
+                    { label: "Nữ", value: "female" },
+                    { label: "Khác", value: "other" },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Cấp độ giáo dục" name="education">
+                <Select
+                  size="large"
+                  placeholder="Chọn cấp độ"
+                  options={[
+                    { label: "THPT", value: "highschool" },
+                    { label: "Cao đẳng", value: "college" },
+                    { label: "Đại học", value: "university" },
+                    { label: "Sau đại học", value: "postgrad" },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
 
-          <Form.Item
-            label="Confirm Password"
-            name="confirmPassword"
-            dependencies={["password"]}
-            rules={[
-              { required: true, message: "Please confirm your password!" },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue("password") === value) {
-                    return Promise.resolve();
+          <Divider orientation="left">Bảo mật</Divider>
+          <Row gutter={16}>
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Mật khẩu"
+                name="password"
+                rules={[{ required: true, message: "Vui lòng nhập mật khẩu" }]}
+              >
+                <Input.Password placeholder="Nhập mật khẩu" size="large" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item
+                label="Xác nhận mật khẩu"
+                name="confirmPassword"
+                dependencies={["password"]}
+                rules={[
+                  { required: true, message: "Vui lòng nhập lại mật khẩu" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue("password") === value)
+                        return Promise.resolve();
+                      return Promise.reject(new Error("Mật khẩu không khớp"));
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password placeholder="Nhập lại mật khẩu" size="large" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Divider orientation="left">Thông tin địa chỉ</Divider>
+          <Row gutter={16}>
+            <Col xs={24} md={8}>
+              <Form.Item label="Tỉnh/Thành phố" name="province">
+                <Select
+                  showSearch
+                  size="large"
+                  placeholder="Chọn tỉnh/thành phố"
+                  onChange={handleCityChange}
+                  options={(cities ?? []).map((c) => ({
+                    label: c?.Name,
+                    value: c?.Id,
+                  }))}
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
                   }
-                  return Promise.reject(new Error("Passwords do not match!"));
-                },
-              }),
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Quận/Huyện" name="district">
+                <Select
+                  showSearch
+                  size="large"
+                  placeholder="Chọn quận/huyện"
+                  disabled={!selectedCityId}
+                  onChange={handleDistrictChange}
+                  options={(districts ?? []).map((d) => ({
+                    label: d?.Name,
+                    value: d?.Id,
+                  }))}
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Phường/Xã" name="ward">
+                <Select
+                  showSearch
+                  size="large"
+                  placeholder="Chọn phường/xã"
+                  disabled={!selectedDistrictId}
+                  options={(wards ?? []).map((w) => ({
+                    label: w?.Name,
+                    value: w?.Id,
+                  }))}
+                  filterOption={(input, option) =>
+                    (option?.label ?? "")
+                      .toLowerCase()
+                      .includes(input.toLowerCase())
+                  }
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item
+            name="accept"
+            valuePropName="checked"
+            rules={[
+              {
+                validator: (_, v) =>
+                  v
+                    ? Promise.resolve()
+                    : Promise.reject(
+                        new Error("Cần đồng ý điều khoản & bảo mật")
+                      ),
+              },
             ]}
           >
-            <Input.Password placeholder="Confirm your password" size="large" />
+            <Checkbox>
+              Tôi đồng ý với{" "}
+              <a href="/terms" target="_blank" rel="noreferrer">
+                Điều khoản dịch vụ
+              </a>{" "}
+              và{" "}
+              <a href="/privacy" target="_blank" rel="noreferrer">
+                Chính sách bảo mật
+              </a>
+              .
+            </Checkbox>
           </Form.Item>
 
           <Button
             type="primary"
-            block
-            size="large"
             htmlType="submit"
+            size="large"
             style={{
-              background: "linear-gradient(90deg, #667eea, #764ba2)",
+              height: 44,
               border: "none",
+              background: "linear-gradient(90deg, #7b61ff 0%, #3ea1ff 100%)",
               fontWeight: 600,
+              width: "100%",
             }}
+            icon={<ArrowRightOutlined />}
           >
-            Register
+            Đăng ký
           </Button>
-
           <div style={{ textAlign: "center", marginTop: 16 }}>
             <Text>
-              Already have an account? <Link href="/login">Login</Link>
+              Bạn đã có tài khoản? <Link href="/login">Đăng nhập</Link>
+            </Text>
+            <br />
+            <Text>
+              Quên mật khẩu?{" "}
+              <Link href="/forgot-password">Đặt lại tại đây</Link>
             </Text>
           </div>
         </Form>

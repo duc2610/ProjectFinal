@@ -16,6 +16,7 @@
     "@react-oauth/google": "^0.12.2",
     "antd": "^5.27.3",
     "axios": "^1.12.1",
+    "json-server": "^1.0.0-beta.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^7.9.1"
