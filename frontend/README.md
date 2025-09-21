@@ -1,24 +1,28 @@
-# Base React + Vite (JavaScript)
+# FE Tracking
 
-Cực nhẹ để bắt đầu, rồi nâng cấp dần.
+## TTS V0.1 (13/09/2025 - 19/09/2025)
 
-## Chạy nhanh
-```bash
-npm install
-npm run dev
-# build production:
-npm run build
-npm run preview
-```
+### Features
 
-## Cấu trúc
-```txt
-.
-├─ index.html
-├─ package.json
-├─ vite.config.js
-└─ src/
-   ├─ App.jsx
-   ├─ main.jsx
-   └─ index.css
-```
+[x] Login / Google Login / Logout
+[x] Register
+[x] Reset password
+[x] Change password
+
+### Notes
+
+\- Branch: `tts-v0.1`
+\- Status: Completed
+
+---
+
+## TTS V0.2 (20/09/2025 - 26/09/2025)
+
+### Features
+
+[ ] Manage users
+
+### 📄 Notes
+
+\- Branch: `tts-v0.2`
+\- Status: In Progress
