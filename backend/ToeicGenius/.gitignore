@@ -1,0 +1,10 @@
+# VS, bin, obj
+.vs/
+bin/
+obj/
+
+# Log files
+*.log
+
+# AppSettings Development
+appsettings.Development.json
