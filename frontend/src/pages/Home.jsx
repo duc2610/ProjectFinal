@@ -29,8 +29,11 @@ export default function Home() {
         boxShadow: "0 2px 8px #f0f1f2",
       }}
     >
-      <img src={logo} alt="Logo" style={{ height: 64, margin: 16 }} />
-
+      <div>
+        <a href="/">
+          <img src={logo} alt="Logo" style={{ height: 64, margin: 16 }} />
+        </a>
+      </div>
       <Dropdown menu={{ items }} placement="bottomRight">
         <Button type="text">
           <Space>

@@ -29,10 +29,6 @@ export default function Login() {
           description: "Chào mừng bạn trở lại!",
           duration: 5,
         });
-        // timerRef.current = setTimeout(() => {
-        //   navigate("/");
-        // }, 5000);
-        navigate("/");
       } else {
         form.setFields([
           {

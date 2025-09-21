@@ -13,13 +13,15 @@ import {
   verifyFakeToken,
   isAuthenticated as svcIsAuthenticated,
 } from "@services/authService";
-
+import { useNavigate } from "react-router-dom";
+import { hasRole } from "@shared/utils/acl";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => getCurrentUser());
   const [loading, setLoading] = useState(false);
   const timerRef = useRef(null);
+  const navigate = useNavigate();
 
   const clearTimer = () => {
     if (timerRef.current) {
@@ -27,6 +29,15 @@ export function AuthProvider({ children }) {
       timerRef.current = null;
     }
   };
+  useEffect(() => {
+    if (user) {
+      if (user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/");
+      }
+    }
+  }, [user, navigate]);
 
   const signIn = async (email, password) => {
     setLoading(true);
@@ -47,34 +58,6 @@ export function AuthProvider({ children }) {
     svcLogout();
     setUser(null);
   };
-
-  //   useEffect(() => {
-  //     clearTimer();
-  //     if (!user) return;
-
-  //     const token = localStorage.getItem("token");
-  //     const payload = verifyFakeToken(token);
-
-  //     if (!payload) {
-  //       signOut();
-  //       return;
-  //     }
-
-  //     const nowSec = Math.floor(Date.now() / 1000);
-  //     const timeLeftMs = Math.max(0, (payload.exp - nowSec) * 1000);
-
-  //     if (timeLeftMs === 0) {
-  //       signOut();
-  //       return;
-  //     }
-
-  //     timerRef.current = setTimeout(() => {
-  //       signOut();
-  //     }, timeLeftMs);
-
-  //     return clearTimer;
-  //   }, [user]);
-
   useEffect(() => {
     const onStorage = () => {
       setUser(getCurrentUser());
@@ -90,6 +73,7 @@ export function AuthProvider({ children }) {
       isAuthenticated: svcIsAuthenticated(),
       signIn,
       signOut,
+      hasRole: (role) => hasRole(user, role),
       refresh: () => setUser(getCurrentUser()),
     }),
     [user, loading]
