@@ -122,7 +122,7 @@ namespace ToeicGenius.Services.Implementations
 		{
 			var user = await _userRepository.GetByEmailAsync(loginDto.Email);
 
-			if (user == null || !user.IsActive || user.PasswordHash == null)
+			if (user == null || user.Status != UserStatus.Active || user.PasswordHash == null)
 				return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
 
 			if (!SecurityHelper.VerifyPassword(loginDto.Password, user.PasswordHash))
@@ -229,7 +229,7 @@ namespace ToeicGenius.Services.Implementations
 			try
 			{
 				var user = await _userRepository.GetByEmailAsync(resetPasswordRequestDto.Email);
-				if (user == null || !user.IsActive)
+				if (user == null || user.Status != UserStatus.Active)
 				{
 					return ErrorMessages.UserNotFound;
 				}
@@ -267,7 +267,7 @@ namespace ToeicGenius.Services.Implementations
 					FullName = registerDto.FullName,
 					PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
 					CreatedAt = DateTime.UtcNow,
-					IsActive = true
+					Status = UserStatus.Active
 				};
 				// Assign default role (User)
 				var defaultRole = await _roleRepository.GetByIdAsync((int)UserRole.User) ;

@@ -12,6 +12,7 @@
 		// User
 		public const string UserProfileUpdated = "Cập nhật thông tin người dùng thành công.";
 		public const string UserDeleted = "Xóa người dùng thành công.";
+		public const string UserStatusUpdated = "Cập nhật trạng thái tài khoản thành công";
 
 		// Exam
 		public const string ExamCreated = "Tạo bài thi thành công.";
