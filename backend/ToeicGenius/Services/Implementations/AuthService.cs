@@ -214,7 +214,7 @@ namespace ToeicGenius.Services.Implementations
 				}
 
 				var otpCode = await GenerateAndStoreOtpAsync(registerRequestDto.Email, (int)OtpType.Registration);
-				await SendOtpByEmailAsync(registerRequestDto.Email, otpCode, "OTP Đăng ký");
+				SendOtpByEmailAsync(registerRequestDto.Email, otpCode, "OTP Đăng ký");
 
 				return "";
 			}
@@ -235,7 +235,7 @@ namespace ToeicGenius.Services.Implementations
 				}
 
 				var otpCode = await GenerateAndStoreOtpAsync(resetPasswordRequestDto.Email, (int)OtpType.ResetPassword);
-				await SendOtpByEmailAsync(resetPasswordRequestDto.Email, otpCode, "OTP Đổi mật khẩu");
+				SendOtpByEmailAsync(resetPasswordRequestDto.Email, otpCode, "OTP Đổi mật khẩu");
 
 				return "";
 			}
