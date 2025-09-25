@@ -13,12 +13,14 @@ namespace ToeicGenius.Configurations
 			services.AddScoped<IUserRepository, UserRepository>();
 			services.AddScoped<IUserOtpRepository, UserOtpRepository>();
 			services.AddScoped<IRoleRepository, RoleRepository>();
+			services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
 			// Services
 			services.AddScoped<IJwtService, JwtService>();
 			services.AddScoped<IAuthService, AuthService>();
 			services.AddScoped<IEmailService, EmailService>();
 			services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+			services.AddScoped<IUserService, UserService>();
 
 
 		}

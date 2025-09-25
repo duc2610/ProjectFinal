@@ -48,7 +48,7 @@ namespace ToeicGenius.Repositories.Implementations
 		// Get user by Email
 		public async Task<User?> GetByEmailAsync(string email)
 		{
-			return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+			return await _context.Users.Include(u=> u.Roles).FirstOrDefaultAsync(u => u.Email == email);
 		}
 
 		// Get user by refreshToken

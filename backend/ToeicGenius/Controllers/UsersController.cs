@@ -19,7 +19,7 @@ namespace ToeicGenius.Controllers
 		}
 		// Lấy danh sách user
 		[HttpGet]
-		[Authorize(Roles = "User")]
+		[Authorize(Roles = "Admin")]
 		public async Task<IActionResult> GetUsers([FromQuery] UserResquestDto request)
 		{
 			var result = await _userService.GetUsersAsync(request);
