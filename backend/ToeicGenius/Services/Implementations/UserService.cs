@@ -86,6 +86,7 @@ namespace ToeicGenius.Services.Implementations
 				return Result<UserResponseDto>.Failure(ErrorMessages.EmailAlreadyExists);
 			}
 
+			// Gen password random 
 			var plainPassword = string.IsNullOrWhiteSpace(dto.Password) ? GenerateTemporaryPassword() : dto.Password!;
 
 			var user = new User
@@ -108,8 +109,8 @@ namespace ToeicGenius.Services.Implementations
 				await _userRepository.UpdateAsync(user);
 			}
 
-			var subject = "Thông tin tài khoản ToeicGenius";
-			var body = $"Xin chào {user.FullName},<br/><br/>Tài khoản của bạn đã được tạo bởi quản trị viên.<br/>- Email: <b>{user.Email}</b><br/>- Mật khẩu: <b>{plainPassword}</b><br/><br/>Vui lòng đăng nhập và đổi mật khẩu sau khi sử dụng lần đầu.";
+			var (subject, body) = EmailTemplates.BuildAccountCreatedEmail(user.FullName, user.Email, plainPassword);
+
 			await _emailService.SendMail(user.Email, subject, body);
 
 			var roles = await _roleRepository.GetRolesByUserIdAsync(user.Id);
