@@ -19,6 +19,7 @@ namespace ToeicGenius.Controllers
 		{
 			_userService = userService;
 		}
+		// ADMIN SITE - START
 		// Lấy danh sách user
 		[HttpGet]
 		[Authorize(Roles = "Admin")]
@@ -32,7 +33,7 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<PaginationResponse<UserResponseDto>>.SuccessResponse(result.Data!));
 		}
 
-		// Lấy chi tiết user
+		// Get user detail
 		[HttpGet("{id}")]
 		[Authorize(Roles = "Admin")]
 		public async Task<IActionResult> GetUserById(Guid id)
@@ -45,7 +46,7 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<UserResponseDto>.SuccessResponse(result.Data));
 		}
 
-		// Tạo user mới
+		// Create new user
 		[HttpPost]
 		[Authorize(Roles = "Admin")]
 		public async Task<IActionResult> CreateUser([FromBody] CreateUserDto dto)
@@ -96,5 +97,19 @@ namespace ToeicGenius.Controllers
 			}
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data!, SuccessMessages.UserStatusUpdated));
 		}
+
+		[HttpGet("statistic")]
+		[Authorize(Roles = "Admin")]
+		public async Task<IActionResult> GetStatistic()
+		{
+			var result = await _userService.GetUserStatisticsAsync();
+			if (!result.IsSuccess)
+			{
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
+			}
+			return Ok(ApiResponse<UserStatisticsResponseDto>.SuccessResponse(result.Data));
+		}
+		// ADMIN SITE - END
+
 	}
 }
