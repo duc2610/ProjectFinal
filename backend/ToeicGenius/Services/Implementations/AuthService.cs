@@ -102,7 +102,7 @@ namespace ToeicGenius.Services.Implementations
         {
             var user = await _userRepository.GetByEmailAsync(loginDto.Email);
 
-            if (user == null || !user.IsActive || user.PasswordHash == null)
+            if (user == null || user.Status!= UserStatus.Active || user.PasswordHash == null)
                 return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
 
             if (!SecurityHelper.VerifyPassword(loginDto.Password, user.PasswordHash))
@@ -150,7 +150,7 @@ namespace ToeicGenius.Services.Implementations
                     Email = payload.Email,
                     FullName = payload.Name ?? payload.Email,
                     GoogleId = payload.Subject,
-                    IsActive = true,
+                    Status = UserStatus.Active,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -221,7 +221,7 @@ namespace ToeicGenius.Services.Implementations
                     FullName = registerDto.FullName,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
                     CreatedAt = DateTime.UtcNow,
-                    IsActive = true
+                    Status = UserStatus.Active,
                 };
 
                 var defaultRole = await _roleRepository.GetByIdAsync((int)UserRole.User);
@@ -243,7 +243,7 @@ namespace ToeicGenius.Services.Implementations
             try
             {
                 var user = await _userRepository.GetByEmailAsync(resetPasswordRequestDto.Email);
-                if (user == null || !user.IsActive) return ErrorMessages.UserNotFound;
+                if (user == null || user.Status != UserStatus.Active) return ErrorMessages.UserNotFound;
 
                 var otpCode = await GenerateAndStoreOtpAsync(resetPasswordRequestDto.Email, (int)OtpType.ResetPassword);
                 await SendOtpByEmailAsync(resetPasswordRequestDto.Email, otpCode, "OTP Đổi mật khẩu");
