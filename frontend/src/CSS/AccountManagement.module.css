@@ -1,0 +1,207 @@
+.container {
+  padding: 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.title {
+  color: #1890ff;
+  font-size: 28px;
+  font-weight: bold;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.addButton {
+  background: linear-gradient(45deg, #1890ff, #40a9ff);
+  border: none;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.addButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(24, 144, 255, 0.4);
+}
+
+.exportButton {
+  background: linear-gradient(45deg, #52c41a, #73d13d);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.3);
+  transition: all 0.3s ease;
+}
+
+.exportButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(82, 196, 26, 0.4);
+  background: linear-gradient(45deg, #389e0d, #52c41a);
+}
+
+.table {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.table .ant-table-thead > tr > th {
+  background: linear-gradient(45deg, #f0f2f5, #ffffff);
+  font-weight: 600;
+  color: #262626;
+  border-bottom: 2px solid #e8e8e8;
+}
+
+.table .ant-table-tbody > tr:hover > td {
+  background: #f0f8ff; 
+}
+
+.modal .ant-modal-content {
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.modal .ant-form-item-label > label {
+  font-weight: 500;
+  color: #333;
+}
+
+.modal .ant-form-item {
+  margin-bottom: 16px;
+}
+
+
+.controlsCard {
+  margin-bottom: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: white;
+  padding: 16px;
+}
+
+.searchInput {
+  width: 100%;
+}
+
+.selectedText {
+  color: #1890ff;
+  font-weight: 500;
+}
+
+
+.ant-tag {
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .title {
+    font-size: 24px;
+    text-align: center;
+  }
+
+  .addButton,
+  .exportButton {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .controlsCard {
+    padding: 12px;
+  }
+
+  .table {
+    font-size: 14px;
+  }
+
+  .table .ant-table {
+    font-size: 14px;
+  }
+
+  .modal {
+    width: 90% !important;
+    margin: 0 auto;
+  }
+
+  .modal .ant-modal-body {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container {
+    padding: 12px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+
+  .controlsCard {
+    padding: 8px;
+  }
+
+  .table .ant-table {
+    font-size: 12px;
+  }
+
+  .table .ant-table-thead > tr > th {
+    padding: 8px 4px;
+  }
+
+  .modal {
+    width: 95% !important;
+  }
+
+  .ant-space {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .container {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    color: #fff;
+  }
+
+  .title {
+    color: #40a9ff;
+  }
+
+  .table {
+    background: #2d2d2d;
+    color: #fff;
+  }
+
+  .table .ant-table-thead > tr > th {
+    background: linear-gradient(45deg, #434343, #1f1f1f);
+    color: #fff;
+  }
+
+  .controlsCard {
+    background: #2d2d2d;
+    color: #fff;
+  }
+}
