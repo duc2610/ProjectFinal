@@ -1,4 +1,7 @@
-﻿using ToeicGenius.Domains.Entities;
+﻿using ToeicGenius.Domains.DTOs.Common;
+using ToeicGenius.Domains.DTOs.Requests.User;
+using ToeicGenius.Domains.DTOs.Responses.User;
+using ToeicGenius.Domains.Entities;
 
 namespace ToeicGenius.Repositories.Interfaces
 {
@@ -6,5 +9,12 @@ namespace ToeicGenius.Repositories.Interfaces
 	{
 		Task<User?> GetByEmailAsync(string email);
 		Task<User?> GetByRefreshTokenAsync(string refreshToken);
+		Task<int> CountTotalUsersAsync();
+		Task<int> CountActiveUsersAsync();
+		Task<int> CountBannedUsersAsync();
+		Task<int> CountNewUsersThisWeekAsync();
+		Task<int> CountNewUsersThisMonthAsync();
+
+		Task<PaginationResponse<UserResponseDto>> GetUsersAsync(UserResquestDto request);
 	}
 }

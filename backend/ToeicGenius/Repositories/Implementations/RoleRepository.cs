@@ -10,16 +10,23 @@ namespace ToeicGenius.Repositories.Implementations
 		public RoleRepository(ToeicGeniusDbContext context) : base(context) { }
 
 		// Get roles by userId
+		// Get roles by userId
 		public async Task<List<Role>> GetRolesByUserIdAsync(Guid userId)
 		{
-			var user = await _context.Users
-									 .Include(u => u.Roles)
-									 .FirstOrDefaultAsync(u => u.Id == userId);
+			var roles = await _context.Users
+									  .Where(u => u.Id == userId)
+									  .Include(u => u.Roles)
+									  .SelectMany(u => u.Roles)
+									  .ToListAsync();
 
-			if (user == null)
-				return new List<Role>();
+			return roles;
+		}
 
-			return user.Roles.ToList();
+		public async Task<List<Role>> GetRolesByNamesAsync(IEnumerable<string> roleNames)
+		{
+			var normalized = roleNames.Select(r => r.Trim()).Where(r => !string.IsNullOrWhiteSpace(r)).ToList();
+			if (normalized.Count == 0) return new List<Role>();
+			return await _context.Roles.Where(r => normalized.Contains(r.RoleName)).ToListAsync();
 		}
 	}
 }
