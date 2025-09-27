@@ -10,6 +10,7 @@ const Register = lazy(() => import("@pages/Register.jsx"));
 const ForgotPassword = lazy(() => import("@pages/ForgotPassword.jsx"));
 // const Profile = lazy(() => import("@pages/Profile.jsx"));
 const AdminDashboard = lazy(() => import("@pages/admin/Dashboard.jsx"));
+const AccountManagement = lazy(() => import("@pages/admin/AccountManagement.jsx"));
 
 export default function RoutesRoot() {
   return (
@@ -21,6 +22,7 @@ export default function RoutesRoot() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/admin/accounts" element={<AccountManagement />} />
 
         {/* Private (cần đăng nhập) */}
         {/* <Route
