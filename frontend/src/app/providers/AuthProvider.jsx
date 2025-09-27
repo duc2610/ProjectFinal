@@ -3,78 +3,80 @@ import React, {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import {
   login as svcLogin,
   logout as svcLogout,
-  getCurrentUser,
-  verifyFakeToken,
-  isAuthenticated as svcIsAuthenticated,
+  loginWithGoogle as svcGoogle,
 } from "@services/authService";
 import { useNavigate } from "react-router-dom";
-import { hasRole } from "@shared/utils/acl";
+
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => getCurrentUser());
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(false);
-  const timerRef = useRef(null);
   const navigate = useNavigate();
 
-  const clearTimer = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
   useEffect(() => {
-    if (user) {
-      if (user.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/");
-      }
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        setUser(parsed);
+      } catch {}
     }
-  }, [user, navigate]);
+  }, []);
 
   const signIn = async (email, password) => {
     setLoading(true);
     try {
-      const res = await svcLogin(email, password);
-      if (res.success) {
-        setUser(res.user);
-        return { ok: true, user: res.user };
-      }
-      return { ok: false, message: res.message || "Đăng nhập thất bại" };
+      const data = await svcLogin({ email, password });
+      const u = { id: data.userId, fullname: data.fullname, email: data.email };
+      setUser(u);
+      localStorage.setItem("user", JSON.stringify(u));
+      return { ok: true, user: u };
+    } catch (err) {
+      const message = err?.response?.data?.message || "Đăng nhập thất bại";
+      return { ok: false, message };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signInWithGoogle = async (code) => {
+    setLoading(true);
+    try {
+      const data = await svcGoogle(code);
+      const u = { id: data.userId, fullname: data.fullname, email: data.email };
+      setUser(u);
+      localStorage.setItem("user", JSON.stringify(u));
+      return { ok: true, user: u };
+    } catch (err) {
+      const message =
+        err?.response?.data?.message || "Đăng nhập Google thất bại";
+      return { ok: false, message };
     } finally {
       setLoading(false);
     }
   };
 
   const signOut = () => {
-    clearTimer();
     svcLogout();
     setUser(null);
+    localStorage.removeItem("user");
+    navigate("/login");
   };
-  useEffect(() => {
-    const onStorage = () => {
-      setUser(getCurrentUser());
-    };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
 
   const value = useMemo(
     () => ({
       user,
       loading,
-      isAuthenticated: svcIsAuthenticated(),
+      isAuthenticated: !!user,
       signIn,
+      signInWithGoogle,
       signOut,
-      hasRole: (role) => hasRole(user, role),
-      refresh: () => setUser(getCurrentUser()),
     }),
     [user, loading]
   );
