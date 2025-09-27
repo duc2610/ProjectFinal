@@ -1,15 +1,16 @@
-import { Link } from "react-router-dom";
 import { DownOutlined } from "@ant-design/icons";
 import { Dropdown, Space, Button } from "antd";
 import logo from "@assets/images/logo.png";
-import { getCurrentUser, logout } from "@services/authService";
 import { useAuth } from "@shared/hooks/useAuth";
+
 export default function Home() {
   const { user, isAuthenticated, signOut } = useAuth();
-  const fullName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
+
+  const displayName = user?.fullname || user?.email || "Người dùng";
+
   const items = isAuthenticated
     ? [
-        { key: "info", label: <span>{fullName || user?.email}</span> },
+        { key: "info", label: <span>{displayName}</span> },
         { type: "divider" },
         { key: "logout", label: <a onClick={signOut}>Đăng xuất</a> },
       ]
@@ -37,7 +38,7 @@ export default function Home() {
       <Dropdown menu={{ items }} placement="bottomRight">
         <Button type="text">
           <Space>
-            {isAuthenticated ? fullName || "Người dùng" : "Tài khoản"}
+            {isAuthenticated ? displayName : "Tài khoản"}
             <DownOutlined />
           </Space>
         </Button>
