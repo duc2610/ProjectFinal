@@ -14,11 +14,11 @@ import { useNavigate } from "react-router-dom";
 const { Title, Text, Link } = Typography;
 import { useAuth } from "@shared/hooks/useAuth";
 import logo from "@assets/images/logo.png";
+import { useGoogleLogin } from "@react-oauth/google";
 export default function Login() {
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  const { signIn, loading } = useAuth();
-  const [errorMessage, setErrorMessage] = useState("");
+  const { signIn, signInWithGoogle, loading } = useAuth();
   const handleLogin = async (values) => {
     const { email, password } = values;
     try {
@@ -29,27 +29,51 @@ export default function Login() {
           description: "Chào mừng bạn trở lại!",
           duration: 5,
         });
+        navigate("/");
       } else {
+        const msg = res?.message || "Email hoặc mật khẩu không đúng";
         form.setFields([
-          {
-            name: "email",
-            errors: ["Email hoặc mật khẩu không đúng"],
-          },
-          {
-            name: "password",
-            errors: ["Email hoặc mật khẩu không đúng"],
-          },
+          { name: "email", errors: [msg] },
+          { name: "password", errors: [msg] },
         ]);
       }
     } catch (error) {
+      const beMsg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Đã có lỗi xảy ra, vui lòng thử lại sau.";
       notification.error({
         message: "Đăng nhập thất bại",
-        description:
-          error?.message || "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+        description: beMsg,
         duration: 5,
       });
     }
   };
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (response) => {
+      try {
+        const res = await signInWithGoogle(response.code);
+        if (res.ok) {
+          notification.success({
+            message: "Đăng nhập thành công",
+            description: `Xin chào ${res.user.fullname}`,
+          });
+          navigate("/");
+        } else {
+          notification.error({
+            message: "Đăng nhập Google thất bại",
+            description: res.message || "Có lỗi xảy ra, vui lòng thử lại",
+          });
+        }
+      } catch (err) {
+        notification.error({
+          message: "Đăng nhập Google thất bại",
+          description: err?.message || "Có lỗi xảy ra, vui lòng thử lại",
+        });
+      }
+    },
+    flow: "auth-code",
+  });
   return (
     <div
       style={{
@@ -72,7 +96,6 @@ export default function Login() {
         }}
         bodyStyle={{ padding: 0 }}
       >
-        {/* Header */}
         <div style={{ padding: "28px 28px 8px", textAlign: "center" }}>
           <Title level={3} style={{ marginBottom: 4 }}>
             Chào mừng trở lại
@@ -80,7 +103,6 @@ export default function Login() {
           <Text type="secondary">Đăng nhập vào tài khoản của bạn</Text>
         </div>
 
-        {/* Form */}
         <div style={{ padding: "0 28px 24px" }}>
           <Form form={form} layout="vertical" onFinish={handleLogin}>
             <Form.Item
@@ -146,6 +168,7 @@ export default function Login() {
                 justifyContent: "center",
                 gap: 8,
               }}
+              onClick={() => googleLogin()}
             >
               Tiếp tục với Google
             </Button>

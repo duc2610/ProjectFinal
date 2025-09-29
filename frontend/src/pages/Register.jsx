@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   Card,
   Form,
@@ -6,93 +6,43 @@ import {
   Button,
   Typography,
   Divider,
-  DatePicker,
-  Select,
   Checkbox,
   Row,
   Col,
-  message,
   notification,
 } from "antd";
 import { ArrowRightOutlined } from "@ant-design/icons";
 import logo from "@assets/images/logo.png";
-const { Title, Text, Link } = Typography;
 import { useNavigate } from "react-router-dom";
-import { register as svcRegister } from "@services/authService";
+import { register as registerService } from "@services/authService";
+
+const { Title, Text, Link } = Typography;
+
 export default function Register() {
   const [form] = Form.useForm();
-  const [cities, setCities] = useState([]);
-  const [districts, setDistricts] = useState([]);
-  const [wards, setWards] = useState([]);
   const navigate = useNavigate();
 
-  const [selectedCityId, setSelectedCityId] = useState(null);
-  const [selectedDistrictId, setSelectedDistrictId] = useState(null);
-
-  useEffect(() => {
-    const fetchCities = async () => {
-      try {
-        const res = await fetch("http://localhost:3001/posts");
-        const data = await res.json();
-        setCities(data);
-      } catch (error) {
-        console.error("Error fetching cities:", error);
-      }
-    };
-    fetchCities();
-  }, []);
-  console.log("cities:", cities);
-
-  const handleCityChange = (value) => {
-    setSelectedCityId(value || null);
-    const city = cities.find((c) => c?.Id === value);
-    const d = city?.Districts ?? [];
-    setDistricts(d);
-    setWards([]);
-    setSelectedDistrictId(null);
-    form.setFieldsValue({ district: undefined, ward: undefined });
-  };
-
-  const handleDistrictChange = (value) => {
-    setSelectedDistrictId(value || null);
-    const district = districts.find((d) => d?.Id === value);
-    const w = district?.Wards ?? [];
-    setWards(w);
-    form.setFieldsValue({ ward: undefined });
-  };
+  const collapseSpaces = (s) =>
+    typeof s === "string" ? s.replace(/\s+/g, " ").trim() : s;
 
   const onFinish = async (values) => {
+    const fullName = collapseSpaces(values.fullName || "");
+    const email = (values.email || "").trim().toLowerCase();
+    const password = (values.password || "").trim();
+
+    const payload = { fullName, email, password };
+
     try {
-      const res = await svcRegister(values);
-
-      if (res.success) {
-        notification.success({
-          message: "Đăng ký thành công",
-          description: "Bạn đã đăng ký tài khoản thành công.",
-        });
-        form.resetFields();
-        navigate("/login");
-        return;
-      }
-
-      if (res.errors) {
-        form.setFields(
-          Object.entries(res.errors).map(([name, msg]) => ({
-            name,
-            errors: [msg],
-          }))
-        );
-      } else {
-        notification.error({
-          message: "Đăng ký thất bại",
-          description: res.message || "Có lỗi xảy ra, vui lòng thử lại.",
-        });
-      }
-    } catch (error) {
-      notification.error({
-        message: "Đăng ký thất bại",
-        description: error.message,
+      await registerService(payload);
+      notification.success({
+        message: "Đã gửi mã OTP",
+        description: "Vui lòng kiểm tra email để lấy mã xác thực.",
       });
+      sessionStorage.setItem("regDraft", JSON.stringify(payload));
+      navigate("/verify-register", { state: payload });
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Gửi OTP thất bại";
+      form.setFields([{ name: "email", errors: [msg] }]);
     }
   };
 
@@ -129,77 +79,39 @@ export default function Register() {
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Form.Item
-                label="Họ"
-                name="lastName"
-                rules={[{ required: true, message: "Vui lòng nhập họ" }]}
+                label="Họ và tên"
+                name="fullName"
+                normalize={collapseSpaces}
+                rules={[
+                  { required: true, message: "Vui lòng nhập họ và tên" },
+                  {
+                    validator: (_, value) => {
+                      if (!value || !value.trim()) {
+                        return Promise.reject("Họ và tên không hợp lệ");
+                      }
+                      return Promise.resolve();
+                    },
+                  },
+                ]}
               >
-                <Input placeholder="Nhập họ" size="large" />
+                <Input placeholder="Nhập họ và tên" size="large" />
               </Form.Item>
             </Col>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Tên"
-                name="firstName"
-                rules={[{ required: true, message: "Vui lòng nhập tên" }]}
-              >
-                <Input placeholder="Nhập tên" size="large" />
-              </Form.Item>
-            </Col>
+
             <Col xs={24} md={12}>
               <Form.Item
                 label="Email"
                 name="email"
-                rules={[{ required: true, message: "Vui lòng nhập email" }]}
-              >
-                <Input placeholder="Nhập email" size="large" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Số điện thoại"
-                name="phone"
+                normalize={(v) => (v ? v.trim() : v)}
                 rules={[
-                  { required: true, message: "Vui lòng nhập số điện thoại" },
+                  { required: true, message: "Vui lòng nhập email" },
+                  {
+                    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                    message: "Email không hợp lệ",
+                  },
                 ]}
               >
-                <Input placeholder="Nhập số điện thoại" size="large" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="Ngày sinh" name="dob">
-                <DatePicker
-                  style={{ width: "100%" }}
-                  size="large"
-                  placeholder="mm/dd/yyyy"
-                  format="MM/DD/YYYY"
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="Giới tính" name="gender">
-                <Select
-                  size="large"
-                  placeholder="Chọn giới tính"
-                  options={[
-                    { label: "Nam", value: "male" },
-                    { label: "Nữ", value: "female" },
-                    { label: "Khác", value: "other" },
-                  ]}
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="Cấp độ giáo dục" name="education">
-                <Select
-                  size="large"
-                  placeholder="Chọn cấp độ"
-                  options={[
-                    { label: "THPT", value: "highschool" },
-                    { label: "Cao đẳng", value: "college" },
-                    { label: "Đại học", value: "university" },
-                    { label: "Sau đại học", value: "postgrad" },
-                  ]}
-                />
+                <Input placeholder="Nhập email" size="large" />
               </Form.Item>
             </Col>
           </Row>
@@ -210,11 +122,24 @@ export default function Register() {
               <Form.Item
                 label="Mật khẩu"
                 name="password"
-                rules={[{ required: true, message: "Vui lòng nhập mật khẩu" }]}
+                normalize={(v) => (v ? v.trim() : v)}
+                rules={[
+                  { required: true, message: "Vui lòng nhập mật khẩu" },
+                  {
+                    min: 6,
+                    message: "Mật khẩu tối thiểu 6 ký tự",
+                  },
+                  {
+                    pattern: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$/,
+                    message:
+                      "Mật khẩu chỉ gồm chữ + số, có ít nhất 1 chữ và 1 số",
+                  },
+                ]}
               >
                 <Input.Password placeholder="Nhập mật khẩu" size="large" />
               </Form.Item>
             </Col>
+
             <Col xs={24} md={12}>
               <Form.Item
                 label="Xác nhận mật khẩu"
@@ -224,76 +149,15 @@ export default function Register() {
                   { required: true, message: "Vui lòng nhập lại mật khẩu" },
                   ({ getFieldValue }) => ({
                     validator(_, value) {
-                      if (!value || getFieldValue("password") === value)
+                      if (!value || getFieldValue("password") === value) {
                         return Promise.resolve();
+                      }
                       return Promise.reject(new Error("Mật khẩu không khớp"));
                     },
                   }),
                 ]}
               >
                 <Input.Password placeholder="Nhập lại mật khẩu" size="large" />
-              </Form.Item>
-            </Col>
-          </Row>
-
-          <Divider orientation="left">Thông tin địa chỉ</Divider>
-          <Row gutter={16}>
-            <Col xs={24} md={8}>
-              <Form.Item label="Tỉnh/Thành phố" name="province">
-                <Select
-                  showSearch
-                  size="large"
-                  placeholder="Chọn tỉnh/thành phố"
-                  onChange={handleCityChange}
-                  options={(cities ?? []).map((c) => ({
-                    label: c?.Name,
-                    value: c?.Id,
-                  }))}
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item label="Quận/Huyện" name="district">
-                <Select
-                  showSearch
-                  size="large"
-                  placeholder="Chọn quận/huyện"
-                  disabled={!selectedCityId}
-                  onChange={handleDistrictChange}
-                  options={(districts ?? []).map((d) => ({
-                    label: d?.Name,
-                    value: d?.Id,
-                  }))}
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={8}>
-              <Form.Item label="Phường/Xã" name="ward">
-                <Select
-                  showSearch
-                  size="large"
-                  placeholder="Chọn phường/xã"
-                  disabled={!selectedDistrictId}
-                  options={(wards ?? []).map((w) => ({
-                    label: w?.Name,
-                    value: w?.Id,
-                  }))}
-                  filterOption={(input, option) =>
-                    (option?.label ?? "")
-                      .toLowerCase()
-                      .includes(input.toLowerCase())
-                  }
-                />
               </Form.Item>
             </Col>
           </Row>
@@ -340,6 +204,7 @@ export default function Register() {
           >
             Đăng ký
           </Button>
+
           <div style={{ textAlign: "center", marginTop: 16 }}>
             <Text>
               Bạn đã có tài khoản? <Link href="/login">Đăng nhập</Link>

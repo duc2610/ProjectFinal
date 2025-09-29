@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -19,7 +20,7 @@ namespace ToeicGenius.Domains.Entities
 		[Required, MaxLength(100)]
 		public string FullName { get; set; } = string.Empty;
 
-		public bool IsActive { get; set; } = true;
+		public UserStatus Status { get; set; } = UserStatus.Active;
 
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 		public DateTime? UpdatedAt { get; set; }

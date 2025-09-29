@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using Microsoft.Extensions.Configuration;
 using ToeicGenius.Domains.DTOs.Requests.Auth;
 using ToeicGenius.Domains.DTOs.Responses.Auth;
 using ToeicGenius.Domains.Entities;
@@ -17,10 +18,12 @@ namespace ToeicGenius.Controllers
 	public class AuthController : ControllerBase
 	{
 		private readonly IAuthService _authService;
-		public AuthController(IAuthService authService)
+        private readonly IConfiguration _config;
+        public AuthController(IAuthService authService, IConfiguration config)
 		{
 			_authService = authService;
-		}
+            _config = config;
+        }
 		// Login
 		[HttpPost("login")]
 		public async Task<IActionResult> Login([FromBody] LoginRequestDto loginDto)

@@ -8,9 +8,12 @@ const About = lazy(() => import("@pages/About.jsx"));
 const Login = lazy(() => import("@pages/Login.jsx"));
 const Register = lazy(() => import("@pages/Register.jsx"));
 const ForgotPassword = lazy(() => import("@pages/ForgotPassword.jsx"));
+const VerifyRegister = lazy(() => import("@pages/VerifyRegister.jsx"));
 // const Profile = lazy(() => import("@pages/Profile.jsx"));
 const AdminDashboard = lazy(() => import("@pages/admin/Dashboard.jsx"));
-
+const ResetPassword = lazy(() => import("@pages/ResetPassword.jsx"));
+const VerifyReset = lazy(() => import("@pages/VerifyReset.jsx"));
+const AuthCallback = lazy(() => import("@pages/AuthCallback.jsx"));
 export default function RoutesRoot() {
   return (
     <Suspense fallback={<div style={{ padding: 16 }}>Đang tải...</div>}>
@@ -21,6 +24,11 @@ export default function RoutesRoot() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-register" element={<VerifyRegister />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-reset" element={<VerifyReset />} />
+        <Route path="/auth/callback" element={<AuthCallback />} />
+
 
         {/* Private (cần đăng nhập) */}
         {/* <Route

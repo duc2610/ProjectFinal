@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -51,7 +51,7 @@ builder.Services.AddCors(options =>
 {
 	options.AddPolicy("AllowFrontend", policy =>
 	{
-		policy.WithOrigins("http://localhost:5173")
+		policy.WithOrigins("http://localhost:3000")
 			  .AllowAnyMethod()
 			  .AllowAnyHeader()
 			  .AllowCredentials();
@@ -77,7 +77,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 
 app.UseAuthorization();
