@@ -5,6 +5,8 @@ using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
+using ToeicGenius.Domains.DTOs.Common;
+using ToeicGenius.Domains.DTOs.Requests.Question;
 
 namespace ToeicGenius.Controllers
 {
@@ -23,18 +25,14 @@ namespace ToeicGenius.Controllers
 
 		// POST: api/question
 		[HttpPost("question")]
-		public async Task<ActionResult<Question>> CreateQuestion([FromBody] Question question)
+		public async Task<IActionResult> CreateQuestion([FromForm] CreateQuestionDto request)
 		{
-			var created = await _questionService.CreateAsync(question);
-			return CreatedAtAction(nameof(GetQuestion), new { id = created.QuestionId }, created);
-		}
-
-		// POST: api/question-group
-		[HttpPost("question-group")]
-		public async Task<ActionResult<QuestionGroup>> CreateQuestionGroup([FromBody] QuestionGroup group)
-		{
-			var created = await _questionGroupService.CreateAsync(group);
-			return CreatedAtAction(nameof(GetQuestionGroup), new { id = created.QuestionGroupId }, created);
+			var result = await _questionService.CreateAsync(request);
+			if (!result.IsSuccess)
+			{
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			}
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 
 		// GET: api/question/{id}
@@ -42,41 +40,45 @@ namespace ToeicGenius.Controllers
 		public async Task<ActionResult<QuestionResponseDto>> GetQuestion(int id)
 		{
 			var question = await _questionService.GetQuestionResponseByIdAsync(id);
-			if (question == null) return NotFound();
-			return Ok(question);
-		}
-
-		// GET: api/question-group/{id}
-		[HttpGet("question-group/{id}")]
-		public async Task<ActionResult<QuestionGroupResponseDto>> GetQuestionGroup(int id)
-		{
-			var group = await _questionGroupService.GetQuestionGroupResponseByIdAsync(id);
-			if (group == null) return NotFound();
-			return Ok(group);
+			if (question == null) return NotFound(ApiResponse<QuestionResponseDto>.NotFoundResponse());
+			return Ok(ApiResponse<QuestionResponseDto>.SuccessResponse(question));
 		}
 
 		// PUT: api/question/{id}
 		[HttpPut("question/{id}")]
-		public async Task<IActionResult> UpdateQuestion(int id, [FromBody] Question question)
+		public async Task<IActionResult> UpdateQuestion(int id, [FromBody] UpdateQuestionDto dto)
 		{
-			if (id != question.QuestionId) return BadRequest();
-			var updated = await _questionService.UpdateAsync(question);
-			if (updated == null) return NotFound();
-			return NoContent();
+			if (id != dto.QuestionId)
+				return BadRequest(ApiResponse<string>.ErrorResponse("Id not match"));
+			var result = await _questionService.UpdateAsync(dto);
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 
 		// DELETE: api/question/{id}
 		[HttpDelete("question/{id}")]
 		public async Task<IActionResult> DeleteQuestion(int id)
 		{
-			return NoContent();
+			var result = await _questionService.DeleteAsync(id);
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 
-		// GET: api/questions?part=3&tag=grammar
+		// GET: api/questions?part=&skill=&questionType=
 		[HttpGet("questions")]
-		public async Task<ActionResult<IEnumerable<Question>>> FilterQuestions([FromQuery] int? part, [FromQuery] string tag)
+		public async Task<ActionResult<ApiResponse<PaginationResponse<QuestionResponseDto>>>> FilterQuestions(
+			[FromQuery] int? part,
+			[FromQuery] int? questionType,
+			[FromQuery] int? skill,
+			[FromQuery] int page = 1,
+			[FromQuery] int pageSize = 10)
 		{
-			return Ok();
+			var result = await _questionService.FilterQuestionsAsync(part, questionType, skill, page, pageSize);
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<PaginationResponse<QuestionResponseDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+			return Ok(ApiResponse<PaginationResponse<QuestionResponseDto>>.SuccessResponse(result.Data!));
 		}
 	}
 }

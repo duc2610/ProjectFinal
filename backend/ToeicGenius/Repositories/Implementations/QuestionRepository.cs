@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
+using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.Entities;
+using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Repositories.Persistence;
 
@@ -12,38 +14,78 @@ namespace ToeicGenius.Repositories.Implementations
 	{
 		public QuestionRepository(ToeicGeniusDbContext context) : base(context) { }
 
-        public async Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id)
-        {
-            var question = await _context.Questions
-                .Include(q => q.Options)
-                .Include(q => q.QuestionType)
-                .Include(q => q.Part)
-                .Include(q => q.QuestionGroup)
-                .Where(q => q.QuestionId == id)
-                .Select(q => new QuestionResponseDto
-                {
-                    QuestionId = q.QuestionId,
-                    QuestionTypeId = q.QuestionTypeId,
-                    QuestionTypeName = q.QuestionType.TypeName,
-                    PartId = q.PartId,
-                    PartName = q.Part.Name,
-                    Content = q.Content,
-                    Number = q.Number,
-                    Options = q.Options.Select(o => new OptionDto
-                    {
-                        OptionId = o.OptionId,
-                        Content = o.Content,
-                        IsCorrect = o.IsCorrect
-                    }).ToList(),
-                    Answer = q.SolutionDetail.Explanation,
-                    AudioUrl = q.AudioUrl,
-                    ImangeUrl = q.ImageUrl,
-                })
-                .FirstOrDefaultAsync();
+		public async Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id)
+		{
+			var question = await _context.Questions
+				.Include(q => q.Options)
+				.Include(q => q.QuestionType)
+				.Include(q => q.Part)
+				.Include(q => q.QuestionGroup)
+				.Where(q => q.QuestionId == id)
+				.Select(q => new QuestionResponseDto
+				{
+					QuestionId = q.QuestionId,
+					QuestionTypeId = q.QuestionTypeId,
+					QuestionTypeName = q.QuestionType.TypeName,
+					PartId = q.PartId,
+					PartName = q.Part.Name,
+					Content = q.Content,
+					Number = q.Number,
+					Options = q.Options.Select(o => new OptionDto
+					{
+						OptionId = o.OptionId,
+						Content = o.Content,
+						IsCorrect = o.IsCorrect
+					}).ToList(),
+					Solution = q.SolutionDetail.Explanation,
+					AudioUrl = q.AudioUrl,
+					ImageUrl = q.ImageUrl,
+				})
+				.FirstOrDefaultAsync();
 
-            return question;
-        }
-    }
+			return question;
+		}
+
+		public async Task<PaginationResponse<QuestionResponseDto>> FilterQuestionsAsync(
+			int? partId, int? questionTypeId, int? skill, int page, int pageSize)
+		{
+			var query = _context.Questions
+				.Include(q => q.Part)
+				.Include(q => q.QuestionType)
+				.Include(q => q.Options)
+				.AsQueryable();
+
+			if (partId.HasValue)
+				query = query.Where(q => q.PartId == partId);
+
+			if (questionTypeId.HasValue)
+				query = query.Where(q => q.QuestionTypeId == questionTypeId);
+
+			if (skill.HasValue)
+			{
+				query = query.Where(q => q.Part.Skill == (TestSkill)skill);
+			}
+
+
+			var totalCount = await query.CountAsync();
+
+			var data = await query
+				.OrderBy(q => q.QuestionId)
+				.Skip((page - 1) * pageSize)
+				.Take(pageSize)
+				.Select(q => new QuestionResponseDto
+				{
+					QuestionId = q.QuestionId,
+					QuestionTypeName = q.QuestionType.TypeName,
+					PartName = q.Part.Name,
+					Content = q.Content,
+					Number = q.Number,
+				})
+				.ToListAsync();
+
+			return new PaginationResponse<QuestionResponseDto>(data, totalCount, page, pageSize);
+		}
+	}
 }
 
 

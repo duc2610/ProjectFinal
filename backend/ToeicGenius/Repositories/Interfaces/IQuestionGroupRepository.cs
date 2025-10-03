@@ -7,6 +7,7 @@ namespace ToeicGenius.Repositories.Interfaces
 	public interface IQuestionGroupRepository : IBaseRepository<QuestionGroup, int>
 	{
     Task<QuestionGroupResponseDto?> GetGroupWithQuestionsAsync(int id);
+    Task<List<QuestionGroupListItemDto>> FilterGroupsAsync(int? part);
 	}
 }
 

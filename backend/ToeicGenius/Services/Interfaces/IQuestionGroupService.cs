@@ -1,8 +1,7 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Entities;
+using ToeicGenius.Domains.DTOs.Common;
+using ToeicGenius.Domains.DTOs.Requests.GroupQuestion;
 
 namespace ToeicGenius.Services.Interfaces
 {
@@ -10,6 +9,7 @@ namespace ToeicGenius.Services.Interfaces
     {
         Task<QuestionGroup> CreateAsync(QuestionGroup group);
 		Task<QuestionGroupResponseDto?> GetQuestionGroupResponseByIdAsync(int id);
-
+        Task<Result<QuestionGroupResponseDto>> CreateQuestionGroupAsync(QuestionGroupRequestDto request);
+		Task<IEnumerable<QuestionGroupListItemDto>> FilterGroupsAsync(int? part);
 	}
 }

@@ -48,8 +48,8 @@ namespace ToeicGenius.Repositories.Implementations
                             Content = o.Content,
                             IsCorrect = o.IsCorrect
                         }).ToList(),
-                        Answer = q.SolutionDetail != null ? q.SolutionDetail.Explanation : "",
-                        ImangeUrl = null,
+                        Solution = q.SolutionDetail.Explanation,
+                        ImageUrl = null,
                         AudioUrl = null
                     }).ToList()
                 })
@@ -57,7 +57,32 @@ namespace ToeicGenius.Repositories.Implementations
 
             return group;
         }
-    }
+		public async Task<List<QuestionGroupListItemDto>> FilterGroupsAsync(int? part)
+		{
+			var query =  _context.QuestionGroups.AsQueryable();
+
+			if (part.HasValue)
+				query = query.Where(g => g.PartId == part.Value);
+
+			var result = await query
+				.Select(g => new QuestionGroupListItemDto
+				{
+					QuestionGroupId = g.QuestionGroupId,
+					PartId = g.PartId,
+					PartName = g.Part.Name,
+					GroupType = g.GroupType,
+					AudioUrl = g.AudioUrl,
+					Image = g.Image,
+					PassageContent = g.PassageContent,
+					PassageType = g.PassageType,
+					OrderIndex = g.OrderIndex,
+					QuestionCount = g.Questions.Count()
+				})
+				.ToListAsync();
+
+			return result;
+		}
+	}
 }
 
 

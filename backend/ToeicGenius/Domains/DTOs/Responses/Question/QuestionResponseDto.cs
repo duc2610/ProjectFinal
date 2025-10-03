@@ -17,9 +17,9 @@ namespace ToeicGenius.Domains.DTOs.Responses.Question
         public int Number { get; set; }
 
         public List<OptionDto> Options { get; set; } = new();
-        public string Answer { get; set; } = null!;
         public string? AudioUrl { get; set; }
-        public string? ImangeUrl { get; set; }
+        public string? ImageUrl { get; set; }
+        public string? Solution { get; set; }
     }
 
     public class OptionDto

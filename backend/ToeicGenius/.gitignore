@@ -8,3 +8,6 @@ obj/
 
 # AppSettings Development
 appsettings.Development.json
+
+#credential google
+capstone-sep490-g22-3f2a743b8cae.json

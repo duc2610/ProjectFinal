@@ -1,3 +1,5 @@
+using ToeicGenius.Domains.DTOs.Common;
+using ToeicGenius.Domains.DTOs.Requests.Question;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.Entities;
 
@@ -5,11 +7,13 @@ namespace ToeicGenius.Services.Interfaces
 {
     public interface IQuestionService
     {
-        Task<Question> GetByIdAsync(int id);
+        Task<QuestionResponseDto> GetByIdAsync(int id);
         Task<IEnumerable<Question>> GetAllAsync();
-        Task<Question> CreateAsync(Question question);
-        Task<Question> UpdateAsync(Question question);
-        Task DeleteAsync(int id);
+        Task<Result<string>> CreateAsync(CreateQuestionDto question);
+        Task<Result<string>> UpdateAsync(UpdateQuestionDto dto);
+        Task<Result<string>> DeleteAsync(int id);
         Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id);
+        Task<Result<PaginationResponse<QuestionResponseDto>>> FilterQuestionsAsync(
+            int? partId, int? questionTypeId, int? skill, int page, int pageSize);
     }
 }
