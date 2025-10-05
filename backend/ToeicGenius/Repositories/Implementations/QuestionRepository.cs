@@ -85,6 +85,13 @@ namespace ToeicGenius.Repositories.Implementations
 
 			return new PaginationResponse<QuestionResponseDto>(data, totalCount, page, pageSize);
 		}
+
+		public async Task<List<Question>> GetQuestionsByGroupIdAsync(int groupId)
+		{
+			return await _context.Questions
+				.Where(q => q.QuestionGroupId == groupId)
+				.ToListAsync();
+		}
 	}
 }
 

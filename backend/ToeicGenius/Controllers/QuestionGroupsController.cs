@@ -22,7 +22,7 @@ namespace ToeicGenius.Controllers
 
 		// POST: api/question-group
 		[HttpPost("question-group")]
-		public async Task<ActionResult<ApiResponse<QuestionGroupResponseDto>>> CreateQuestionGroup([FromBody] QuestionGroupRequestDto request)
+		public async Task<ActionResult<ApiResponse<QuestionGroupResponseDto>>> CreateQuestionGroup([FromForm] QuestionGroupRequestDto request)
 		{
 			var result = await _questionGroupService.CreateQuestionGroupAsync(request);
 			if (!result.IsSuccess)
@@ -42,7 +42,7 @@ namespace ToeicGenius.Controllers
 		// GET: api/question-group?part=&skill=&Type=
 		[HttpGet("question-group")]
 		public async Task<ActionResult<ApiResponse<IEnumerable<QuestionGroupListItemDto>>>> FilterGroupQuestions(
-			[FromQuery] int? part, [FromQuery] string? tag)
+			[FromQuery] int? part)
 		{
 			var groups = await _questionGroupService.FilterGroupsAsync(part);
 			return Ok(ApiResponse<IEnumerable<QuestionGroupListItemDto>>.SuccessResponse(groups));

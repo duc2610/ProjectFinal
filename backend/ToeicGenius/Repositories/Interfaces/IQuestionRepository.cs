@@ -10,7 +10,8 @@ namespace ToeicGenius.Repositories.Interfaces
         Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id);
         Task<PaginationResponse<QuestionResponseDto>> FilterQuestionsAsync(
             int? partId, int? questionTypeId, int? skill, int page, int pageSize);
-    }
+		Task<List<Question>> GetQuestionsByGroupIdAsync(int groupId);
+	}
 }
 
 

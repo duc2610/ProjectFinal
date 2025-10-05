@@ -6,8 +6,11 @@ namespace ToeicGenius.Domains.DTOs.Requests.GroupQuestion
 	{
 		public int PartId { get; set; }
 		public string? GroupType { get; set; }
-		public string? AudioUrl { get; set; }
-		public string? Image { get; set; }
+		// File âm thanh (nullable, không bắt buộc)
+		public IFormFile? Audio { get; set; }
+
+		// File hình ảnh (nullable, không bắt buộc)
+		public IFormFile? Image { get; set; }
 		public string? PassageContent { get; set; }
 		public string? PassageType { get; set; }
 		public int OrderIndex { get; set; }

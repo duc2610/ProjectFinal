@@ -7,7 +7,6 @@ namespace ToeicGenius.Services.Interfaces
 {
     public interface IQuestionGroupService
     {
-        Task<QuestionGroup> CreateAsync(QuestionGroup group);
 		Task<QuestionGroupResponseDto?> GetQuestionGroupResponseByIdAsync(int id);
         Task<Result<QuestionGroupResponseDto>> CreateQuestionGroupAsync(QuestionGroupRequestDto request);
 		Task<IEnumerable<QuestionGroupListItemDto>> FilterGroupsAsync(int? part);

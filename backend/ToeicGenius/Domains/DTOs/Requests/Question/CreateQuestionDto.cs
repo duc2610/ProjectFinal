@@ -5,9 +5,6 @@ namespace ToeicGenius.Domains.DTOs.Requests.Question
 {
 	public class CreateQuestionDto
 	{
-		[Required(ErrorMessage = "Question ID is required.")]
-		public int QuestionId { get; set; }
-
 		[Required(ErrorMessage = "Question Type ID is required.")]
 		[Range(1, int.MaxValue, ErrorMessage = "Question Type ID must be a positive integer.")]
 		public int QuestionTypeId { get; set; }
@@ -24,6 +21,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Question
 		[Range(1, 200, ErrorMessage = "Question number must be between 1 and 200.")]
 		public int Number { get; set; }
 
+		public int? QuestionGroupId { get; set; }
 		// File âm thanh (nullable, không bắt buộc)
 		public IFormFile? Audio { get; set; }
 

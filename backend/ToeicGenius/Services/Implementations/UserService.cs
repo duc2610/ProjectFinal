@@ -13,36 +13,36 @@ namespace ToeicGenius.Services.Implementations
 {
 	public class UserService : IUserService
 	{
-		private readonly IUserRepository _userRepository;
-		private readonly IRoleRepository _roleRepository;
+		private readonly IUnitOfWork _uow;
 		private readonly IEmailService _emailService;
-		public UserService(IUserRepository userRepository, IRoleRepository roleRepository, IEmailService emailService)
+		
+		public UserService(IUnitOfWork unitOfWork, IEmailService emailService)
 		{
-			_userRepository = userRepository;
-			_roleRepository = roleRepository;
+			_uow = unitOfWork;
 			_emailService = emailService;
 		}
 
 		public async Task<Result<string>> UpdateStatus(Guid userId, UserStatus userStatus)
 		{
-			var user = await _userRepository.GetByIdAsync(userId);
+			var user = await _uow.Users.GetByIdAsync(userId);
 			if (user == null)
 			{
 				return Result<string>.Failure(ErrorMessages.UserNotFound);
 			}
 			user.Status = userStatus;
-			await _userRepository.UpdateAsync(user);
+			await _uow.Users.UpdateAsync(user);
+			await _uow.SaveChangesAsync();
 			return Result<string>.Success(SuccessMessages.UserStatusUpdated);
 		}
 
 		public async Task<Result<UserResponseDto?>> GetUserByIdAsync(Guid userId)
 		{
-			var user = await _userRepository.GetByIdAsync(userId);
+			var user = await _uow.Users.GetByIdAsync(userId);
 			if (user == null)
 			{
 				return Result<UserResponseDto>.Failure(ErrorMessages.UserNotFound);
 			}
-			var roles = await _roleRepository.GetRolesByUserIdAsync(userId);
+			var roles = await _uow.Roles.GetRolesByUserIdAsync(userId);
 			var result = new UserResponseDto
 			{
 				Id = userId,
@@ -59,7 +59,7 @@ namespace ToeicGenius.Services.Implementations
 		// Get list user with filters
 		public async Task<Result<PaginationResponse<UserResponseDto>>> GetUsersAsync(UserResquestDto request)
 		{
-			var result = await _userRepository.GetUsersAsync(request);
+			var result = await _uow.Users.GetUsersAsync(request);
 			return Result<PaginationResponse<UserResponseDto>>.Success(result);
 		}
 
@@ -69,18 +69,18 @@ namespace ToeicGenius.Services.Implementations
 
 			var result = new UserStatisticsResponseDto
 			{
-				TotalUsers = await _userRepository.CountTotalUsersAsync(),
-				ActiveUsers = await _userRepository.CountActiveUsersAsync(),
-				BannedUsers = await _userRepository.CountBannedUsersAsync(),
-				NewUsersThisWeek = await _userRepository.CountNewUsersThisWeekAsync(),
-				NewUsersThisMonth = await _userRepository.CountNewUsersThisMonthAsync()
+				TotalUsers = await _uow.Users.CountTotalUsersAsync(),
+				ActiveUsers = await _uow.Users.CountActiveUsersAsync(),
+				BannedUsers = await _uow.Users.CountBannedUsersAsync(),
+				NewUsersThisWeek = await _uow.Users.CountNewUsersThisWeekAsync(),
+				NewUsersThisMonth = await _uow.Users.CountNewUsersThisMonthAsync()
 			};
 			return Result<UserStatisticsResponseDto>.Success(result);
 		}
 
 		public async Task<Result<UserResponseDto>> CreateUserAsync(CreateUserDto dto)
 		{
-			var existing = await _userRepository.GetByEmailAsync(dto.Email);
+			var existing = await _uow.Users.GetByEmailAsync(dto.Email);
 			if (existing != null)
 			{
 				return Result<UserResponseDto>.Failure(ErrorMessages.EmailAlreadyExists);
@@ -99,21 +99,23 @@ namespace ToeicGenius.Services.Implementations
 				CreatedAt = DateTime.UtcNow
 			};
 
-			await _userRepository.AddAsync(user);
+			await _uow.Users.AddAsync(user);
+			await _uow.SaveChangesAsync();
 
 			// Assign roles if provided
 			if (dto.Roles != null && dto.Roles.Count > 0)
 			{
-				var rolesToAssign = await _roleRepository.GetRolesByNamesAsync(dto.Roles);
+				var rolesToAssign = await _uow.Roles.GetRolesByNamesAsync(dto.Roles);
 				user.Roles = rolesToAssign;
-				await _userRepository.UpdateAsync(user);
+				await _uow.Users.UpdateAsync(user);
+				await _uow.SaveChangesAsync();
 			}
 
 			var (subject, body) = EmailTemplates.BuildAccountCreatedEmail(user.FullName, user.Email, plainPassword);
 
 			await _emailService.SendMail(user.Email, subject, body);
 
-			var roles = await _roleRepository.GetRolesByUserIdAsync(user.Id);
+			var roles = await _uow.Roles.GetRolesByUserIdAsync(user.Id);
 			var response = new UserResponseDto
 			{
 				Id = user.Id,
@@ -129,7 +131,7 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<Result<UserResponseDto>> UpdateUserAsync(Guid userId, UpdateUserDto dto)
 		{
-			var user = await _userRepository.GetByIdAsync(userId);
+			var user = await _uow.Users.GetByIdAsync(userId);
 			if (user == null)
 			{
 				return Result<UserResponseDto>.Failure(ErrorMessages.UserNotFound);
@@ -142,17 +144,18 @@ namespace ToeicGenius.Services.Implementations
 			}
 			user.UpdatedAt = DateTime.UtcNow;
 
-			await _userRepository.UpdateAsync(user);
+			await _uow.Users.UpdateAsync(user);
 
 			// Update roles if provided
 			if (dto.Roles != null)
 			{
-				var rolesToAssign = await _roleRepository.GetRolesByNamesAsync(dto.Roles);
+				var rolesToAssign = await _uow.Roles.GetRolesByNamesAsync(dto.Roles);
 				user.Roles = rolesToAssign;
-				await _userRepository.UpdateAsync(user);
+				await _uow.Users.UpdateAsync(user);
 			}
 
-			var roles = await _roleRepository.GetRolesByUserIdAsync(user.Id);
+			await _uow.SaveChangesAsync();
+			var roles = await _uow.Roles.GetRolesByUserIdAsync(user.Id);
 			var response = new UserResponseDto
 			{
 				Id = user.Id,
