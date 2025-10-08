@@ -10,6 +10,7 @@ using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Shared.Constants;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Services.Implementations;
+using ToeicGenius.Domains.DTOs.Responses.User;
 
 namespace ToeicGenius.Controllers
 {
@@ -18,11 +19,13 @@ namespace ToeicGenius.Controllers
 	public class AuthController : ControllerBase
 	{
 		private readonly IAuthService _authService;
+		private readonly IUserService _userService;
         private readonly IConfiguration _config;
-        public AuthController(IAuthService authService, IConfiguration config)
+        public AuthController(IAuthService authService, IConfiguration config, IUserService userService)
 		{
 			_authService = authService;
             _config = config;
+			_userService = userService;
         }
 		// Login
 		[HttpPost("login")]
@@ -196,6 +199,23 @@ namespace ToeicGenius.Controllers
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Refresh token failed"));
 
 			return Ok(ApiResponse<RefreshTokenResponseDto>.SuccessResponse(result.Data!));
+		}
+
+		// Profile
+		// Get user detail
+		[HttpGet("profile")]
+		[Authorize]
+		public async Task<IActionResult> GetUserById()
+		{
+			var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.TokenInvalid));
+			var result = await _userService.GetUserByIdAsync(Guid.Parse(userId));
+			if (!result.IsSuccess)
+			{
+				return NotFound(ApiResponse<UserResponseDto>.NotFoundResponse(result.ErrorMessage));
+			}
+			return Ok(ApiResponse<UserResponseDto>.SuccessResponse(result.Data));
 		}
 
 
