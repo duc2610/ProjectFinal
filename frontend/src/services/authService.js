@@ -1,5 +1,5 @@
 import { api, tokenStore } from "./apiClient";
-import  env from "@config/env";
+
 const unwrap = (res) => res?.data?.data ?? res?.data;
 
 export async function login({ email, password }) {
@@ -41,41 +41,50 @@ export async function verifyRegisterOtp({
   return unwrap(res);
 }
 
-export async function sendOTP({email}){
-    return await api.post("/api/Auth/request-reset-password", {email});
+export async function sendOTP({ email }) {
+  return await api.post("/api/Auth/request-reset-password", { email });
 }
 
 export async function verifyResetOtp({ email, otpCode }) {
-    return await api.post("/api/Auth/verify-reset-otp", { email, otpCode });
+  return await api.post("/api/Auth/verify-reset-otp", { email, otpCode });
 }
 
-export async  function resetPasswordConfirm({ email, otpCode, newPassword, confirmNewPassword }) {
-    return api.post("/api/Auth/reset-password", {
-        email,
-        otpCode,
-        newPassword,
-        confirmNewPassword,
-    });
+export async function resetPasswordConfirm({
+  email,
+  otpCode,
+  newPassword,
+  confirmNewPassword,
+}) {
+  return api.post("/api/Auth/reset-password", {
+    email,
+    otpCode,
+    newPassword,
+    confirmNewPassword,
+  });
 }
-
 
 export async function loginWithGoogle(code) {
-    const res = await api.get(`/api/Auth/signin-google?code=${code}`);
-    const data = unwrap(res);
+  const res = await api.get(`/api/Auth/signin-google?code=${code}`);
+  const data = unwrap(res);
 
-    if (data?.token) tokenStore.access = data.token;
-    if (data?.refreshToken) tokenStore.refresh = data.refreshToken;
+  if (data?.token) tokenStore.access = data.token;
+  if (data?.refreshToken) tokenStore.refresh = data.refreshToken;
 
-    if (data?.userId) {
-        localStorage.setItem(
-            "user",
-            JSON.stringify({
-                id: data.userId,
-                fullname: data.fullname,
-                email: data.email,
-            })
-        );
-    }
+  if (data?.userId) {
+    localStorage.setItem(
+      "user",
+      JSON.stringify({
+        id: data.userId,
+        fullname: data.fullname,
+        email: data.email,
+      })
+    );
+  }
 
-    return data;
+  return data;
+}
+
+export async function getProfile() {
+  const res = await api.get("/api/Users/profile");
+  return unwrap(res);
 }
