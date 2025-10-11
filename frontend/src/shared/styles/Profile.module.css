@@ -33,6 +33,7 @@
   border-color: #e5e7eb;
   height: 40px;
   border-radius: 8px;
+  justify-content: center;
 }
 
 .statsCard {
@@ -40,25 +41,6 @@
   border-radius: 12px;
   margin-bottom: 12px;
 }
-/* .statsTitle {
-  color: #1f2a44;
-  font-weight: 700;
-  margin-bottom: 8px;
-} */
-
-/* .counter {
-  font-size: 40px;
-  font-weight: 800;
-  color: #ff6f61;
-  line-height: 1;
-  margin: 8px 0 4px;
-  text-align: center; */
-/* }
-.counterLabel {
-  text-align: center;
-  color: #6b7280;
-  font-size: 12px;
-} */
 
 .primaryBtn {
   background: #ff835f !important;

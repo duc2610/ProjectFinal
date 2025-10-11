@@ -125,14 +125,11 @@ export default function Register() {
                 normalize={(v) => (v ? v.trim() : v)}
                 rules={[
                   { required: true, message: "Vui lòng nhập mật khẩu" },
-                  {
-                    min: 6,
-                    message: "Mật khẩu tối thiểu 6 ký tự",
-                  },
+                  { min: 8, message: "Mật khẩu tối thiểu 8 ký tự" },
                   {
                     pattern: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$/,
                     message:
-                      "Mật khẩu chỉ gồm chữ + số, có ít nhất 1 chữ và 1 số",
+                      "Phải có ít nhất 1 chữ và 1 số; chỉ gồm chữ và số (không khoảng trắng/ký tự đặc biệt)",
                   },
                 ]}
               >

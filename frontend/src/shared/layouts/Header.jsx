@@ -5,7 +5,6 @@ import logo from "@assets/images/logo.png";
 import styles from "@shared/styles/Header.module.css";
 import { Dropdown } from "antd";
 import { useAuth } from "@shared/hooks/useAuth";
-
 const { Header: AntHeader } = Layout;
 
 const nav = [
@@ -16,7 +15,7 @@ const nav = [
 ];
 
 export default function Header() {
-  const { user, isAuthenticated, signOut } = useAuth();
+  const { user, isAuthenticated, signOut, refreshProfile } = useAuth();
 
   const navigate = useNavigate();
   const menuItems = !isAuthenticated
@@ -35,7 +34,7 @@ export default function Header() {
         {
           key: "Name",
           label: (
-            <span className={styles.ddItem}>Xin chào, {user.fullname}</span>
+            <span className={styles.ddItem}>Xin chào, {user?.fullName}</span>
           ),
         },
         {
@@ -59,6 +58,23 @@ export default function Header() {
           ),
         },
       ];
+
+  const onMenuClick = async ({ key }) => {
+    if (key === "login") return navigate("/login");
+    if (key === "signup") return navigate("/register");
+    if (key === "logout") return signOut();
+
+    if (key === "profile") {
+      try {
+        await refreshProfile();
+        navigate("/profile");
+      } catch (e) {
+        message.error("Không tải được hồ sơ. Vui lòng thử lại.");
+      } finally {
+        hide();
+      }
+    }
+  };
   return (
     <AntHeader className={styles.header}>
       <div className={styles.inner}>
@@ -85,16 +101,10 @@ export default function Header() {
             <BellOutlined className={styles.bell} />
           </Badge>
           {isAuthenticated && (
-            <span className={styles.fullname}>{user.fullname}</span>
+            <span className={styles.fullname}>{user?.fullName}</span>
           )}
           <Dropdown
-            menu={{
-              items: menuItems,
-              onClick: ({ key }) => {
-                if (key === "login") navigate("/login");
-                if (key === "signup") navigate("/register");
-              },
-            }}
+            menu={{ items: menuItems, onClick: onMenuClick }}
             trigger={["hover", "click"]}
             placement="bottomRight"
           >

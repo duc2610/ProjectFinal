@@ -3,16 +3,19 @@ import { Routes, Route } from "react-router-dom";
 import { PrivateRoute, PublicOnlyRoute } from "@app/guards/Guards";
 import MainLayout from "@shared/layouts/MainLayout";
 
-const Home = lazy(() => import("@pages/Home.jsx"));
-const About = lazy(() => import("@pages/About.jsx"));
-const Login = lazy(() => import("@pages/Login.jsx"));
-const Register = lazy(() => import("@pages/Register.jsx"));
-const ForgotPassword = lazy(() => import("@pages/ForgotPassword.jsx"));
-const VerifyRegister = lazy(() => import("@pages/VerifyRegister.jsx"));
-const Profile = lazy(() => import("@pages/Profile.jsx"));
+const Home = lazy(() => import("@pages/public/Home.jsx"));
+const About = lazy(() => import("@pages/public/About.jsx"));
+const Login = lazy(() => import("@pages/auth/Login.jsx"));
+const Register = lazy(() => import("@pages/auth/Register.jsx"));
+const ForgotPassword = lazy(() => import("@pages/auth/ForgotPassword.jsx"));
+const VerifyRegister = lazy(() => import("@pages/auth/VerifyRegister.jsx"));
+const Profile = lazy(() => import("@pages/account/Profile.jsx"));
 const AdminDashboard = lazy(() => import("@pages/admin/Dashboard.jsx"));
-const ResetPassword = lazy(() => import("@pages/ResetPassword.jsx"));
-const VerifyReset = lazy(() => import("@pages/VerifyReset.jsx"));
+const ResetPassword = lazy(() => import("@pages/auth/ResetPassword.jsx"));
+const VerifyReset = lazy(() => import("@pages/auth/VerifyReset.jsx"));
+const EvaluationBanksManagement = lazy(() =>
+  import("@pages/admin/EvaluationBanksManagement.jsx")
+);
 
 export default function RoutesRoot() {
   return (
@@ -38,6 +41,10 @@ export default function RoutesRoot() {
         </Route>
         <Route>
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route
+            path="/admin/evaluation-banks-management"
+            element={<EvaluationBanksManagement />}
+          />
         </Route>
         <Route
           path="*"

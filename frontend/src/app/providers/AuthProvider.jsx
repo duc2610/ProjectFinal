@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     (async () => {
       try {
-        const hasToken = !!localStorage.getItem("tg_access_token"); // JS thuần
+        const hasToken = !!localStorage.getItem("tg_access_token");
         if (hasToken) {
           const profile = await svcGetProfile();
           setUser(profile);
@@ -105,7 +105,7 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       loading,
-      isAuthenticated: !!localStorage.getItem("tg_access_token"), // JS thuần
+      isAuthenticated: !!localStorage.getItem("tg_access_token"),
       signIn,
       signInWithGoogle,
       signOut,

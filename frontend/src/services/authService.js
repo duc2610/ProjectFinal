@@ -12,7 +12,7 @@ export async function login({ email, password }) {
     "user",
       JSON.stringify({
         id: data.userId,
-        fullname: data.fullname,
+        fullname: data.fullName,
         email: data.email,
       });
   }
@@ -75,7 +75,7 @@ export async function loginWithGoogle(code) {
       "user",
       JSON.stringify({
         id: data.userId,
-        fullname: data.fullname,
+        fullname: data.fullName,
         email: data.email,
       })
     );
@@ -85,6 +85,19 @@ export async function loginWithGoogle(code) {
 }
 
 export async function getProfile() {
-  const res = await api.get("/api/Users/profile");
+  const res = await api.get("/api/Auth/profile");
+  return unwrap(res);
+}
+
+export async function changePassword({
+  oldPassword,
+  newPassword,
+  confirmNewPassword,
+}) {
+  const res = await api.post("/api/Auth/change-password", {
+    oldPassword: oldPassword,
+    newPassword: newPassword,
+    confirmNewPassword: confirmNewPassword,
+  });
   return unwrap(res);
 }
