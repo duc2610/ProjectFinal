@@ -16,7 +16,7 @@ namespace ToeicGenius.Domains.Entities
 		public ICollection<Test> Tests { get; set; } = new List<Test>();
 		public ICollection<QuestionGroup> QuestionGroups { get; set; } = new List<QuestionGroup>();
 		public ICollection<Question> Questions { get; set; } = new List<Question>();
-
+		public ICollection<QuestionType> QuestionTypes { get; set; } = new List<QuestionType>();
 	}
 }
 

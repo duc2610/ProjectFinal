@@ -37,7 +37,7 @@ namespace ToeicGenius.Repositories.Implementations
 						Content = o.Content,
 						IsCorrect = o.IsCorrect
 					}).ToList(),
-					Solution = q.SolutionDetail.Explanation,
+					Solution = q.Explanation,
 					AudioUrl = q.AudioUrl,
 					ImageUrl = q.ImageUrl,
 				})

@@ -46,7 +46,5 @@ namespace ToeicGenius.Domains.DTOs.Requests.Question
 
 		[Required(ErrorMessage = "IsCorrect flag is required.")]
 		public bool IsCorrect { get; set; }
-
-		public int OptionOrder { get; set; }
 	}
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -11,10 +12,12 @@ namespace ToeicGenius.Domains.Entities
 		public int QuestionId { get; set; }
 		public Question Question { get; set; } = null!;
 
-		public string? OptionLabel { get; set; }
+		public string? Label { get; set; }
 		public string? Content { get; set; }
 		public bool IsCorrect { get; set; }
-		public int OptionOrder { get; set; }
+		public CommonStatus Status { get; set; } = CommonStatus.Active;
+		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime? UpdatedAt { get; set; }
 	}
 }
 

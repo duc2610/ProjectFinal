@@ -16,7 +16,6 @@ namespace ToeicGenius.Repositories.Interfaces
         IQuestionTypeRepository QuestionTypes { get; }
         IRefreshTokenRepository RefreshTokens { get; }
         IRoleRepository Roles { get; }
-        ISolutionDetailRepository Solutions { get; }
         ITestRepository Tests { get; }
         IUserAnswerRepository UserAnswers { get; }
         IUserOtpRepository UserOtps { get; }

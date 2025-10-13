@@ -19,6 +19,8 @@ namespace ToeicGenius.Domains.Entities
 
 		public int? OptionId { get; set; }
 		public Option? Option { get; set; }
+		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime? UpdatedAt { get; set; }
 	}
 }
 

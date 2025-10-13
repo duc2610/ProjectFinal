@@ -1,4 +1,8 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Amazon.Extensions.NETCore.Setup;
+using Amazon.Runtime;
+using Amazon;
+using Amazon.S3;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -67,6 +71,18 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
 	options.SuppressModelStateInvalidFilter = true;
 });
+
+//AWS 
+var awsOptions = new AWSOptions
+{
+	Credentials = new BasicAWSCredentials(
+		builder.Configuration["AWS:AccessKey"],
+		builder.Configuration["AWS:SecretKey"]
+	),
+	Region = RegionEndpoint.APSoutheast1
+};
+builder.Services.AddDefaultAWSOptions(awsOptions);
+builder.Services.AddAWSService<IAmazonS3>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

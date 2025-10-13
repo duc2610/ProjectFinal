@@ -57,7 +57,6 @@
 		public const string OperationFailed = "Thao tác thất bại.";
 		public const string InternalServerError = "Lỗi hệ thống. Vui lòng thử lại sau.";
 
-
 		public const string IdInvalid = "Id không hợp lệ";
 	}
 }

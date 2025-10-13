@@ -20,7 +20,8 @@ namespace ToeicGenius.Domains.Entities
 		public string? Status { get; set; }
 		public decimal TotalScore { get; set; }
 		public string? TestMode { get; set; }
-
+		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime? UpdatedAt { get; set; }
 		public ICollection<UserAnswer> UserAnswers { get; set; } = new List<UserAnswer>();
 		public ICollection<UserTestSkillScore> SkillScores { get; set; } = new List<UserTestSkillScore>();
 	}

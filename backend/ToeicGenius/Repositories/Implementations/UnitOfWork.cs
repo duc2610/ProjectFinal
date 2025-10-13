@@ -21,7 +21,6 @@ namespace ToeicGenius.Repositories.Implementations
         public IQuestionTypeRepository QuestionTypes { get; }
         public IRefreshTokenRepository RefreshTokens { get; }
         public IRoleRepository Roles { get; }
-        public ISolutionDetailRepository Solutions { get; }
         public ITestRepository Tests { get; }
         public IUserAnswerRepository UserAnswers { get; }
         public IUserOtpRepository UserOtps { get; }
@@ -43,7 +42,6 @@ namespace ToeicGenius.Repositories.Implementations
             QuestionTypes = new QuestionTypeRepository(context);
             RefreshTokens = new RefreshTokenRepository(context);
             Roles = new RoleRepository(context);
-            Solutions = new SolutionDetailRepository(context);
             Tests = new TestRepository(context);
             UserAnswers = new UserAnswerRepository(context);
             UserOtps = new UserOtpRepository(context);
@@ -84,5 +82,5 @@ namespace ToeicGenius.Repositories.Implementations
                 _disposed = true;
             }
         }
-    }
+	}
 }

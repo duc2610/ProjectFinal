@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ToeicGenius.Migrations
 {
     /// <inheritdoc />
-    public partial class AddDatabaseV10 : Migration
+    public partial class InitialDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -27,21 +27,6 @@ namespace ToeicGenius.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Parts", x => x.PartId);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "QuestionTypes",
-                columns: table => new
-                {
-                    QuestionTypeId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    TypeName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Skill = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_QuestionTypes", x => x.QuestionTypeId);
                 });
 
             migrationBuilder.CreateTable(
@@ -68,7 +53,9 @@ namespace ToeicGenius.Migrations
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Duration = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -117,18 +104,42 @@ namespace ToeicGenius.Migrations
                     QuestionGroupId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PartId = table.Column<int>(type: "int", nullable: false),
-                    GroupType = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     AudioUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Image = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PassageContent = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PassageType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    OrderIndex = table.Column<int>(type: "int", nullable: false)
+                    OrderIndex = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_QuestionGroups", x => x.QuestionGroupId);
                     table.ForeignKey(
                         name: "FK_QuestionGroups_Parts_PartId",
+                        column: x => x.PartId,
+                        principalTable: "Parts",
+                        principalColumn: "PartId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "QuestionTypes",
+                columns: table => new
+                {
+                    QuestionTypeId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TypeName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PartId = table.Column<int>(type: "int", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Skill = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_QuestionTypes", x => x.QuestionTypeId);
+                    table.ForeignKey(
+                        name: "FK_QuestionTypes_Parts_PartId",
                         column: x => x.PartId,
                         principalTable: "Parts",
                         principalColumn: "PartId",
@@ -170,6 +181,7 @@ namespace ToeicGenius.Migrations
                     IsPublic = table.Column<bool>(type: "bit", nullable: false),
                     UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
@@ -244,7 +256,9 @@ namespace ToeicGenius.Migrations
                     Duration = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     TotalScore = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    TestMode = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    TestMode = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -275,7 +289,11 @@ namespace ToeicGenius.Migrations
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Number = table.Column<int>(type: "int", nullable: false),
                     AudioUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Explanation = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -350,36 +368,18 @@ namespace ToeicGenius.Migrations
                     OptionId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     QuestionId = table.Column<int>(type: "int", nullable: false),
-                    OptionLabel = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Label = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     IsCorrect = table.Column<bool>(type: "bit", nullable: false),
-                    OptionOrder = table.Column<int>(type: "int", nullable: false)
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Options", x => x.OptionId);
                     table.ForeignKey(
                         name: "FK_Options_Questions_QuestionId",
-                        column: x => x.QuestionId,
-                        principalTable: "Questions",
-                        principalColumn: "QuestionId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "SolutionDetails",
-                columns: table => new
-                {
-                    SolutionDetailId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    QuestionId = table.Column<int>(type: "int", nullable: false),
-                    Explanation = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SolutionDetails", x => x.SolutionDetailId);
-                    table.ForeignKey(
-                        name: "FK_SolutionDetails_Questions_QuestionId",
                         column: x => x.QuestionId,
                         principalTable: "Questions",
                         principalColumn: "QuestionId",
@@ -415,7 +415,9 @@ namespace ToeicGenius.Migrations
                     UserTestId = table.Column<int>(type: "int", nullable: false),
                     QuestionId = table.Column<int>(type: "int", nullable: false),
                     AnswerAudioUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    OptionId = table.Column<int>(type: "int", nullable: true)
+                    OptionId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -448,7 +450,9 @@ namespace ToeicGenius.Migrations
                     UserAnswerId = table.Column<int>(type: "int", nullable: false),
                     Score = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    AIScorer = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    AIScorer = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -473,30 +477,14 @@ namespace ToeicGenius.Migrations
                     { 5, "Reading – Incomplete Sentences", "Part 5", 5, 0 },
                     { 6, "Reading – Text Completion", "Part 6", 6, 0 },
                     { 7, "Reading – Reading Comprehension", "Part 7", 7, 0 },
-                    { 8, "Writing – Câu 1-5", "Part 1", 1, 2 },
-                    { 9, "Writing – Câu 6-7", "Part 2", 2, 2 },
-                    { 10, "Writing – Câu 8", "Part 3", 3, 2 },
-                    { 11, "Speaking – Câu 1-2", "Part 1", 1, 1 },
-                    { 12, "Speaking – Câu 3-4", "Part 2", 2, 1 },
-                    { 13, "Speaking – Câu 5-7", "Part 3", 3, 1 },
-                    { 14, "Speaking – Câu 8-10", "Part 4", 4, 1 },
-                    { 15, "Speaking – Câu 11", "Part 5", 5, 1 }
-                });
-
-            migrationBuilder.InsertData(
-                table: "QuestionTypes",
-                columns: new[] { "QuestionTypeId", "Description", "Skill", "TypeName" },
-                values: new object[,]
-                {
-                    { 1, "Part 1 – Photographs", "Listening", "MCQ" },
-                    { 2, "Part 2 – Question-Response", "Listening", "MCQ" },
-                    { 3, "Part 3 – Conversations", "Listening", "MCQ" },
-                    { 4, "Part 4 – Talks", "Listening", "MCQ" },
-                    { 5, "Part 5 – Incomplete Sentences", "Reading", "MCQ" },
-                    { 6, "Part 6 – Text Completion", "Reading", "MCQ" },
-                    { 7, "Part 7 – Reading Comprehension", "Reading", "MCQ" },
-                    { 8, "Speaking – Short Answer / Read Aloud / Respond to Question", "Speaking", "ShortAnswer" },
-                    { 9, "Writing – Sentence / Paragraph / Email Writing", "Writing", "Essay" }
+                    { 8, "Writing – Write a sentence based on a picture", "Part 1", 1, 2 },
+                    { 9, "Writing – Respond to a written request", "Part 2", 2, 2 },
+                    { 10, "Writing – Write an opinion essay", "Part 3", 3, 2 },
+                    { 11, "Speaking – Read a text aloud", "Part 1", 1, 1 },
+                    { 12, "Speaking – Describe a picture", "Part 2", 2, 1 },
+                    { 13, "Speaking – Respond to questions", "Part 3", 3, 1 },
+                    { 14, "Speaking – Respond to questions using information provided", "Part 4", 4, 1 },
+                    { 15, "Speaking – Express an opinion", "Part 5", 5, 1 }
                 });
 
             migrationBuilder.InsertData(
@@ -505,68 +493,101 @@ namespace ToeicGenius.Migrations
                 values: new object[,]
                 {
                     { 1, null, "Admin" },
-                    { 2, null, "User" },
+                    { 2, null, "Examinee" },
                     { 3, null, "TestCreator" }
                 });
 
             migrationBuilder.InsertData(
                 table: "QuestionGroups",
-                columns: new[] { "QuestionGroupId", "AudioUrl", "GroupType", "Image", "OrderIndex", "PartId", "PassageContent", "PassageType" },
+                columns: new[] { "QuestionGroupId", "AudioUrl", "CreatedAt", "Image", "OrderIndex", "PartId", "PassageContent", "PassageType", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, null, null, null, 0, 6, "Passage1", null },
-                    { 2, null, null, null, 0, 7, "Passage2", null },
-                    { 3, null, null, null, 0, 7, "Passage3", null }
+                    { 1, null, new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3368), null, 0, 6, "Passage1", null, 1, null },
+                    { 2, null, new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3371), null, 0, 7, "Passage2", null, 1, null },
+                    { 3, null, new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3372), null, 0, 7, "Passage3", null, 1, null }
+                });
+
+            migrationBuilder.InsertData(
+                table: "QuestionTypes",
+                columns: new[] { "QuestionTypeId", "Description", "PartId", "Skill", "TypeName" },
+                values: new object[,]
+                {
+                    { 1, "MCQ", 1, 0, "[P1] Tranh tả người (Hành động/Trạng thái)" },
+                    { 2, "MCQ", 1, 0, "[P1] Tranh tả vật/Phong cảnh (Vị trí/Trạng thái tĩnh)" },
+                    { 3, "MCQ", 1, 0, "[P1] Tranh tả vật đang được thực hiện (Bị động tiếp diễn)" },
+                    { 4, "MCQ", 2, 0, "[P2] Câu hỏi W/H (Who, What, When, Where, Why, How)" },
+                    { 5, "MCQ", 2, 0, "[P2] Câu hỏi YES/NO" },
+                    { 6, "MCQ", 2, 0, "[P2] Câu hỏi lựa chọn (OR Question)" },
+                    { 7, "MCQ", 2, 0, "[P2] Câu hỏi đuôi / Xác nhận (Tag/Negative Questions)" },
+                    { 8, "MCQ", 2, 0, "[P2] Câu yêu cầu, đề nghị, gợi ý (Request/Suggestion)" },
+                    { 9, "MCQ", 2, 0, "[P2] Câu trần thuật (Statement/Response)" },
+                    { 10, "MCQ", 3, 0, "[P3] Hỏi về ý chính/Mục đích hội thoại (Purpose/Gist)" },
+                    { 11, "MCQ", 3, 0, "[P3] Hỏi chi tiết thông tin được đề cập (Detail)" },
+                    { 12, "MCQ", 3, 0, "[P3] Hỏi về hành động tiếp theo (Action/Do-next)" },
+                    { 13, "MCQ", 3, 0, "[P3] Hỏi suy luận/Ý định/Thái độ (Inference/Attitude)" },
+                    { 14, "MCQ", 3, 0, "[P3] Hỏi dựa vào Hình/Bảng dữ liệu (Graphic Question)" },
+                    { 15, "MCQ", 4, 0, "[P4] Hỏi nội dung chính/Chủ đề bài nói (Main Topic)" },
+                    { 16, "MCQ", 4, 0, "[P4] Hỏi chi tiết thông tin được đề cập (Detail)" },
+                    { 17, "MCQ", 4, 0, "[P4] Hỏi suy luận/Hàm ý (Inference/Imply)" },
+                    { 18, "MCQ", 4, 0, "[P4] Hỏi hành động người nghe nên làm (Listener Action)" },
+                    { 19, "MCQ", 4, 0, "[P4] Hỏi dựa vào Hình/Bảng dữ liệu (Graphic Question)" },
+                    { 20, "MCQ", 5, 0, "[P5] Ngữ pháp (Thì, Câu điều kiện, Liên từ, Giới từ,...) " },
+                    { 21, "MCQ", 5, 0, "[P5] Từ loại (N, V, Adj, Adv)" },
+                    { 22, "MCQ", 5, 0, "[P5] Từ vựng (Nghĩa của từ)" },
+                    { 23, "MCQ", 6, 0, "[P6] Hoàn thành câu/Từ loại/Từ vựng trong đoạn văn" },
+                    { 24, "MCQ", 6, 0, "[P6] Chọn câu phù hợp để điền vào chỗ trống" },
+                    { 25, "MCQ", 7, 0, "[P7] Hỏi về ý chính/Mục đích (Main Idea/Purpose)" },
+                    { 26, "MCQ", 7, 0, "[P7] Tìm thông tin chi tiết (Specific Detail)" },
+                    { 27, "MCQ", 7, 0, "[P7] Suy luận/Thông tin không đề cập (Inference/NOT TRUE)" },
+                    { 28, "MCQ", 7, 0, "[P7] Tìm từ đồng nghĩa (Synonym/Meaning)" },
+                    { 29, "MCQ", 7, 0, "[P7] Thêm câu vào chỗ trống (Sentence Insertion - Chỉ trong Multi-Passage)" },
+                    { 30, "MCQ", 7, 0, "[P7] Liên kết thông tin giữa các đoạn (Connecting Information)" },
+                    { 31, "ShortAnswer", 11, 1, "[Speaking] Đọc to đoạn văn (Read a text aloud)" },
+                    { 32, "ShortAnswer", 12, 1, "[Speaking] Mô tả tranh (Describe a picture)" },
+                    { 33, "ShortAnswer", 13, 1, "[Speaking] Trả lời câu hỏi cá nhân (Respond to questions Q5-7)" },
+                    { 34, "ShortAnswer", 14, 1, "[Speaking] Trả lời dựa vào bảng/lịch (Respond to questions Q8-10)" },
+                    { 35, "ShortAnswer", 15, 1, "[Speaking] Bày tỏ ý kiến cá nhân (Express an opinion Q11)" },
+                    { 36, "Essay", 8, 2, "[Writing] Viết câu dựa vào tranh (Write a sentence Q1-5)" },
+                    { 37, "Essay", 9, 2, "[Writing] Viết thư trả lời yêu cầu (Respond to a written request Q6-7)" },
+                    { 38, "Essay", 10, 2, "[Writing] Viết luận nêu ý kiến cá nhân (Write an opinion essay Q8)" }
                 });
 
             migrationBuilder.InsertData(
                 table: "Questions",
-                columns: new[] { "QuestionId", "AudioUrl", "Content", "ImageUrl", "Number", "PartId", "QuestionGroupId", "QuestionTypeId" },
+                columns: new[] { "QuestionId", "AudioUrl", "Content", "CreatedAt", "Explanation", "ImageUrl", "Number", "PartId", "QuestionGroupId", "QuestionTypeId", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, null, "What is the capital of France?", null, 1, 1, null, 1 },
-                    { 2, null, "Single Question 2", null, 2, 1, null, 1 },
-                    { 3, null, "Single Question 3", null, 3, 2, null, 2 },
-                    { 4, null, "Single Question 4", null, 4, 2, null, 2 },
-                    { 5, null, "Single Question 5", null, 5, 1, null, 1 },
-                    { 6, null, "Single Question 6", null, 6, 1, null, 1 },
-                    { 7, null, "Single Question 7", null, 7, 2, null, 2 },
-                    { 8, null, "Single Question 8", null, 8, 2, null, 2 },
-                    { 9, null, "Single Question 9", null, 9, 1, null, 1 },
-                    { 10, null, "Single Question 10", null, 10, 1, null, 1 }
+                    { 1, null, "What is the capital of France?", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3476), null, null, 1, 1, null, 1, 1, null },
+                    { 2, null, "Single Question 2", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3391), null, null, 2, 1, null, 1, 1, null },
+                    { 3, null, "Single Question 3", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3394), null, null, 3, 2, null, 2, 1, null },
+                    { 4, null, "Single Question 4", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3395), null, null, 4, 2, null, 2, 1, null },
+                    { 5, null, "Single Question 5", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3396), null, null, 5, 1, null, 1, 1, null },
+                    { 6, null, "Single Question 6", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3397), null, null, 6, 1, null, 1, 1, null },
+                    { 7, null, "Single Question 7", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3398), null, null, 7, 2, null, 2, 1, null },
+                    { 8, null, "Single Question 8", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3399), null, null, 8, 2, null, 2, 1, null },
+                    { 9, null, "Single Question 9", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3400), null, null, 9, 1, null, 1, 1, null },
+                    { 10, null, "Single Question 10", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3421), null, null, 10, 1, null, 1, 1, null },
+                    { 11, null, "Group 1 - Question 1", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3447), null, null, 1, 1, 1, 1, 1, null },
+                    { 12, null, "Group 1 - Question 2", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3449), null, null, 2, 1, 1, 1, 1, null },
+                    { 13, null, "Group 1 - Question 3", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3450), null, null, 3, 1, 1, 1, 1, null },
+                    { 14, null, "Group 2 - Question 1", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3451), null, null, 1, 2, 2, 2, 1, null },
+                    { 15, null, "Group 2 - Question 2", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3452), null, null, 2, 2, 2, 2, 1, null },
+                    { 16, null, "Group 2 - Question 3", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3453), null, null, 3, 2, 2, 2, 1, null },
+                    { 17, null, "Group 3 - Question 1", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3454), null, null, 1, 1, 3, 1, 1, null },
+                    { 18, null, "Group 3 - Question 2", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3456), null, null, 2, 1, 3, 1, 1, null },
+                    { 19, null, "Group 3 - Question 3", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3457), null, null, 3, 1, 3, 1, 1, null }
                 });
 
             migrationBuilder.InsertData(
                 table: "Options",
-                columns: new[] { "OptionId", "Content", "IsCorrect", "OptionLabel", "OptionOrder", "QuestionId" },
+                columns: new[] { "OptionId", "Content", "CreatedAt", "IsCorrect", "Label", "QuestionId", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, "Paris", true, "A", 0, 1 },
-                    { 2, "London", false, "B", 0, 1 },
-                    { 3, "Berlin", false, "C", 0, 1 },
-                    { 4, "Madrid", false, "D", 0, 1 }
+                    { 1, "Paris", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3494), true, "A", 1, 1, null },
+                    { 2, "London", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3495), false, "B", 1, 1, null },
+                    { 3, "Berlin", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3496), false, "C", 1, 1, null },
+                    { 4, "Madrid", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3497), false, "D", 1, 1, null }
                 });
-
-            migrationBuilder.InsertData(
-                table: "Questions",
-                columns: new[] { "QuestionId", "AudioUrl", "Content", "ImageUrl", "Number", "PartId", "QuestionGroupId", "QuestionTypeId" },
-                values: new object[,]
-                {
-                    { 11, null, "Group 1 - Question 1", null, 1, 1, 1, 1 },
-                    { 12, null, "Group 1 - Question 2", null, 2, 1, 1, 1 },
-                    { 13, null, "Group 1 - Question 3", null, 3, 1, 1, 1 },
-                    { 14, null, "Group 2 - Question 1", null, 1, 2, 2, 2 },
-                    { 15, null, "Group 2 - Question 2", null, 2, 2, 2, 2 },
-                    { 16, null, "Group 2 - Question 3", null, 3, 2, 2, 2 },
-                    { 17, null, "Group 3 - Question 1", null, 1, 1, 3, 1 },
-                    { 18, null, "Group 3 - Question 2", null, 2, 1, 3, 1 },
-                    { 19, null, "Group 3 - Question 3", null, 3, 1, 3, 1 }
-                });
-
-            migrationBuilder.InsertData(
-                table: "SolutionDetails",
-                columns: new[] { "SolutionDetailId", "Explanation", "QuestionId" },
-                values: new object[] { 1, "Paris is the capital of France.", 1 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AIFeedbacks_UserAnswerId",
@@ -614,15 +635,14 @@ namespace ToeicGenius.Migrations
                 column: "QuestionTypeId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_QuestionTypes_PartId",
+                table: "QuestionTypes",
+                column: "PartId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RefreshTokens_UserId",
                 table: "RefreshTokens",
                 column: "UserId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SolutionDetails_QuestionId",
-                table: "SolutionDetails",
-                column: "QuestionId",
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_TestParts_PartId",
@@ -676,9 +696,6 @@ namespace ToeicGenius.Migrations
 
             migrationBuilder.DropTable(
                 name: "RefreshTokens");
-
-            migrationBuilder.DropTable(
-                name: "SolutionDetails");
 
             migrationBuilder.DropTable(
                 name: "TestParts");

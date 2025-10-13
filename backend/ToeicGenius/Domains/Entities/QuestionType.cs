@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -10,8 +11,11 @@ namespace ToeicGenius.Domains.Entities
 		[Required]
 		public string TypeName { get; set; } = string.Empty;
 
+		[Required]
+		public int PartId { get; set; }
+		public Part Part { get; set; } = null!;
 		public string? Description { get; set; }
-		public string? Skill { get; set; }
+		public TestSkill Skill { get; set; }
 
 		public ICollection<Question> Questions { get; set; } = new List<Question>();
 	}

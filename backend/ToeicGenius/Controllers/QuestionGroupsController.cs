@@ -2,10 +2,12 @@
 using Microsoft.AspNetCore.Mvc;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.GroupQuestion;
+using ToeicGenius.Domains.DTOs.Requests.QuestionGroup;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Services.Implementations;
 using ToeicGenius.Services.Interfaces;
+using ToeicGenius.Shared.Constants;
 
 namespace ToeicGenius.Controllers
 {
@@ -22,17 +24,17 @@ namespace ToeicGenius.Controllers
 
 		// POST: api/question-group
 		[HttpPost("question-group")]
-		public async Task<ActionResult<ApiResponse<QuestionGroupResponseDto>>> CreateQuestionGroup([FromForm] QuestionGroupRequestDto request)
+		public async Task<IActionResult> CreateQuestionGroup([FromForm] QuestionGroupRequestDto request)
 		{
 			var result = await _questionGroupService.CreateQuestionGroupAsync(request);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<QuestionGroupResponseDto>.ErrorResponse(result.ErrorMessage ?? "Create failed"));
-			return Ok(ApiResponse<QuestionGroupResponseDto>.SuccessResponse(result.Data!));
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data!));
 		}
 
 		// GET: api/question-group/{id} -> DONE 
 		[HttpGet("question-group/{id}")]
-		public async Task<ActionResult<QuestionGroupResponseDto>> GetQuestionGroup(int id)
+		public async Task<IActionResult> GetQuestionGroup(int id)
 		{
 			var group = await _questionGroupService.GetQuestionGroupResponseByIdAsync(id);
 			if (group == null) return NotFound(ApiResponse<QuestionGroupResponseDto>.NotFoundResponse());
@@ -41,7 +43,7 @@ namespace ToeicGenius.Controllers
 
 		// GET: api/question-group?part=&skill=&Type=
 		[HttpGet("question-group")]
-		public async Task<ActionResult<ApiResponse<IEnumerable<QuestionGroupListItemDto>>>> FilterGroupQuestions(
+		public async Task<IActionResult> FilterGroupQuestions(
 			[FromQuery] int? part)
 		{
 			var groups = await _questionGroupService.FilterGroupsAsync(part);
@@ -50,16 +52,21 @@ namespace ToeicGenius.Controllers
 
 		// PUT: api/question-group/{id}
 		[HttpPut("question-group/{id}")]
-		public async Task<IActionResult> UpdateQuestion(int id, [FromBody] Question question)
+		public async Task<IActionResult> UpdateQuestion(int id, [FromForm]UpdateQuestionGroupDto request)
 		{
-			return NoContent();
+			request.QuestionGroupId = id;
+			var result = await _questionGroupService.UpdateAsync(request);
+			if (!result.IsSuccess) return BadRequest(ApiResponse<string>.ErrorResponse(ErrorMessages.OperationFailed));
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 
 		// DELETE: api/question-group/{id}
 		[HttpDelete("question-group/{id}")]
 		public async Task<IActionResult> DeleteGroupQuestion(int id)
 		{
-			return NoContent();
+			var result = await _questionGroupService.DeleteQuestionGroupAsync(id);
+			if (!result.IsSuccess) return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 
 	}

@@ -48,7 +48,7 @@ namespace ToeicGenius.Controllers
 		[HttpPut("question/{id}")]
 		public async Task<IActionResult> UpdateQuestion(int id, [FromBody] UpdateQuestionDto dto)
 		{
-			if (id != dto.QuestionId)
+			if (id != dto.Id)
 				return BadRequest(ApiResponse<string>.ErrorResponse("Id not match"));
 			var result = await _questionService.UpdateAsync(dto);
 			if (!result.IsSuccess)

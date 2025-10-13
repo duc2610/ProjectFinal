@@ -51,9 +51,15 @@ namespace ToeicGenius.Migrations
                     b.Property<string>("Content")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal>("Score")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("UserAnswerId")
                         .HasColumnType("int");
@@ -142,6 +148,9 @@ namespace ToeicGenius.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -163,17 +172,23 @@ namespace ToeicGenius.Migrations
                     b.Property<string>("Content")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsCorrect")
                         .HasColumnType("bit");
 
-                    b.Property<string>("OptionLabel")
+                    b.Property<string>("Label")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("OptionOrder")
-                        .HasColumnType("int");
 
                     b.Property<int>("QuestionId")
                         .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("OptionId");
 
@@ -186,37 +201,41 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 1,
                             Content = "Paris",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3494),
                             IsCorrect = true,
-                            OptionLabel = "A",
-                            OptionOrder = 0,
-                            QuestionId = 1
+                            Label = "A",
+                            QuestionId = 1,
+                            Status = 1
                         },
                         new
                         {
                             OptionId = 2,
                             Content = "London",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3495),
                             IsCorrect = false,
-                            OptionLabel = "B",
-                            OptionOrder = 0,
-                            QuestionId = 1
+                            Label = "B",
+                            QuestionId = 1,
+                            Status = 1
                         },
                         new
                         {
                             OptionId = 3,
                             Content = "Berlin",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3496),
                             IsCorrect = false,
-                            OptionLabel = "C",
-                            OptionOrder = 0,
-                            QuestionId = 1
+                            Label = "C",
+                            QuestionId = 1,
+                            Status = 1
                         },
                         new
                         {
                             OptionId = 4,
                             Content = "Madrid",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3497),
                             IsCorrect = false,
-                            OptionLabel = "D",
-                            OptionOrder = 0,
-                            QuestionId = 1
+                            Label = "D",
+                            QuestionId = 1,
+                            Status = 1
                         });
                 });
 
@@ -304,7 +323,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             PartId = 8,
-                            Description = "Writing – Câu 1-5",
+                            Description = "Writing – Write a sentence based on a picture",
                             Name = "Part 1",
                             PartNumber = 1,
                             Skill = 2
@@ -312,7 +331,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             PartId = 9,
-                            Description = "Writing – Câu 6-7",
+                            Description = "Writing – Respond to a written request",
                             Name = "Part 2",
                             PartNumber = 2,
                             Skill = 2
@@ -320,7 +339,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             PartId = 10,
-                            Description = "Writing – Câu 8",
+                            Description = "Writing – Write an opinion essay",
                             Name = "Part 3",
                             PartNumber = 3,
                             Skill = 2
@@ -328,7 +347,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             PartId = 11,
-                            Description = "Speaking – Câu 1-2",
+                            Description = "Speaking – Read a text aloud",
                             Name = "Part 1",
                             PartNumber = 1,
                             Skill = 1
@@ -336,7 +355,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             PartId = 12,
-                            Description = "Speaking – Câu 3-4",
+                            Description = "Speaking – Describe a picture",
                             Name = "Part 2",
                             PartNumber = 2,
                             Skill = 1
@@ -344,7 +363,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             PartId = 13,
-                            Description = "Speaking – Câu 5-7",
+                            Description = "Speaking – Respond to questions",
                             Name = "Part 3",
                             PartNumber = 3,
                             Skill = 1
@@ -352,7 +371,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             PartId = 14,
-                            Description = "Speaking – Câu 8-10",
+                            Description = "Speaking – Respond to questions using information provided",
                             Name = "Part 4",
                             PartNumber = 4,
                             Skill = 1
@@ -360,7 +379,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             PartId = 15,
-                            Description = "Speaking – Câu 11",
+                            Description = "Speaking – Express an opinion",
                             Name = "Part 5",
                             PartNumber = 5,
                             Skill = 1
@@ -381,6 +400,12 @@ namespace ToeicGenius.Migrations
                     b.Property<string>("Content")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Explanation")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
 
@@ -395,6 +420,12 @@ namespace ToeicGenius.Migrations
 
                     b.Property<int>("QuestionTypeId")
                         .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("QuestionId");
 
@@ -411,162 +442,200 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 2,
                             Content = "Single Question 2",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3391),
                             Number = 2,
                             PartId = 1,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 3,
                             Content = "Single Question 3",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3394),
                             Number = 3,
                             PartId = 2,
-                            QuestionTypeId = 2
+                            QuestionTypeId = 2,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 4,
                             Content = "Single Question 4",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3395),
                             Number = 4,
                             PartId = 2,
-                            QuestionTypeId = 2
+                            QuestionTypeId = 2,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 5,
                             Content = "Single Question 5",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3396),
                             Number = 5,
                             PartId = 1,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 6,
                             Content = "Single Question 6",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3397),
                             Number = 6,
                             PartId = 1,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 7,
                             Content = "Single Question 7",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3398),
                             Number = 7,
                             PartId = 2,
-                            QuestionTypeId = 2
+                            QuestionTypeId = 2,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 8,
                             Content = "Single Question 8",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3399),
                             Number = 8,
                             PartId = 2,
-                            QuestionTypeId = 2
+                            QuestionTypeId = 2,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 9,
                             Content = "Single Question 9",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3400),
                             Number = 9,
                             PartId = 1,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 10,
                             Content = "Single Question 10",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3421),
                             Number = 10,
                             PartId = 1,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 11,
                             Content = "Group 1 - Question 1",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3447),
                             Number = 1,
                             PartId = 1,
                             QuestionGroupId = 1,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 12,
                             Content = "Group 1 - Question 2",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3449),
                             Number = 2,
                             PartId = 1,
                             QuestionGroupId = 1,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 13,
                             Content = "Group 1 - Question 3",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3450),
                             Number = 3,
                             PartId = 1,
                             QuestionGroupId = 1,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 14,
                             Content = "Group 2 - Question 1",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3451),
                             Number = 1,
                             PartId = 2,
                             QuestionGroupId = 2,
-                            QuestionTypeId = 2
+                            QuestionTypeId = 2,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 15,
                             Content = "Group 2 - Question 2",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3452),
                             Number = 2,
                             PartId = 2,
                             QuestionGroupId = 2,
-                            QuestionTypeId = 2
+                            QuestionTypeId = 2,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 16,
                             Content = "Group 2 - Question 3",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3453),
                             Number = 3,
                             PartId = 2,
                             QuestionGroupId = 2,
-                            QuestionTypeId = 2
+                            QuestionTypeId = 2,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 17,
                             Content = "Group 3 - Question 1",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3454),
                             Number = 1,
                             PartId = 1,
                             QuestionGroupId = 3,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 18,
                             Content = "Group 3 - Question 2",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3456),
                             Number = 2,
                             PartId = 1,
                             QuestionGroupId = 3,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 19,
                             Content = "Group 3 - Question 3",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3457),
                             Number = 3,
                             PartId = 1,
                             QuestionGroupId = 3,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         },
                         new
                         {
                             QuestionId = 1,
                             Content = "What is the capital of France?",
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3476),
                             Number = 1,
                             PartId = 1,
-                            QuestionTypeId = 1
+                            QuestionTypeId = 1,
+                            Status = 1
                         });
                 });
 
@@ -581,8 +650,8 @@ namespace ToeicGenius.Migrations
                     b.Property<string>("AudioUrl")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("GroupType")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Image")
                         .HasColumnType("nvarchar(max)");
@@ -599,6 +668,12 @@ namespace ToeicGenius.Migrations
                     b.Property<string>("PassageType")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("QuestionGroupId");
 
                     b.HasIndex("PartId");
@@ -609,23 +684,29 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             QuestionGroupId = 1,
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3368),
                             OrderIndex = 0,
                             PartId = 6,
-                            PassageContent = "Passage1"
+                            PassageContent = "Passage1",
+                            Status = 1
                         },
                         new
                         {
                             QuestionGroupId = 2,
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3371),
                             OrderIndex = 0,
                             PartId = 7,
-                            PassageContent = "Passage2"
+                            PassageContent = "Passage2",
+                            Status = 1
                         },
                         new
                         {
                             QuestionGroupId = 3,
+                            CreatedAt = new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3372),
                             OrderIndex = 0,
                             PartId = 7,
-                            PassageContent = "Passage3"
+                            PassageContent = "Passage3",
+                            Status = 1
                         });
                 });
 
@@ -640,8 +721,11 @@ namespace ToeicGenius.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Skill")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("PartId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Skill")
+                        .HasColumnType("int");
 
                     b.Property<string>("TypeName")
                         .IsRequired()
@@ -649,71 +733,314 @@ namespace ToeicGenius.Migrations
 
                     b.HasKey("QuestionTypeId");
 
+                    b.HasIndex("PartId");
+
                     b.ToTable("QuestionTypes");
 
                     b.HasData(
                         new
                         {
                             QuestionTypeId = 1,
-                            Description = "Part 1 – Photographs",
-                            Skill = "Listening",
-                            TypeName = "MCQ"
+                            Description = "MCQ",
+                            PartId = 1,
+                            Skill = 0,
+                            TypeName = "[P1] Tranh tả người (Hành động/Trạng thái)"
                         },
                         new
                         {
                             QuestionTypeId = 2,
-                            Description = "Part 2 – Question-Response",
-                            Skill = "Listening",
-                            TypeName = "MCQ"
+                            Description = "MCQ",
+                            PartId = 1,
+                            Skill = 0,
+                            TypeName = "[P1] Tranh tả vật/Phong cảnh (Vị trí/Trạng thái tĩnh)"
                         },
                         new
                         {
                             QuestionTypeId = 3,
-                            Description = "Part 3 – Conversations",
-                            Skill = "Listening",
-                            TypeName = "MCQ"
+                            Description = "MCQ",
+                            PartId = 1,
+                            Skill = 0,
+                            TypeName = "[P1] Tranh tả vật đang được thực hiện (Bị động tiếp diễn)"
                         },
                         new
                         {
                             QuestionTypeId = 4,
-                            Description = "Part 4 – Talks",
-                            Skill = "Listening",
-                            TypeName = "MCQ"
+                            Description = "MCQ",
+                            PartId = 2,
+                            Skill = 0,
+                            TypeName = "[P2] Câu hỏi W/H (Who, What, When, Where, Why, How)"
                         },
                         new
                         {
                             QuestionTypeId = 5,
-                            Description = "Part 5 – Incomplete Sentences",
-                            Skill = "Reading",
-                            TypeName = "MCQ"
+                            Description = "MCQ",
+                            PartId = 2,
+                            Skill = 0,
+                            TypeName = "[P2] Câu hỏi YES/NO"
                         },
                         new
                         {
                             QuestionTypeId = 6,
-                            Description = "Part 6 – Text Completion",
-                            Skill = "Reading",
-                            TypeName = "MCQ"
+                            Description = "MCQ",
+                            PartId = 2,
+                            Skill = 0,
+                            TypeName = "[P2] Câu hỏi lựa chọn (OR Question)"
                         },
                         new
                         {
                             QuestionTypeId = 7,
-                            Description = "Part 7 – Reading Comprehension",
-                            Skill = "Reading",
-                            TypeName = "MCQ"
+                            Description = "MCQ",
+                            PartId = 2,
+                            Skill = 0,
+                            TypeName = "[P2] Câu hỏi đuôi / Xác nhận (Tag/Negative Questions)"
                         },
                         new
                         {
                             QuestionTypeId = 8,
-                            Description = "Speaking – Short Answer / Read Aloud / Respond to Question",
-                            Skill = "Speaking",
-                            TypeName = "ShortAnswer"
+                            Description = "MCQ",
+                            PartId = 2,
+                            Skill = 0,
+                            TypeName = "[P2] Câu yêu cầu, đề nghị, gợi ý (Request/Suggestion)"
                         },
                         new
                         {
                             QuestionTypeId = 9,
-                            Description = "Writing – Sentence / Paragraph / Email Writing",
-                            Skill = "Writing",
-                            TypeName = "Essay"
+                            Description = "MCQ",
+                            PartId = 2,
+                            Skill = 0,
+                            TypeName = "[P2] Câu trần thuật (Statement/Response)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 10,
+                            Description = "MCQ",
+                            PartId = 3,
+                            Skill = 0,
+                            TypeName = "[P3] Hỏi về ý chính/Mục đích hội thoại (Purpose/Gist)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 11,
+                            Description = "MCQ",
+                            PartId = 3,
+                            Skill = 0,
+                            TypeName = "[P3] Hỏi chi tiết thông tin được đề cập (Detail)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 12,
+                            Description = "MCQ",
+                            PartId = 3,
+                            Skill = 0,
+                            TypeName = "[P3] Hỏi về hành động tiếp theo (Action/Do-next)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 13,
+                            Description = "MCQ",
+                            PartId = 3,
+                            Skill = 0,
+                            TypeName = "[P3] Hỏi suy luận/Ý định/Thái độ (Inference/Attitude)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 14,
+                            Description = "MCQ",
+                            PartId = 3,
+                            Skill = 0,
+                            TypeName = "[P3] Hỏi dựa vào Hình/Bảng dữ liệu (Graphic Question)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 15,
+                            Description = "MCQ",
+                            PartId = 4,
+                            Skill = 0,
+                            TypeName = "[P4] Hỏi nội dung chính/Chủ đề bài nói (Main Topic)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 16,
+                            Description = "MCQ",
+                            PartId = 4,
+                            Skill = 0,
+                            TypeName = "[P4] Hỏi chi tiết thông tin được đề cập (Detail)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 17,
+                            Description = "MCQ",
+                            PartId = 4,
+                            Skill = 0,
+                            TypeName = "[P4] Hỏi suy luận/Hàm ý (Inference/Imply)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 18,
+                            Description = "MCQ",
+                            PartId = 4,
+                            Skill = 0,
+                            TypeName = "[P4] Hỏi hành động người nghe nên làm (Listener Action)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 19,
+                            Description = "MCQ",
+                            PartId = 4,
+                            Skill = 0,
+                            TypeName = "[P4] Hỏi dựa vào Hình/Bảng dữ liệu (Graphic Question)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 20,
+                            Description = "MCQ",
+                            PartId = 5,
+                            Skill = 0,
+                            TypeName = "[P5] Ngữ pháp (Thì, Câu điều kiện, Liên từ, Giới từ,...) "
+                        },
+                        new
+                        {
+                            QuestionTypeId = 21,
+                            Description = "MCQ",
+                            PartId = 5,
+                            Skill = 0,
+                            TypeName = "[P5] Từ loại (N, V, Adj, Adv)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 22,
+                            Description = "MCQ",
+                            PartId = 5,
+                            Skill = 0,
+                            TypeName = "[P5] Từ vựng (Nghĩa của từ)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 23,
+                            Description = "MCQ",
+                            PartId = 6,
+                            Skill = 0,
+                            TypeName = "[P6] Hoàn thành câu/Từ loại/Từ vựng trong đoạn văn"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 24,
+                            Description = "MCQ",
+                            PartId = 6,
+                            Skill = 0,
+                            TypeName = "[P6] Chọn câu phù hợp để điền vào chỗ trống"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 25,
+                            Description = "MCQ",
+                            PartId = 7,
+                            Skill = 0,
+                            TypeName = "[P7] Hỏi về ý chính/Mục đích (Main Idea/Purpose)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 26,
+                            Description = "MCQ",
+                            PartId = 7,
+                            Skill = 0,
+                            TypeName = "[P7] Tìm thông tin chi tiết (Specific Detail)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 27,
+                            Description = "MCQ",
+                            PartId = 7,
+                            Skill = 0,
+                            TypeName = "[P7] Suy luận/Thông tin không đề cập (Inference/NOT TRUE)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 28,
+                            Description = "MCQ",
+                            PartId = 7,
+                            Skill = 0,
+                            TypeName = "[P7] Tìm từ đồng nghĩa (Synonym/Meaning)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 29,
+                            Description = "MCQ",
+                            PartId = 7,
+                            Skill = 0,
+                            TypeName = "[P7] Thêm câu vào chỗ trống (Sentence Insertion - Chỉ trong Multi-Passage)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 30,
+                            Description = "MCQ",
+                            PartId = 7,
+                            Skill = 0,
+                            TypeName = "[P7] Liên kết thông tin giữa các đoạn (Connecting Information)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 31,
+                            Description = "ShortAnswer",
+                            PartId = 11,
+                            Skill = 1,
+                            TypeName = "[Speaking] Đọc to đoạn văn (Read a text aloud)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 32,
+                            Description = "ShortAnswer",
+                            PartId = 12,
+                            Skill = 1,
+                            TypeName = "[Speaking] Mô tả tranh (Describe a picture)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 33,
+                            Description = "ShortAnswer",
+                            PartId = 13,
+                            Skill = 1,
+                            TypeName = "[Speaking] Trả lời câu hỏi cá nhân (Respond to questions Q5-7)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 34,
+                            Description = "ShortAnswer",
+                            PartId = 14,
+                            Skill = 1,
+                            TypeName = "[Speaking] Trả lời dựa vào bảng/lịch (Respond to questions Q8-10)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 35,
+                            Description = "ShortAnswer",
+                            PartId = 15,
+                            Skill = 1,
+                            TypeName = "[Speaking] Bày tỏ ý kiến cá nhân (Express an opinion Q11)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 36,
+                            Description = "Essay",
+                            PartId = 8,
+                            Skill = 2,
+                            TypeName = "[Writing] Viết câu dựa vào tranh (Write a sentence Q1-5)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 37,
+                            Description = "Essay",
+                            PartId = 9,
+                            Skill = 2,
+                            TypeName = "[Writing] Viết thư trả lời yêu cầu (Respond to a written request Q6-7)"
+                        },
+                        new
+                        {
+                            QuestionTypeId = 38,
+                            Description = "Essay",
+                            PartId = 10,
+                            Skill = 2,
+                            TypeName = "[Writing] Viết luận nêu ý kiến cá nhân (Write an opinion essay Q8)"
                         });
                 });
 
@@ -791,42 +1118,12 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             Id = 2,
-                            RoleName = "User"
+                            RoleName = "Examinee"
                         },
                         new
                         {
                             Id = 3,
                             RoleName = "TestCreator"
-                        });
-                });
-
-            modelBuilder.Entity("ToeicGenius.Domains.Entities.SolutionDetail", b =>
-                {
-                    b.Property<int>("SolutionDetailId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SolutionDetailId"));
-
-                    b.Property<string>("Explanation")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("QuestionId")
-                        .HasColumnType("int");
-
-                    b.HasKey("SolutionDetailId");
-
-                    b.HasIndex("QuestionId")
-                        .IsUnique();
-
-                    b.ToTable("SolutionDetails");
-
-                    b.HasData(
-                        new
-                        {
-                            SolutionDetailId = 1,
-                            Explanation = "Paris is the capital of France.",
-                            QuestionId = 1
                         });
                 });
 
@@ -847,11 +1144,17 @@ namespace ToeicGenius.Migrations
                     b.Property<int>("Duration")
                         .HasColumnType("int");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.Property<string>("TestMode")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Title")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("TestId");
 
@@ -909,11 +1212,17 @@ namespace ToeicGenius.Migrations
                     b.Property<string>("AnswerAudioUrl")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int?>("OptionId")
                         .HasColumnType("int");
 
                     b.Property<int>("QuestionId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("UserTestId")
                         .HasColumnType("int");
@@ -970,6 +1279,9 @@ namespace ToeicGenius.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserTestId"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("Duration")
                         .HasColumnType("int");
 
@@ -988,6 +1300,9 @@ namespace ToeicGenius.Migrations
                     b.Property<decimal>("TotalScore")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
@@ -1147,6 +1462,17 @@ namespace ToeicGenius.Migrations
                     b.Navigation("Part");
                 });
 
+            modelBuilder.Entity("ToeicGenius.Domains.Entities.QuestionType", b =>
+                {
+                    b.HasOne("ToeicGenius.Domains.Entities.Part", "Part")
+                        .WithMany("QuestionTypes")
+                        .HasForeignKey("PartId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Part");
+                });
+
             modelBuilder.Entity("ToeicGenius.Domains.Entities.RefreshToken", b =>
                 {
                     b.HasOne("ToeicGenius.Domains.Entities.User", "User")
@@ -1156,17 +1482,6 @@ namespace ToeicGenius.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("ToeicGenius.Domains.Entities.SolutionDetail", b =>
-                {
-                    b.HasOne("ToeicGenius.Domains.Entities.Question", "Question")
-                        .WithOne("SolutionDetail")
-                        .HasForeignKey("ToeicGenius.Domains.Entities.SolutionDetail", "QuestionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Question");
                 });
 
             modelBuilder.Entity("ToeicGenius.Domains.Entities.UserAnswer", b =>
@@ -1253,15 +1568,14 @@ namespace ToeicGenius.Migrations
                 {
                     b.Navigation("QuestionGroups");
 
+                    b.Navigation("QuestionTypes");
+
                     b.Navigation("Questions");
                 });
 
             modelBuilder.Entity("ToeicGenius.Domains.Entities.Question", b =>
                 {
                     b.Navigation("Options");
-
-                    b.Navigation("SolutionDetail")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("ToeicGenius.Domains.Entities.QuestionGroup", b =>

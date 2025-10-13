@@ -27,7 +27,6 @@ namespace ToeicGenius.Configurations
 			services.AddScoped<IQuestionRepository, QuestionRepository>();
 			services.AddScoped<IQuestionTypeRepository, QuestionTypeRepository>();
 			services.AddScoped<IAIFeedbackRepository, AIFeedbackRepository>();
-			services.AddScoped<ISolutionDetailRepository, SolutionDetailRepository>();
 			services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 			// Services

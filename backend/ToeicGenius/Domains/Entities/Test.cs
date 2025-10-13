@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -12,7 +13,8 @@ namespace ToeicGenius.Domains.Entities
 		public string? Description { get; set; }
 		public int Duration { get; set; }
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
+		public DateTime? UpdatedAt { get; set; }
+		public CommonStatus Status { get; set; }
 		public ICollection<Part> Parts { get; set; } = new List<Part>();
 		public ICollection<UserTest> UserTests { get; set; } = new List<UserTest>();
 	}

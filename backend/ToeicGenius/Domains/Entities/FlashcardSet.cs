@@ -16,7 +16,7 @@ namespace ToeicGenius.Domains.Entities
 		public User User { get; set; } = null!;
 
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
+		public DateTime? UpdatedAt { get; set; }
 		public string? Status { get; set; }
 
 		public ICollection<Flashcard> Flashcards { get; set; } = new List<Flashcard>();

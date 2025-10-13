@@ -14,6 +14,8 @@ namespace ToeicGenius.Domains.Entities
 		public decimal Score { get; set; }
 		public string? Content { get; set; }
 		public string? AIScorer { get; set; }
+		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime? UpdatedAt { get; set; }
 	}
 }
 

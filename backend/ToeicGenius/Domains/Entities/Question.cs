@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -22,10 +23,12 @@ namespace ToeicGenius.Domains.Entities
         public int Number { get; set; }
 		public string? AudioUrl { get; set; }
 		public string? ImageUrl { get; set; }
+		public string? Explanation { get; set; }
+		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime? UpdatedAt { get; set; }
+		public CommonStatus Status { get; set; } = CommonStatus.Active;
 		public ICollection<Option> Options { get; set; } = new List<Option>();
 
-        // 1-1 relationship
-        public SolutionDetail SolutionDetail { get; set; } = null!;
     }
 }
 
