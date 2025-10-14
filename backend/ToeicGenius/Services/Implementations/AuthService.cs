@@ -1,8 +1,4 @@
-﻿using System.Net.Http.Headers;
-using System.Text.Json;
-using Google.Apis.Auth;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
+﻿using System.Text.Json;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Auth;
 using ToeicGenius.Domains.DTOs.Responses.Auth;
@@ -20,9 +16,7 @@ namespace ToeicGenius.Services.Implementations
         private readonly IConfiguration _configuration;
         private readonly IJwtService _jwtService;
         private readonly IEmailService _emailService;
-        private readonly IUserOtpRepository _userOtpRepository;
-        private readonly IUserRepository _userRepository;
-        private readonly IRoleRepository _roleRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IGoogleAuthService _googleAuthService;
 
@@ -35,20 +29,16 @@ namespace ToeicGenius.Services.Implementations
             IConfiguration configuration,
             IJwtService jwtService,
             IEmailService emailService,
-            IUserOtpRepository userOtpRepository,
-            IUserRepository userRepository,
+            IUnitOfWork unitOfWork,
             IHttpClientFactory httpClientFactory,
-            IGoogleAuthService googleAuthService,
-            IRoleRepository roleRepository)
+            IGoogleAuthService googleAuthService)
         {
             _configuration = configuration;
             _jwtService = jwtService;
             _emailService = emailService;
-            _userOtpRepository = userOtpRepository;
-            _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
             _httpClientFactory = httpClientFactory;
             _googleAuthService = googleAuthService;
-            _roleRepository = roleRepository;
         }
 
         public async Task<string> ChangePasswordAsync(ChangePasswordDto changePasswordRequest, string userId)
@@ -56,7 +46,7 @@ namespace ToeicGenius.Services.Implementations
             if (!Guid.TryParse(userId, out var guidUserId))
                 return ErrorMessages.IdInvalid;
 
-            var user = await _userRepository.GetByIdAsync(guidUserId);
+            var user = await _unitOfWork.Users.GetByIdAsync(guidUserId);
             if (user == null)
                 return ErrorMessages.UserNotFound;
 
@@ -65,7 +55,8 @@ namespace ToeicGenius.Services.Implementations
             {
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(changePasswordRequest.NewPassword);
                 user.UpdatedAt = DateTime.UtcNow;
-                await _userRepository.UpdateAsync(user);
+                await _unitOfWork.Users.UpdateAsync(user);
+                await _unitOfWork.SaveChangesAsync();
                 return "";
             }
 
@@ -74,7 +65,8 @@ namespace ToeicGenius.Services.Implementations
 
             user.PasswordHash = SecurityHelper.HashPassword(changePasswordRequest.NewPassword);
             user.UpdatedAt = DateTime.UtcNow;
-            await _userRepository.UpdateAsync(user);
+            await _unitOfWork.Users.UpdateAsync(user);
+            await _unitOfWork.SaveChangesAsync();
             return "";
         }
 
@@ -82,12 +74,13 @@ namespace ToeicGenius.Services.Implementations
         {
             try
             {
-                var user = await _userRepository.GetByEmailAsync(resetPasswordConfirmDto.Email);
+                var user = await _unitOfWork.Users.GetByEmailAsync(resetPasswordConfirmDto.Email);
                 if (user == null) return ErrorMessages.UserNotFound;
 
                 user.PasswordHash = SecurityHelper.HashPassword(resetPasswordConfirmDto.NewPassword);
                 user.UpdatedAt = DateTime.UtcNow;
-                await _userRepository.UpdateAsync(user);
+                await _unitOfWork.Users.UpdateAsync(user);
+                await _unitOfWork.SaveChangesAsync();
                 return "";
             }
             catch
@@ -96,13 +89,13 @@ namespace ToeicGenius.Services.Implementations
             }
         }
 
+        public async Task<User?> GetUserByIdAsync(Guid userId) => await _unitOfWork.Users.GetByIdAsync(userId);
 
-        public async Task<User?> GetUserByIdAsync(Guid userId) => await _userRepository.GetByIdAsync(userId);
         public async Task<Result<LoginResponseDto>> LoginAsync(LoginRequestDto loginDto, string ipAddress)
         {
-            var user = await _userRepository.GetByEmailAsync(loginDto.Email);
+            var user = await _unitOfWork.Users.GetByEmailAsync(loginDto.Email);
 
-            if (user == null || user.Status!= UserStatus.Active || user.PasswordHash == null)
+            if (user == null || user.Status != UserStatus.Active || user.PasswordHash == null)
                 return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
 
             if (!SecurityHelper.VerifyPassword(loginDto.Password, user.PasswordHash))
@@ -113,7 +106,8 @@ namespace ToeicGenius.Services.Implementations
             var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
 
             user.RefreshTokens.Add(refreshToken);
-            await _userRepository.UpdateAsync(user);
+            await _unitOfWork.Users.UpdateAsync(user);
+            await _unitOfWork.SaveChangesAsync();
 
             var response = new LoginResponseDto
             {
@@ -141,7 +135,7 @@ namespace ToeicGenius.Services.Implementations
                 throw new Exception("Google user payload invalid");
 
             // 3) Find-or-create user
-            var user = await _userRepository.GetByEmailAsync(payload.Email);
+            var user = await _unitOfWork.Users.GetByEmailAsync(payload.Email);
             if (user == null)
             {
                 user = new User
@@ -154,11 +148,12 @@ namespace ToeicGenius.Services.Implementations
                     CreatedAt = DateTime.UtcNow
                 };
 
-                var defaultRole = await _roleRepository.GetByIdAsync((int)UserRole.User);
+                var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.User);
                 if (defaultRole != null)
                     user.Roles.Add(defaultRole);
 
-                await _userRepository.AddAsync(user);
+                await _unitOfWork.Users.AddAsync(user);
+                await _unitOfWork.SaveChangesAsync();
             }
             else
             {
@@ -167,7 +162,8 @@ namespace ToeicGenius.Services.Implementations
                     user.GoogleId = payload.Subject;
 
                 user.UpdatedAt = DateTime.UtcNow;
-                await _userRepository.UpdateAsync(user);
+                await _unitOfWork.Users.UpdateAsync(user);
+                await _unitOfWork.SaveChangesAsync();
             }
 
             // 4) Issue JWT & Refresh token
@@ -175,7 +171,8 @@ namespace ToeicGenius.Services.Implementations
             var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
 
             user.RefreshTokens.Add(refreshToken);
-            await _userRepository.UpdateAsync(user);
+            await _unitOfWork.Users.UpdateAsync(user);
+            await _unitOfWork.SaveChangesAsync();
 
             // 5) Response giống login thường
             return new LoginResponseDto
@@ -188,11 +185,12 @@ namespace ToeicGenius.Services.Implementations
                 ExpireAt = DateTime.UtcNow.AddMinutes(30)
             };
         }
+
         public async Task<string> SendRegistrationOtpAsync(RegisterRequestDto registerRequestDto)
         {
             try
             {
-                var existingUser = await _userRepository.GetByEmailAsync(registerRequestDto.Email);
+                var existingUser = await _unitOfWork.Users.GetByEmailAsync(registerRequestDto.Email);
                 if (existingUser != null) return ErrorMessages.EmailAlreadyExists;
 
                 var otpCode = await GenerateAndStoreOtpAsync(registerRequestDto.Email, (int)OtpType.Registration);
@@ -212,7 +210,7 @@ namespace ToeicGenius.Services.Implementations
                 var valid = await ValidateOtpAsync(registerDto.Email, registerDto.OtpCode, (int)OtpType.Registration);
                 if (!valid) return ErrorMessages.OtpInvalid;
 
-                var existingUser = await _userRepository.GetByEmailAsync(registerDto.Email);
+                var existingUser = await _unitOfWork.Users.GetByEmailAsync(registerDto.Email);
                 if (existingUser != null) return ErrorMessages.EmailAlreadyExists;
 
                 var user = new User
@@ -224,10 +222,11 @@ namespace ToeicGenius.Services.Implementations
                     Status = UserStatus.Active,
                 };
 
-                var defaultRole = await _roleRepository.GetByIdAsync((int)UserRole.User);
+                var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.User);
                 if (defaultRole != null) user.Roles.Add(defaultRole);
 
-                await _userRepository.AddAsync(user);
+                await _unitOfWork.Users.AddAsync(user);
+                await _unitOfWork.SaveChangesAsync();
                 await MarkOtpAsUsedAsync(registerDto.Email, (int)OtpType.Registration);
                 return "";
             }
@@ -237,12 +236,11 @@ namespace ToeicGenius.Services.Implementations
             }
         }
 
-
         public async Task<string> SendResetPasswordOtpAsync(ResetPasswordRequestDto resetPasswordRequestDto)
         {
             try
             {
-                var user = await _userRepository.GetByEmailAsync(resetPasswordRequestDto.Email);
+                var user = await _unitOfWork.Users.GetByEmailAsync(resetPasswordRequestDto.Email);
                 if (user == null || user.Status != UserStatus.Active) return ErrorMessages.UserNotFound;
 
                 var otpCode = await GenerateAndStoreOtpAsync(resetPasswordRequestDto.Email, (int)OtpType.ResetPassword);
@@ -268,12 +266,13 @@ namespace ToeicGenius.Services.Implementations
         {
             try
             {
-                var user = await _userRepository.GetByEmailAsync(email);
+                var user = await _unitOfWork.Users.GetByEmailAsync(email);
                 if (user == null) return ErrorMessages.UserNotFound;
 
                 user.PasswordHash = SecurityHelper.HashPassword(newPassword);
                 user.UpdatedAt = DateTime.UtcNow;
-                await _userRepository.UpdateAsync(user);
+                await _unitOfWork.Users.UpdateAsync(user);
+                await _unitOfWork.SaveChangesAsync();
                 return "";
             }
             catch
@@ -282,10 +281,9 @@ namespace ToeicGenius.Services.Implementations
             }
         }
 
-
         public async Task<Result<RefreshTokenResponseDto>> RefreshTokenAsync(string refreshToken, string ipAddress)
         {
-            var user = await _userRepository.GetByRefreshTokenAsync(refreshToken);
+            var user = await _unitOfWork.Users.GetByRefreshTokenAsync(refreshToken);
             if (user == null)
                 return Result<RefreshTokenResponseDto>.Failure("Invalid refresh token");
 
@@ -301,7 +299,8 @@ namespace ToeicGenius.Services.Implementations
             existingToken.ReplacedByToken = newRefreshToken.Token;
 
             user.RefreshTokens.Add(newRefreshToken);
-            await _userRepository.UpdateAsync(user);
+            await _unitOfWork.Users.UpdateAsync(user);
+            await _unitOfWork.SaveChangesAsync();
 
             var result = new RefreshTokenResponseDto
             {
@@ -314,7 +313,7 @@ namespace ToeicGenius.Services.Implementations
 
         public async Task<Result<string>> LogoutAsync(Guid userId, string refreshToken, string ipAddress)
         {
-            var user = await _userRepository.GetByRefreshTokenAsync(refreshToken);
+            var user = await _unitOfWork.Users.GetByRefreshTokenAsync(refreshToken);
             if (user == null || user.Id != userId)
                 return Result<string>.Failure("Refresh token không hợp lệ");
 
@@ -328,9 +327,11 @@ namespace ToeicGenius.Services.Implementations
             existingToken.RevokeAt = DateTime.UtcNow;
             existingToken.RevokeByIp = ipAddress;
 
-            await _userRepository.UpdateAsync(user);
+            await _unitOfWork.Users.UpdateAsync(user);
+            await _unitOfWork.SaveChangesAsync();
             return Result<string>.Success("Đăng xuất thành công");
         }
+
         private async Task<string> GenerateAndStoreOtpAsync(string email, int type)
         {
             var otp = SecurityHelper.GenerateOtp();
@@ -344,24 +345,26 @@ namespace ToeicGenius.Services.Implementations
                 CreatedAt = DateTime.UtcNow,
                 ExpiresAt = DateTime.UtcNow.AddMinutes(10)
             };
-            await _userOtpRepository.AddAsync(entity);
+            await _unitOfWork.UserOtps.AddAsync(entity);
+            await _unitOfWork.SaveChangesAsync();
             return otp;
         }
 
         private async Task<bool> ValidateOtpAsync(string email, string otpCode, int type)
         {
-            var record = await _userOtpRepository.GetOtpByEmailAsync(email, type);
+            var record = await _unitOfWork.UserOtps.GetOtpByEmailAsync(email, type);
             if (record == null || record.UsedAt != null) return false;
             return SecurityHelper.ValidateOtp(otpCode, record.OtpCodeHash, record.ExpiresAt);
         }
 
         private async Task MarkOtpAsUsedAsync(string email, int type)
         {
-            var record = await _userOtpRepository.GetOtpByEmailAsync(email, type);
+            var record = await _unitOfWork.UserOtps.GetOtpByEmailAsync(email, type);
             if (record != null)
             {
                 record.UsedAt = DateTime.UtcNow;
-                await _userOtpRepository.UpdateAsync(record);
+                await _unitOfWork.UserOtps.UpdateAsync(record);
+                await _unitOfWork.SaveChangesAsync();
             }
         }
 

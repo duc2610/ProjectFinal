@@ -2,7 +2,7 @@
 
 namespace ToeicGenius.Repositories.Interfaces
 {
-	public interface IRefreshTokenRepository
+	public interface IRefreshTokenRepository : IBaseRepository<RefreshToken, Guid>
 	{
 	}
 }
