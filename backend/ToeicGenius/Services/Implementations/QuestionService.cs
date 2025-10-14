@@ -85,7 +85,7 @@ namespace ToeicGenius.Services.Implementations
 				var options = new List<Option>();
 
 				var part = await _uow.Parts.GetByIdAsync(request.PartId);
-				var requireQuantityOptions = (part.Skill == TestSkill.LR && part.PartNumber == 2) ? NumberConstants.MinQuantityOption : NumberConstants.MaxQuantityOption;
+				var requireQuantityOptions = (part.Skill ==(int)TestSkill.LR && part.PartNumber == 2) ? NumberConstants.MinQuantityOption : NumberConstants.MaxQuantityOption;
 
 				// Options (nếu có)
 				if (request.AnswerOptions != null && request.AnswerOptions.Any())
@@ -237,13 +237,37 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<Result<string>> DeleteAsync(int id)
 		{
-			var question = await _uow.Questions.GetByIdAsync(id);
-			if (question == null)
-				return Result<string>.Failure("Question not found");
+			await _uow.BeginTransactionAsync();
 
-			question.Status = Domains.Enums.CommonStatus.Inactive;
-			await _uow.SaveChangesAsync();
-			return Result<string>.Success(SuccessMessages.OperationSuccess);
+			try
+			{
+				var question = await _uow.Questions.GetQuestionByIdAndStatus(id, CommonStatus.Active);
+
+				if (question == null)
+				{
+					return Result<string>.Failure($"Question with ID {id} not found or already deleted.");
+				}
+
+				// Mark QuestionGroup as deleted
+				question.Status = CommonStatus.Inactive;
+				question.UpdatedAt = DateTime.UtcNow;
+
+				// Mark all Questions and their Options as deleted
+				foreach (var option in question.Options)
+				{
+					option.Status = CommonStatus.Inactive;
+					option.UpdatedAt = DateTime.UtcNow;
+				}
+
+				await _uow.SaveChangesAsync();
+				await _uow.CommitTransactionAsync();
+				return Result<string>.Success("");
+			}
+			catch (Exception ex)
+			{
+				await _uow.RollbackTransactionAsync();
+				return Result<string>.Failure($"Operation failed: {ex.Message}");
+			}
 		}
 
 		public async Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id)

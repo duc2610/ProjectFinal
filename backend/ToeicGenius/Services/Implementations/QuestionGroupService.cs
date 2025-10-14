@@ -1,4 +1,5 @@
 using Azure.Core;
+using Humanizer;
 using System.ComponentModel.DataAnnotations;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.GroupQuestion;
@@ -47,17 +48,18 @@ namespace ToeicGenius.Services.Implementations
 		{
 			await _uow.BeginTransactionAsync();
 			var uploadedFiles = new List<string>(); // Danh sách lưu trữ các URL file đã upload
+
 			try
 			{
 				// Upload files audio (nếu có)
 				var audioUrl = "";
 				if (request.Audio != null)
 				{
+					// Check valid file
 					var (isValid, errorMessage) = FileValidator.ValidateFile(request.Audio, "audio");
-					if (!isValid)
-					{
-						return Result<string>.Failure(errorMessage);
-					}
+					if (!isValid) { return Result<string>.Failure(errorMessage); }
+
+					// Upload
 					var result = await _fileService.UploadFileAsync(request.Audio, "audio");
 					audioUrl = result.IsSuccess ? result.Data : "";
 					uploadedFiles.Add(audioUrl);
@@ -67,11 +69,11 @@ namespace ToeicGenius.Services.Implementations
 				var imageUrl = "";
 				if (request.Image != null)
 				{
+					// Check valid file
 					var (isValid, errorMessage) = FileValidator.ValidateFile(request.Image, "image");
-					if (!isValid)
-					{
-						return Result<string>.Failure(errorMessage);
-					}
+					if (!isValid) { return Result<string>.Failure(errorMessage); }
+
+					// Upload
 					var result = await _fileService.UploadFileAsync(request.Image, "image");
 					imageUrl = result.IsSuccess ? result.Data : "";
 					uploadedFiles.Add(imageUrl);
@@ -82,7 +84,7 @@ namespace ToeicGenius.Services.Implementations
 				{
 					PartId = request.PartId,
 					AudioUrl = audioUrl,
-					Image = imageUrl,
+					ImageUrl = imageUrl,
 					PassageContent = request.PassageContent,
 					PassageType = request.PassageType,
 					OrderIndex = request.OrderIndex,
@@ -93,38 +95,10 @@ namespace ToeicGenius.Services.Implementations
 				var questions = new List<Question>();
 				var options = new List<Option>();
 
-
 				// Thêm questions và gán vào group
 				for (int i = 0; i < request.Questions.Count; i++)
 				{
 					var q = request.Questions[i];
-					// Upload file audio for question (nếu có)
-					var qAudioUrl = "";
-					if (q.Audio != null)
-					{
-						var (isValid, errorMessage) = FileValidator.ValidateFile(q.Audio, "audio");
-						if (!isValid)
-						{
-							return Result<string>.Failure(errorMessage);
-						}
-						var result = await _fileService.UploadFileAsync(q.Audio, "audio");
-						qAudioUrl = result.IsSuccess ? result.Data : "";
-						uploadedFiles.Add(qAudioUrl); // Lưu URL để xóa nếu có lỗi
-					}
-
-					// Upload file image for question (nếu có)
-					var qImageUrl = "";
-					if (q.Image != null)
-					{
-						var (isValid, errorMessage) = FileValidator.ValidateFile(q.Image, "image");
-						if (!isValid)
-						{
-							return Result<string>.Failure(errorMessage);
-						}
-						var result = await _fileService.UploadFileAsync(q.Audio, "image");
-						qImageUrl = result.IsSuccess ? result.Data : "";
-						uploadedFiles.Add(qImageUrl);
-					}
 
 					// Entity question
 					var question = new Question
@@ -134,8 +108,6 @@ namespace ToeicGenius.Services.Implementations
 						PartId = request.PartId,
 						Content = q.Content,
 						Number = q.Number,
-						AudioUrl = qAudioUrl,
-						ImageUrl = qImageUrl,
 						Explanation = q.Solution,
 					};
 					questions.Add(question);
@@ -160,12 +132,15 @@ namespace ToeicGenius.Services.Implementations
 				// Check validate options
 				if (options.Any())
 				{
+					// Check valid option for each part 
+					// vd: L&R-Part 2: only 3 options for each question
 					var (isValid, errorMessage) = OptionValidator.IsValid(options, NumberConstants.MaxQuantityOption);
 					if (!isValid) throw new Exception(errorMessage);
+
 					await _uow.Options.AddRangeAsync(options);
 				}
 
-				await _uow.SaveChangesAsync(); // Commit tất cả: group, questions, options
+				await _uow.SaveChangesAsync(); // Commit all: group, questions, options
 
 				await _uow.CommitTransactionAsync();
 				return Result<string>.Success(SuccessMessages.OperationSuccess);
@@ -178,12 +153,13 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<IEnumerable<QuestionGroupListItemDto>> FilterGroupsAsync(int? part)
+		public async Task<Result<PaginationResponse<QuestionGroupListItemDto>>> FilterGroupsAsync(int? part, int page, int pageSize)
 		{
-			return await _uow.QuestionGroups.FilterGroupsAsync(part);
+			var result = await _uow.QuestionGroups.FilterGroupsAsync(part, page, pageSize);
+			return Result<PaginationResponse<QuestionGroupListItemDto>>.Success(result);
 		}
 
-		public async Task<Result<string>> UpdateAsync(UpdateQuestionGroupDto request)
+		public async Task<Result<string>> UpdateAsync(int questionGroupId, UpdateQuestionGroupDto request)
 		{
 			await _uow.BeginTransactionAsync();
 			var uploadedFiles = new List<string>(); // Danh sách lưu trữ các URL file đã upload
@@ -191,220 +167,156 @@ namespace ToeicGenius.Services.Implementations
 
 			try
 			{
-				// Validate QuestionGroup exists and not deleted
-				var questionGroup = await _uow.QuestionGroups.GetByIdAndStatusAsync(request.QuestionGroupId, CommonStatus.Active);
+				// Check exist question
+				var currentQuestionGroup = await _uow.QuestionGroups.GetByIdAndStatusAsync(questionGroupId, CommonStatus.Active);
+				if (currentQuestionGroup == null) return Result<string>.Failure("Not found question group to update");
 
-				if (questionGroup == null)
-				{
-					return Result<string>.Failure($"QuestionGroup with ID {request.QuestionGroupId} not found or already deleted.");
-				}
+				if (!string.IsNullOrEmpty(currentQuestionGroup.AudioUrl)) filesToDelete.Add(currentQuestionGroup.AudioUrl);
+				if (!string.IsNullOrEmpty(currentQuestionGroup.ImageUrl)) filesToDelete.Add(currentQuestionGroup.ImageUrl);
 
-				// Upload files audio (nếu có)
-				var audioUrl = questionGroup.AudioUrl;
-				if (request.Audio != null)
-				{
-					var (isValid, errorMessage) = FileValidator.ValidateFile(request.Audio, "audio");
-					if (!isValid)
-					{
-						return Result<string>.Failure(errorMessage);
-					}
-					var result = await _fileService.UploadFileAsync(request.Audio, "audio");
-					if (!result.IsSuccess)
-					{
-						return Result<string>.Failure($"Failed to upload audio file.");
-					}
-					audioUrl = result.Data;
-					uploadedFiles.Add(audioUrl);
-					if (!string.IsNullOrEmpty(questionGroup.AudioUrl))
-					{
-						filesToDelete.Add(questionGroup.AudioUrl);
-					}
-				}
+				// Upload new file
+				var imageUrl = "";
+				var audioUrl = "";
 
-				// Upload files image (nếu có)
-				var imageUrl = questionGroup.Image;
+				// Image: If have
 				if (request.Image != null)
 				{
+					// Check valid file
 					var (isValid, errorMessage) = FileValidator.ValidateFile(request.Image, "image");
-					if (!isValid)
-					{
-						return Result<string>.Failure(errorMessage);
-					}
+					if (!isValid) { return Result<string>.Failure(errorMessage); }
+
+					// Upload
 					var result = await _fileService.UploadFileAsync(request.Image, "image");
-					if (!result.IsSuccess)
-					{
-						return Result<string>.Failure($"Failed to upload image file.");
-					}
+					if (!result.IsSuccess) { return Result<string>.Failure($"Failed to upload image file."); }
+
 					imageUrl = result.Data;
 					uploadedFiles.Add(imageUrl);
-					if (!string.IsNullOrEmpty(questionGroup.Image))
-					{
-						filesToDelete.Add(questionGroup.Image);
-					}
 				}
 
-				// Update QuestionGroup entity
-				questionGroup.AudioUrl = audioUrl;
-				questionGroup.Image = imageUrl;
-				questionGroup.PassageContent = request.PassageContent;
-				questionGroup.PassageType = request.PassageType;
-				questionGroup.OrderIndex = request.OrderIndex;
-				questionGroup.UpdatedAt = DateTime.UtcNow;
+				// Audio: If have
+				if (request.Audio != null)
+				{
+					// Check valid file
+					var (isValid, errorMessage) = FileValidator.ValidateFile(request.Audio, "audio");
+					if (!isValid) { return Result<string>.Failure(errorMessage); }
+
+					// Upload
+					var result = await _fileService.UploadFileAsync(request.Image, "audio");
+					if (!result.IsSuccess) { return Result<string>.Failure($"Failed to upload audio file."); }
+
+					audioUrl = result.Data;
+					uploadedFiles.Add(audioUrl);
+				}
+
+				// Update question 
+				currentQuestionGroup.PartId = request.PartId;
+				currentQuestionGroup.PassageContent = request.PassageContent;
+				currentQuestionGroup.PassageType = request.PassageType;
+				currentQuestionGroup.OrderIndex = request.OrderIndex;
+				currentQuestionGroup.AudioUrl = audioUrl;
+				currentQuestionGroup.ImageUrl = imageUrl;
+				currentQuestionGroup.UpdatedAt = DateTime.UtcNow;
+
 
 				var questions = new List<Question>();
-				var options = new List<Option>();
-				var questionNumbers = new HashSet<int>();
-				var existingQuestions = questionGroup.Questions.ToDictionary(q => q.QuestionId, q => q);
-
-				// Validate and process Questions
-				for (int i = 0; i < request.Questions.Count; i++)
+				var existingQuestion = currentQuestionGroup.Questions.ToDictionary(q => q.QuestionId, q => q);
+				foreach (var qDto in request.Questions)
 				{
-					var q = request.Questions[i];
-
-					if (existingQuestions.ContainsKey(q.Id.Value))
+					if (qDto.Id.HasValue && existingQuestion.ContainsKey(qDto.Id.Value))
 					{
-						var currentQuestion = existingQuestions[q.Id.Value];
-						currentQuestion.Status = CommonStatus.Inactive;
+						var currentQuestion = existingQuestion[qDto.Id.Value];
+						currentQuestion.PartId = request.PartId;
+						currentQuestion.QuestionGroupId = questionGroupId;
+						currentQuestion.QuestionTypeId = qDto.QuestionTypeId;
+						currentQuestion.Content = qDto.Content;
+						currentQuestion.Explanation = qDto.Solution;
+						currentQuestion.Number = qDto.Number;
 						currentQuestion.UpdatedAt = DateTime.UtcNow;
-						if (!string.IsNullOrEmpty(currentQuestion.AudioUrl)) filesToDelete.Add(currentQuestion.AudioUrl);
-						if (!string.IsNullOrEmpty(currentQuestion.ImageUrl)) filesToDelete.Add(currentQuestion.ImageUrl);
-						foreach (var option in currentQuestion.Options)
-						{
-							option.Status = CommonStatus.Inactive;
-							option.UpdatedAt = DateTime.UtcNow;
-						}
-					}
 
-					// Upload files for Question
-					var qAudioUrl = q.Id.HasValue ? existingQuestions.GetValueOrDefault(q.Id.Value)?.AudioUrl : "";
-					if (q.Audio != null)
-					{
-						var (isValid, errorMessage) = FileValidator.ValidateFile(q.Audio, "audio");
-						if (!isValid)
+						// Xử lý option
+						var existingOptions = currentQuestion.Options.ToDictionary(o => o.OptionId, o => o);
+						var optionsToAdd = new List<Option>();
+						foreach (var opt in qDto.AnswerOptions)
 						{
-							await _fileService.RollbackAndCleanupAsync(uploadedFiles);
-							return Result<string>.Failure(errorMessage);
+							if (opt.Id.HasValue && existingOptions.ContainsKey(opt.Id.Value))
+							{
+								var option = existingOptions[opt.Id.Value];
+								option.Content = opt.Content;
+								option.Label = opt.Label;
+								option.IsCorrect = opt.IsCorrect;
+								option.UpdatedAt = DateTime.UtcNow;
+							}
+							else
+							{
+								optionsToAdd.Add(new Option
+								{
+									Content = opt.Content,
+									Label = opt.Label,
+									IsCorrect = opt.IsCorrect,
+									Question = currentQuestion,
+									Status = CommonStatus.Active
+								});
+							}
 						}
-						var result = await _fileService.UploadFileAsync(q.Audio, "audio");
-						if (!result.IsSuccess)
+						// Validate option
+						if (optionsToAdd.Any())
 						{
-							await _fileService.RollbackAndCleanupAsync(uploadedFiles);
-							return Result<string>.Failure($"Failed to upload audio file for question.");
-						}
-						qAudioUrl = result.Data;
-						uploadedFiles.Add(qAudioUrl);
-						if (q.Id.HasValue && !string.IsNullOrEmpty(existingQuestions.GetValueOrDefault(q.Id.Value)?.AudioUrl))
-						{
-							filesToDelete.Add(existingQuestions[q.Id.Value].AudioUrl);
-						}
-					}
+							var (isValid, errorMessage) = OptionValidator.IsValid(optionsToAdd, NumberConstants.MaxQuantityOption);
+							if (!isValid) throw new Exception(errorMessage);
 
-					var qImageUrl = q.Id.HasValue ? existingQuestions.GetValueOrDefault(q.Id.Value)?.ImageUrl : "";
-					if (q.Image != null)
-					{
-						var (isValid, errorMessage) = FileValidator.ValidateFile(q.Image, "image");
-						if (!isValid)
-						{
-							await _fileService.RollbackAndCleanupAsync(uploadedFiles);
-							return Result<string>.Failure(errorMessage);
+							await _uow.Options.AddRangeAsync(optionsToAdd);
 						}
-						var result = await _fileService.UploadFileAsync(q.Image, "image");
-						if (!result.IsSuccess)
-						{
-							await _fileService.RollbackAndCleanupAsync(uploadedFiles);
-							return Result<string>.Failure($"Failed to upload image file for question.");
-						}
-						qImageUrl = result.Data;
-						uploadedFiles.Add(qImageUrl);
-						if (q.Id.HasValue && !string.IsNullOrEmpty(existingQuestions.GetValueOrDefault(q.Id.Value)?.ImageUrl))
-						{
-							filesToDelete.Add(existingQuestions[q.Id.Value].ImageUrl);
-						}
-					}
-
-					// Create or update Question
-					if (q.Id.HasValue && existingQuestions.ContainsKey(q.Id.Value))
-					{
-						var oldQuestion = existingQuestions[q.Id.Value];
-						oldQuestion.Content = q.Content;
-						oldQuestion.Number = q.Number;
-						oldQuestion.AudioUrl = qAudioUrl;
-						oldQuestion.ImageUrl = qImageUrl;
-						oldQuestion.Explanation = q.Solution;
-						oldQuestion.UpdatedAt = DateTime.UtcNow;
 					}
 					else
 					{
 						var newQuestion = new Question
 						{
-							QuestionGroup = questionGroup,
-							QuestionTypeId = q.QuestionTypeId,
-							PartId = questionGroup.PartId,
-							Content = q.Content,
-							Number = q.Number,
-							AudioUrl = qAudioUrl,
-							ImageUrl = qImageUrl,
-							Explanation = q.Solution,
-							Status = CommonStatus.Active
+							PartId = request.PartId,
+							QuestionGroup = currentQuestionGroup,
+							QuestionTypeId = qDto.QuestionTypeId,
+							Content = qDto.Content,
+							Explanation = qDto.Solution,
+							Number = qDto.Number,
+							Status = CommonStatus.Active,
+							CreatedAt = DateTime.UtcNow
 						};
-						questions.Add(newQuestion);
-						questionGroup.Questions.Add(newQuestion);
-					}
 
-
-
-					var question = q.Id.HasValue ? existingQuestions.GetValueOrDefault(q.Id.Value) : questions.Last();
-					var existingOptions = q.Id.HasValue ? existingQuestions.GetValueOrDefault(q.Id.Value)?.Options.ToDictionary(o => o.OptionId, o => o) : new Dictionary<int, Option>();
-
-					foreach (var opt in q.AnswerOptions)
-					{
-						if (opt.Id.HasValue && existingOptions.ContainsKey(opt.Id.Value))
+						// Add options cho question mới
+						if (qDto.AnswerOptions != null && qDto.AnswerOptions.Any())
 						{
-							var option = existingOptions[opt.Id.Value];
-							option.Content = opt.Content;
-							option.Label = opt.Label;
-							option.IsCorrect = opt.IsCorrect;
-							option.UpdatedAt = DateTime.UtcNow;
-						}
-						else
-						{
-							options.Add(new Option
+							var options = qDto.AnswerOptions.Select(o => new Option
 							{
-								Content = opt.Content,
-								Label = opt.Label,
-								IsCorrect = opt.IsCorrect,
-								Question = question,
+								Content = o.Content,
+								Label = o.Label,
+								IsCorrect = o.IsCorrect,
+								Question = newQuestion,
 								Status = CommonStatus.Active
-							});
+							}).ToList();
+
+							var (isValid, errorMessage) = OptionValidator.IsValid(options, NumberConstants.MaxQuantityOption);
+							if (!isValid) throw new Exception(errorMessage);
+
+							newQuestion.Options = options;
 						}
+
+						questions.Add(newQuestion);
+
 					}
 				}
-
-				// Bulk insert new Questions and Options
-				await _uow.Questions.AddRangeAsync(questions);
-				if (options.Any())
+				// Add tất cả question mới
+				if (questions.Any())
 				{
-					var (isValid, errorMessage) = OptionValidator.IsValid(options, NumberConstants.MaxQuantityOption);
-					if (!isValid)
-					{
-						await _fileService.RollbackAndCleanupAsync(uploadedFiles);
-						return Result<string>.Failure(errorMessage);
-					}
-					await _uow.Options.AddRangeAsync(options);
+					await _uow.Questions.AddRangeAsync(questions);
 				}
-
 				// Delete old files
 				foreach (var file in filesToDelete)
 				{
-					if (!string.IsNullOrEmpty(file))
-					{
-						await _fileService.DeleteFileAsync(file);
-					}
+					if (!string.IsNullOrEmpty(file)) await _fileService.DeleteFileAsync(file);
 				}
 
 				await _uow.SaveChangesAsync(); // Commit tất cả: group, questions, options
 				await _uow.CommitTransactionAsync();
-				return Result<string>.Success($"QuestionGroup {request.QuestionGroupId} updated successfully.");
+				return Result<string>.Success($"QuestionGroup {questionGroupId} updated successfully.");
 			}
 			catch (Exception ex)
 			{

@@ -9,6 +9,8 @@ namespace ToeicGenius.Domains.DTOs.Requests.QuestionGroup
 	{
 		[Required]
 		public int QuestionGroupId { get; set; }
+		[Required]
+		public int PartId { get; set; }
 		public IFormFile? Audio { get; set; }
 		public IFormFile? Image { get; set; }
 		public string? PassageContent { get; set; }

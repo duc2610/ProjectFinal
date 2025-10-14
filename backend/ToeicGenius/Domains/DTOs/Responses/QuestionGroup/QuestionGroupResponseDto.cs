@@ -1,5 +1,6 @@
 ﻿using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.Entities;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.DTOs.Responses.QuestionGroup
 {
@@ -14,6 +15,7 @@ namespace ToeicGenius.Domains.DTOs.Responses.QuestionGroup
 		public string? PassageContent { get; set; }
 		public string? PassageType { get; set; }
 		public int OrderIndex { get; set; }
+		public CommonStatus Status{ get; set; }
 
 		public List<QuestionResponseDto> Questions { get; set; } = new List<QuestionResponseDto>();
 	}

@@ -1,3 +1,5 @@
+using ToeicGenius.Domains.Enums;
+
 namespace ToeicGenius.Domains.DTOs.Responses.QuestionGroup
 {
     public class QuestionGroupListItemDto
@@ -12,5 +14,6 @@ namespace ToeicGenius.Domains.DTOs.Responses.QuestionGroup
         public string? PassageType { get; set; }
         public int OrderIndex { get; set; }
         public int QuestionCount { get; set; }
+        public CommonStatus Status{ get; set; }
     }
 }

@@ -105,7 +105,7 @@ namespace ToeicGenius.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     PartId = table.Column<int>(type: "int", nullable: false),
                     AudioUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Image = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PassageContent = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PassageType = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     OrderIndex = table.Column<int>(type: "int", nullable: false),
@@ -499,12 +499,12 @@ namespace ToeicGenius.Migrations
 
             migrationBuilder.InsertData(
                 table: "QuestionGroups",
-                columns: new[] { "QuestionGroupId", "AudioUrl", "CreatedAt", "Image", "OrderIndex", "PartId", "PassageContent", "PassageType", "Status", "UpdatedAt" },
+                columns: new[] { "QuestionGroupId", "AudioUrl", "CreatedAt", "ImageUrl", "OrderIndex", "PartId", "PassageContent", "PassageType", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, null, new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3368), null, 0, 6, "Passage1", null, 1, null },
-                    { 2, null, new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3371), null, 0, 7, "Passage2", null, 1, null },
-                    { 3, null, new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3372), null, 0, 7, "Passage3", null, 1, null }
+                    { 1, null, new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5571), null, 0, 6, "Passage1", null, 1, null },
+                    { 2, null, new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5574), null, 0, 7, "Passage2", null, 1, null },
+                    { 3, null, new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5575), null, 0, 7, "Passage3", null, 1, null }
                 });
 
             migrationBuilder.InsertData(
@@ -557,25 +557,25 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "QuestionId", "AudioUrl", "Content", "CreatedAt", "Explanation", "ImageUrl", "Number", "PartId", "QuestionGroupId", "QuestionTypeId", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, null, "What is the capital of France?", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3476), null, null, 1, 1, null, 1, 1, null },
-                    { 2, null, "Single Question 2", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3391), null, null, 2, 1, null, 1, 1, null },
-                    { 3, null, "Single Question 3", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3394), null, null, 3, 2, null, 2, 1, null },
-                    { 4, null, "Single Question 4", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3395), null, null, 4, 2, null, 2, 1, null },
-                    { 5, null, "Single Question 5", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3396), null, null, 5, 1, null, 1, 1, null },
-                    { 6, null, "Single Question 6", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3397), null, null, 6, 1, null, 1, 1, null },
-                    { 7, null, "Single Question 7", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3398), null, null, 7, 2, null, 2, 1, null },
-                    { 8, null, "Single Question 8", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3399), null, null, 8, 2, null, 2, 1, null },
-                    { 9, null, "Single Question 9", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3400), null, null, 9, 1, null, 1, 1, null },
-                    { 10, null, "Single Question 10", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3421), null, null, 10, 1, null, 1, 1, null },
-                    { 11, null, "Group 1 - Question 1", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3447), null, null, 1, 1, 1, 1, 1, null },
-                    { 12, null, "Group 1 - Question 2", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3449), null, null, 2, 1, 1, 1, 1, null },
-                    { 13, null, "Group 1 - Question 3", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3450), null, null, 3, 1, 1, 1, 1, null },
-                    { 14, null, "Group 2 - Question 1", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3451), null, null, 1, 2, 2, 2, 1, null },
-                    { 15, null, "Group 2 - Question 2", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3452), null, null, 2, 2, 2, 2, 1, null },
-                    { 16, null, "Group 2 - Question 3", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3453), null, null, 3, 2, 2, 2, 1, null },
-                    { 17, null, "Group 3 - Question 1", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3454), null, null, 1, 1, 3, 1, 1, null },
-                    { 18, null, "Group 3 - Question 2", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3456), null, null, 2, 1, 3, 1, 1, null },
-                    { 19, null, "Group 3 - Question 3", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3457), null, null, 3, 1, 3, 1, 1, null }
+                    { 1, null, "What is the capital of France?", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5679), null, null, 1, 1, null, 1, 1, null },
+                    { 2, null, "Single Question 2", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5597), null, null, 2, 1, null, 1, 1, null },
+                    { 3, null, "Single Question 3", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5600), null, null, 3, 2, null, 2, 1, null },
+                    { 4, null, "Single Question 4", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5601), null, null, 4, 2, null, 2, 1, null },
+                    { 5, null, "Single Question 5", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5603), null, null, 5, 1, null, 1, 1, null },
+                    { 6, null, "Single Question 6", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5604), null, null, 6, 1, null, 1, 1, null },
+                    { 7, null, "Single Question 7", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5605), null, null, 7, 2, null, 2, 1, null },
+                    { 8, null, "Single Question 8", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5606), null, null, 8, 2, null, 2, 1, null },
+                    { 9, null, "Single Question 9", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5607), null, null, 9, 1, null, 1, 1, null },
+                    { 10, null, "Single Question 10", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5608), null, null, 10, 1, null, 1, 1, null },
+                    { 11, null, "Group 1 - Question 1", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5648), null, null, 1, 1, 1, 1, 1, null },
+                    { 12, null, "Group 1 - Question 2", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5649), null, null, 2, 1, 1, 1, 1, null },
+                    { 13, null, "Group 1 - Question 3", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5650), null, null, 3, 1, 1, 1, 1, null },
+                    { 14, null, "Group 2 - Question 1", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5652), null, null, 1, 2, 2, 2, 1, null },
+                    { 15, null, "Group 2 - Question 2", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5653), null, null, 2, 2, 2, 2, 1, null },
+                    { 16, null, "Group 2 - Question 3", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5654), null, null, 3, 2, 2, 2, 1, null },
+                    { 17, null, "Group 3 - Question 1", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5655), null, null, 1, 1, 3, 1, 1, null },
+                    { 18, null, "Group 3 - Question 2", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5656), null, null, 2, 1, 3, 1, 1, null },
+                    { 19, null, "Group 3 - Question 3", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5658), null, null, 3, 1, 3, 1, 1, null }
                 });
 
             migrationBuilder.InsertData(
@@ -583,10 +583,10 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "OptionId", "Content", "CreatedAt", "IsCorrect", "Label", "QuestionId", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, "Paris", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3494), true, "A", 1, 1, null },
-                    { 2, "London", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3495), false, "B", 1, 1, null },
-                    { 3, "Berlin", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3496), false, "C", 1, 1, null },
-                    { 4, "Madrid", new DateTime(2025, 10, 13, 18, 14, 47, 947, DateTimeKind.Utc).AddTicks(3497), false, "D", 1, 1, null }
+                    { 1, "Paris", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5697), true, "A", 1, 1, null },
+                    { 2, "London", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5698), false, "B", 1, 1, null },
+                    { 3, "Berlin", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5699), false, "C", 1, 1, null },
+                    { 4, "Madrid", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5700), false, "D", 1, 1, null }
                 });
 
             migrationBuilder.CreateIndex(

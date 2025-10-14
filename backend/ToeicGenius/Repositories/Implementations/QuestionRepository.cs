@@ -40,6 +40,7 @@ namespace ToeicGenius.Repositories.Implementations
 					Solution = q.Explanation,
 					AudioUrl = q.AudioUrl,
 					ImageUrl = q.ImageUrl,
+					Status = q.Status
 				})
 				.FirstOrDefaultAsync();
 
@@ -70,6 +71,7 @@ namespace ToeicGenius.Repositories.Implementations
 			var totalCount = await query.CountAsync();
 
 			var data = await query
+				.Where(g => g.Status == CommonStatus.Active)
 				.OrderBy(q => q.QuestionId)
 				.Skip((page - 1) * pageSize)
 				.Take(pageSize)
@@ -80,6 +82,7 @@ namespace ToeicGenius.Repositories.Implementations
 					PartName = q.Part.Name,
 					Content = q.Content,
 					Number = q.Number,
+					Status = q.Status
 				})
 				.ToListAsync();
 

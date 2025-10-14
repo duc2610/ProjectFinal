@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.GroupQuestion;
 using ToeicGenius.Domains.DTOs.Requests.QuestionGroup;
+using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Services.Implementations;
@@ -44,19 +46,22 @@ namespace ToeicGenius.Controllers
 		// GET: api/question-group?part=&skill=&Type=
 		[HttpGet("question-group")]
 		public async Task<IActionResult> FilterGroupQuestions(
-			[FromQuery] int? part)
+			[FromQuery] int? part,
+			[FromQuery] int page,
+			[FromQuery] int pageSize)
 		{
-			var groups = await _questionGroupService.FilterGroupsAsync(part);
-			return Ok(ApiResponse<IEnumerable<QuestionGroupListItemDto>>.SuccessResponse(groups));
+			var result = await _questionGroupService.FilterGroupsAsync(part, page, pageSize);
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<PaginationResponse<QuestionGroupListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+			return Ok(ApiResponse<PaginationResponse<QuestionGroupListItemDto>>.SuccessResponse(result.Data!));
 		}
 
 		// PUT: api/question-group/{id}
 		[HttpPut("question-group/{id}")]
-		public async Task<IActionResult> UpdateQuestion(int id, [FromForm]UpdateQuestionGroupDto request)
+		public async Task<IActionResult> UpdateQuestion(int id, [FromForm] UpdateQuestionGroupDto request)
 		{
-			request.QuestionGroupId = id;
-			var result = await _questionGroupService.UpdateAsync(request);
-			if (!result.IsSuccess) return BadRequest(ApiResponse<string>.ErrorResponse(ErrorMessages.OperationFailed));
+			var result = await _questionGroupService.UpdateAsync(id, request);
+			if (!result.IsSuccess) return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 

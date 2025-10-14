@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using ToeicGenius.Domains.Entities;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.DTOs.Responses.Question
 {
@@ -20,6 +21,7 @@ namespace ToeicGenius.Domains.DTOs.Responses.Question
         public string? AudioUrl { get; set; }
         public string? ImageUrl { get; set; }
         public string? Solution { get; set; }
+        public CommonStatus Status{ get; set; }
     }
 
     public class OptionDto

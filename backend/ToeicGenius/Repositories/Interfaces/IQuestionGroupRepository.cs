@@ -1,3 +1,4 @@
+using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Entities;
@@ -7,9 +8,9 @@ namespace ToeicGenius.Repositories.Interfaces
 {
 	public interface IQuestionGroupRepository : IBaseRepository<QuestionGroup, int>
 	{
-    Task<QuestionGroupResponseDto?> GetGroupWithQuestionsAsync(int id);
-    Task<List<QuestionGroupListItemDto>> FilterGroupsAsync(int? part);
-    Task<QuestionGroup> GetByIdAndStatusAsync(int? id, CommonStatus status);
+		Task<QuestionGroupResponseDto?> GetGroupWithQuestionsAsync(int id);
+		Task<PaginationResponse<QuestionGroupListItemDto>> FilterGroupsAsync(int? part, int page, int pageSize);
+		Task<QuestionGroup> GetByIdAndStatusAsync(int? id, CommonStatus status);
 	}
 }
 
