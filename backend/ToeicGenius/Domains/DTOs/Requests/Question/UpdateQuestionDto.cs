@@ -6,7 +6,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Question
 {
     public class UpdateQuestionDto
     {
-		public int? Id { get; set; } // Null for new questions
+		public int? Id { get; set; } 
 
 		[Required]
 		public string Content { get; set; } = string.Empty;

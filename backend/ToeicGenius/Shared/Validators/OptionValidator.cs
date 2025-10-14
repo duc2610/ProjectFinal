@@ -6,12 +6,12 @@ namespace ToeicGenius.Shared.Validators
 {
 	public static class OptionValidator
 	{
-		public static (bool IsValid, string ErrorMessage) IsValid(List<Option> options)
+		public static (bool IsValid, string ErrorMessage) IsValid(List<Option> options, int quantityOptions)
 		{
 			// Kiểm tra số lượng đáp án
-			if (options.Count < 2 || options.Count > 4)
+			if (options.Count != quantityOptions)
 			{
-				return (false, "Answer options must have between 2 and 4 items.");
+				return (false, $"Answer options must have {quantityOptions} items.");
 			}
 
 			// Kiểm tra ít nhất một đáp án đúng

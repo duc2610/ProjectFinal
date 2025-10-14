@@ -92,6 +92,14 @@ namespace ToeicGenius.Repositories.Implementations
 				.Where(q => q.QuestionGroupId == groupId)
 				.ToListAsync();
 		}
+
+		public async Task<Question> GetQuestionByIdAndStatus(int questionId, CommonStatus status)
+		{
+			return await _context.Questions
+								.Include(x => x.Options)
+								.Where(x => x.QuestionId == questionId && x.Status == status)
+								.FirstOrDefaultAsync();
+		}
 	}
 }
 

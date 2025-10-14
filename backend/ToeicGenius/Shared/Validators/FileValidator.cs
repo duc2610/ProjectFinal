@@ -5,7 +5,6 @@
 		public static (bool IsValid, string ErrorMessage) ValidateFile(IFormFile file, string type)
 		{
 			var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
-
 			if (type.Equals("audio", StringComparison.OrdinalIgnoreCase))
 			{
 				var allowedAudioExtensions = new[] { ".mp3", ".wav" };

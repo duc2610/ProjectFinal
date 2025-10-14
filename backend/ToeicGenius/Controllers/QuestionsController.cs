@@ -46,11 +46,9 @@ namespace ToeicGenius.Controllers
 
 		// PUT: api/question/{id}
 		[HttpPut("question/{id}")]
-		public async Task<IActionResult> UpdateQuestion(int id, [FromBody] UpdateQuestionDto dto)
+		public async Task<IActionResult> UpdateQuestion(int id, [FromForm] UpdateQuestionDto dto)
 		{
-			if (id != dto.Id)
-				return BadRequest(ApiResponse<string>.ErrorResponse("Id not match"));
-			var result = await _questionService.UpdateAsync(dto);
+			var result = await _questionService.UpdateAsync(id,dto);
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data));

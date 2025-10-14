@@ -160,8 +160,8 @@ namespace ToeicGenius.Services.Implementations
 				// Check validate options
 				if (options.Any())
 				{
-					var (isValid, errorMessage) = OptionValidator.IsValid(options);
-					if (!isValid) return Result<string>.Failure(errorMessage);
+					var (isValid, errorMessage) = OptionValidator.IsValid(options, NumberConstants.MaxQuantityOption);
+					if (!isValid) throw new Exception(errorMessage);
 					await _uow.Options.AddRangeAsync(options);
 				}
 
@@ -261,7 +261,7 @@ namespace ToeicGenius.Services.Implementations
 				{
 					var q = request.Questions[i];
 
-					if (q.Id.HasValue && existingQuestions.ContainsKey(q.Id.Value))
+					if (existingQuestions.ContainsKey(q.Id.Value))
 					{
 						var currentQuestion = existingQuestions[q.Id.Value];
 						currentQuestion.Status = CommonStatus.Inactive;
@@ -378,14 +378,13 @@ namespace ToeicGenius.Services.Implementations
 							});
 						}
 					}
-
 				}
 
 				// Bulk insert new Questions and Options
 				await _uow.Questions.AddRangeAsync(questions);
 				if (options.Any())
 				{
-					var (isValid, errorMessage) = OptionValidator.IsValid(options);
+					var (isValid, errorMessage) = OptionValidator.IsValid(options, NumberConstants.MaxQuantityOption);
 					if (!isValid)
 					{
 						await _fileService.RollbackAndCleanupAsync(uploadedFiles);

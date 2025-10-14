@@ -7,6 +7,9 @@ using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Shared.Constants;
 using ToeicGenius.Shared.Validators;
+using ToeicGenius.Domains.Enums;
+using Azure.Core;
+using Amazon.Runtime.Internal;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -81,6 +84,9 @@ namespace ToeicGenius.Services.Implementations
 				await _uow.Questions.AddAsync(question);
 				var options = new List<Option>();
 
+				var part = await _uow.Parts.GetByIdAsync(request.PartId);
+				var requireQuantityOptions = (part.Skill == TestSkill.LR && part.PartNumber == 2) ? NumberConstants.MinQuantityOption : NumberConstants.MaxQuantityOption;
+
 				// Options (nếu có)
 				if (request.AnswerOptions != null && request.AnswerOptions.Any())
 				{
@@ -96,8 +102,8 @@ namespace ToeicGenius.Services.Implementations
 				// Check validate options
 				if (options.Any())
 				{
-					var (isValid, errorMessage) = OptionValidator.IsValid(options);
-					if (!isValid) return Result<string>.Failure(errorMessage);
+					var (isValid, errorMessage) = OptionValidator.IsValid(options, requireQuantityOptions);
+					if (!isValid) throw new Exception(errorMessage);
 					await _uow.Options.AddRangeAsync(options);
 				}
 
@@ -113,23 +119,120 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<Result<string>> UpdateAsync(UpdateQuestionDto dto)
+		public async Task<Result<string>> UpdateAsync(int questionId, UpdateQuestionDto dto)
 		{
-			//var question = await _uow.Questions.GetByIdAsync(dto.Id);
-			//if (question == null)
-			//	return Result<string>.Failure("Question not found");
+			await _uow.BeginTransactionAsync();
+			var uploadedFiles = new List<string>();
+			var filesToDelete = new List<string>();
 
-			//question.QuestionTypeId = dto.QuestionTypeId;
-			//question.PartId = dto.PartId;
-			//question.Content = dto.Content;
-			//question.Number = dto.Number;
-			//question.AudioUrl = dto.AudioUrl;
-			//question.ImageUrl = dto.ImageUrl;
+			try
+			{
+				// Check exist question
+				var currentQuestion = await _uow.Questions.GetQuestionByIdAndStatus(questionId, Domains.Enums.CommonStatus.Active);
+				if (currentQuestion == null) return Result<string>.Failure("Not found question to update");
 
-			//// Cập nhật các trường khác nếu có
-			//await _uow.Questions.UpdateAsync(question);
-			//await _uow.SaveChangesAsync();
-			return Result<string>.Success(SuccessMessages.OperationSuccess);
+				if (!string.IsNullOrEmpty(currentQuestion.AudioUrl)) filesToDelete.Add(currentQuestion.AudioUrl);
+				if (!string.IsNullOrEmpty(currentQuestion.ImageUrl)) filesToDelete.Add(currentQuestion.ImageUrl);
+
+				// Upload new file
+				var imageUrl = "";
+				var audioUrl = "";
+
+				// Image: If have
+				if (dto.Image != null)
+				{
+					// Check valid file
+					var (isValid, errorMessage) = FileValidator.ValidateFile(dto.Image, "image");
+					if (!isValid) { return Result<string>.Failure(errorMessage); }
+
+					// Upload
+					var result = await _fileService.UploadFileAsync(dto.Image, "image");
+					if (!result.IsSuccess) { return Result<string>.Failure($"Failed to upload image file."); }
+
+					imageUrl = result.Data;
+					uploadedFiles.Add(imageUrl);
+				}
+
+				// Audio: If have
+				if (dto.Audio != null)
+				{
+					// Check valid file
+					var (isValid, errorMessage) = FileValidator.ValidateFile(dto.Audio, "audio");
+					if (!isValid) { return Result<string>.Failure(errorMessage); }
+
+					// Upload
+					var result = await _fileService.UploadFileAsync(dto.Image, "audio");
+					if (!result.IsSuccess) { return Result<string>.Failure($"Failed to upload audio file."); }
+
+					audioUrl = result.Data;
+					uploadedFiles.Add(audioUrl);
+				}
+
+				// Update question 
+				currentQuestion.PartId = dto.PartId;
+				currentQuestion.QuestionTypeId = dto.QuestionTypeId;
+				currentQuestion.Content = dto.Content;
+				currentQuestion.Explanation = dto.Solution;
+				currentQuestion.Number = dto.Number;
+				currentQuestion.AudioUrl = audioUrl;
+				currentQuestion.ImageUrl = imageUrl;
+				currentQuestion.UpdatedAt = DateTime.UtcNow;
+
+				var options = new List<Option>();
+				var existingOptions = currentQuestion.Options.ToDictionary(o => o.OptionId, o => o);
+				foreach (var opt in dto.AnswerOptions)
+				{
+					if (opt.Id.HasValue && existingOptions.ContainsKey(opt.Id.Value))
+					{
+						var option = existingOptions[opt.Id.Value];
+						option.Content = opt.Content;
+						option.Label = opt.Label;
+						option.IsCorrect = opt.IsCorrect;
+						option.UpdatedAt = DateTime.UtcNow;
+					}
+					else
+					{
+						options.Add(new Option
+						{
+							Content = opt.Content,
+							Label = opt.Label,
+							IsCorrect = opt.IsCorrect,
+							Question = currentQuestion,
+							Status = CommonStatus.Active
+						});
+					}
+				}
+
+				var part = await _uow.Parts.GetByIdAsync(dto.PartId);
+				var requireQuantityOptions = (part.Skill == TestSkill.LR && part.PartNumber == 2) ? NumberConstants.MinQuantityOption : NumberConstants.MaxQuantityOption;
+
+				if (options.Any())
+				{
+					var (isValid, errorMessage) = OptionValidator.IsValid(options, NumberConstants.MaxQuantityOption);
+					if (!isValid) throw new Exception(errorMessage);
+		
+					await _uow.Options.AddRangeAsync(options);
+				}
+
+				// Delete old files
+				foreach (var file in filesToDelete)
+				{
+					if (!string.IsNullOrEmpty(file))
+					{
+						await _fileService.DeleteFileAsync(file);
+					}
+				}
+				await _uow.SaveChangesAsync(); // Commit tất cả: questions, options
+				await _uow.CommitTransactionAsync();
+				return Result<string>.Success($"Question {questionId} updated successfully.");
+
+			}
+			catch (Exception ex)
+			{
+				// Rollback transaction & delete files
+				await _fileService.RollbackAndCleanupAsync(uploadedFiles);
+				return Result<string>.Failure($"Operation failed: {ex.Message}");
+			}
 		}
 
 		public async Task<Result<string>> DeleteAsync(int id)
