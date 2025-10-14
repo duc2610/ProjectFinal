@@ -7,6 +7,7 @@ using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Question;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ToeicGenius.Controllers
 {
@@ -25,6 +26,7 @@ namespace ToeicGenius.Controllers
 
 		// POST: api/question
 		[HttpPost("question")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> CreateQuestion([FromForm] CreateQuestionDto request)
 		{
 			var result = await _questionService.CreateAsync(request);
@@ -37,6 +39,7 @@ namespace ToeicGenius.Controllers
 
 		// GET: api/question/{id}
 		[HttpGet("question/{id}")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<ActionResult<QuestionResponseDto>> GetQuestion(int id)
 		{
 			var question = await _questionService.GetQuestionResponseByIdAsync(id);
@@ -46,6 +49,7 @@ namespace ToeicGenius.Controllers
 
 		// PUT: api/question/{id}
 		[HttpPut("question/{id}")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> UpdateQuestion(int id, [FromForm] UpdateQuestionDto dto)
 		{
 			var result = await _questionService.UpdateAsync(id,dto);
@@ -56,6 +60,7 @@ namespace ToeicGenius.Controllers
 
 		// DELETE: api/question/{id}
 		[HttpDelete("question/{id}")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> DeleteQuestion(int id)
 		{
 			var result = await _questionService.DeleteAsync(id);
@@ -66,6 +71,7 @@ namespace ToeicGenius.Controllers
 
 		// GET: api/questions?part=&skill=&questionType=
 		[HttpGet("questions")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<ActionResult<ApiResponse<PaginationResponse<QuestionResponseDto>>>> FilterQuestions(
 			[FromQuery] int? part,
 			[FromQuery] int? questionType,

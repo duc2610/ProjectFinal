@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using ToeicGenius.Domains.DTOs.Common;
@@ -26,6 +27,7 @@ namespace ToeicGenius.Controllers
 
 		// POST: api/question-group
 		[HttpPost("question-group")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> CreateQuestionGroup([FromForm] QuestionGroupRequestDto request)
 		{
 			var result = await _questionGroupService.CreateQuestionGroupAsync(request);
@@ -36,6 +38,7 @@ namespace ToeicGenius.Controllers
 
 		// GET: api/question-group/{id} -> DONE 
 		[HttpGet("question-group/{id}")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> GetQuestionGroup(int id)
 		{
 			var group = await _questionGroupService.GetQuestionGroupResponseByIdAsync(id);
@@ -43,8 +46,9 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<QuestionGroupResponseDto>.SuccessResponse(group));
 		}
 
-		// GET: api/question-group?part=&skill=&Type=
+		// GET: api/question-group?part=&page=&pageSize=
 		[HttpGet("question-group")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> FilterGroupQuestions(
 			[FromQuery] int? part,
 			[FromQuery] int page,
@@ -58,6 +62,7 @@ namespace ToeicGenius.Controllers
 
 		// PUT: api/question-group/{id}
 		[HttpPut("question-group/{id}")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> UpdateQuestion(int id, [FromForm] UpdateQuestionGroupDto request)
 		{
 			var result = await _questionGroupService.UpdateAsync(id, request);
@@ -67,6 +72,7 @@ namespace ToeicGenius.Controllers
 
 		// DELETE: api/question-group/{id}
 		[HttpDelete("question-group/{id}")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> DeleteGroupQuestion(int id)
 		{
 			var result = await _questionGroupService.DeleteQuestionGroupAsync(id);
