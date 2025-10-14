@@ -1,55 +1,53 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
-import { PrivateRoute, RoleGuard } from "@app/guards/Guards";
-import { ROLES } from "@shared/utils/acl";
+import { PrivateRoute, PublicOnlyRoute } from "@app/guards/Guards";
+import MainLayout from "@shared/layouts/MainLayout";
 
-const Home = lazy(() => import("@pages/Home.jsx"));
-const About = lazy(() => import("@pages/About.jsx"));
-const Login = lazy(() => import("@pages/Login.jsx"));
-const Register = lazy(() => import("@pages/Register.jsx"));
-const ForgotPassword = lazy(() => import("@pages/ForgotPassword.jsx"));
-const VerifyRegister = lazy(() => import("@pages/VerifyRegister.jsx"));
-// const Profile = lazy(() => import("@pages/Profile.jsx"));
+const Home = lazy(() => import("@pages/public/Home.jsx"));
+const About = lazy(() => import("@pages/public/About.jsx"));
+const Login = lazy(() => import("@pages/auth/Login.jsx"));
+const Register = lazy(() => import("@pages/auth/Register.jsx"));
+const ForgotPassword = lazy(() => import("@pages/auth/ForgotPassword.jsx"));
+const VerifyRegister = lazy(() => import("@pages/auth/VerifyRegister.jsx"));
+const Profile = lazy(() => import("@pages/account/Profile.jsx"));
 const AdminDashboard = lazy(() => import("@pages/admin/Dashboard.jsx"));
-const ResetPassword = lazy(() => import("@pages/ResetPassword.jsx"));
-const VerifyReset = lazy(() => import("@pages/VerifyReset.jsx"));
-const AuthCallback = lazy(() => import("@pages/AuthCallback.jsx"));
+const ResetPassword = lazy(() => import("@pages/auth/ResetPassword.jsx"));
+const VerifyReset = lazy(() => import("@pages/auth/VerifyReset.jsx"));
+const AccountManagement = lazy(() => import("@pages/admin/AccountManagement.jsx"));
+const EvaluationBanksManagement = lazy(() =>
+  import("@pages/admin/EvaluationBanksManagement.jsx")
+);
+
 export default function RoutesRoot() {
   return (
     <Suspense fallback={<div style={{ padding: 16 }}>Đang tải...</div>}>
       <Routes>
-        {/* Public */}
-        <Route path="/" element={<Home />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/verify-register" element={<VerifyRegister />} />
+        //khong dung chung layout header voi footer
+        <Route element={<PublicOnlyRoute />}>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-register" element={<VerifyRegister />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/verify-reset" element={<VerifyReset />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-
-
-        {/* Private (cần đăng nhập) */}
-        {/* <Route
-          path="/profile"
-          element={
-            <PrivateRoute>
-              <Profile />
-            </PrivateRoute>
-          }
-        /> */}
-
-        {/* Role-based (chỉ admin) */}
-        <Route
-          path="/admin/dashboard"
-          element={
-            <RoleGuard roles={[ROLES.ADMIN]}>
-              <AdminDashboard />
-            </RoleGuard>
-          }
-        />
-
+          <Route path="/verify-reset" element={<VerifyReset />} />
+        </Route>
+        // dung chung layout header voi footer
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          //chi user binh thuong moi vao duoc
+          <Route element={<PrivateRoute />}>
+            <Route path="/profile" element={<Profile />} />
+          </Route>
+        </Route>
+        <Route>
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route
+            path="/admin/evaluation-banks-management"
+            element={<EvaluationBanksManagement />}
+          />
+          <Route path="/admin/account-management" element={<AccountManagement />} />
+        </Route>
         <Route
           path="*"
           element={

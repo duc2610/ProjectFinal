@@ -26,7 +26,7 @@ export default function Login() {
       if (res.ok) {
         notification.success({
           message: "Đăng nhập thành công",
-          description: "Chào mừng bạn trở lại!",
+          description: `Xin chào ${res.user?.fullName}`,
           duration: 5,
         });
         navigate("/");
@@ -56,7 +56,7 @@ export default function Login() {
         if (res.ok) {
           notification.success({
             message: "Đăng nhập thành công",
-            description: `Xin chào ${res.user.fullname}`,
+            description: `Xin chào ${res.user?.fullName}`,
           });
           navigate("/");
         } else {
