@@ -1,12 +1,17 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
+using ToeicGenius.Shared.Helpers;
 
 namespace ToeicGenius.Repositories.Persistence
 {
 	public class ToeicGeniusDbContext : DbContext
 	{
-		public ToeicGeniusDbContext(DbContextOptions<ToeicGeniusDbContext> options) : base(options) { }
+		private readonly IConfiguration _configuration;
+		public ToeicGeniusDbContext(DbContextOptions<ToeicGeniusDbContext> options, IConfiguration configuration) : base(options)
+		{
+			_configuration = configuration;
+		}
 		public DbSet<User> Users => Set<User>();
 		public DbSet<Role> Roles => Set<Role>();
 		public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
@@ -263,7 +268,7 @@ namespace ToeicGenius.Repositories.Persistence
 				new QuestionType { QuestionTypeId = 38, Skill = TestSkill.Writing, Description = "Essay", TypeName = "[Writing] Viết luận nêu ý kiến cá nhân (Write an opinion essay Q8)", PartId = 10 }
 			);
 
-			
+
 
 			// Seed QuestionGroup
 			modelBuilder.Entity<QuestionGroup>().HasData(
@@ -314,6 +319,49 @@ namespace ToeicGenius.Repositories.Persistence
 				new Option { OptionId = 4, QuestionId = 1, Content = "Madrid", IsCorrect = false, Label = "D" }
 			);
 
+			// Seed default account
+			var adminConfig = _configuration.GetSection("DefaultAccounts:Admin");
+			var creatorConfig = _configuration.GetSection("DefaultAccounts:TestCreator");
+			var examineeConfig = _configuration.GetSection("DefaultAccounts:Examinee");
+			// Tạo Guid cố định để không thay đổi giữa các migration
+			var adminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+			var creatorId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+			var examineeId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+			modelBuilder.Entity<User>().HasData(
+				new User
+				{
+					Id = adminId,
+					Email = adminConfig["Email"]!,
+					FullName = adminConfig["FullName"]!,
+					PasswordHash = SecurityHelper.HashPassword(adminConfig["Password"]!),
+					Status = UserStatus.Active,
+					CreatedAt = DateTime.UtcNow
+				},
+				new User
+				{
+					Id = creatorId,
+					Email = creatorConfig["Email"]!,
+					FullName = creatorConfig["FullName"]!,
+					PasswordHash = SecurityHelper.HashPassword(creatorConfig["Password"]!),
+					Status = UserStatus.Active,
+					CreatedAt = DateTime.UtcNow
+				},
+				new User
+				{
+					Id = examineeId,
+					Email = examineeConfig["Email"]!,
+					FullName = examineeConfig["FullName"]!,
+					PasswordHash = SecurityHelper.HashPassword(examineeConfig["Password"]!),
+					Status = UserStatus.Active,
+					CreatedAt = DateTime.UtcNow
+				}
+			);
+			// Seed bảng trung gian ẩn danh (UserRoles)
+			modelBuilder.SharedTypeEntity<Dictionary<string, object>>("UserRoles").HasData(
+				new { UserId = adminId, RoleId = 1 },
+				new { UserId = creatorId, RoleId = 3 },
+				new { UserId = examineeId, RoleId = 2 }
+			);
 		}
 	}
 }
