@@ -9,6 +9,7 @@ namespace ToeicGenius.Domains.Entities
 		public int TestId { get; set; }
 
 		public string? TestMode { get; set; }
+		public TestSkill TestSkill { get; set; } = TestSkill.LR;
 		public string? Title { get; set; }
 		public string? Description { get; set; }
 		public int Duration { get; set; }

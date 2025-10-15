@@ -38,7 +38,7 @@ namespace ToeicGenius.Configurations
 			services.AddScoped<IQuestionService, QuestionService>();
 			services.AddScoped<IQuestionGroupService, QuestionGroupService>();
 			services.AddScoped<IFileService, FileService>();
-
+			services.AddScoped<ITestService, TestService>();
 
 		}
 	}
