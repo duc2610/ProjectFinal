@@ -22,21 +22,6 @@ namespace ToeicGenius.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("TestParts", b =>
-                {
-                    b.Property<int>("TestId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("PartId")
-                        .HasColumnType("int");
-
-                    b.HasKey("TestId", "PartId");
-
-                    b.HasIndex("PartId");
-
-                    b.ToTable("TestParts");
-                });
-
             modelBuilder.Entity("ToeicGenius.Domains.Entities.AIFeedback", b =>
                 {
                     b.Property<int>("FeedbackId")
@@ -201,7 +186,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 1,
                             Content = "Paris",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5697),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4797),
                             IsCorrect = true,
                             Label = "A",
                             QuestionId = 1,
@@ -211,7 +196,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 2,
                             Content = "London",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5698),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4798),
                             IsCorrect = false,
                             Label = "B",
                             QuestionId = 1,
@@ -221,7 +206,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 3,
                             Content = "Berlin",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5699),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4799),
                             IsCorrect = false,
                             Label = "C",
                             QuestionId = 1,
@@ -231,10 +216,50 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 4,
                             Content = "Madrid",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5700),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4800),
                             IsCorrect = false,
                             Label = "D",
                             QuestionId = 1,
+                            Status = 1
+                        },
+                        new
+                        {
+                            OptionId = 5,
+                            Content = "Paris",
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4801),
+                            IsCorrect = true,
+                            Label = "A",
+                            QuestionId = 11,
+                            Status = 1
+                        },
+                        new
+                        {
+                            OptionId = 6,
+                            Content = "London",
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4802),
+                            IsCorrect = false,
+                            Label = "B",
+                            QuestionId = 11,
+                            Status = 1
+                        },
+                        new
+                        {
+                            OptionId = 7,
+                            Content = "Berlin",
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4803),
+                            IsCorrect = false,
+                            Label = "C",
+                            QuestionId = 11,
+                            Status = 1
+                        },
+                        new
+                        {
+                            OptionId = 8,
+                            Content = "Madrid",
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4804),
+                            IsCorrect = false,
+                            Label = "D",
+                            QuestionId = 11,
                             Status = 1
                         });
                 });
@@ -442,7 +467,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 2,
                             Content = "Single Question 2",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5597),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4684),
                             Number = 2,
                             PartId = 1,
                             QuestionTypeId = 1,
@@ -452,7 +477,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 3,
                             Content = "Single Question 3",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5600),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4692),
                             Number = 3,
                             PartId = 2,
                             QuestionTypeId = 2,
@@ -462,7 +487,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 4,
                             Content = "Single Question 4",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5601),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4694),
                             Number = 4,
                             PartId = 2,
                             QuestionTypeId = 2,
@@ -472,7 +497,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 5,
                             Content = "Single Question 5",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5603),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4695),
                             Number = 5,
                             PartId = 1,
                             QuestionTypeId = 1,
@@ -482,7 +507,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 6,
                             Content = "Single Question 6",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5604),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4696),
                             Number = 6,
                             PartId = 1,
                             QuestionTypeId = 1,
@@ -492,7 +517,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 7,
                             Content = "Single Question 7",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5605),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4697),
                             Number = 7,
                             PartId = 2,
                             QuestionTypeId = 2,
@@ -502,7 +527,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 8,
                             Content = "Single Question 8",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5606),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4698),
                             Number = 8,
                             PartId = 2,
                             QuestionTypeId = 2,
@@ -512,7 +537,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 9,
                             Content = "Single Question 9",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5607),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4699),
                             Number = 9,
                             PartId = 1,
                             QuestionTypeId = 1,
@@ -522,7 +547,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 10,
                             Content = "Single Question 10",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5608),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4700),
                             Number = 10,
                             PartId = 1,
                             QuestionTypeId = 1,
@@ -532,7 +557,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 11,
                             Content = "Group 1 - Question 1",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5648),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4730),
                             Number = 1,
                             PartId = 1,
                             QuestionGroupId = 1,
@@ -543,7 +568,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 12,
                             Content = "Group 1 - Question 2",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5649),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4731),
                             Number = 2,
                             PartId = 1,
                             QuestionGroupId = 1,
@@ -554,7 +579,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 13,
                             Content = "Group 1 - Question 3",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5650),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4732),
                             Number = 3,
                             PartId = 1,
                             QuestionGroupId = 1,
@@ -565,7 +590,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 14,
                             Content = "Group 2 - Question 1",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5652),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4733),
                             Number = 1,
                             PartId = 2,
                             QuestionGroupId = 2,
@@ -576,7 +601,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 15,
                             Content = "Group 2 - Question 2",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5653),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4734),
                             Number = 2,
                             PartId = 2,
                             QuestionGroupId = 2,
@@ -587,7 +612,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 16,
                             Content = "Group 2 - Question 3",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5654),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4736),
                             Number = 3,
                             PartId = 2,
                             QuestionGroupId = 2,
@@ -598,7 +623,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 17,
                             Content = "Group 3 - Question 1",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5655),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4737),
                             Number = 1,
                             PartId = 1,
                             QuestionGroupId = 3,
@@ -609,7 +634,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 18,
                             Content = "Group 3 - Question 2",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5656),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4738),
                             Number = 2,
                             PartId = 1,
                             QuestionGroupId = 3,
@@ -620,7 +645,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 19,
                             Content = "Group 3 - Question 3",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5658),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4739),
                             Number = 3,
                             PartId = 1,
                             QuestionGroupId = 3,
@@ -631,7 +656,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 1,
                             Content = "What is the capital of France?",
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5679),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4774),
                             Number = 1,
                             PartId = 1,
                             QuestionTypeId = 1,
@@ -684,7 +709,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             QuestionGroupId = 1,
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5571),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4652),
                             OrderIndex = 0,
                             PartId = 6,
                             PassageContent = "Passage1",
@@ -693,7 +718,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             QuestionGroupId = 2,
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5574),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4654),
                             OrderIndex = 0,
                             PartId = 7,
                             PassageContent = "Passage2",
@@ -702,7 +727,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             QuestionGroupId = 3,
-                            CreatedAt = new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5575),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 571, DateTimeKind.Utc).AddTicks(4655),
                             OrderIndex = 0,
                             PartId = 7,
                             PassageContent = "Passage3",
@@ -1135,8 +1160,14 @@ namespace ToeicGenius.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TestId"));
 
+                    b.Property<string>("AudioUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("CreatedById")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
@@ -1144,13 +1175,21 @@ namespace ToeicGenius.Migrations
                     b.Property<int>("Duration")
                         .HasColumnType("int");
 
+                    b.Property<int?>("PartId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<string>("TestMode")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("TestSkill")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TestType")
+                        .HasMaxLength(50)
+                        .HasColumnType("int");
 
                     b.Property<string>("Title")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -1158,7 +1197,92 @@ namespace ToeicGenius.Migrations
 
                     b.HasKey("TestId");
 
+                    b.HasIndex("CreatedById");
+
+                    b.HasIndex("PartId");
+
                     b.ToTable("Tests");
+                });
+
+            modelBuilder.Entity("ToeicGenius.Domains.Entities.TestQuestion", b =>
+                {
+                    b.Property<int>("TestQuestionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TestQuestionId"));
+
+                    b.Property<int>("OrderInTest")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("OriginalQuestionGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("OriginalQuestionId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PartId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TestId")
+                        .HasColumnType("int");
+
+                    b.HasKey("TestQuestionId");
+
+                    b.HasIndex("PartId");
+
+                    b.HasIndex("TestId");
+
+                    b.ToTable("TestQuestion");
+                });
+
+            modelBuilder.Entity("ToeicGenius.Domains.Entities.TestResult", b =>
+                {
+                    b.Property<int>("UserTestId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserTestId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Duration")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TestId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TestMode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("TotalScore")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("UserTestId");
+
+                    b.HasIndex("TestId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserTests");
                 });
 
             modelBuilder.Entity("ToeicGenius.Domains.Entities.User", b =>
@@ -1199,6 +1323,35 @@ namespace ToeicGenius.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 688, DateTimeKind.Utc).AddTicks(7967),
+                            Email = "admin@toeicgenius.com",
+                            FullName = "System Admin",
+                            PasswordHash = "$2a$11$VV9ETAQ.wX3fVob2IIAi6eWSSgEh9hYdKzoF5KaUTRh61WP4RdqmW",
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 808, DateTimeKind.Utc).AddTicks(4449),
+                            Email = "creator@toeicgenius.com",
+                            FullName = "Test Creator",
+                            PasswordHash = "$2a$11$I8av6Kz5Ce/1R.qizf1hyebrCkF6D/qJ6QERXC6zCJkR/4LDSxuAi",
+                            Status = 1
+                        },
+                        new
+                        {
+                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
+                            CreatedAt = new DateTime(2025, 10, 18, 3, 24, 3, 924, DateTimeKind.Utc).AddTicks(7400),
+                            Email = "examinee@toeicgenius.com",
+                            FullName = "Regular Examinee",
+                            PasswordHash = "$2a$11$Y2WySfr46yhh4On3kZRdkeNzlTVHROkvzQgaV4YGDzwdL1IHWJKI6",
+                            Status = 1
+                        });
                 });
 
             modelBuilder.Entity("ToeicGenius.Domains.Entities.UserAnswer", b =>
@@ -1271,51 +1424,6 @@ namespace ToeicGenius.Migrations
                     b.ToTable("UserOtps");
                 });
 
-            modelBuilder.Entity("ToeicGenius.Domains.Entities.UserTest", b =>
-                {
-                    b.Property<int>("UserTestId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserTestId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Duration")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("StartTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TestId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TestMode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("TotalScore")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("UserTestId");
-
-                    b.HasIndex("TestId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserTests");
-                });
-
             modelBuilder.Entity("ToeicGenius.Domains.Entities.UserTestSkillScore", b =>
                 {
                     b.Property<int>("UserTestResultId")
@@ -1354,21 +1462,23 @@ namespace ToeicGenius.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("UserRoles", (string)null);
-                });
 
-            modelBuilder.Entity("TestParts", b =>
-                {
-                    b.HasOne("ToeicGenius.Domains.Entities.Part", null)
-                        .WithMany()
-                        .HasForeignKey("PartId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ToeicGenius.Domains.Entities.Test", null)
-                        .WithMany()
-                        .HasForeignKey("TestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasData(
+                        new
+                        {
+                            UserId = new Guid("11111111-1111-1111-1111-111111111111"),
+                            RoleId = 1
+                        },
+                        new
+                        {
+                            UserId = new Guid("22222222-2222-2222-2222-222222222222"),
+                            RoleId = 3
+                        },
+                        new
+                        {
+                            UserId = new Guid("33333333-3333-3333-3333-333333333333"),
+                            RoleId = 2
+                        });
                 });
 
             modelBuilder.Entity("ToeicGenius.Domains.Entities.AIFeedback", b =>
@@ -1484,35 +1594,42 @@ namespace ToeicGenius.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("ToeicGenius.Domains.Entities.UserAnswer", b =>
+            modelBuilder.Entity("ToeicGenius.Domains.Entities.Test", b =>
                 {
-                    b.HasOne("ToeicGenius.Domains.Entities.Option", "Option")
+                    b.HasOne("ToeicGenius.Domains.Entities.User", "CreatedBy")
                         .WithMany()
-                        .HasForeignKey("OptionId");
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("ToeicGenius.Domains.Entities.Question", "Question")
-                        .WithMany()
-                        .HasForeignKey("QuestionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("ToeicGenius.Domains.Entities.Part", null)
+                        .WithMany("Tests")
+                        .HasForeignKey("PartId");
 
-                    b.HasOne("ToeicGenius.Domains.Entities.UserTest", "UserTest")
-                        .WithMany("UserAnswers")
-                        .HasForeignKey("UserTestId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Option");
-
-                    b.Navigation("Question");
-
-                    b.Navigation("UserTest");
+                    b.Navigation("CreatedBy");
                 });
 
-            modelBuilder.Entity("ToeicGenius.Domains.Entities.UserTest", b =>
+            modelBuilder.Entity("ToeicGenius.Domains.Entities.TestQuestion", b =>
+                {
+                    b.HasOne("ToeicGenius.Domains.Entities.Part", "Part")
+                        .WithMany()
+                        .HasForeignKey("PartId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ToeicGenius.Domains.Entities.Test", "Test")
+                        .WithMany("TestQuestions")
+                        .HasForeignKey("TestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Part");
+
+                    b.Navigation("Test");
+                });
+
+            modelBuilder.Entity("ToeicGenius.Domains.Entities.TestResult", b =>
                 {
                     b.HasOne("ToeicGenius.Domains.Entities.Test", "Test")
-                        .WithMany("UserTests")
+                        .WithMany("TestResults")
                         .HasForeignKey("TestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1528,9 +1645,34 @@ namespace ToeicGenius.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("ToeicGenius.Domains.Entities.UserAnswer", b =>
+                {
+                    b.HasOne("ToeicGenius.Domains.Entities.Option", "Option")
+                        .WithMany()
+                        .HasForeignKey("OptionId");
+
+                    b.HasOne("ToeicGenius.Domains.Entities.Question", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ToeicGenius.Domains.Entities.TestResult", "UserTest")
+                        .WithMany("UserAnswers")
+                        .HasForeignKey("UserTestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Option");
+
+                    b.Navigation("Question");
+
+                    b.Navigation("UserTest");
+                });
+
             modelBuilder.Entity("ToeicGenius.Domains.Entities.UserTestSkillScore", b =>
                 {
-                    b.HasOne("ToeicGenius.Domains.Entities.UserTest", "UserTest")
+                    b.HasOne("ToeicGenius.Domains.Entities.TestResult", "UserTest")
                         .WithMany("SkillScores")
                         .HasForeignKey("UserTestId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1571,6 +1713,8 @@ namespace ToeicGenius.Migrations
                     b.Navigation("QuestionTypes");
 
                     b.Navigation("Questions");
+
+                    b.Navigation("Tests");
                 });
 
             modelBuilder.Entity("ToeicGenius.Domains.Entities.Question", b =>
@@ -1590,7 +1734,16 @@ namespace ToeicGenius.Migrations
 
             modelBuilder.Entity("ToeicGenius.Domains.Entities.Test", b =>
                 {
-                    b.Navigation("UserTests");
+                    b.Navigation("TestQuestions");
+
+                    b.Navigation("TestResults");
+                });
+
+            modelBuilder.Entity("ToeicGenius.Domains.Entities.TestResult", b =>
+                {
+                    b.Navigation("SkillScores");
+
+                    b.Navigation("UserAnswers");
                 });
 
             modelBuilder.Entity("ToeicGenius.Domains.Entities.User", b =>
@@ -1598,13 +1751,6 @@ namespace ToeicGenius.Migrations
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("UserTests");
-                });
-
-            modelBuilder.Entity("ToeicGenius.Domains.Entities.UserTest", b =>
-                {
-                    b.Navigation("SkillScores");
-
-                    b.Navigation("UserAnswers");
                 });
 #pragma warning restore 612, 618
         }

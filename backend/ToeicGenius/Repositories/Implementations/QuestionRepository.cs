@@ -103,6 +103,29 @@ namespace ToeicGenius.Repositories.Implementations
 								.Where(x => x.QuestionId == questionId && x.Status == status)
 								.FirstOrDefaultAsync();
 		}
+
+		public async Task<List<QuestionSnapshotDto>> GetByListIdAsync(List<int> questionIds)
+		{
+			return await _context.Questions
+				.AsNoTracking()
+				.Where(q => questionIds.Contains(q.QuestionId) && q.Status == CommonStatus.Active)
+				.Select(q => new QuestionSnapshotDto
+				{
+					QuestionId = q.QuestionId,
+					Content = q.Content,
+					AudioUrl = q.AudioUrl,
+					ImageUrl = q.ImageUrl,
+					PartId = q.PartId,
+					Explanation = q.Explanation,
+					Options = q.Options.Select(o => new OptionSnapshotDto
+					{
+						Label = o.Label,
+						Content = o.Content,
+						IsCorrect = o.IsCorrect,
+					}).ToList()
+				})
+				.ToListAsync();
+		}
 	}
 }
 

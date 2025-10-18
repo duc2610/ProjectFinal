@@ -26,7 +26,7 @@ namespace ToeicGenius.Controllers
 
 		// POST: api/question
 		[HttpPost("question")]
-		[Authorize(Roles = "TestCreator")]
+		//[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> CreateQuestion([FromForm] CreateQuestionDto request)
 		{
 			var result = await _questionService.CreateAsync(request);

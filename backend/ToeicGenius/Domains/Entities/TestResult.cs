@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ToeicGenius.Domains.Entities
 {
-	public class UserTest
+	public class TestResult
 	{
 		[Key]
 		public int UserTestId { get; set; }

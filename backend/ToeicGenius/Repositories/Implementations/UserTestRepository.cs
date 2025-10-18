@@ -4,7 +4,7 @@ using ToeicGenius.Repositories.Persistence;
 
 namespace ToeicGenius.Repositories.Implementations
 {
-	public class UserTestRepository : BaseRepository<UserTest, int>, IUserTestRepository
+	public class UserTestRepository : BaseRepository<TestResult, int>, IUserTestRepository
 	{
 		public UserTestRepository(ToeicGeniusDbContext context) : base(context) { }
 	}

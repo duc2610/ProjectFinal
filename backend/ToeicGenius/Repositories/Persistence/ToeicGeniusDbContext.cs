@@ -1,12 +1,22 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System.Text.Json;
+using ToeicGenius.Domains.DTOs.Requests.Question;
+using ToeicGenius.Domains.DTOs.Responses.Question;
+using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
+using ToeicGenius.Shared.Helpers;
 
 namespace ToeicGenius.Repositories.Persistence
 {
 	public class ToeicGeniusDbContext : DbContext
 	{
-		public ToeicGeniusDbContext(DbContextOptions<ToeicGeniusDbContext> options) : base(options) { }
+		private readonly IConfiguration _configuration;
+		public ToeicGeniusDbContext(DbContextOptions<ToeicGeniusDbContext> options, IConfiguration configuration) : base(options)
+		{
+			_configuration = configuration;
+		}
 		public DbSet<User> Users => Set<User>();
 		public DbSet<Role> Roles => Set<Role>();
 		public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
@@ -20,7 +30,7 @@ namespace ToeicGenius.Repositories.Persistence
 		public DbSet<Option> Options => Set<Option>();
 		public DbSet<Test> Tests => Set<Test>();
 		public DbSet<Part> Parts => Set<Part>();
-		public DbSet<UserTest> UserTests => Set<UserTest>();
+		public DbSet<TestResult> UserTests => Set<TestResult>();
 		public DbSet<UserAnswer> UserAnswers => Set<UserAnswer>();
 		public DbSet<AIFeedback> AIFeedbacks => Set<AIFeedback>();
 		public DbSet<UserTestSkillScore> UserTestSkillScores => Set<UserTestSkillScore>();
@@ -101,27 +111,40 @@ namespace ToeicGenius.Repositories.Persistence
 				.WithMany(q => q.Options)
 				.HasForeignKey(o => o.QuestionId);
 
-			// Test-Part many-to-many
+			// Test - TestQuestion
+			// SnapshotJson is just string; no converter necessary.
+			modelBuilder.Entity<TestQuestion>()
+				.Property(tq => tq.SnapshotJson)
+				.HasColumnType("nvarchar(max)");
+
 			modelBuilder.Entity<Test>()
-				.HasMany(t => t.Parts)
-				.WithMany(p => p.Tests)
-				.UsingEntity<Dictionary<string, object>>(
-					"TestParts",
-					j => j.HasOne<Part>().WithMany().HasForeignKey("PartId"),
-					j => j.HasOne<Test>().WithMany().HasForeignKey("TestId"),
-					j => j.HasKey("TestId", "PartId")
-				);
+				.HasMany(t => t.TestQuestions)
+				.WithOne(q => q.Test)
+				.HasForeignKey(q => q.TestId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<Test>()
+				.HasOne(t => t.CreatedBy)
+				.WithMany()
+				.HasForeignKey(q => q.CreatedById)
+				.OnDelete(DeleteBehavior.SetNull);
+
+			modelBuilder.Entity<TestQuestion>()
+				.HasOne(t => t.Part)
+				.WithMany()
+				.HasForeignKey(q => q.PartId)
+				.OnDelete(DeleteBehavior.SetNull);
 
 			// UserTest relations
-			modelBuilder.Entity<UserTest>()
+			modelBuilder.Entity<TestResult>()
 				.HasOne(ut => ut.User)
 				.WithMany(u => u.UserTests)
 				.HasForeignKey(ut => ut.UserId);
-			modelBuilder.Entity<UserTest>()
+			modelBuilder.Entity<TestResult>()
 				.HasOne(ut => ut.Test)
-				.WithMany(t => t.UserTests)
+				.WithMany(t => t.TestResults)
 				.HasForeignKey(ut => ut.TestId);
-			modelBuilder.Entity<UserTest>()
+			modelBuilder.Entity<TestResult>()
 				.Property(ut => ut.TotalScore)
 				.HasPrecision(5, 2);
 
@@ -311,9 +334,56 @@ namespace ToeicGenius.Repositories.Persistence
 				new Option { OptionId = 1, QuestionId = 1, Content = "Paris", IsCorrect = true, Label = "A" },
 				new Option { OptionId = 2, QuestionId = 1, Content = "London", IsCorrect = false, Label = "B" },
 				new Option { OptionId = 3, QuestionId = 1, Content = "Berlin", IsCorrect = false, Label = "C" },
-				new Option { OptionId = 4, QuestionId = 1, Content = "Madrid", IsCorrect = false, Label = "D" }
+				new Option { OptionId = 4, QuestionId = 1, Content = "Madrid", IsCorrect = false, Label = "D" },
+				new Option { OptionId = 5, QuestionId = 11, Content = "Paris", IsCorrect = true, Label = "A" },
+				new Option { OptionId = 6, QuestionId = 11, Content = "London", IsCorrect = false, Label = "B" },
+				new Option { OptionId = 7, QuestionId = 11, Content = "Berlin", IsCorrect = false, Label = "C" },
+				new Option { OptionId = 8, QuestionId = 11, Content = "Madrid", IsCorrect = false, Label = "D" }
 			);
 
+			// Seed default account
+			var adminConfig = _configuration.GetSection("DefaultAccounts:Admin");
+			var creatorConfig = _configuration.GetSection("DefaultAccounts:TestCreator");
+			var examineeConfig = _configuration.GetSection("DefaultAccounts:Examinee");
+			// Tạo Guid cố định để không thay đổi giữa các migration
+			var adminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+			var creatorId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+			var examineeId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+			modelBuilder.Entity<User>().HasData(
+				new User
+				{
+					Id = adminId,
+					Email = adminConfig["Email"]!,
+					FullName = adminConfig["FullName"]!,
+					PasswordHash = SecurityHelper.HashPassword(adminConfig["Password"]!),
+					Status = UserStatus.Active,
+					CreatedAt = DateTime.UtcNow
+				},
+				new User
+				{
+					Id = creatorId,
+					Email = creatorConfig["Email"]!,
+					FullName = creatorConfig["FullName"]!,
+					PasswordHash = SecurityHelper.HashPassword(creatorConfig["Password"]!),
+					Status = UserStatus.Active,
+					CreatedAt = DateTime.UtcNow
+				},
+				new User
+				{
+					Id = examineeId,
+					Email = examineeConfig["Email"]!,
+					FullName = examineeConfig["FullName"]!,
+					PasswordHash = SecurityHelper.HashPassword(examineeConfig["Password"]!),
+					Status = UserStatus.Active,
+					CreatedAt = DateTime.UtcNow
+				}
+			);
+			// Seed bảng trung gian ẩn danh (UserRoles)
+			modelBuilder.SharedTypeEntity<Dictionary<string, object>>("UserRoles").HasData(
+				new { UserId = adminId, RoleId = 1 },
+				new { UserId = creatorId, RoleId = 3 },
+				new { UserId = examineeId, RoleId = 2 }
+			);
 		}
 	}
 }

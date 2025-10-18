@@ -13,6 +13,8 @@ namespace ToeicGenius.Repositories.Interfaces
             int? partId, int? questionTypeId, int? skill, int page, int pageSize);
 		Task<List<Question>> GetQuestionsByGroupIdAsync(int groupId);
 		Task<Question> GetQuestionByIdAndStatus(int questionId, CommonStatus status);
+
+		Task<List<QuestionSnapshotDto>> GetByListIdAsync(List<int> questionIds);
 	}
 }
 
