@@ -1,16 +1,14 @@
 export const ROLES = {
-  ADMIN: "admin",
-  USER: "user",
+  Admin: "Admin",
+  Examinee: "Examinee",
+  TestCreator: "TestCreator",
 };
 
 export function hasRole(user, roleOrRoles) {
   if (!user) return false;
+  const userRoles = Array.isArray(user.roles) ? user.roles : [];
   if (Array.isArray(roleOrRoles)) {
-    return roleOrRoles.includes(user.role);
+    return roleOrRoles.some((r) => userRoles.includes(r));
   }
-  return user.role === roleOrRoles;
+  return userRoles.includes(roleOrRoles);
 }
-
-// export function hasAnyRole(user, roles = []) {
-//   return !!user && roles.includes(user.role);
-// }
