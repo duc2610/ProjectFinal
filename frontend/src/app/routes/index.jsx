@@ -14,6 +14,7 @@ const AdminDashboard = lazy(() => import("@pages/admin/Dashboard.jsx"));
 const ResetPassword = lazy(() => import("@pages/auth/ResetPassword.jsx"));
 const VerifyReset = lazy(() => import("@pages/auth/VerifyReset.jsx"));
 const AccountManagement = lazy(() => import("@pages/admin/AccountManagement.jsx"));
+const NotFound = lazy(() => import("@pages/public/NotFound.jsx"));
 const EvaluationBanksManagement = lazy(() =>
   import("@pages/admin/EvaluationBanksManagement.jsx")
 );
@@ -51,7 +52,7 @@ export default function RoutesRoot() {
         <Route
           path="*"
           element={
-            <div style={{ padding: 16 }}>404 - Không tìm thấy trang</div>
+            <NotFound />
           }
         />
       </Routes>
