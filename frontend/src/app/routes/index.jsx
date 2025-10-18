@@ -24,7 +24,7 @@ const EvaluationBanksManagement = lazy(() =>
 const QuestionBankManagement = lazy(() =>
   import("@pages/testCreator/QuestionBankManagement.jsx")
 );
-
+import NotFound from "@pages/public/NotFound.jsx";
 export default function RoutesRoot() {
   return (
     <Suspense fallback={<div style={{ padding: 16 }}>Đang tải...</div>}>
