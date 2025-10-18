@@ -68,12 +68,7 @@ export default function RoutesRoot() {
             </Route>
           </Route>
         </Route>
-        <Route
-          path="*"
-          element={
-            <div style={{ padding: 16 }}>404 - Không tìm thấy trang</div>
-          }
-        />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );
