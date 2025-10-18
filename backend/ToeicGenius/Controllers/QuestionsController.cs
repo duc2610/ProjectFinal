@@ -52,11 +52,16 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> UpdateQuestion(int id, [FromForm] UpdateQuestionDto dto)
 		{
-			var result = await _questionService.UpdateAsync(id,dto);
-			if (!result.IsSuccess)
-				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
-			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
-		}
+            var result = await _questionService.UpdateAsync(id, dto);
+            if (!result.IsSuccess)
+            {
+                if (result.ErrorMessage?.Contains("Not found", StringComparison.OrdinalIgnoreCase) == true)
+                    return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+
+                return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+            }
+            return Ok(ApiResponse<string>.SuccessResponse(result.Data));
+        }
 
 		// DELETE: api/question/{id}
 		[HttpDelete("question/{id}")]

@@ -1,6 +1,8 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
-import { PrivateRoute, PublicOnlyRoute } from "@app/guards/Guards";
+import { PrivateRoute, PublicOnlyRoute, RoleRoute } from "@app/guards/Guards";
+import { ROLES } from "@shared/utils/acl";
+import AdminShell from "@shared/layouts/AdminShell.jsx";
 import MainLayout from "@shared/layouts/MainLayout";
 
 const Home = lazy(() => import("@pages/public/Home.jsx"));
@@ -13,9 +15,14 @@ const Profile = lazy(() => import("@pages/account/Profile.jsx"));
 const AdminDashboard = lazy(() => import("@pages/admin/Dashboard.jsx"));
 const ResetPassword = lazy(() => import("@pages/auth/ResetPassword.jsx"));
 const VerifyReset = lazy(() => import("@pages/auth/VerifyReset.jsx"));
-const AccountManagement = lazy(() => import("@pages/admin/AccountManagement.jsx"));
+const AccountManagement = lazy(() =>
+  import("@pages/admin/AccountManagement.jsx")
+);
 const EvaluationBanksManagement = lazy(() =>
   import("@pages/admin/EvaluationBanksManagement.jsx")
+);
+const QuestionBankManagement = lazy(() =>
+  import("@pages/testCreator/QuestionBankManagement.jsx")
 );
 
 export default function RoutesRoot() {
@@ -40,13 +47,26 @@ export default function RoutesRoot() {
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Route>
-        <Route>
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route
-            path="/admin/evaluation-banks-management"
-            element={<EvaluationBanksManagement />}
-          />
-          <Route path="/admin/account-management" element={<AccountManagement />} />
+        <Route element={<RoleRoute allow={[ROLES.Admin, ROLES.TestCreator]} />}>
+          <Route element={<AdminShell />}>
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route element={<RoleRoute allow={[ROLES.Admin]} />}>
+              <Route
+                path="/admin/account-management"
+                element={<AccountManagement />}
+              />
+            </Route>
+            <Route element={<RoleRoute allow={[ROLES.TestCreator]} />}>
+              <Route
+                path="/test-creator/evaluation-banks-management"
+                element={<EvaluationBanksManagement />}
+              />
+              <Route
+                path="/test-creator/question-bank"
+                element={<QuestionBankManagement />}
+              />
+            </Route>
+          </Route>
         </Route>
         <Route
           path="*"

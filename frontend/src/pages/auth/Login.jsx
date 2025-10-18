@@ -10,15 +10,27 @@ import {
   notification,
 } from "antd";
 import { GoogleOutlined, ArrowRightOutlined } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 const { Title, Text, Link } = Typography;
 import { useAuth } from "@shared/hooks/useAuth";
 import logo from "@assets/images/logo.png";
 import { useGoogleLogin } from "@react-oauth/google";
+import { ROLES } from "@shared/utils/acl";
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [form] = Form.useForm();
   const { signIn, signInWithGoogle, loading } = useAuth();
+  const redirectAfterLogin = (user) => {
+    const returnTo = location.state?.returnTo;
+    if (returnTo) return navigate(returnTo, { replace: true });
+    const roles = Array.isArray(user?.roles) ? user.roles : [];
+    if (roles.includes(ROLES.Admin))
+      return navigate("/admin/dashboard", { replace: true });
+    if (roles.includes(ROLES.TestCreator))
+      return navigate("/admin/dashboard", { replace: true });
+    return navigate("/", { replace: true });
+  };
   const handleLogin = async (values) => {
     const { email, password } = values;
     try {
@@ -29,7 +41,7 @@ export default function Login() {
           description: `Xin chào ${res.user?.fullName}`,
           duration: 5,
         });
-        navigate("/");
+        redirectAfterLogin(res.user);
       } else {
         const msg = res?.message || "Email hoặc mật khẩu không đúng";
         form.setFields([
@@ -58,7 +70,7 @@ export default function Login() {
             message: "Đăng nhập thành công",
             description: `Xin chào ${res.user?.fullName}`,
           });
-          navigate("/");
+          redirectAfterLogin(res.user);
         } else {
           notification.error({
             message: "Đăng nhập Google thất bại",
