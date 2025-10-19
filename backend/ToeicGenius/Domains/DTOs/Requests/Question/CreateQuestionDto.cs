@@ -17,10 +17,6 @@ namespace ToeicGenius.Domains.DTOs.Requests.Question
 		[StringLength(1000, ErrorMessage = "Content cannot exceed 1000 characters.")]
 		public string Content { get; set; } = string.Empty;
 
-		[Required(ErrorMessage = "Question number is required.")]
-		[Range(1, 200, ErrorMessage = "Question number must be between 1 and 200.")]
-		public int Number { get; set; }
-
 		public int? QuestionGroupId { get; set; }
 		// File âm thanh (nullable, không bắt buộc)
 		public IFormFile? Audio { get; set; }

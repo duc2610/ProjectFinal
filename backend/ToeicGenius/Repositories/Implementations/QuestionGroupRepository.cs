@@ -26,31 +26,27 @@ namespace ToeicGenius.Repositories.Implementations
 				{
 					QuestionGroupId = g.QuestionGroupId,
 					PartId = g.PartId,
-					PartName = g.Part.Name,
+					PartName = g.Part.Name ?? "",
 					AudioUrl = g.AudioUrl,
-					Image = g.ImageUrl,
+					ImageUrl = g.ImageUrl,
 					PassageContent = g.PassageContent,
-					PassageType = g.PassageType,
-					OrderIndex = g.OrderIndex,
 					Status = g.Status,
-					Questions = g.Questions.Select(q => new QuestionResponseDto
+					Questions = g.Questions.Select(q => new SingleQuestionDto
 					{
 						QuestionId = q.QuestionId,
 						QuestionTypeId = q.QuestionTypeId,
 						QuestionTypeName = q.QuestionType.TypeName,
 						PartId = q.PartId,
-						PartName = g.Part.Name,
+						PartName = g.Part.Name ?? "",
 						Content = q.Content,
-						Number = q.Number,
 						Options = q.Options.Select(o => new OptionDto
 						{
 							OptionId = o.OptionId,
-							Content = o.Content,
+							Content = o.Content ?? "",
+							Label = o.Label ?? "",
 							IsCorrect = o.IsCorrect
 						}).ToList(),
 						Solution = q.Explanation,
-						ImageUrl = null,
-						AudioUrl = null,
 						Status = q.Status
 					}).ToList(),
 				})
@@ -58,37 +54,39 @@ namespace ToeicGenius.Repositories.Implementations
 
 			return group;
 		}
-		public async Task<PaginationResponse<QuestionGroupListItemDto>> FilterGroupsAsync(int? part, int page, int pageSize)
+		public async Task<PaginationResponse<QuestionGroupListItemDto>> FilterGroupsAsync(int? part, string? keyWord, int? skill, int page, int pageSize, CommonStatus status)
 		{
-			var query = _context.QuestionGroups.AsQueryable();
+			var query = _context.QuestionGroups.Where(g => g.Status == status).AsQueryable();
 
 			// Lọc theo part
 			if (part.HasValue)
 				query = query.Where(g => g.PartId == part.Value);
+			if (!string.IsNullOrEmpty(keyWord))
+				query = query.Where(g => g.PassageContent.ToLower().Contains(keyWord.ToLower()));
+			if (skill.HasValue)
+				query = query.Where(g => g.Part.Skill == (QuestionSkill)skill);
 
 			var totalCount = await query.CountAsync();
 
 			var data = await query
-				.Where(g => g.Status == CommonStatus.Active)
-				.OrderBy(q => q.QuestionGroupId)
+				.OrderByDescending(q => q.QuestionGroupId)
 				.Skip((page - 1) * pageSize)
 				.Take(pageSize)
 				.Select(g => new QuestionGroupListItemDto
 				{
 					QuestionGroupId = g.QuestionGroupId,
 					PartId = g.PartId,
-					PartName = g.Part.Name,
+					PartName = g.Part.Name ?? "",
+					Skill = g.Part.Skill,
 					AudioUrl = g.AudioUrl,
-					Image = g.ImageUrl,
+					ImageUrl = g.ImageUrl,
 					PassageContent = g.PassageContent,
-					PassageType = g.PassageType,
-					OrderIndex = g.OrderIndex,
 					QuestionCount = g.Questions.Count(),
 					Status = g.Status,
 				})
 				.ToListAsync();
 
-			return new PaginationResponse<QuestionGroupListItemDto>(data,totalCount,page,pageSize);
+			return new PaginationResponse<QuestionGroupListItemDto>(data, totalCount, page, pageSize);
 		}
 		public async Task<QuestionGroup> GetByIdAndStatusAsync(int? id, CommonStatus status)
 		{

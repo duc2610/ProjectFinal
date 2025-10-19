@@ -13,10 +13,7 @@ namespace ToeicGenius.Domains.DTOs.Responses.Question
         public string QuestionTypeName { get; set; } = null!;
         public int PartId { get; set; }
         public string PartName { get; set; } = null!;
-
         public string? Content { get; set; }
-        public int Number { get; set; }
-
         public List<OptionDto> Options { get; set; } = new();
         public string? AudioUrl { get; set; }
         public string? ImageUrl { get; set; }

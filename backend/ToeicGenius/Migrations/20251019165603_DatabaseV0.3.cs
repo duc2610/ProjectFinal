@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ToeicGenius.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialDb : Migration
+    public partial class DatabaseV03 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -107,8 +107,6 @@ namespace ToeicGenius.Migrations
                     AudioUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     PassageContent = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PassageType = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    OrderIndex = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Status = table.Column<int>(type: "int", nullable: false)
@@ -132,8 +130,7 @@ namespace ToeicGenius.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     TypeName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PartId = table.Column<int>(type: "int", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Skill = table.Column<int>(type: "int", nullable: false)
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -287,7 +284,6 @@ namespace ToeicGenius.Migrations
                     QuestionGroupId = table.Column<int>(type: "int", nullable: true),
                     PartId = table.Column<int>(type: "int", nullable: false),
                     Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Number = table.Column<int>(type: "int", nullable: false),
                     AudioUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Explanation = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -470,21 +466,21 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "PartId", "Description", "Name", "PartNumber", "Skill" },
                 values: new object[,]
                 {
-                    { 1, "Listening – Photographs", "Part 1", 1, 0 },
-                    { 2, "Listening – Question-Response", "Part 2", 2, 0 },
-                    { 3, "Listening – Conversations", "Part 3", 3, 0 },
-                    { 4, "Listening – Talks", "Part 4", 4, 0 },
-                    { 5, "Reading – Incomplete Sentences", "Part 5", 5, 0 },
-                    { 6, "Reading – Text Completion", "Part 6", 6, 0 },
-                    { 7, "Reading – Reading Comprehension", "Part 7", 7, 0 },
-                    { 8, "Writing – Write a sentence based on a picture", "Part 1", 1, 2 },
-                    { 9, "Writing – Respond to a written request", "Part 2", 2, 2 },
-                    { 10, "Writing – Write an opinion essay", "Part 3", 3, 2 },
-                    { 11, "Speaking – Read a text aloud", "Part 1", 1, 1 },
-                    { 12, "Speaking – Describe a picture", "Part 2", 2, 1 },
-                    { 13, "Speaking – Respond to questions", "Part 3", 3, 1 },
-                    { 14, "Speaking – Respond to questions using information provided", "Part 4", 4, 1 },
-                    { 15, "Speaking – Express an opinion", "Part 5", 5, 1 }
+                    { 1, "Photographs", "L-Part 1", 1, 3 },
+                    { 2, "Question-Response", "L-Part 2", 2, 3 },
+                    { 3, "Conversations", "L-Part 3", 3, 3 },
+                    { 4, "Talks", "L-Part 4", 4, 3 },
+                    { 5, "Incomplete Sentences", "R-Part 5", 5, 4 },
+                    { 6, "Text Completion", "R-Part 6", 6, 4 },
+                    { 7, "Reading Comprehension", "R-Part 7", 7, 4 },
+                    { 8, "Write a sentence based on a picture", "W-Part 1", 1, 2 },
+                    { 9, "Respond to a written request", "W-Part 2", 2, 2 },
+                    { 10, "Write an opinion essay", "W-Part 3", 3, 2 },
+                    { 11, "Read a text aloud", "S-Part 1", 1, 1 },
+                    { 12, "Describe a picture", "S-Part 2", 2, 1 },
+                    { 13, "Respond to questions", "S-Part 3", 3, 1 },
+                    { 14, "Respond to questions using information provided", "S-Part 4", 4, 1 },
+                    { 15, "Express an opinion", "S-Part 5", 5, 1 }
                 });
 
             migrationBuilder.InsertData(
@@ -498,84 +494,105 @@ namespace ToeicGenius.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "QuestionGroups",
-                columns: new[] { "QuestionGroupId", "AudioUrl", "CreatedAt", "ImageUrl", "OrderIndex", "PartId", "PassageContent", "PassageType", "Status", "UpdatedAt" },
+                table: "Users",
+                columns: new[] { "Id", "CreatedAt", "Email", "FullName", "GoogleId", "PasswordHash", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, null, new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5571), null, 0, 6, "Passage1", null, 1, null },
-                    { 2, null, new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5574), null, 0, 7, "Passage2", null, 1, null },
-                    { 3, null, new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5575), null, 0, 7, "Passage3", null, 1, null }
+                    { new Guid("11111111-1111-1111-1111-111111111111"), new DateTime(2025, 10, 19, 16, 56, 1, 679, DateTimeKind.Utc).AddTicks(6664), "admin@toeicgenius.com", "System Admin", null, "$2a$11$KFa7AsdABIRpv8oXs9Nusut87GTQwlWSOGKzkKRPQh256VRxHFbxe", 1, null },
+                    { new Guid("22222222-2222-2222-2222-222222222222"), new DateTime(2025, 10, 19, 16, 56, 1, 798, DateTimeKind.Utc).AddTicks(1077), "creator@toeicgenius.com", "Test Creator", null, "$2a$11$Mc1ZuHFaL9nEJk9.my3zXONVCJEfBQ9vlyXyvTRm5/TmKG0knLyYi", 1, null },
+                    { new Guid("33333333-3333-3333-3333-333333333333"), new DateTime(2025, 10, 19, 16, 56, 1, 914, DateTimeKind.Utc).AddTicks(9550), "examinee@toeicgenius.com", "Regular Examinee", null, "$2a$11$6RqYYM6y32MIZM4H.X/DG.PTjeWUqIg.TN3OeexI4tprXdRoPK0Iu", 1, null }
+                });
+
+            migrationBuilder.InsertData(
+                table: "QuestionGroups",
+                columns: new[] { "QuestionGroupId", "AudioUrl", "CreatedAt", "ImageUrl", "PartId", "PassageContent", "Status", "UpdatedAt" },
+                values: new object[,]
+                {
+                    { 1, null, new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3005), null, 3, "Passage for Part 3 - Short Conversation", 1, null },
+                    { 2, null, new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3007), null, 4, "Passage for Part 4 - Short Talk", 1, null },
+                    { 3, null, new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3008), null, 6, "Passage for Part 6 - Text Completion", 1, null },
+                    { 4, null, new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3029), null, 7, "Passage for Part 7 - Reading Comprehension", 1, null }
                 });
 
             migrationBuilder.InsertData(
                 table: "QuestionTypes",
-                columns: new[] { "QuestionTypeId", "Description", "PartId", "Skill", "TypeName" },
+                columns: new[] { "QuestionTypeId", "Description", "PartId", "TypeName" },
                 values: new object[,]
                 {
-                    { 1, "MCQ", 1, 0, "[P1] Tranh tả người (Hành động/Trạng thái)" },
-                    { 2, "MCQ", 1, 0, "[P1] Tranh tả vật/Phong cảnh (Vị trí/Trạng thái tĩnh)" },
-                    { 3, "MCQ", 1, 0, "[P1] Tranh tả vật đang được thực hiện (Bị động tiếp diễn)" },
-                    { 4, "MCQ", 2, 0, "[P2] Câu hỏi W/H (Who, What, When, Where, Why, How)" },
-                    { 5, "MCQ", 2, 0, "[P2] Câu hỏi YES/NO" },
-                    { 6, "MCQ", 2, 0, "[P2] Câu hỏi lựa chọn (OR Question)" },
-                    { 7, "MCQ", 2, 0, "[P2] Câu hỏi đuôi / Xác nhận (Tag/Negative Questions)" },
-                    { 8, "MCQ", 2, 0, "[P2] Câu yêu cầu, đề nghị, gợi ý (Request/Suggestion)" },
-                    { 9, "MCQ", 2, 0, "[P2] Câu trần thuật (Statement/Response)" },
-                    { 10, "MCQ", 3, 0, "[P3] Hỏi về ý chính/Mục đích hội thoại (Purpose/Gist)" },
-                    { 11, "MCQ", 3, 0, "[P3] Hỏi chi tiết thông tin được đề cập (Detail)" },
-                    { 12, "MCQ", 3, 0, "[P3] Hỏi về hành động tiếp theo (Action/Do-next)" },
-                    { 13, "MCQ", 3, 0, "[P3] Hỏi suy luận/Ý định/Thái độ (Inference/Attitude)" },
-                    { 14, "MCQ", 3, 0, "[P3] Hỏi dựa vào Hình/Bảng dữ liệu (Graphic Question)" },
-                    { 15, "MCQ", 4, 0, "[P4] Hỏi nội dung chính/Chủ đề bài nói (Main Topic)" },
-                    { 16, "MCQ", 4, 0, "[P4] Hỏi chi tiết thông tin được đề cập (Detail)" },
-                    { 17, "MCQ", 4, 0, "[P4] Hỏi suy luận/Hàm ý (Inference/Imply)" },
-                    { 18, "MCQ", 4, 0, "[P4] Hỏi hành động người nghe nên làm (Listener Action)" },
-                    { 19, "MCQ", 4, 0, "[P4] Hỏi dựa vào Hình/Bảng dữ liệu (Graphic Question)" },
-                    { 20, "MCQ", 5, 0, "[P5] Ngữ pháp (Thì, Câu điều kiện, Liên từ, Giới từ,...) " },
-                    { 21, "MCQ", 5, 0, "[P5] Từ loại (N, V, Adj, Adv)" },
-                    { 22, "MCQ", 5, 0, "[P5] Từ vựng (Nghĩa của từ)" },
-                    { 23, "MCQ", 6, 0, "[P6] Hoàn thành câu/Từ loại/Từ vựng trong đoạn văn" },
-                    { 24, "MCQ", 6, 0, "[P6] Chọn câu phù hợp để điền vào chỗ trống" },
-                    { 25, "MCQ", 7, 0, "[P7] Hỏi về ý chính/Mục đích (Main Idea/Purpose)" },
-                    { 26, "MCQ", 7, 0, "[P7] Tìm thông tin chi tiết (Specific Detail)" },
-                    { 27, "MCQ", 7, 0, "[P7] Suy luận/Thông tin không đề cập (Inference/NOT TRUE)" },
-                    { 28, "MCQ", 7, 0, "[P7] Tìm từ đồng nghĩa (Synonym/Meaning)" },
-                    { 29, "MCQ", 7, 0, "[P7] Thêm câu vào chỗ trống (Sentence Insertion - Chỉ trong Multi-Passage)" },
-                    { 30, "MCQ", 7, 0, "[P7] Liên kết thông tin giữa các đoạn (Connecting Information)" },
-                    { 31, "ShortAnswer", 11, 1, "[Speaking] Đọc to đoạn văn (Read a text aloud)" },
-                    { 32, "ShortAnswer", 12, 1, "[Speaking] Mô tả tranh (Describe a picture)" },
-                    { 33, "ShortAnswer", 13, 1, "[Speaking] Trả lời câu hỏi cá nhân (Respond to questions Q5-7)" },
-                    { 34, "ShortAnswer", 14, 1, "[Speaking] Trả lời dựa vào bảng/lịch (Respond to questions Q8-10)" },
-                    { 35, "ShortAnswer", 15, 1, "[Speaking] Bày tỏ ý kiến cá nhân (Express an opinion Q11)" },
-                    { 36, "Essay", 8, 2, "[Writing] Viết câu dựa vào tranh (Write a sentence Q1-5)" },
-                    { 37, "Essay", 9, 2, "[Writing] Viết thư trả lời yêu cầu (Respond to a written request Q6-7)" },
-                    { 38, "Essay", 10, 2, "[Writing] Viết luận nêu ý kiến cá nhân (Write an opinion essay Q8)" }
+                    { 1, "MCQ", 1, "[P1] Tranh tả người (Hành động/Trạng thái)" },
+                    { 2, "MCQ", 1, "[P1] Tranh tả vật/Phong cảnh (Vị trí/Trạng thái tĩnh)" },
+                    { 3, "MCQ", 1, "[P1] Tranh tả vật đang được thực hiện (Bị động tiếp diễn)" },
+                    { 4, "MCQ", 2, "[P2] Câu hỏi W/H (Who, What, When, Where, Why, How)" },
+                    { 5, "MCQ", 2, "[P2] Câu hỏi YES/NO" },
+                    { 6, "MCQ", 2, "[P2] Câu hỏi lựa chọn (OR Question)" },
+                    { 7, "MCQ", 2, "[P2] Câu hỏi đuôi / Xác nhận (Tag/Negative Questions)" },
+                    { 8, "MCQ", 2, "[P2] Câu yêu cầu, đề nghị, gợi ý (Request/Suggestion)" },
+                    { 9, "MCQ", 2, "[P2] Câu trần thuật (Statement/Response)" },
+                    { 10, "MCQ", 3, "[P3] Hỏi về ý chính/Mục đích hội thoại (Purpose/Gist)" },
+                    { 11, "MCQ", 3, "[P3] Hỏi chi tiết thông tin được đề cập (Detail)" },
+                    { 12, "MCQ", 3, "[P3] Hỏi về hành động tiếp theo (Action/Do-next)" },
+                    { 13, "MCQ", 3, "[P3] Hỏi suy luận/Ý định/Thái độ (Inference/Attitude)" },
+                    { 14, "MCQ", 3, "[P3] Hỏi dựa vào Hình/Bảng dữ liệu (Graphic Question)" },
+                    { 15, "MCQ", 4, "[P4] Hỏi nội dung chính/Chủ đề bài nói (Main Topic)" },
+                    { 16, "MCQ", 4, "[P4] Hỏi chi tiết thông tin được đề cập (Detail)" },
+                    { 17, "MCQ", 4, "[P4] Hỏi suy luận/Hàm ý (Inference/Imply)" },
+                    { 18, "MCQ", 4, "[P4] Hỏi hành động người nghe nên làm (Listener Action)" },
+                    { 19, "MCQ", 4, "[P4] Hỏi dựa vào Hình/Bảng dữ liệu (Graphic Question)" },
+                    { 20, "MCQ", 5, "[P5] Ngữ pháp (Thì, Câu điều kiện, Liên từ, Giới từ,...) " },
+                    { 21, "MCQ", 5, "[P5] Từ loại (N, V, Adj, Adv)" },
+                    { 22, "MCQ", 5, "[P5] Từ vựng (Nghĩa của từ)" },
+                    { 23, "MCQ", 6, "[P6] Hoàn thành câu/Từ loại/Từ vựng trong đoạn văn" },
+                    { 24, "MCQ", 6, "[P6] Chọn câu phù hợp để điền vào chỗ trống" },
+                    { 25, "MCQ", 7, "[P7] Hỏi về ý chính/Mục đích (Main Idea/Purpose)" },
+                    { 26, "MCQ", 7, "[P7] Tìm thông tin chi tiết (Specific Detail)" },
+                    { 27, "MCQ", 7, "[P7] Suy luận/Thông tin không đề cập (Inference/NOT TRUE)" },
+                    { 28, "MCQ", 7, "[P7] Tìm từ đồng nghĩa (Synonym/Meaning)" },
+                    { 29, "MCQ", 7, "[P7] Thêm câu vào chỗ trống (Sentence Insertion - Chỉ trong Multi-Passage)" },
+                    { 30, "MCQ", 7, "[P7] Liên kết thông tin giữa các đoạn (Connecting Information)" },
+                    { 31, "ShortAnswer", 11, "[Speaking] Đọc to đoạn văn (Read a text aloud)" },
+                    { 32, "ShortAnswer", 12, "[Speaking] Mô tả tranh (Describe a picture)" },
+                    { 33, "ShortAnswer", 13, "[Speaking] Trả lời câu hỏi cá nhân (Respond to questions Q5-7)" },
+                    { 34, "ShortAnswer", 14, "[Speaking] Trả lời dựa vào bảng/lịch (Respond to questions Q8-10)" },
+                    { 35, "ShortAnswer", 15, "[Speaking] Bày tỏ ý kiến cá nhân (Express an opinion Q11)" },
+                    { 36, "Essay", 8, "[Writing] Viết câu dựa vào tranh (Write a sentence Q1-5)" },
+                    { 37, "Essay", 9, "[Writing] Viết thư trả lời yêu cầu (Respond to a written request Q6-7)" },
+                    { 38, "Essay", 10, "[Writing] Viết luận nêu ý kiến cá nhân (Write an opinion essay Q8)" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "UserRoles",
+                columns: new[] { "RoleId", "UserId" },
+                values: new object[,]
+                {
+                    { 1, new Guid("11111111-1111-1111-1111-111111111111") },
+                    { 3, new Guid("22222222-2222-2222-2222-222222222222") },
+                    { 2, new Guid("33333333-3333-3333-3333-333333333333") }
                 });
 
             migrationBuilder.InsertData(
                 table: "Questions",
-                columns: new[] { "QuestionId", "AudioUrl", "Content", "CreatedAt", "Explanation", "ImageUrl", "Number", "PartId", "QuestionGroupId", "QuestionTypeId", "Status", "UpdatedAt" },
+                columns: new[] { "QuestionId", "AudioUrl", "Content", "CreatedAt", "Explanation", "ImageUrl", "PartId", "QuestionGroupId", "QuestionTypeId", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, null, "What is the capital of France?", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5679), null, null, 1, 1, null, 1, 1, null },
-                    { 2, null, "Single Question 2", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5597), null, null, 2, 1, null, 1, 1, null },
-                    { 3, null, "Single Question 3", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5600), null, null, 3, 2, null, 2, 1, null },
-                    { 4, null, "Single Question 4", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5601), null, null, 4, 2, null, 2, 1, null },
-                    { 5, null, "Single Question 5", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5603), null, null, 5, 1, null, 1, 1, null },
-                    { 6, null, "Single Question 6", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5604), null, null, 6, 1, null, 1, 1, null },
-                    { 7, null, "Single Question 7", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5605), null, null, 7, 2, null, 2, 1, null },
-                    { 8, null, "Single Question 8", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5606), null, null, 8, 2, null, 2, 1, null },
-                    { 9, null, "Single Question 9", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5607), null, null, 9, 1, null, 1, 1, null },
-                    { 10, null, "Single Question 10", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5608), null, null, 10, 1, null, 1, 1, null },
-                    { 11, null, "Group 1 - Question 1", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5648), null, null, 1, 1, 1, 1, 1, null },
-                    { 12, null, "Group 1 - Question 2", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5649), null, null, 2, 1, 1, 1, 1, null },
-                    { 13, null, "Group 1 - Question 3", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5650), null, null, 3, 1, 1, 1, 1, null },
-                    { 14, null, "Group 2 - Question 1", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5652), null, null, 1, 2, 2, 2, 1, null },
-                    { 15, null, "Group 2 - Question 2", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5653), null, null, 2, 2, 2, 2, 1, null },
-                    { 16, null, "Group 2 - Question 3", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5654), null, null, 3, 2, 2, 2, 1, null },
-                    { 17, null, "Group 3 - Question 1", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5655), null, null, 1, 1, 3, 1, 1, null },
-                    { 18, null, "Group 3 - Question 2", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5656), null, null, 2, 1, 3, 1, 1, null },
-                    { 19, null, "Group 3 - Question 3", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5658), null, null, 3, 1, 3, 1, 1, null }
+                    { 1, null, "What is the capital of France?", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3059), null, null, 1, null, 1, 1, null },
+                    { 2, null, "Where does he live?", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3061), null, null, 2, null, 1, 1, null },
+                    { 3, null, "What time does she start work?", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3062), null, null, 2, null, 2, 1, null },
+                    { 4, null, "Which color do you like?", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3063), null, null, 1, null, 2, 1, null },
+                    { 5, null, "Select the correct sentence.", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3064), null, null, 5, null, 1, 1, null },
+                    { 6, null, "Describe your favorite city.", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3065), null, null, 11, null, 1, 1, null },
+                    { 7, null, "Write a short essay about your hometown.", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3066), null, null, 9, null, 1, 1, null },
+                    { 11, null, "Group 1 - Q1", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3093), null, null, 3, 1, 1, 1, null },
+                    { 12, null, "Group 1 - Q2", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3094), null, null, 3, 1, 1, 1, null },
+                    { 13, null, "Group 1 - Q3", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3095), null, null, 3, 1, 1, 1, null },
+                    { 14, null, "Group 2 - Q1", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3096), null, null, 4, 2, 2, 1, null },
+                    { 15, null, "Group 2 - Q2", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3097), null, null, 4, 2, 2, 1, null },
+                    { 16, null, "Group 2 - Q3", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3098), null, null, 4, 2, 2, 1, null },
+                    { 17, null, "Group 3 - Q1", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3100), null, null, 6, 3, 1, 1, null },
+                    { 18, null, "Group 3 - Q2", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3101), null, null, 6, 3, 1, 1, null },
+                    { 19, null, "Group 3 - Q3", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3102), null, null, 6, 3, 1, 1, null },
+                    { 20, null, "Group 4 - Q1", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3103), null, null, 7, 4, 2, 1, null },
+                    { 21, null, "Group 4 - Q2", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3104), null, null, 7, 4, 2, 1, null },
+                    { 22, null, "Group 4 - Q3", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3105), null, null, 7, 4, 2, 1, null }
                 });
 
             migrationBuilder.InsertData(
@@ -583,10 +600,28 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "OptionId", "Content", "CreatedAt", "IsCorrect", "Label", "QuestionId", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, "Paris", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5697), true, "A", 1, 1, null },
-                    { 2, "London", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5698), false, "B", 1, 1, null },
-                    { 3, "Berlin", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5699), false, "C", 1, 1, null },
-                    { 4, "Madrid", new DateTime(2025, 10, 14, 14, 28, 13, 890, DateTimeKind.Utc).AddTicks(5700), false, "D", 1, 1, null }
+                    { 1, "Paris", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3140), true, "A", 1, 1, null },
+                    { 2, "London", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3141), false, "B", 1, 1, null },
+                    { 3, "Berlin", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3142), false, "C", 1, 1, null },
+                    { 4, "Madrid", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3143), false, "D", 1, 1, null },
+                    { 5, "At home", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3144), true, "A", 2, 1, null },
+                    { 6, "At work", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3145), false, "B", 2, 1, null },
+                    { 7, "At school", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3146), false, "C", 2, 1, null },
+                    { 8, "8 AM", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3147), true, "A", 3, 1, null },
+                    { 9, "9 AM", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3148), false, "B", 3, 1, null },
+                    { 10, "10 AM", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3149), false, "C", 3, 1, null },
+                    { 11, "Red", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3152), true, "A", 4, 1, null },
+                    { 12, "Green", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3153), false, "B", 4, 1, null },
+                    { 13, "Blue", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3154), false, "C", 4, 1, null },
+                    { 14, "Yellow", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3155), false, "D", 4, 1, null },
+                    { 15, "She goes to school.", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3156), true, "A", 5, 1, null },
+                    { 16, "She go to school.", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3157), false, "B", 5, 1, null },
+                    { 17, "She going to school.", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3158), false, "C", 5, 1, null },
+                    { 18, "She gone to school.", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3159), false, "D", 5, 1, null },
+                    { 19, "Option A", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3159), true, "A", 11, 1, null },
+                    { 20, "Option B", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3160), false, "B", 11, 1, null },
+                    { 21, "Option C", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3161), false, "C", 11, 1, null },
+                    { 22, "Option D", new DateTime(2025, 10, 19, 16, 56, 1, 563, DateTimeKind.Utc).AddTicks(3162), false, "D", 11, 1, null }
                 });
 
             migrationBuilder.CreateIndex(

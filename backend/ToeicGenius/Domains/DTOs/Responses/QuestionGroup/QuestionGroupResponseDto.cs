@@ -9,14 +9,23 @@ namespace ToeicGenius.Domains.DTOs.Responses.QuestionGroup
 		public int QuestionGroupId { get; set; }
 		public int PartId { get; set; }
 		public string PartName { get; set; } = null!;
-		public string? GroupType { get; set; }
 		public string? AudioUrl { get; set; }
-		public string? Image { get; set; }
+		public string? ImageUrl { get; set; }
 		public string? PassageContent { get; set; }
-		public string? PassageType { get; set; }
-		public int OrderIndex { get; set; }
 		public CommonStatus Status{ get; set; }
 
-		public List<QuestionResponseDto> Questions { get; set; } = new List<QuestionResponseDto>();
+		public List<SingleQuestionDto> Questions { get; set; } = new List<SingleQuestionDto>();
+	}
+	public class SingleQuestionDto
+	{
+		public int QuestionId { get; set; }
+		public int QuestionTypeId { get; set; }
+		public string QuestionTypeName { get; set; } = null!;
+		public int PartId { get; set; }
+		public string PartName { get; set; } = null!;
+		public string? Content { get; set; }
+		public List<OptionDto> Options { get; set; } = new();
+		public string? Solution { get; set; }
+		public CommonStatus Status { get; set; }
 	}
 }
