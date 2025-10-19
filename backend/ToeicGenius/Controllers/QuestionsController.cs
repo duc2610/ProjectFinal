@@ -52,16 +52,16 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> UpdateQuestion(int id, [FromForm] UpdateQuestionDto dto)
 		{
-            var result = await _questionService.UpdateAsync(id, dto);
-            if (!result.IsSuccess)
-            {
-                if (result.ErrorMessage?.Contains("Not found", StringComparison.OrdinalIgnoreCase) == true)
-                    return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			var result = await _questionService.UpdateAsync(id, dto);
+			if (!result.IsSuccess)
+			{
+				if (result.ErrorMessage?.Contains("Not found", StringComparison.OrdinalIgnoreCase) == true)
+					return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 
-                return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
-            }
-            return Ok(ApiResponse<string>.SuccessResponse(result.Data));
-        }
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			}
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
+		}
 
 		// DELETE: api/question/{id}
 		[HttpDelete("question/{id}")]
@@ -81,10 +81,28 @@ namespace ToeicGenius.Controllers
 			[FromQuery] int? part,
 			[FromQuery] int? questionType,
 			[FromQuery] int? skill,
+			[FromQuery] string? keyWord,
 			[FromQuery] int page = 1,
 			[FromQuery] int pageSize = 10)
 		{
-			var result = await _questionService.FilterQuestionsAsync(part, questionType, skill, page, pageSize);
+			var result = await _questionService.FilterQuestionsAsync(part, questionType, keyWord, skill, page, pageSize, Domains.Enums.CommonStatus.Active);
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<PaginationResponse<QuestionResponseDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+			return Ok(ApiResponse<PaginationResponse<QuestionResponseDto>>.SuccessResponse(result.Data!));
+		}
+
+		// GET: api/questions?part=&skill=&questionType=
+		[HttpGet("questions/deleted")]
+		[Authorize(Roles = "TestCreator")]
+		public async Task<ActionResult<ApiResponse<PaginationResponse<QuestionResponseDto>>>> FilterQuestionsDeleted(
+			[FromQuery] int? part,
+			[FromQuery] int? questionType,
+			[FromQuery] int? skill,
+			[FromQuery] string? keyWord,
+			[FromQuery] int page = 1,
+			[FromQuery] int pageSize = 10)
+		{
+			var result = await _questionService.FilterQuestionsAsync(part, questionType, keyWord, skill, page, pageSize, Domains.Enums.CommonStatus.Inactive);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<PaginationResponse<QuestionResponseDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
 			return Ok(ApiResponse<PaginationResponse<QuestionResponseDto>>.SuccessResponse(result.Data!));

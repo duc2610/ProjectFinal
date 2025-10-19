@@ -28,13 +28,13 @@ namespace ToeicGenius.Repositories.Implementations
 					QuestionTypeId = q.QuestionTypeId,
 					QuestionTypeName = q.QuestionType.TypeName,
 					PartId = q.PartId,
-					PartName = q.Part.Name,
+					PartName = q.Part.Name ?? "",
 					Content = q.Content,
 					Number = q.Number,
 					Options = q.Options.Select(o => new OptionDto
 					{
 						OptionId = o.OptionId,
-						Content = o.Content,
+						Content = o.Content??"",
 						IsCorrect = o.IsCorrect
 					}).ToList(),
 					Solution = q.Explanation,
@@ -48,7 +48,7 @@ namespace ToeicGenius.Repositories.Implementations
 		}
 
 		public async Task<PaginationResponse<QuestionResponseDto>> FilterQuestionsAsync(
-			int? partId, int? questionTypeId, int? skill, int page, int pageSize)
+			int? partId, int? questionTypeId, string? keyWord, int? skill, int page, int pageSize, CommonStatus status)
 		{
 			var query = _context.Questions
 				.Include(q => q.Part)
@@ -67,19 +67,23 @@ namespace ToeicGenius.Repositories.Implementations
 				query = query.Where(q => q.Part.Skill == (TestSkill)skill);
 			}
 
+			if (!string.IsNullOrEmpty(keyWord))
+			{
+				query = query.Where(q => q.Content.ToLower().Contains(keyWord.ToLower()));
+			}
 
-			var totalCount = await query.CountAsync();
+			var totalCount = await query.Where(q=>q.Status == status).CountAsync();
 
 			var data = await query
-				.Where(g => g.Status == CommonStatus.Active)
-				.OrderBy(q => q.QuestionId)
+				.Where(g => g.Status == status)
+				.OrderByDescending(q => q.QuestionId)
 				.Skip((page - 1) * pageSize)
 				.Take(pageSize)
 				.Select(q => new QuestionResponseDto
 				{
 					QuestionId = q.QuestionId,
 					QuestionTypeName = q.QuestionType.TypeName,
-					PartName = q.Part.Name,
+					PartName = q.Part.Name??"",
 					Content = q.Content,
 					Number = q.Number,
 					Status = q.Status

@@ -319,9 +319,9 @@ namespace ToeicGenius.Services.Implementations
 		}
 
 		public async Task<Result<PaginationResponse<QuestionResponseDto>>> FilterQuestionsAsync(
-	int? partId, int? questionTypeId, int? skill, int page, int pageSize)
+	int? partId, int? questionTypeId, string? keyWord, int? skill, int page, int pageSize, CommonStatus status)
 		{
-			var result = await _uow.Questions.FilterQuestionsAsync(partId, questionTypeId, skill, page, pageSize);
+			var result = await _uow.Questions.FilterQuestionsAsync(partId, questionTypeId, keyWord, skill, page, pageSize, status);
 			return Result<PaginationResponse<QuestionResponseDto>>.Success(result);
 		}
 	}
