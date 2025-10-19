@@ -9,5 +9,7 @@
 		public const int MaxRetryCount = 5;
 		public const int MaxQuantityOption = 4;
 		public const int MinQuantityOption = 3;
+		public const int MinQuantityQuestionInGroup = 2;
+		public const int MaxQuantityQuestionInGroup = 5;
 	}
 }

@@ -12,9 +12,12 @@ namespace ToeicGenius.Services.Interfaces
 		Task<IEnumerable<Question>> GetAllAsync();
 		Task<Result<string>> CreateAsync(CreateQuestionDto question);
 		Task<Result<string>> UpdateAsync(int questionId, UpdateQuestionDto dto);
-		Task<Result<string>> DeleteAsync(int id);
+		Task<Result<string>> UpdateStatusAsync(int id, bool isGroupQuestion, bool isRestore);
 		Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id);
 		Task<Result<PaginationResponse<QuestionResponseDto>>> FilterQuestionsAsync(
 			int? partId, int? questionTypeId, string? keyWord, int? skill, int page, int pageSize, CommonStatus status);
+		Task<Result<PaginationResponse<QuestionListItemDto>>> FilterAllAsync(
+			int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status);
+
 	}
 }

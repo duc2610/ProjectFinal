@@ -22,7 +22,6 @@ namespace ToeicGenius.Controllers
 		public async Task<IActionResult> GetPartsByTestSkill(int partId)
 		{
 			var result = await _uow.QuestionTypes.GetQuestionTypeByTestSkill(partId);
-
 			return Ok(ApiResponse<List<QuestionType>>.SuccessResponse(result));
 		}
 	}

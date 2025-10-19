@@ -11,10 +11,10 @@ namespace ToeicGenius.Repositories.Implementations
 	{
 		public PartRepository(ToeicGeniusDbContext context) : base(context) { }
 
-		public async Task<List<Part>> GetPartsByTestSkill(TestSkill testSkill)
+		public async Task<List<Part>> GetPartsBySkill(QuestionSkill questionSkill)
 		{
 			var parts = await _context.Parts
-				.Where(p => p.Skill == testSkill)
+				.Where(p => p.Skill == questionSkill)
 				.ToListAsync();
 			return parts;
 		}

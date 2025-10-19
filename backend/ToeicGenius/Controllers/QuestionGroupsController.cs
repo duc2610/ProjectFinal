@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.GroupQuestion;
+using ToeicGenius.Domains.DTOs.Requests.Question;
 using ToeicGenius.Domains.DTOs.Requests.QuestionGroup;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
@@ -30,7 +32,17 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> CreateQuestionGroup([FromForm] QuestionGroupRequestDto request)
 		{
-			var result = await _questionGroupService.CreateQuestionGroupAsync(request);
+			// Deserialize JSON string sang danh sách object
+			try
+			{
+				request.Questions = JsonConvert.DeserializeObject<List<CreateQuestionDto>>(request.QuestionsJson)
+									?? new List<CreateQuestionDto>();
+			}
+			catch (Exception ex)
+			{
+				return BadRequest(ApiResponse<string>.ErrorResponse($"Invalid Questions JSON: {ex.Message}"));
+			}
+			var result = await _questionGroupService.CreateAsync(request);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<QuestionGroupResponseDto>.ErrorResponse(result.ErrorMessage ?? "Create failed"));
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data!));
@@ -41,7 +53,7 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> GetQuestionGroup(int id)
 		{
-			var group = await _questionGroupService.GetQuestionGroupResponseByIdAsync(id);
+			var group = await _questionGroupService.GetDetailAsync(id);
 			if (group == null) return NotFound(ApiResponse<QuestionGroupResponseDto>.NotFoundResponse());
 			return Ok(ApiResponse<QuestionGroupResponseDto>.SuccessResponse(group));
 		}
@@ -51,10 +63,28 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> FilterGroupQuestions(
 			[FromQuery] int? part,
-			[FromQuery] int page,
-			[FromQuery] int pageSize)
+			[FromQuery] string? keyWord,
+			[FromQuery] int? skill,
+			[FromQuery] int page = NumberConstants.DefaultFirstPage,
+			[FromQuery] int pageSize = NumberConstants.DefaultPageSize)
 		{
-			var result = await _questionGroupService.FilterGroupsAsync(part, page, pageSize);
+			var result = await _questionGroupService.FilterAsync(part, keyWord, skill, page, pageSize, Domains.Enums.CommonStatus.Active);
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<PaginationResponse<QuestionGroupListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+			return Ok(ApiResponse<PaginationResponse<QuestionGroupListItemDto>>.SuccessResponse(result.Data!));
+		}
+
+		// GET: api/question-group/deleted?part=&page=&pageSize=
+		[HttpGet("question-group/deleted")]
+		[Authorize(Roles = "TestCreator")]
+		public async Task<IActionResult> FilterGroupQuestionsDeleted(
+			[FromQuery] int? part,
+			[FromQuery] string? keyWord,
+			[FromQuery] int? skill,
+			[FromQuery] int page = NumberConstants.DefaultFirstPage,
+			[FromQuery] int pageSize = NumberConstants.DefaultPageSize)
+		{
+			var result = await _questionGroupService.FilterAsync(part, keyWord, skill, page, pageSize, Domains.Enums.CommonStatus.Inactive);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<PaginationResponse<QuestionGroupListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
 			return Ok(ApiResponse<PaginationResponse<QuestionGroupListItemDto>>.SuccessResponse(result.Data!));
@@ -65,20 +95,26 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> UpdateQuestion(int id, [FromForm] UpdateQuestionGroupDto request)
 		{
+			// Deserialize JSON string sang danh sách object
+			try
+			{
+				request.Questions = JsonConvert.DeserializeObject<List<UpdateSingleQuestionDto>>(request.QuestionsJson)
+									?? new List<UpdateSingleQuestionDto>();
+			}
+			catch (Exception ex)
+			{
+				return BadRequest(ApiResponse<string>.ErrorResponse($"Invalid Questions JSON: {ex.Message}"));
+			}
 			var result = await _questionGroupService.UpdateAsync(id, request);
-			if (!result.IsSuccess) return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			if (!result.IsSuccess)
+			{
+				if (result.ErrorMessage?.Contains("Not found", StringComparison.OrdinalIgnoreCase) == true)
+				{
+					return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+				}
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			}
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
-
-		// DELETE: api/question-group/{id}
-		[HttpDelete("question-group/{id}")]
-		[Authorize(Roles = "TestCreator")]
-		public async Task<IActionResult> DeleteGroupQuestion(int id)
-		{
-			var result = await _questionGroupService.DeleteQuestionGroupAsync(id);
-			if (!result.IsSuccess) return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
-			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
-		}
-
 	}
 }

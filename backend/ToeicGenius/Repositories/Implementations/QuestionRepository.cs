@@ -1,3 +1,4 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
@@ -30,11 +31,10 @@ namespace ToeicGenius.Repositories.Implementations
 					PartId = q.PartId,
 					PartName = q.Part.Name ?? "",
 					Content = q.Content,
-					Number = q.Number,
 					Options = q.Options.Select(o => new OptionDto
 					{
 						OptionId = o.OptionId,
-						Content = o.Content??"",
+						Content = o.Content ?? "",
 						IsCorrect = o.IsCorrect
 					}).ToList(),
 					Solution = q.Explanation,
@@ -54,6 +54,7 @@ namespace ToeicGenius.Repositories.Implementations
 				.Include(q => q.Part)
 				.Include(q => q.QuestionType)
 				.Include(q => q.Options)
+				.Where(g => g.Status == status && g.QuestionGroupId == null)
 				.AsQueryable();
 
 			if (partId.HasValue)
@@ -64,7 +65,7 @@ namespace ToeicGenius.Repositories.Implementations
 
 			if (skill.HasValue)
 			{
-				query = query.Where(q => q.Part.Skill == (TestSkill)skill);
+				query = query.Where(q => q.Part.Skill == (QuestionSkill)skill);
 			}
 
 			if (!string.IsNullOrEmpty(keyWord))
@@ -72,10 +73,9 @@ namespace ToeicGenius.Repositories.Implementations
 				query = query.Where(q => q.Content.ToLower().Contains(keyWord.ToLower()));
 			}
 
-			var totalCount = await query.Where(q=>q.Status == status).CountAsync();
+			var totalCount = await query.CountAsync();
 
 			var data = await query
-				.Where(g => g.Status == status)
 				.OrderByDescending(q => q.QuestionId)
 				.Skip((page - 1) * pageSize)
 				.Take(pageSize)
@@ -83,9 +83,8 @@ namespace ToeicGenius.Repositories.Implementations
 				{
 					QuestionId = q.QuestionId,
 					QuestionTypeName = q.QuestionType.TypeName,
-					PartName = q.Part.Name??"",
+					PartName = q.Part.Name ?? "",
 					Content = q.Content,
-					Number = q.Number,
 					Status = q.Status
 				})
 				.ToListAsync();
@@ -106,6 +105,92 @@ namespace ToeicGenius.Repositories.Implementations
 								.Include(x => x.Options)
 								.Where(x => x.QuestionId == questionId && x.Status == status)
 								.FirstOrDefaultAsync();
+		}
+
+		public async Task<PaginationResponse<QuestionListItemDto>> FilterAllAsync(int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
+		{
+			// GET SINGLE QUESTION
+			var questionsQuery = _context.Questions
+				.Include(q => q.Part)
+				.Include(q => q.QuestionType)
+				.Where(q => q.Status == status && q.QuestionGroupId == null)
+				.AsQueryable();
+
+			if (partId.HasValue)
+				questionsQuery = questionsQuery.Where(q => q.PartId == partId);
+
+			if (questionTypeId.HasValue)
+				questionsQuery = questionsQuery.Where(q => q.QuestionTypeId == questionTypeId);
+
+			if (skill.HasValue)
+				questionsQuery = questionsQuery.Where(q => q.Part.Skill == (QuestionSkill)skill);
+
+			if (!string.IsNullOrEmpty(keyWord))
+				questionsQuery = questionsQuery.Where(q => q.Content.ToLower().Contains(keyWord.ToLower()));
+
+			var questions = await questionsQuery
+				.Select(q => new QuestionListItemDto
+				{
+					Id = q.QuestionId,
+					IsGroupQuestion = false,
+					PartName = q.Part.Name,
+					PartId = q.PartId,
+					Skill = q.Part.Skill,
+					QuestionCount = 1, // single question 
+					Content = q.Content,
+					Status = q.Status,
+					CreatedAt = q.CreatedAt
+				})
+				.ToListAsync();
+
+			// GET GROUP QUESTION
+			var groupsQuery = _context.QuestionGroups
+				.Include(g => g.Part)
+				.Include(g => g.Questions)
+				.Where(g => g.Status == status)
+				.AsQueryable();
+
+			if (partId.HasValue)
+				groupsQuery = groupsQuery.Where(g => g.PartId == partId);
+
+			if (skill.HasValue)
+				groupsQuery = groupsQuery.Where(g => g.Part.Skill == (QuestionSkill)skill);
+
+			if (!string.IsNullOrEmpty(keyWord))
+				groupsQuery = groupsQuery.Where(g => g.PassageContent.ToLower().Contains(keyWord.ToLower()));
+
+			var groups = await groupsQuery
+				.Select(g => new QuestionListItemDto
+				{
+					Id = g.QuestionGroupId,
+					IsGroupQuestion = true,
+					PartName = g.Part.Name,
+					PartId = g.PartId,
+					Skill = g.Part.Skill,
+					Content = g.PassageContent,
+					QuestionCount = g.Questions.Count(),
+					Status = g.Status,
+					CreatedAt = g.CreatedAt
+				})
+				.ToListAsync();
+
+			// Concat  
+			var allData = questions.Concat(groups);
+
+			// Sort by CreateAt
+			allData = sortOrder?.ToLower() == "desc"
+					? allData.OrderByDescending(x => x.CreatedAt)
+					: allData.OrderBy(x => x.CreatedAt);
+
+
+			// Pagination
+			var totalCount = allData.Count();
+			var pagedData = allData
+				.Skip((page - 1) * pageSize)
+				.Take(pageSize)
+				.ToList();
+
+			return new PaginationResponse<QuestionListItemDto>(pagedData, totalCount, page, pageSize);
 		}
 	}
 }

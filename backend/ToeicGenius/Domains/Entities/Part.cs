@@ -9,7 +9,7 @@ namespace ToeicGenius.Domains.Entities
 		public int PartId{ get; set; }
 
 		public int PartNumber { get; set; }
-		public TestSkill Skill {  get; set; }
+		public QuestionSkill Skill {  get; set; }
 		public string? Name { get; set; }
 		public string? Description { get; set; }
 
