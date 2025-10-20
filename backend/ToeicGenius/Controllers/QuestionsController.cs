@@ -8,6 +8,7 @@ using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Question;
 using Microsoft.AspNetCore.Authorization;
+using ToeicGenius.Shared.Constants;
 
 namespace ToeicGenius.Controllers
 {
@@ -16,12 +17,10 @@ namespace ToeicGenius.Controllers
 	public class QuestionsController : ControllerBase
 	{
 		private readonly IQuestionService _questionService;
-		private readonly IQuestionGroupService _questionGroupService;
 
-		public QuestionsController(IQuestionService questionService, IQuestionGroupService questionGroupService)
+		public QuestionsController(IQuestionService questionService)
 		{
 			_questionService = questionService;
-			_questionGroupService = questionGroupService;
 		}
 
 		// POST: api/question
@@ -52,37 +51,76 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> UpdateQuestion(int id, [FromForm] UpdateQuestionDto dto)
 		{
-			var result = await _questionService.UpdateAsync(id,dto);
+			var result = await _questionService.UpdateAsync(id, dto);
 			if (!result.IsSuccess)
-				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			{
+				if (result.ErrorMessage?.Contains("Not found", StringComparison.OrdinalIgnoreCase) == true)
+				{
+					return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+				}
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			}
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 
 		// DELETE: api/question/{id}
 		[HttpDelete("question/{id}")]
 		[Authorize(Roles = "TestCreator")]
-		public async Task<IActionResult> DeleteQuestion(int id)
+		public async Task<IActionResult> DeleteQuestion(int id, [FromQuery] bool isGroupQuestion)
 		{
-			var result = await _questionService.DeleteAsync(id);
+			bool isRestore = false;
+			var result = await _questionService.UpdateStatusAsync(id, isGroupQuestion, isRestore);
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 
-		// GET: api/questions?part=&skill=&questionType=
+		// RESTORE: api/question/restore/{id}
+		[HttpPut("question/restore/{id}")]
+		[Authorize(Roles = "TestCreator")]
+		public async Task<IActionResult> RestoreQuestion(int id, [FromQuery] bool isGroupQuestion)
+		{
+			bool isRestore = true;
+			var result = await _questionService.UpdateStatusAsync(id, isGroupQuestion, isRestore);
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
+		}
+
+		// Get all: single + group question
 		[HttpGet("questions")]
 		[Authorize(Roles = "TestCreator")]
-		public async Task<ActionResult<ApiResponse<PaginationResponse<QuestionResponseDto>>>> FilterQuestions(
+		public async Task<IActionResult> FilterQuestions(
 			[FromQuery] int? part,
 			[FromQuery] int? questionType,
 			[FromQuery] int? skill,
-			[FromQuery] int page = 1,
-			[FromQuery] int pageSize = 10)
+			[FromQuery] string? keyWord,
+			[FromQuery] string sortOrder = "desc",
+			[FromQuery] int page = NumberConstants.DefaultFirstPage,
+			[FromQuery] int pageSize = NumberConstants.DefaultPageSize)
 		{
-			var result = await _questionService.FilterQuestionsAsync(part, questionType, skill, page, pageSize);
+			var result = await _questionService.FilterAllAsync(part, questionType, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Active);
 			if (!result.IsSuccess)
-				return BadRequest(ApiResponse<PaginationResponse<QuestionResponseDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
-			return Ok(ApiResponse<PaginationResponse<QuestionResponseDto>>.SuccessResponse(result.Data!));
+				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));
+		}
+
+		// GET: api/questions?part=&skill=&questionType=
+		[HttpGet("questions/deleted")]
+		[Authorize(Roles = "TestCreator")]
+		public async Task<IActionResult> FilterQuestionsDeleted(
+			[FromQuery] int? part,
+			[FromQuery] int? questionType,
+			[FromQuery] int? skill,
+			[FromQuery] string? keyWord,
+			[FromQuery] string sortOrder = "desc",
+			[FromQuery] int page = NumberConstants.DefaultFirstPage,
+			[FromQuery] int pageSize = NumberConstants.DefaultPageSize)
+		{
+			var result = await _questionService.FilterAllAsync(part, questionType, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Inactive);
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));
 		}
 	}
 }

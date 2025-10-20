@@ -7,7 +7,7 @@ namespace ToeicGenius.Repositories.Interfaces
 {
 	public interface IPartRepository : IBaseRepository<Part, int>
 	{
-		Task<List<Part>> GetPartsByTestSkill(TestSkill testSkill);
+		Task<List<Part>> GetPartsBySkill(QuestionSkill questionSkill);
 	}
 }
 

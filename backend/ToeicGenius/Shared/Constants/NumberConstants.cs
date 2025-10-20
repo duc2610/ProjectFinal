@@ -9,6 +9,7 @@
 		public const int MaxRetryCount = 5;
 		public const int MaxQuantityOption = 4;
 		public const int MinQuantityOption = 3;
+<<<<<<< HEAD
 
 		// Test Duration
 		public const int LRDuration = 120;
@@ -45,5 +46,9 @@
 		public const int TotalQuantityListening = 100;
 		public const int TotalQuantityReading = 100;
 
+=======
+		public const int MinQuantityQuestionInGroup = 2;
+		public const int MaxQuantityQuestionInGroup = 5;
+>>>>>>> dev
 	}
 }

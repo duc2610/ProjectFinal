@@ -1,111 +1,49 @@
 import React from "react";
-import {
-  LaptopOutlined,
-  NotificationOutlined,
-  UserOutlined,
-  DownOutlined,
-} from "@ant-design/icons";
-import { Breadcrumb, Dropdown, Layout, Menu, theme, Button, Space } from "antd";
-import { useAuth } from "@shared/hooks/useAuth";
+import { Card, Typography } from "antd";
 
-const { Header, Content, Sider } = Layout;
-
-const sideItems = [
-  {
-    key: "sub1",
-    icon: <UserOutlined />,
-    label: "User",
-    children: [{ key: "1-1", label: "Danh sách" }],
-  },
-  {
-    key: "sub2",
-    icon: <LaptopOutlined />,
-    label: "Sản phẩm",
-    children: [
-      { key: "2-1", label: "Kho" },
-      { key: "2-2", label: "Biến thể" },
-    ],
-  },
-  {
-    key: "sub3",
-    icon: <NotificationOutlined />,
-    label: "Thông báo",
-    children: [
-      { key: "3-1", label: "Gửi thông báo" },
-      { key: "3-2", label: "Lịch sử" },
-    ],
-  },
-];
+const { Title } = Typography;
 
 export default function Dashboard() {
-  const {
-    token: { colorBgContainer, borderRadiusLG },
-  } = theme.useToken();
-  const { user, signOut, isAuthenticated } = useAuth();
+  const statCard = (key) => (
+    <Card
+      key={key}
+      style={{
+        flex: 1,
+        minHeight: 120,
+        background: "#9acd32",
+        border: 0,
+        borderRadius: 12,
+      }}
+    />
+  );
 
-  const fullName = user ? `${user.lastName} ${user.firstName}`.trim() : "";
-
-  const items = [
-    {
-      key: "info",
-      label: <span>{fullName || user?.email}</span>,
-    },
-    {
-      type: "divider",
-    },
-    {
-      key: "logout",
-      label: <span onClick={signOut}>Đăng xuất</span>,
-    },
-  ];
+  const chartPlaceholder = (bg, minHeight = 260) => (
+    <div
+      style={{
+        background: bg,
+        borderRadius: 12,
+        minHeight,
+        width: "100%",
+        border: "2px dashed rgba(0,0,0,0.08)",
+      }}
+    />
+  );
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Header style={{ display: "flex", alignItems: "center" }}>
-        <Menu theme="dark" mode="horizontal" style={{ flex: 1, minWidth: 0 }} />
-        <Dropdown menu={{ items }} placement="bottomRight" trigger={["click"]}>
-          <Button type="text">
-            <Space style={{ color: "#fff" }}>
-              {isAuthenticated ? fullName || "Người dùng" : "Tài khoản"}
-              <DownOutlined />
-            </Space>
-          </Button>
-        </Dropdown>
-      </Header>
-
-      <Layout>
-        <Sider width={220} style={{ background: colorBgContainer }}>
-          <Menu
-            mode="inline"
-            defaultSelectedKeys={["1-1"]}
-            defaultOpenKeys={["sub1"]}
-            items={sideItems}
-            style={{ height: "100%", borderInlineEnd: 0 }}
-          />
-        </Sider>
-
-        <Layout style={{ padding: "0 24px 24px" }}>
-          <Breadcrumb
-            items={[
-              { title: "Home" },
-              { title: "Dashboard" },
-              { title: "App" },
-            ]}
-            style={{ margin: "16px 0" }}
-          />
-          <Content
-            style={{
-              padding: 24,
-              margin: 0,
-              minHeight: 280,
-              background: colorBgContainer,
-              borderRadius: borderRadiusLG,
-            }}
-          >
-            Content
-          </Content>
-        </Layout>
-      </Layout>
-    </Layout>
+    <div>
+      <Title level={5} style={{ marginBottom: 16 }}>
+        Admin dashboard
+      </Title>
+      <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+        {[1, 2, 3, 4].map(statCard)}
+      </div>
+      <Title level={5} style={{ margin: "16px 0" }}>
+        Analytic the overall performance
+      </Title>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        {chartPlaceholder("#bfbfbf", 280)}
+        {chartPlaceholder("#bfbfbf", 280)}
+      </div>
+    </div>
   );
 }

@@ -4,7 +4,7 @@
 Website hỗ trợ luyện thi toeic, có sử dụng AI để hỗ trợ chấm kĩ năng Speaking & Writing.
 
 ## Authors
-Development Team: SEP490_G20 - FPT University
+Development Team: SEP490_G22 - FPT University
 
 ## Technologies Used
 - **Programming Language**: C#

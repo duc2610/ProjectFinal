@@ -1,5 +1,5 @@
 import { Layout, Avatar, Badge } from "antd";
-import { BellOutlined, UserOutlined } from "@ant-design/icons";
+import { BellOutlined, UserOutlined, LogoutOutlined } from "@ant-design/icons";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import logo from "@assets/images/logo.png";
 import styles from "@shared/styles/Header.module.css";
@@ -16,7 +16,7 @@ const nav = [
 
 export default function Header() {
   const { user, isAuthenticated, signOut, refreshProfile } = useAuth();
-
+  const fullName = user?.fullName || user?.FullName || user?.email || "User";
   const navigate = useNavigate();
   const menuItems = !isAuthenticated
     ? [
@@ -31,12 +31,8 @@ export default function Header() {
         },
       ]
     : [
-        {
-          key: "Name",
-          label: (
-            <span className={styles.ddItem}>Xin chào, {user?.fullName}</span>
-          ),
-        },
+        { key: "info", label: <span>{fullName}</span> },
+        { type: "divider" },
         {
           key: "profile",
           label: (
@@ -47,33 +43,20 @@ export default function Header() {
               Profile
             </span>
           ),
+          icon: <UserOutlined />,
         },
         { type: "divider" },
         {
           key: "logout",
-          label: (
-            <span className={styles.ddItem} onClick={signOut}>
-              Đăng xuất
-            </span>
-          ),
+          label: <span className={styles.ddItem}>Đăng xuất</span>,
+          icon: <LogoutOutlined />,
         },
       ];
 
-  const onMenuClick = async ({ key }) => {
+  const onMenuClick = ({ key }) => {
     if (key === "login") return navigate("/login");
     if (key === "signup") return navigate("/register");
     if (key === "logout") return signOut();
-
-    if (key === "profile") {
-      try {
-        await refreshProfile();
-        navigate("/profile");
-      } catch (e) {
-        message.error("Không tải được hồ sơ. Vui lòng thử lại.");
-      } finally {
-        hide();
-      }
-    }
   };
   return (
     <AntHeader className={styles.header}>

@@ -18,15 +18,15 @@ namespace ToeicGenius.Controllers
 			_uow = uow;
 		}
 
-		[HttpGet("by-test-skill/{testSkill}")]
-		public async Task<IActionResult> GetPartsByTestSkill(TestSkill testSkill)
+		[HttpGet("by-skill/{questionSkill}")]
+		public async Task<IActionResult> GetPartsByTestSkill(QuestionSkill questionSkill)
 		{
-			if (!Enum.IsDefined(typeof(TestSkill), testSkill))
+			if (!Enum.IsDefined(typeof(QuestionSkill), questionSkill))
 			{
-				return BadRequest("Invalid Test Skill.");
+				return BadRequest("Invalid question skill.");
 			}
 
-			var result = await _uow.Parts.GetPartsByTestSkill(testSkill);
+			var result = await _uow.Parts.GetPartsBySkill(questionSkill);
 
 			return Ok(ApiResponse<List<Part>>.SuccessResponse(result));
 		}
