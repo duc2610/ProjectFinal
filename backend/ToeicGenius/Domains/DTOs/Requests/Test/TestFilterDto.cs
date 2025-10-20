@@ -9,7 +9,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Test
 		public TestSkill? TestSkill { get; set; }
 		public string? KeyWord { get; set; }
 		public CommonStatus? Status { get; set; }
-
+		public string? SortOrder { get; set; } 
 		[Required]
 		public int page { get; set; }
 		[Required]

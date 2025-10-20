@@ -106,8 +106,6 @@ namespace ToeicGenius.Repositories.Implementations
 								.Where(x => x.QuestionId == questionId && x.Status == status)
 								.FirstOrDefaultAsync();
 		}
-
-<<<<<<< HEAD
 		public async Task<List<QuestionSnapshotDto>> GetByListIdAsync(List<int> questionIds)
 		{
 			return await _context.Questions
@@ -129,7 +127,7 @@ namespace ToeicGenius.Repositories.Implementations
 					}).ToList()
 				})
 				.ToListAsync();
-=======
+		}
 		public async Task<PaginationResponse<QuestionListItemDto>> FilterAllAsync(int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
 		{
 			// GET SINGLE QUESTION
@@ -214,7 +212,6 @@ namespace ToeicGenius.Repositories.Implementations
 				.ToList();
 
 			return new PaginationResponse<QuestionListItemDto>(pagedData, totalCount, page, pageSize);
->>>>>>> dev
 		}
 	}
 }

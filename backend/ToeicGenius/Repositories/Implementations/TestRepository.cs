@@ -40,8 +40,12 @@ namespace ToeicGenius.Repositories.Implementations
 			var pageSize = request.pageSize <= 0 ? NumberConstants.DefaultPageSize : request.pageSize;
 			var totalRecords = await query.CountAsync();
 
+			bool isDescending = request.SortOrder?.ToLower() == "desc";
+			query = isDescending
+				? query.OrderByDescending(t => t.CreatedAt)
+				: query.OrderBy(t => t.CreatedAt);
+
 			var data = await query
-				.OrderBy(q => q.TestId)
 				.Skip((page - 1) * pageSize)
 				.Take(pageSize)
 				.Select(t => new TestListResponseDto
@@ -50,8 +54,9 @@ namespace ToeicGenius.Repositories.Implementations
 					TestType = t.TestType,
 					TestSkill = t.TestSkill,
 					Title = t.Title,
-					Description = t.Description,
+					QuestionQuantity = t.QuantityQuestion,
 					Duration = t.Duration,
+					CreatedAt = t.CreatedAt,
 					Status = t.Status
 				})
 				.ToListAsync();

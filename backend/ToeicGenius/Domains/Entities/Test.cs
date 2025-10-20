@@ -8,7 +8,7 @@ namespace ToeicGenius.Domains.Entities
 		[Key]
 		public int TestId { get; set; }
 
-		
+
 		[Required]
 		[MaxLength(50)]
 		public TestType TestType { get; set; } // Mode: Simulator, Practice
@@ -21,7 +21,7 @@ namespace ToeicGenius.Domains.Entities
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 		public DateTime? UpdatedAt { get; set; }
 		public CommonStatus Status { get; set; }
-
+		public int QuantityQuestion { get; set; }
 		public Guid? CreatedById { get; set; }
 		public User? CreatedBy { get; set; }
 		public ICollection<TestQuestion> TestQuestions { get; set; } = new List<TestQuestion>();

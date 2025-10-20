@@ -2,8 +2,8 @@
 {
 	public enum TestSkill
 	{
-		LR,
-		Speaking,
-		Writing
+		Speaking = 1,
+		Writing = 2,
+		LR = 3
 	}
 }

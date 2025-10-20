@@ -303,13 +303,13 @@ namespace ToeicGenius.Repositories.Persistence
 			// Single Questions (not in group)
 			// ----------------------------
 			modelBuilder.Entity<Question>().HasData(
-				new Question { QuestionId = 1, QuestionTypeId = 1, QuestionGroupId = null, PartId = 1, Content = "What is the capital of France?"},
-				new Question { QuestionId = 2, QuestionTypeId = 1, QuestionGroupId = null, PartId = 2, Content = "Where does he live?"},
-				new Question { QuestionId = 3, QuestionTypeId = 2, QuestionGroupId = null, PartId = 2, Content = "What time does she start work?"},
-				new Question { QuestionId = 4, QuestionTypeId = 2, QuestionGroupId = null, PartId = 1, Content = "Which color do you like?"},
-				new Question { QuestionId = 5, QuestionTypeId = 1, QuestionGroupId = null, PartId = 5, Content = "Select the correct sentence."},
-				new Question { QuestionId = 6, QuestionTypeId = 1, QuestionGroupId = null, PartId = 11, Content = "Describe your favorite city."},
-				new Question { QuestionId = 7, QuestionTypeId = 1, QuestionGroupId = null, PartId = 9, Content = "Write a short essay about your hometown."}
+				new Question { QuestionId = 1, QuestionTypeId = 1, QuestionGroupId = null, PartId = 1, Content = "What is the capital of France?" },
+				new Question { QuestionId = 2, QuestionTypeId = 1, QuestionGroupId = null, PartId = 2, Content = "Where does he live?" },
+				new Question { QuestionId = 3, QuestionTypeId = 2, QuestionGroupId = null, PartId = 2, Content = "What time does she start work?" },
+				new Question { QuestionId = 4, QuestionTypeId = 2, QuestionGroupId = null, PartId = 1, Content = "Which color do you like?" },
+				new Question { QuestionId = 5, QuestionTypeId = 1, QuestionGroupId = null, PartId = 5, Content = "Select the correct sentence." },
+				new Question { QuestionId = 6, QuestionTypeId = 1, QuestionGroupId = null, PartId = 11, Content = "Describe your favorite city." },
+				new Question { QuestionId = 7, QuestionTypeId = 1, QuestionGroupId = null, PartId = 9, Content = "Write a short essay about your hometown." }
 			);
 
 			// ----------------------------
@@ -317,19 +317,19 @@ namespace ToeicGenius.Repositories.Persistence
 			// ----------------------------
 			modelBuilder.Entity<Question>().HasData(
 				// Group 1 (Part 3)
-				new Question { QuestionId = 11, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q1"},
-				new Question { QuestionId = 12, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q2"},
-				new Question { QuestionId = 13, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q3"},
+				new Question { QuestionId = 11, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q1" },
+				new Question { QuestionId = 12, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q2" },
+				new Question { QuestionId = 13, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q3" },
 
 				// Group 2 (Part 4)
-				new Question { QuestionId = 14, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q1"},
-				new Question { QuestionId = 15, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q2"},
-				new Question { QuestionId = 16, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q3"},
+				new Question { QuestionId = 14, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q1" },
+				new Question { QuestionId = 15, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q2" },
+				new Question { QuestionId = 16, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q3" },
 
 				// Group 3 (Part 6)
-				new Question { QuestionId = 17, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q1"},
-				new Question { QuestionId = 18, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q2"},
-				new Question { QuestionId = 19, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q3"},
+				new Question { QuestionId = 17, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q1" },
+				new Question { QuestionId = 18, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q2" },
+				new Question { QuestionId = 19, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q3" },
 
 				// Group 4 (Part 7)
 				new Question { QuestionId = 20, QuestionTypeId = 2, QuestionGroupId = 4, PartId = 7, Content = "Group 4 - Q1" },
@@ -346,14 +346,6 @@ namespace ToeicGenius.Repositories.Persistence
 				new Option { OptionId = 2, QuestionId = 1, Content = "London", IsCorrect = false, Label = "B" },
 				new Option { OptionId = 3, QuestionId = 1, Content = "Berlin", IsCorrect = false, Label = "C" },
 				new Option { OptionId = 4, QuestionId = 1, Content = "Madrid", IsCorrect = false, Label = "D" },
-<<<<<<< HEAD
-				new Option { OptionId = 5, QuestionId = 11, Content = "Paris", IsCorrect = true, Label = "A" },
-				new Option { OptionId = 6, QuestionId = 11, Content = "London", IsCorrect = false, Label = "B" },
-				new Option { OptionId = 7, QuestionId = 11, Content = "Berlin", IsCorrect = false, Label = "C" },
-				new Option { OptionId = 8, QuestionId = 11, Content = "Madrid", IsCorrect = false, Label = "D" }
-			);
-
-=======
 
 				// QuestionId = 2 → PartId = 2 → 3 options only
 				new Option { OptionId = 5, QuestionId = 2, Content = "At home", IsCorrect = true, Label = "A" },
@@ -384,8 +376,6 @@ namespace ToeicGenius.Repositories.Persistence
 				new Option { OptionId = 22, QuestionId = 11, Content = "Option D", IsCorrect = false, Label = "D" }
 			);
 
-
->>>>>>> dev
 			// Seed default account
 			var adminConfig = _configuration.GetSection("DefaultAccounts:Admin");
 			var creatorConfig = _configuration.GetSection("DefaultAccounts:TestCreator");

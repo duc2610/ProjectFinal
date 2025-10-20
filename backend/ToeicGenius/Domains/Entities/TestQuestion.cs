@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using ToeicGenius.Domains.DTOs.Requests.Question;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -14,13 +15,17 @@ namespace ToeicGenius.Domains.Entities
 		[Required]
 		public int OrderInTest { get; set; }
 		public int? PartId { get; set; }
-		public Part? Part { get; set; }	
-
+		public Part? Part { get; set; }
+		public QuestionSourceType SourceType { get; set; } // Manual or FromBank
 		public int? OriginalQuestionId { get; set; }
-		public int? OriginalQuestionGroupId { get; set;}
+		public int? OriginalQuestionGroupId { get; set; }
 
 		[Required]
 		public string SnapshotJson { get; set; } = string.Empty;
+		public int Version { get; set; } = 1;
+		public CommonStatus Status { get; set; } = CommonStatus.Active;
+		public DateTime CreatedAt { get; set; }
+		public DateTime? UpdatedAt { get; set; }
 
 	}
 }
