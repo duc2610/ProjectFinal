@@ -96,6 +96,43 @@ namespace ToeicGenius.Repositories.Implementations
 					.ThenInclude(q => q.Options)
 				.FirstOrDefaultAsync();
 		}
+
+		public async Task<List<QuestionGroupSnapshotDto>> GetByListIdAsync(List<int> questionGroupIds)
+		{
+			return await _context.QuestionGroups
+				.Include(qg => qg.Questions)
+					.ThenInclude(q => q.Options)
+				.Where(qg => questionGroupIds.Contains(qg.QuestionGroupId) && qg.Status == CommonStatus.Active)
+				.Select(qg => new QuestionGroupSnapshotDto
+				{
+					QuestionGroupId = qg.QuestionGroupId,
+					PartId = qg.PartId,
+					Passage = qg.PassageContent,
+					AudioUrl = qg.AudioUrl,
+					ImageUrl = qg.ImageUrl,
+
+					QuestionSnapshots = qg.Questions
+						.Where(q => q.Status == CommonStatus.Active)
+						.Select(q => new QuestionSnapshotDto
+						{
+							QuestionId = q.QuestionId,
+							PartId = q.PartId,
+							Content = q.Content,
+							AudioUrl = q.AudioUrl,
+							ImageUrl = q.ImageUrl,
+							Explanation = q.Explanation,
+							Options = q.Options
+								.Where(o => o.Status == CommonStatus.Active)
+								.Select(o => new OptionSnapshotDto
+								{
+									Label = o.Label,
+									Content = o.Content,
+									IsCorrect = o.IsCorrect
+								}).ToList()
+						}).ToList()
+				})
+				.ToListAsync();
+		}
 	}
 }
 

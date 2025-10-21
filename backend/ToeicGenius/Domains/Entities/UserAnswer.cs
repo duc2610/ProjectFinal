@@ -9,7 +9,7 @@ namespace ToeicGenius.Domains.Entities
 
 		[Required]
 		public int UserTestId { get; set; }
-		public UserTest UserTest { get; set; } = null!;
+		public TestResult UserTest { get; set; } = null!;
 
 		[Required]
 		public int QuestionId { get; set; }

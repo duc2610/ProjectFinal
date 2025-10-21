@@ -1,4 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System.Text.Json;
+using ToeicGenius.Domains.DTOs.Requests.Question;
+using ToeicGenius.Domains.DTOs.Responses.Question;
+using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Shared.Helpers;
@@ -24,8 +29,9 @@ namespace ToeicGenius.Repositories.Persistence
 		public DbSet<Question> Questions => Set<Question>();
 		public DbSet<Option> Options => Set<Option>();
 		public DbSet<Test> Tests => Set<Test>();
+		public DbSet<TestQuestion> TestQuestions => Set<TestQuestion>();
 		public DbSet<Part> Parts => Set<Part>();
-		public DbSet<UserTest> UserTests => Set<UserTest>();
+		public DbSet<TestResult> UserTests => Set<TestResult>();
 		public DbSet<UserAnswer> UserAnswers => Set<UserAnswer>();
 		public DbSet<AIFeedback> AIFeedbacks => Set<AIFeedback>();
 		public DbSet<UserTestSkillScore> UserTestSkillScores => Set<UserTestSkillScore>();
@@ -106,27 +112,40 @@ namespace ToeicGenius.Repositories.Persistence
 				.WithMany(q => q.Options)
 				.HasForeignKey(o => o.QuestionId);
 
-			// Test-Part many-to-many
+			// Test - TestQuestion
+			// SnapshotJson is just string; no converter necessary.
+			modelBuilder.Entity<TestQuestion>()
+				.Property(tq => tq.SnapshotJson)
+				.HasColumnType("nvarchar(max)");
+
 			modelBuilder.Entity<Test>()
-				.HasMany(t => t.Parts)
-				.WithMany(p => p.Tests)
-				.UsingEntity<Dictionary<string, object>>(
-					"TestParts",
-					j => j.HasOne<Part>().WithMany().HasForeignKey("PartId"),
-					j => j.HasOne<Test>().WithMany().HasForeignKey("TestId"),
-					j => j.HasKey("TestId", "PartId")
-				);
+				.HasMany(t => t.TestQuestions)
+				.WithOne(q => q.Test)
+				.HasForeignKey(q => q.TestId)
+				.OnDelete(DeleteBehavior.Cascade);
+
+			modelBuilder.Entity<Test>()
+				.HasOne(t => t.CreatedBy)
+				.WithMany()
+				.HasForeignKey(q => q.CreatedById)
+				.OnDelete(DeleteBehavior.SetNull);
+
+			modelBuilder.Entity<TestQuestion>()
+				.HasOne(t => t.Part)
+				.WithMany()
+				.HasForeignKey(q => q.PartId)
+				.OnDelete(DeleteBehavior.SetNull);
 
 			// UserTest relations
-			modelBuilder.Entity<UserTest>()
+			modelBuilder.Entity<TestResult>()
 				.HasOne(ut => ut.User)
 				.WithMany(u => u.UserTests)
 				.HasForeignKey(ut => ut.UserId);
-			modelBuilder.Entity<UserTest>()
+			modelBuilder.Entity<TestResult>()
 				.HasOne(ut => ut.Test)
-				.WithMany(t => t.UserTests)
+				.WithMany(t => t.TestResults)
 				.HasForeignKey(ut => ut.TestId);
-			modelBuilder.Entity<UserTest>()
+			modelBuilder.Entity<TestResult>()
 				.Property(ut => ut.TotalScore)
 				.HasPrecision(5, 2);
 
@@ -285,13 +304,13 @@ namespace ToeicGenius.Repositories.Persistence
 			// Single Questions (not in group)
 			// ----------------------------
 			modelBuilder.Entity<Question>().HasData(
-				new Question { QuestionId = 1, QuestionTypeId = 1, QuestionGroupId = null, PartId = 1, Content = "What is the capital of France?"},
-				new Question { QuestionId = 2, QuestionTypeId = 1, QuestionGroupId = null, PartId = 2, Content = "Where does he live?"},
-				new Question { QuestionId = 3, QuestionTypeId = 2, QuestionGroupId = null, PartId = 2, Content = "What time does she start work?"},
-				new Question { QuestionId = 4, QuestionTypeId = 2, QuestionGroupId = null, PartId = 1, Content = "Which color do you like?"},
-				new Question { QuestionId = 5, QuestionTypeId = 1, QuestionGroupId = null, PartId = 5, Content = "Select the correct sentence."},
-				new Question { QuestionId = 6, QuestionTypeId = 1, QuestionGroupId = null, PartId = 11, Content = "Describe your favorite city."},
-				new Question { QuestionId = 7, QuestionTypeId = 1, QuestionGroupId = null, PartId = 9, Content = "Write a short essay about your hometown."}
+				new Question { QuestionId = 1, QuestionTypeId = 1, QuestionGroupId = null, PartId = 1, Content = "What is the capital of France?" },
+				new Question { QuestionId = 2, QuestionTypeId = 1, QuestionGroupId = null, PartId = 2, Content = "Where does he live?" },
+				new Question { QuestionId = 3, QuestionTypeId = 2, QuestionGroupId = null, PartId = 2, Content = "What time does she start work?" },
+				new Question { QuestionId = 4, QuestionTypeId = 2, QuestionGroupId = null, PartId = 1, Content = "Which color do you like?" },
+				new Question { QuestionId = 5, QuestionTypeId = 1, QuestionGroupId = null, PartId = 5, Content = "Select the correct sentence." },
+				new Question { QuestionId = 6, QuestionTypeId = 1, QuestionGroupId = null, PartId = 11, Content = "Describe your favorite city." },
+				new Question { QuestionId = 7, QuestionTypeId = 1, QuestionGroupId = null, PartId = 9, Content = "Write a short essay about your hometown." }
 			);
 
 			// ----------------------------
@@ -299,19 +318,19 @@ namespace ToeicGenius.Repositories.Persistence
 			// ----------------------------
 			modelBuilder.Entity<Question>().HasData(
 				// Group 1 (Part 3)
-				new Question { QuestionId = 11, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q1"},
-				new Question { QuestionId = 12, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q2"},
-				new Question { QuestionId = 13, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q3"},
+				new Question { QuestionId = 11, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q1" },
+				new Question { QuestionId = 12, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q2" },
+				new Question { QuestionId = 13, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q3" },
 
 				// Group 2 (Part 4)
-				new Question { QuestionId = 14, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q1"},
-				new Question { QuestionId = 15, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q2"},
-				new Question { QuestionId = 16, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q3"},
+				new Question { QuestionId = 14, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q1" },
+				new Question { QuestionId = 15, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q2" },
+				new Question { QuestionId = 16, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q3" },
 
 				// Group 3 (Part 6)
-				new Question { QuestionId = 17, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q1"},
-				new Question { QuestionId = 18, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q2"},
-				new Question { QuestionId = 19, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q3"},
+				new Question { QuestionId = 17, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q1" },
+				new Question { QuestionId = 18, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q2" },
+				new Question { QuestionId = 19, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q3" },
 
 				// Group 4 (Part 7)
 				new Question { QuestionId = 20, QuestionTypeId = 2, QuestionGroupId = 4, PartId = 7, Content = "Group 4 - Q1" },
@@ -357,7 +376,6 @@ namespace ToeicGenius.Repositories.Persistence
 				new Option { OptionId = 21, QuestionId = 11, Content = "Option C", IsCorrect = false, Label = "C" },
 				new Option { OptionId = 22, QuestionId = 11, Content = "Option D", IsCorrect = false, Label = "D" }
 			);
-
 
 			// Seed default account
 			var adminConfig = _configuration.GetSection("DefaultAccounts:Admin");

@@ -9,7 +9,7 @@ namespace ToeicGenius.Domains.Entities
 
 		[Required]
 		public int UserTestId { get; set; }
-		public UserTest UserTest { get; set; } = null!;
+		public TestResult UserTest { get; set; } = null!;
 
 		public string? Skill { get; set; }
 		public decimal Score { get; set; }
