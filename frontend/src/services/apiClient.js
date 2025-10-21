@@ -29,20 +29,14 @@ export const tokenStore = {
 
 export const api = axios.create({
   baseURL: env.API_BASE_URL,
-  // ❌ TUYỆT ĐỐI KHÔNG đặt Content-Type mặc định ở đây
-  // headers: { "Content-Type": "application/json" },  // <- gỡ bỏ
 });
 
-// Request interceptor
 api.interceptors.request.use((config) => {
-  // attach token
   const token = tokenStore.access;
   if (token) {
     config.headers = config.headers ?? {};
     config.headers.Authorization = `Bearer ${token}`;
   }
-
-  // Nếu payload là FormData -> xoá mọi Content-Type để browser tự thêm boundary
   const isFormData =
     typeof FormData !== "undefined" && config.data instanceof FormData;
   if (isFormData) {
@@ -51,7 +45,6 @@ api.interceptors.request.use((config) => {
       delete config.headers["content-type"];
     }
   } else {
-    // payload JSON -> đặt Content-Type nếu chưa có
     if (
       config.headers &&
       !config.headers["Content-Type"] &&
