@@ -35,4 +35,16 @@
 - [x] Manage Group Question (for L&R: Part 3,4,6,7)
 ### 📄 Notes
 - Branch: `tts-v0.2`
-- Status: Completed 
+- Status: Completed
+- ---
+
+## TTS V0.3 (10/10/2025 - 24/10/2025)
+
+### Features
+- [x] Manage Test 
+- [ ] Take test (Examinee)
+- [ ] View Result, Test History
+- [ ] Scoring: Speaking-Writing(AI) and Listening&Reading(MCQ)
+### 📄 Notes
+- Branch: `tts-v0.2`
+- Status: In Progress 
