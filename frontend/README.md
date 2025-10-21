@@ -24,5 +24,17 @@
 
 ### 📄 Notes
 
+## TTS V0.2 (29/09/2025 - 03/10/2025)
+
+### Features
+
+- [x] Manage Single Question
+- [x] Manage Group Question (for L&R: Part 3,4,6,7)
+
+### 📄 Notes
+
+- Branch: `tts-v0.2`
+- Status: Completed
+
 \- Branch: `tts-v0.2`
 \- Status: In Progress
