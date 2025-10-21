@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Humanizer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Drawing.Printing;
@@ -86,16 +87,18 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<TestDetailDto>.SuccessResponse(result.Data!));
 		}
 
-		[HttpPut("{id}")]
-		//[Authorize(Roles = "TestCreator")]
-		public async Task<IActionResult> UpdateTest(int id, [FromBody] UpdateTestDto request)
+		[HttpPut("manual/{id}")]
+		public async Task<IActionResult> UpdateManualTest(int id, [FromBody] UpdateManualTestDto dto)
 		{
-			//var result = await _testService.UpdateAsync(id, request);
-			//if (!result.IsSuccess)
-			//{
-			//	return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Error"));
-			//}
-			return Ok(ApiResponse<string>.SuccessResponse(""));
+			var result = await _testService.UpdateManualTestAsync(id, dto);
+			return result.IsSuccess ? Ok(result) : BadRequest(result);
+		}
+
+		[HttpPut("from-bank/{id}")]
+		public async Task<IActionResult> UpdateFromBankTest(int id, [FromBody] UpdateTestFromBank dto)
+		{
+			var result = await _testService.UpdateTestFromBankAsync(id, dto);
+			return result.IsSuccess ? Ok(result) : BadRequest(result);
 		}
 
 		[HttpPut("hide/{id}")]
@@ -126,6 +129,15 @@ namespace ToeicGenius.Controllers
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
+		}
+
+		[HttpGet("versions/{parentTestId}")]
+		public async Task<IActionResult> GetVersions(int parentTestId)
+		{
+			var result = await _testService.GetVersionsByParentIdAsync(parentTestId);
+			if (!result.IsSuccess)
+				return NotFound(result.ErrorMessage);
+			return Ok(result);
 		}
 	}
 }

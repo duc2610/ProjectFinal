@@ -20,31 +20,31 @@ namespace ToeicGenius.Domains.DTOs.Requests.Exam
 		public string? Description { get; set; }
 		public string? AudioUrl { get; set; } // Audio full (45') for listening   
 		[Required]
-		public List<ManualPartDto> Parts { get; set; } = new();
+		public List<PartDto> Parts { get; set; } = new();
 	}
-	public class ManualPartDto
+	public class PartDto
 	{
 		[Required] public int PartId { get; set; }
-		public List<ManualQuestionGroupDto>? Groups { get; set; }
-		public List<ManualQuestionDto>? Questions { get; set; }
+		public List<QuestionGroupDto>? Groups { get; set; }
+		public List<QuestionDto>? Questions { get; set; }
 	}
 
-	public class ManualQuestionGroupDto
+	public class QuestionGroupDto
 	{
 		public string? Passage { get; set; }
 		public string? ImageUrl { get; set; }
-		public List<ManualQuestionDto> Questions { get; set; } = new();
+		public List<QuestionDto> Questions { get; set; } = new();
 	}
 
-	public class ManualQuestionDto
+	public class QuestionDto
 	{
 		public string? Content { get; set; }
 		public string? ImageUrl { get; set; }
-		public List<ManualOptionDto>? Options { get; set; } = new();
+		public List<OptionDto>? Options { get; set; } = new();
 		public string? Explanation { get; set; }
 	}
 
-	public class ManualOptionDto
+	public class OptionRequestDto
 	{
 		public string Label { get; set; } = string.Empty; // A, B, C, D
 		public string? Content { get; set; }

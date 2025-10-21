@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Test;
 using ToeicGenius.Domains.DTOs.Responses.Test;
@@ -69,6 +69,23 @@ namespace ToeicGenius.Repositories.Implementations
 			return await _context.Tests.Include(t => t.TestQuestions)
 										 .ThenInclude(tq => tq.Part)
 										 .FirstOrDefaultAsync(t => t.TestId == id);
+		}
+		public async Task<List<Test>> GetVersionsByParentIdAsync(int parentTestId)
+		{
+			// Gồm cả bản gốc (TestId == parentTestId)
+			return await _context.Tests
+				.Where(t => t.ParentTestId == parentTestId || t.TestId == parentTestId)
+				.OrderByDescending(t => t.Version)
+				.ToListAsync();
+		}
+		public async Task<int> GetNextVersionAsync(int parentTestId)
+		{
+			// Lấy tất cả version của test cùng "gia đình" (có cùng parent)
+			var maxVersion = await _context.Tests
+				.Where(t => t.ParentTestId == parentTestId || t.TestId == parentTestId)
+				.MaxAsync(t => (int?)t.Version) ?? 1;
+
+			return maxVersion + 1;
 		}
 	}
 }

@@ -189,6 +189,8 @@ namespace ToeicGenius.Migrations
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Status = table.Column<int>(type: "int", nullable: false),
+                    Version = table.Column<int>(type: "int", nullable: false),
+                    ParentTestId = table.Column<int>(type: "int", nullable: true),
                     QuantityQuestion = table.Column<int>(type: "int", nullable: false),
                     CreatedById = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     PartId = table.Column<int>(type: "int", nullable: true)
@@ -201,6 +203,11 @@ namespace ToeicGenius.Migrations
                         column: x => x.PartId,
                         principalTable: "Parts",
                         principalColumn: "PartId");
+                    table.ForeignKey(
+                        name: "FK_Tests_Tests_ParentTestId",
+                        column: x => x.ParentTestId,
+                        principalTable: "Tests",
+                        principalColumn: "TestId");
                     table.ForeignKey(
                         name: "FK_Tests_Users_CreatedById",
                         column: x => x.CreatedById,
@@ -296,7 +303,7 @@ namespace ToeicGenius.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "TestQuestion",
+                name: "TestQuestions",
                 columns: table => new
                 {
                     TestQuestionId = table.Column<int>(type: "int", nullable: false)
@@ -314,15 +321,15 @@ namespace ToeicGenius.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_TestQuestion", x => x.TestQuestionId);
+                    table.PrimaryKey("PK_TestQuestions", x => x.TestQuestionId);
                     table.ForeignKey(
-                        name: "FK_TestQuestion_Parts_PartId",
+                        name: "FK_TestQuestions_Parts_PartId",
                         column: x => x.PartId,
                         principalTable: "Parts",
                         principalColumn: "PartId",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_TestQuestion_Tests_TestId",
+                        name: "FK_TestQuestions_Tests_TestId",
                         column: x => x.TestId,
                         principalTable: "Tests",
                         principalColumn: "TestId",
@@ -524,9 +531,9 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "Id", "CreatedAt", "Email", "FullName", "GoogleId", "PasswordHash", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { new Guid("11111111-1111-1111-1111-111111111111"), new DateTime(2025, 10, 21, 10, 45, 9, 203, DateTimeKind.Utc).AddTicks(5068), "admin@toeicgenius.com", "System Admin", null, "$2a$11$7R/0/sEJrL4Pf2qkVP.6qu3qfs3gwSEZu7WFiARI1/lMcrWW8VrpW", 1, null },
-                    { new Guid("22222222-2222-2222-2222-222222222222"), new DateTime(2025, 10, 21, 10, 45, 9, 324, DateTimeKind.Utc).AddTicks(4676), "creator@toeicgenius.com", "Test Creator", null, "$2a$11$XGohjp./9KKth7Z8JEfzqO50GBYSTwLwR6HkVea1CykA66JN2V2ue", 1, null },
-                    { new Guid("33333333-3333-3333-3333-333333333333"), new DateTime(2025, 10, 21, 10, 45, 9, 441, DateTimeKind.Utc).AddTicks(3576), "examinee@toeicgenius.com", "Regular Examinee", null, "$2a$11$plkRtUxNyWBUjOBRdw56AeLz9nmeEgg5a0pxOj77DserYg/I4xIEu", 1, null }
+                    { new Guid("11111111-1111-1111-1111-111111111111"), new DateTime(2025, 10, 21, 17, 40, 0, 960, DateTimeKind.Utc).AddTicks(2514), "admin@toeicgenius.com", "System Admin", null, "$2a$11$jb6qC7RXb/SqrYseehdaN.iSSWZG6WuccVpHUGWle5nBw3ifE0.DS", 1, null },
+                    { new Guid("22222222-2222-2222-2222-222222222222"), new DateTime(2025, 10, 21, 17, 40, 1, 81, DateTimeKind.Utc).AddTicks(3518), "creator@toeicgenius.com", "Test Creator", null, "$2a$11$NXZ5FKJlmGgZ3ZiDVMEwCuKqvEaZRyKglx5y7SksIIWprBVwwnlty", 1, null },
+                    { new Guid("33333333-3333-3333-3333-333333333333"), new DateTime(2025, 10, 21, 17, 40, 1, 199, DateTimeKind.Utc).AddTicks(6295), "examinee@toeicgenius.com", "Regular Examinee", null, "$2a$11$RjuntvzP/br6SysTiV6/IORNp5WjCUIuUkz.nD2sP9waF8Ei7mfVm", 1, null }
                 });
 
             migrationBuilder.InsertData(
@@ -534,10 +541,10 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "QuestionGroupId", "AudioUrl", "CreatedAt", "ImageUrl", "PartId", "PassageContent", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, null, new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3248), null, 3, "Passage for Part 3 - Short Conversation", 1, null },
-                    { 2, null, new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3251), null, 4, "Passage for Part 4 - Short Talk", 1, null },
-                    { 3, null, new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3252), null, 6, "Passage for Part 6 - Text Completion", 1, null },
-                    { 4, null, new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3253), null, 7, "Passage for Part 7 - Reading Comprehension", 1, null }
+                    { 1, null, new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4864), null, 3, "Passage for Part 3 - Short Conversation", 1, null },
+                    { 2, null, new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4866), null, 4, "Passage for Part 4 - Short Talk", 1, null },
+                    { 3, null, new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4867), null, 6, "Passage for Part 6 - Text Completion", 1, null },
+                    { 4, null, new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4868), null, 7, "Passage for Part 7 - Reading Comprehension", 1, null }
                 });
 
             migrationBuilder.InsertData(
@@ -600,25 +607,25 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "QuestionId", "AudioUrl", "Content", "CreatedAt", "Explanation", "ImageUrl", "PartId", "QuestionGroupId", "QuestionTypeId", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, null, "What is the capital of France?", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3286), null, null, 1, null, 1, 1, null },
-                    { 2, null, "Where does he live?", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3297), null, null, 2, null, 1, 1, null },
-                    { 3, null, "What time does she start work?", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3299), null, null, 2, null, 2, 1, null },
-                    { 4, null, "Which color do you like?", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3300), null, null, 1, null, 2, 1, null },
-                    { 5, null, "Select the correct sentence.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3301), null, null, 5, null, 1, 1, null },
-                    { 6, null, "Describe your favorite city.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3303), null, null, 11, null, 1, 1, null },
-                    { 7, null, "Write a short essay about your hometown.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3304), null, null, 9, null, 1, 1, null },
-                    { 11, null, "Group 1 - Q1", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3337), null, null, 3, 1, 1, 1, null },
-                    { 12, null, "Group 1 - Q2", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3338), null, null, 3, 1, 1, 1, null },
-                    { 13, null, "Group 1 - Q3", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3339), null, null, 3, 1, 1, 1, null },
-                    { 14, null, "Group 2 - Q1", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3362), null, null, 4, 2, 2, 1, null },
-                    { 15, null, "Group 2 - Q2", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3363), null, null, 4, 2, 2, 1, null },
-                    { 16, null, "Group 2 - Q3", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3365), null, null, 4, 2, 2, 1, null },
-                    { 17, null, "Group 3 - Q1", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3366), null, null, 6, 3, 1, 1, null },
-                    { 18, null, "Group 3 - Q2", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3367), null, null, 6, 3, 1, 1, null },
-                    { 19, null, "Group 3 - Q3", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3368), null, null, 6, 3, 1, 1, null },
-                    { 20, null, "Group 4 - Q1", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3369), null, null, 7, 4, 2, 1, null },
-                    { 21, null, "Group 4 - Q2", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3374), null, null, 7, 4, 2, 1, null },
-                    { 22, null, "Group 4 - Q3", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3375), null, null, 7, 4, 2, 1, null }
+                    { 1, null, "What is the capital of France?", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4898), null, null, 1, null, 1, 1, null },
+                    { 2, null, "Where does he live?", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4911), null, null, 2, null, 1, 1, null },
+                    { 3, null, "What time does she start work?", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4912), null, null, 2, null, 2, 1, null },
+                    { 4, null, "Which color do you like?", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4913), null, null, 1, null, 2, 1, null },
+                    { 5, null, "Select the correct sentence.", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4914), null, null, 5, null, 1, 1, null },
+                    { 6, null, "Describe your favorite city.", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4915), null, null, 11, null, 1, 1, null },
+                    { 7, null, "Write a short essay about your hometown.", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4916), null, null, 9, null, 1, 1, null },
+                    { 11, null, "Group 1 - Q1", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4944), null, null, 3, 1, 1, 1, null },
+                    { 12, null, "Group 1 - Q2", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4975), null, null, 3, 1, 1, 1, null },
+                    { 13, null, "Group 1 - Q3", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4976), null, null, 3, 1, 1, 1, null },
+                    { 14, null, "Group 2 - Q1", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4977), null, null, 4, 2, 2, 1, null },
+                    { 15, null, "Group 2 - Q2", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4978), null, null, 4, 2, 2, 1, null },
+                    { 16, null, "Group 2 - Q3", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4979), null, null, 4, 2, 2, 1, null },
+                    { 17, null, "Group 3 - Q1", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4980), null, null, 6, 3, 1, 1, null },
+                    { 18, null, "Group 3 - Q2", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4981), null, null, 6, 3, 1, 1, null },
+                    { 19, null, "Group 3 - Q3", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4983), null, null, 6, 3, 1, 1, null },
+                    { 20, null, "Group 4 - Q1", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4984), null, null, 7, 4, 2, 1, null },
+                    { 21, null, "Group 4 - Q2", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4988), null, null, 7, 4, 2, 1, null },
+                    { 22, null, "Group 4 - Q3", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(4990), null, null, 7, 4, 2, 1, null }
                 });
 
             migrationBuilder.InsertData(
@@ -626,28 +633,28 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "OptionId", "Content", "CreatedAt", "IsCorrect", "Label", "QuestionId", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, "Paris", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3407), true, "A", 1, 1, null },
-                    { 2, "London", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3409), false, "B", 1, 1, null },
-                    { 3, "Berlin", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3410), false, "C", 1, 1, null },
-                    { 4, "Madrid", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3411), false, "D", 1, 1, null },
-                    { 5, "At home", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3412), true, "A", 2, 1, null },
-                    { 6, "At work", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3413), false, "B", 2, 1, null },
-                    { 7, "At school", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3414), false, "C", 2, 1, null },
-                    { 8, "8 AM", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3415), true, "A", 3, 1, null },
-                    { 9, "9 AM", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3416), false, "B", 3, 1, null },
-                    { 10, "10 AM", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3417), false, "C", 3, 1, null },
-                    { 11, "Red", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3418), true, "A", 4, 1, null },
-                    { 12, "Green", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3418), false, "B", 4, 1, null },
-                    { 13, "Blue", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3419), false, "C", 4, 1, null },
-                    { 14, "Yellow", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3420), false, "D", 4, 1, null },
-                    { 15, "She goes to school.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3421), true, "A", 5, 1, null },
-                    { 16, "She go to school.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3422), false, "B", 5, 1, null },
-                    { 17, "She going to school.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3423), false, "C", 5, 1, null },
-                    { 18, "She gone to school.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3424), false, "D", 5, 1, null },
-                    { 19, "Option A", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3425), true, "A", 11, 1, null },
-                    { 20, "Option B", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3426), false, "B", 11, 1, null },
-                    { 21, "Option C", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3427), false, "C", 11, 1, null },
-                    { 22, "Option D", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3428), false, "D", 11, 1, null }
+                    { 1, "Paris", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5026), true, "A", 1, 1, null },
+                    { 2, "London", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5027), false, "B", 1, 1, null },
+                    { 3, "Berlin", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5028), false, "C", 1, 1, null },
+                    { 4, "Madrid", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5029), false, "D", 1, 1, null },
+                    { 5, "At home", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5030), true, "A", 2, 1, null },
+                    { 6, "At work", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5031), false, "B", 2, 1, null },
+                    { 7, "At school", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5032), false, "C", 2, 1, null },
+                    { 8, "8 AM", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5033), true, "A", 3, 1, null },
+                    { 9, "9 AM", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5034), false, "B", 3, 1, null },
+                    { 10, "10 AM", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5035), false, "C", 3, 1, null },
+                    { 11, "Red", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5036), true, "A", 4, 1, null },
+                    { 12, "Green", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5037), false, "B", 4, 1, null },
+                    { 13, "Blue", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5037), false, "C", 4, 1, null },
+                    { 14, "Yellow", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5038), false, "D", 4, 1, null },
+                    { 15, "She goes to school.", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5039), true, "A", 5, 1, null },
+                    { 16, "She go to school.", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5040), false, "B", 5, 1, null },
+                    { 17, "She going to school.", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5041), false, "C", 5, 1, null },
+                    { 18, "She gone to school.", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5042), false, "D", 5, 1, null },
+                    { 19, "Option A", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5044), true, "A", 11, 1, null },
+                    { 20, "Option B", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5045), false, "B", 11, 1, null },
+                    { 21, "Option C", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5046), false, "C", 11, 1, null },
+                    { 22, "Option D", new DateTime(2025, 10, 21, 17, 40, 0, 841, DateTimeKind.Utc).AddTicks(5046), false, "D", 11, 1, null }
                 });
 
             migrationBuilder.CreateIndex(
@@ -706,19 +713,24 @@ namespace ToeicGenius.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TestQuestion_PartId",
-                table: "TestQuestion",
+                name: "IX_TestQuestions_PartId",
+                table: "TestQuestions",
                 column: "PartId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_TestQuestion_TestId",
-                table: "TestQuestion",
+                name: "IX_TestQuestions_TestId",
+                table: "TestQuestions",
                 column: "TestId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tests_CreatedById",
                 table: "Tests",
                 column: "CreatedById");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Tests_ParentTestId",
+                table: "Tests",
+                column: "ParentTestId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Tests_PartId",
@@ -774,7 +786,7 @@ namespace ToeicGenius.Migrations
                 name: "RefreshTokens");
 
             migrationBuilder.DropTable(
-                name: "TestQuestion");
+                name: "TestQuestions");
 
             migrationBuilder.DropTable(
                 name: "UserOtps");

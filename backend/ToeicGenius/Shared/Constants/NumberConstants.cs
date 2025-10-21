@@ -49,6 +49,7 @@
 		public const int MaxQuantityQuestionInGroup = 5;
 
 		public const int FirstOrderNumber = 1;
+		public const int FirstVersion = 1;
 
 	}
 }
