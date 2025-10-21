@@ -1,7 +1,7 @@
-import React from 'react';
-import { Button, Result } from 'antd';
-import { useNavigate } from 'react-router-dom';
-import styles from '@CSS/NotFound.module.css';
+import React from "react";
+import { Button, Result } from "antd";
+import { useNavigate } from "react-router-dom";
+import styles from "@shared/styles/NotFound.module.css";
 
 const NotFound = () => {
   const navigate = useNavigate();
@@ -17,7 +17,7 @@ const NotFound = () => {
             type="primary"
             size="large"
             className={styles.button}
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
           >
             Quay lại trang chủ
           </Button>
