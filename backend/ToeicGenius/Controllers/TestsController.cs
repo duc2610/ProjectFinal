@@ -40,7 +40,7 @@ namespace ToeicGenius.Controllers
 		// Create test manual (for simulator test)
 		[HttpPost("manual")]
 		//[Authorize(Roles = "TestCreator")]
-		public async Task<IActionResult> CreateTestSimulator([FromForm] CreateTestManualDto request)
+		public async Task<IActionResult> CreateTestSimulator([FromBody] CreateTestManualDto request)
 		{
 			if (request == null)
 			{

@@ -18,7 +18,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Exam
 		[Required]
 		public TestSkill TestSkill { get; set; }
 		public string? Description { get; set; }
-		public IFormFile? Audio { get; set; } // Audio full (45') for listening   
+		public string? AudioUrl { get; set; } // Audio full (45') for listening   
 		[Required]
 		public List<ManualPartDto> Parts { get; set; } = new();
 	}
@@ -31,15 +31,15 @@ namespace ToeicGenius.Domains.DTOs.Requests.Exam
 
 	public class ManualQuestionGroupDto
 	{
-		public string Passage { get; set; } = string.Empty;
-		public IFormFile? Image { get; set; }
+		public string? Passage { get; set; }
+		public string? ImageUrl { get; set; }
 		public List<ManualQuestionDto> Questions { get; set; } = new();
 	}
 
 	public class ManualQuestionDto
 	{
-		public string Content { get; set; } = string.Empty;
-		public IFormFile? Image { get; set; }
+		public string? Content { get; set; }
+		public string? ImageUrl { get; set; }
 		public List<ManualOptionDto>? Options { get; set; } = new();
 		public string? Explanation { get; set; }
 	}
@@ -47,7 +47,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Exam
 	public class ManualOptionDto
 	{
 		public string Label { get; set; } = string.Empty; // A, B, C, D
-		public string Content { get; set; } = string.Empty;
+		public string? Content { get; set; }
 		public bool IsCorrect { get; set; } = false;
 	}
 	public class TestBuildResult

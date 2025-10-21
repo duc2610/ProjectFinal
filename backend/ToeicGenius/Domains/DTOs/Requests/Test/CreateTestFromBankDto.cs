@@ -7,10 +7,6 @@ namespace ToeicGenius.Domains.DTOs.Requests.Exam
 	{
 		[Required]
 		public string Title { get; set; }
-
-		[Required]
-		public TestType TestType { get; set; }
-
 		[Required]
 		public TestSkill TestSkill { get; set; }
 		public string? Description { get; set; }

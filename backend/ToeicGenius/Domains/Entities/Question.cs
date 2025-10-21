@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.Entities
@@ -13,7 +14,7 @@ namespace ToeicGenius.Domains.Entities
         public QuestionType QuestionType { get; set; } = null!;
 
         public int? QuestionGroupId { get; set; }
-        public QuestionGroup? QuestionGroup { get; set; }
+		public QuestionGroup? QuestionGroup { get; set; }
 
         [Required]
         public int PartId { get; set; }

@@ -17,8 +17,7 @@ namespace ToeicGenius.Domains.Entities
 		public int? PartId { get; set; }
 		public Part? Part { get; set; }
 		public QuestionSourceType SourceType { get; set; } // Manual or FromBank
-		public int? OriginalQuestionId { get; set; }
-		public int? OriginalQuestionGroupId { get; set; }
+		public bool IsQuestionGroup { get; set; } = false;
 
 		[Required]
 		public string SnapshotJson { get; set; } = string.Empty;

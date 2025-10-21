@@ -304,9 +304,13 @@ namespace ToeicGenius.Migrations
                     TestId = table.Column<int>(type: "int", nullable: false),
                     OrderInTest = table.Column<int>(type: "int", nullable: false),
                     PartId = table.Column<int>(type: "int", nullable: true),
-                    OriginalQuestionId = table.Column<int>(type: "int", nullable: true),
-                    OriginalQuestionGroupId = table.Column<int>(type: "int", nullable: true),
-                    SnapshotJson = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    SourceType = table.Column<int>(type: "int", nullable: false),
+                    IsQuestionGroup = table.Column<bool>(type: "bit", nullable: false),
+                    SnapshotJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Version = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -520,9 +524,9 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "Id", "CreatedAt", "Email", "FullName", "GoogleId", "PasswordHash", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { new Guid("11111111-1111-1111-1111-111111111111"), new DateTime(2025, 10, 20, 14, 20, 37, 760, DateTimeKind.Utc).AddTicks(8652), "admin@toeicgenius.com", "System Admin", null, "$2a$11$UwarOdaZcuLFTef968RbJOjmvMlyTI2ulqJf0VcmeSB3bg4CykHPm", 1, null },
-                    { new Guid("22222222-2222-2222-2222-222222222222"), new DateTime(2025, 10, 20, 14, 20, 37, 878, DateTimeKind.Utc).AddTicks(756), "creator@toeicgenius.com", "Test Creator", null, "$2a$11$MWWddRd0yM/l3MzUnbPU1O/qJoXNnuhhQrdQ8bBeZRyQO1B1Qvl2W", 1, null },
-                    { new Guid("33333333-3333-3333-3333-333333333333"), new DateTime(2025, 10, 20, 14, 20, 37, 994, DateTimeKind.Utc).AddTicks(3142), "examinee@toeicgenius.com", "Regular Examinee", null, "$2a$11$3js9oquHJaqPGYwzS4KhDe4cxIex.XF6T/7q0sZjA38oReV2tPT2q", 1, null }
+                    { new Guid("11111111-1111-1111-1111-111111111111"), new DateTime(2025, 10, 21, 10, 45, 9, 203, DateTimeKind.Utc).AddTicks(5068), "admin@toeicgenius.com", "System Admin", null, "$2a$11$7R/0/sEJrL4Pf2qkVP.6qu3qfs3gwSEZu7WFiARI1/lMcrWW8VrpW", 1, null },
+                    { new Guid("22222222-2222-2222-2222-222222222222"), new DateTime(2025, 10, 21, 10, 45, 9, 324, DateTimeKind.Utc).AddTicks(4676), "creator@toeicgenius.com", "Test Creator", null, "$2a$11$XGohjp./9KKth7Z8JEfzqO50GBYSTwLwR6HkVea1CykA66JN2V2ue", 1, null },
+                    { new Guid("33333333-3333-3333-3333-333333333333"), new DateTime(2025, 10, 21, 10, 45, 9, 441, DateTimeKind.Utc).AddTicks(3576), "examinee@toeicgenius.com", "Regular Examinee", null, "$2a$11$plkRtUxNyWBUjOBRdw56AeLz9nmeEgg5a0pxOj77DserYg/I4xIEu", 1, null }
                 });
 
             migrationBuilder.InsertData(
@@ -530,10 +534,10 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "QuestionGroupId", "AudioUrl", "CreatedAt", "ImageUrl", "PartId", "PassageContent", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, null, new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5891), null, 3, "Passage for Part 3 - Short Conversation", 1, null },
-                    { 2, null, new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5894), null, 4, "Passage for Part 4 - Short Talk", 1, null },
-                    { 3, null, new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5895), null, 6, "Passage for Part 6 - Text Completion", 1, null },
-                    { 4, null, new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5896), null, 7, "Passage for Part 7 - Reading Comprehension", 1, null }
+                    { 1, null, new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3248), null, 3, "Passage for Part 3 - Short Conversation", 1, null },
+                    { 2, null, new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3251), null, 4, "Passage for Part 4 - Short Talk", 1, null },
+                    { 3, null, new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3252), null, 6, "Passage for Part 6 - Text Completion", 1, null },
+                    { 4, null, new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3253), null, 7, "Passage for Part 7 - Reading Comprehension", 1, null }
                 });
 
             migrationBuilder.InsertData(
@@ -596,25 +600,25 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "QuestionId", "AudioUrl", "Content", "CreatedAt", "Explanation", "ImageUrl", "PartId", "QuestionGroupId", "QuestionTypeId", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, null, "What is the capital of France?", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5923), null, null, 1, null, 1, 1, null },
-                    { 2, null, "Where does he live?", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5924), null, null, 2, null, 1, 1, null },
-                    { 3, null, "What time does she start work?", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5925), null, null, 2, null, 2, 1, null },
-                    { 4, null, "Which color do you like?", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5927), null, null, 1, null, 2, 1, null },
-                    { 5, null, "Select the correct sentence.", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5928), null, null, 5, null, 1, 1, null },
-                    { 6, null, "Describe your favorite city.", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5929), null, null, 11, null, 1, 1, null },
-                    { 7, null, "Write a short essay about your hometown.", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5930), null, null, 9, null, 1, 1, null },
-                    { 11, null, "Group 1 - Q1", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5956), null, null, 3, 1, 1, 1, null },
-                    { 12, null, "Group 1 - Q2", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5958), null, null, 3, 1, 1, 1, null },
-                    { 13, null, "Group 1 - Q3", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5959), null, null, 3, 1, 1, 1, null },
-                    { 14, null, "Group 2 - Q1", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5960), null, null, 4, 2, 2, 1, null },
-                    { 15, null, "Group 2 - Q2", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5961), null, null, 4, 2, 2, 1, null },
-                    { 16, null, "Group 2 - Q3", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5963), null, null, 4, 2, 2, 1, null },
-                    { 17, null, "Group 3 - Q1", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5964), null, null, 6, 3, 1, 1, null },
-                    { 18, null, "Group 3 - Q2", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5965), null, null, 6, 3, 1, 1, null },
-                    { 19, null, "Group 3 - Q3", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5966), null, null, 6, 3, 1, 1, null },
-                    { 20, null, "Group 4 - Q1", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5967), null, null, 7, 4, 2, 1, null },
-                    { 21, null, "Group 4 - Q2", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5972), null, null, 7, 4, 2, 1, null },
-                    { 22, null, "Group 4 - Q3", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(5973), null, null, 7, 4, 2, 1, null }
+                    { 1, null, "What is the capital of France?", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3286), null, null, 1, null, 1, 1, null },
+                    { 2, null, "Where does he live?", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3297), null, null, 2, null, 1, 1, null },
+                    { 3, null, "What time does she start work?", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3299), null, null, 2, null, 2, 1, null },
+                    { 4, null, "Which color do you like?", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3300), null, null, 1, null, 2, 1, null },
+                    { 5, null, "Select the correct sentence.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3301), null, null, 5, null, 1, 1, null },
+                    { 6, null, "Describe your favorite city.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3303), null, null, 11, null, 1, 1, null },
+                    { 7, null, "Write a short essay about your hometown.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3304), null, null, 9, null, 1, 1, null },
+                    { 11, null, "Group 1 - Q1", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3337), null, null, 3, 1, 1, 1, null },
+                    { 12, null, "Group 1 - Q2", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3338), null, null, 3, 1, 1, 1, null },
+                    { 13, null, "Group 1 - Q3", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3339), null, null, 3, 1, 1, 1, null },
+                    { 14, null, "Group 2 - Q1", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3362), null, null, 4, 2, 2, 1, null },
+                    { 15, null, "Group 2 - Q2", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3363), null, null, 4, 2, 2, 1, null },
+                    { 16, null, "Group 2 - Q3", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3365), null, null, 4, 2, 2, 1, null },
+                    { 17, null, "Group 3 - Q1", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3366), null, null, 6, 3, 1, 1, null },
+                    { 18, null, "Group 3 - Q2", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3367), null, null, 6, 3, 1, 1, null },
+                    { 19, null, "Group 3 - Q3", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3368), null, null, 6, 3, 1, 1, null },
+                    { 20, null, "Group 4 - Q1", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3369), null, null, 7, 4, 2, 1, null },
+                    { 21, null, "Group 4 - Q2", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3374), null, null, 7, 4, 2, 1, null },
+                    { 22, null, "Group 4 - Q3", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3375), null, null, 7, 4, 2, 1, null }
                 });
 
             migrationBuilder.InsertData(
@@ -622,28 +626,28 @@ namespace ToeicGenius.Migrations
                 columns: new[] { "OptionId", "Content", "CreatedAt", "IsCorrect", "Label", "QuestionId", "Status", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, "Paris", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6002), true, "A", 1, 1, null },
-                    { 2, "London", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6003), false, "B", 1, 1, null },
-                    { 3, "Berlin", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6004), false, "C", 1, 1, null },
-                    { 4, "Madrid", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6005), false, "D", 1, 1, null },
-                    { 5, "At home", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6006), true, "A", 2, 1, null },
-                    { 6, "At work", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6007), false, "B", 2, 1, null },
-                    { 7, "At school", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6008), false, "C", 2, 1, null },
-                    { 8, "8 AM", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6009), true, "A", 3, 1, null },
-                    { 9, "9 AM", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6010), false, "B", 3, 1, null },
-                    { 10, "10 AM", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6032), false, "C", 3, 1, null },
-                    { 11, "Red", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6033), true, "A", 4, 1, null },
-                    { 12, "Green", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6034), false, "B", 4, 1, null },
-                    { 13, "Blue", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6035), false, "C", 4, 1, null },
-                    { 14, "Yellow", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6036), false, "D", 4, 1, null },
-                    { 15, "She goes to school.", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6037), true, "A", 5, 1, null },
-                    { 16, "She go to school.", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6038), false, "B", 5, 1, null },
-                    { 17, "She going to school.", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6039), false, "C", 5, 1, null },
-                    { 18, "She gone to school.", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6039), false, "D", 5, 1, null },
-                    { 19, "Option A", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6040), true, "A", 11, 1, null },
-                    { 20, "Option B", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6041), false, "B", 11, 1, null },
-                    { 21, "Option C", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6042), false, "C", 11, 1, null },
-                    { 22, "Option D", new DateTime(2025, 10, 20, 14, 20, 37, 644, DateTimeKind.Utc).AddTicks(6043), false, "D", 11, 1, null }
+                    { 1, "Paris", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3407), true, "A", 1, 1, null },
+                    { 2, "London", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3409), false, "B", 1, 1, null },
+                    { 3, "Berlin", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3410), false, "C", 1, 1, null },
+                    { 4, "Madrid", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3411), false, "D", 1, 1, null },
+                    { 5, "At home", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3412), true, "A", 2, 1, null },
+                    { 6, "At work", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3413), false, "B", 2, 1, null },
+                    { 7, "At school", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3414), false, "C", 2, 1, null },
+                    { 8, "8 AM", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3415), true, "A", 3, 1, null },
+                    { 9, "9 AM", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3416), false, "B", 3, 1, null },
+                    { 10, "10 AM", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3417), false, "C", 3, 1, null },
+                    { 11, "Red", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3418), true, "A", 4, 1, null },
+                    { 12, "Green", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3418), false, "B", 4, 1, null },
+                    { 13, "Blue", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3419), false, "C", 4, 1, null },
+                    { 14, "Yellow", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3420), false, "D", 4, 1, null },
+                    { 15, "She goes to school.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3421), true, "A", 5, 1, null },
+                    { 16, "She go to school.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3422), false, "B", 5, 1, null },
+                    { 17, "She going to school.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3423), false, "C", 5, 1, null },
+                    { 18, "She gone to school.", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3424), false, "D", 5, 1, null },
+                    { 19, "Option A", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3425), true, "A", 11, 1, null },
+                    { 20, "Option B", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3426), false, "B", 11, 1, null },
+                    { 21, "Option C", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3427), false, "C", 11, 1, null },
+                    { 22, "Option D", new DateTime(2025, 10, 21, 10, 45, 9, 87, DateTimeKind.Utc).AddTicks(3428), false, "D", 11, 1, null }
                 });
 
             migrationBuilder.CreateIndex(
