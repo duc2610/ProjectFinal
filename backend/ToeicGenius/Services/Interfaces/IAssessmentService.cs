@@ -6,12 +6,19 @@ namespace ToeicGenius.Services.Interfaces
 {
     public interface IAssessmentService
     {
+        // Writing
         Task<AIFeedbackResponseDto> AssessWritingSentenceAsync(WritingSentenceRequestDto request, Guid userId);
         Task<AIFeedbackResponseDto> AssessWritingEmailAsync(WritingEmailRequestDto request, Guid userId);
         Task<AIFeedbackResponseDto> AssessWritingEssayAsync(WritingEssayRequestDto request, Guid userId);
-        Task<AIFeedbackResponseDto> AssessSpeakingAsync(SpeakingAssessmentRequestDto request, string questionType, Guid userId);
+
+        // Speaking
+        Task<AIFeedbackResponseDto> AssessSpeakingAsync(SpeakingAssessmentRequestDto request, string taskType, Guid userId);
+
+        // Queries
         Task<AIFeedbackResponseDto> GetFeedbackAsync(int feedbackId, Guid userId);
-        Task<List<FeedbackHistoryDto>> GetUserHistoryAsync(Guid userId, string? aiScorer = null);
+        Task<List<AIFeedbackResponseDto>> GetUserHistoryAsync(Guid userId, string? aiScorer);
+
+        // Health checks
         Task<bool> CheckWritingApiHealthAsync();
         Task<bool> CheckSpeakingApiHealthAsync();
     }
