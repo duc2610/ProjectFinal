@@ -653,5 +653,70 @@ namespace ToeicGenius.Services.Implementations
 
 			return quantity;
 		}
+
+		public async Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request)
+		{
+			// Check test existed
+			var test = await _uow.Tests.GetTestByIdAsync(request.Id);
+			if (test == null || test.Status != CommonStatus.Active) return Result<TestStartResponseDto>.Failure("Test not found");
+
+			// Simulator: thời gian cố định
+			// Practice: có thể chọn tính giờ hoặc không
+			int duration = test.Duration;
+			if (test.TestType == TestType.Practice)
+			{
+				duration = request.IsSelectTime ? test.Duration : 0;
+			}
+
+			var result = new TestStartResponseDto
+			{
+				TestId = test.TestId,
+				Title = test.Title,
+				TestType = test.TestType,
+				TestSkill = test.TestSkill,
+				AudioUrl = test.AudioUrl,
+				Duration = duration,
+				QuantityQuestion = test.QuantityQuestion
+			};
+
+			// Nếu test chưa có câu hỏi
+			if (test.TestQuestions == null || !test.TestQuestions.Any())
+				return Result<TestStartResponseDto>.Success(result);
+
+			// Lấy các Parts, mỗi Parts gồm các câu hỏi
+			var groupedByPart = test.TestQuestions
+				.Where(q => q.PartId != null)
+				.GroupBy(q => q.PartId)
+				.ToList();
+
+			foreach (var group in groupedByPart)
+			{
+				var first = group.First();
+				var partDto = new TestPartDto
+				{
+					PartId = first.PartId!.Value,
+					PartName = first.Part?.Name ?? $"Part {first.PartId}",
+				};
+
+				foreach (var tq in group.OrderBy(q => q.OrderInTest))
+				{
+					if (tq.IsQuestionGroup)
+					{
+						var groupSnap = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(tq.SnapshotJson);
+						if (groupSnap != null)
+							partDto.QuestionGroups.Add(groupSnap);
+					}
+					else
+					{
+						var questionSnap = JsonConvert.DeserializeObject<QuestionSnapshotDto>(tq.SnapshotJson);
+						if (questionSnap != null)
+							partDto.Questions.Add(questionSnap);
+					}
+				}
+
+				result.Parts.Add(partDto);
+			}
+			return Result<TestStartResponseDto>.Success(result);
+		}
 	}
 }

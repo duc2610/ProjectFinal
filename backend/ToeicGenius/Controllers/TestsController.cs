@@ -24,6 +24,9 @@ namespace ToeicGenius.Controllers
 			_testService = testService;
 		}
 
+		// Test Creator
+		// Manage Test
+
 		// Create from bank ( for practice test)
 		[HttpPost("from-bank")]
 		//[Authorize(Roles = "TestCreator")]
@@ -138,6 +141,17 @@ namespace ToeicGenius.Controllers
 			if (!result.IsSuccess)
 				return NotFound(result.ErrorMessage);
 			return Ok(result);
+		}
+
+		// Examinee 
+		// DO TEST
+		[HttpGet("start")]
+		public async Task<IActionResult> GetTestStart([FromQuery] TestStartRequestDto request)
+		{
+			var result = await _testService.GetTestStartAsync(request);
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<TestStartResponseDto>.ErrorResponse(result.ErrorMessage!));
+			return Ok(ApiResponse<TestStartResponseDto>.SuccessResponse(result.Data!));
 		}
 	}
 }
