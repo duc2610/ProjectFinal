@@ -40,7 +40,7 @@ namespace ToeicGenius.Configurations
 			services.AddScoped<IQuestionGroupService, QuestionGroupService>();
 			services.AddScoped<IFileService, FileService>();
 			services.AddScoped<ITestService, TestService>();
-
-		}
+            services.AddScoped<IAssessmentService, AssessmentService>();
+        }
 	}
 }

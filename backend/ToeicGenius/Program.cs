@@ -11,6 +11,7 @@ using System.Text.Json.Serialization;
 using ToeicGenius.Configurations;
 using ToeicGenius.Filters;
 using ToeicGenius.Repositories.Persistence;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,15 +62,48 @@ builder.Services.AddCors(options =>
 			  .AllowCredentials();
 	});
 });
+// ============ CONFIGURATION SETTINGS ============
+builder.Services.Configure<PythonApiSettings>(
+    builder.Configuration.GetSection("PythonApiSettings"));
+;
+
+// ============ HTTP CLIENTS FOR PYTHON APIs ============
+builder.Services.AddHttpClient("WritingApi", client =>
+{
+    var apiUrl = builder.Configuration["PythonApiSettings:WritingApiUrl"];
+    var timeout = int.Parse(builder.Configuration["PythonApiSettings:TimeoutSeconds"]);
+
+    client.BaseAddress = new Uri(apiUrl);
+    client.Timeout = TimeSpan.FromSeconds(timeout);
+});
+
+builder.Services.AddHttpClient("SpeakingApi", client =>
+{
+    var apiUrl = builder.Configuration["PythonApiSettings:SpeakingApiUrl"];
+    var timeout = int.Parse(builder.Configuration["PythonApiSettings:TimeoutSeconds"]);
+
+    client.BaseAddress = new Uri(apiUrl);
+    client.Timeout = TimeSpan.FromSeconds(timeout);
+});
 
 // HttpClient
 builder.Services.AddHttpClient();
 
 // DI
 builder.Services.AddDependencyInjectionConfiguration(builder.Configuration);
+// ============ FILE UPLOAD LIMITS ============
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 104857600; // 100MB
+});
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 104857600; // 100MB
+});
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
-	options.SuppressModelStateInvalidFilter = true;
+    options.SuppressModelStateInvalidFilter = true;
 });
 
 //AWS 
