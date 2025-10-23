@@ -21,7 +21,6 @@ namespace ToeicGenius.Domains.Entities
         public Part Part { get; set; } = null!;
 
         public string? Content { get; set; }
-        public int Number { get; set; }
         public string? AudioUrl { get; set; }
 		public string? ImageUrl { get; set; }
 		public string? Explanation { get; set; }

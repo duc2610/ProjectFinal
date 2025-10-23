@@ -213,26 +213,16 @@ namespace ToeicGenius.Repositories.Implementations
 
 			return new PaginationResponse<QuestionListItemDto>(pagedData, totalCount, page, pageSize);
 		}
-        public async Task<Question?> GetByPartAndNumberAsync(int partId, int number)
-        {
-            return await _context.Questions
-               .Include(q => q.Part)
-               .Include(q => q.QuestionType)
-               .Where(q => q.PartId == partId
-                   && q.Number == number
-                   && q.Status == CommonStatus.Active)
-               .FirstOrDefaultAsync();
-        }
 
         public async Task<List<Question>> GetByPartIdAsync(int partId)
         {
             return await _context.Questions
-                 .Include(q => q.Part)
-                 .Include(q => q.QuestionType)
-                 .Where(q => q.PartId == partId
-                     && q.Status == CommonStatus.Active)
-                 .OrderBy(q => q.Number)
-                 .ToListAsync();
+                .Include(q => q.Part)
+                .Include(q => q.QuestionType)
+                .Include(q => q.Options)
+                .Where(q => q.PartId == partId && q.Status == CommonStatus.Active && q.QuestionGroupId == null)
+                .OrderBy(q => q.QuestionId)
+                .ToListAsync();
         }
     }
 }

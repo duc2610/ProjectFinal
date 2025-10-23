@@ -64,14 +64,15 @@ namespace ToeicGenius.Services.Implementations
         {
             try
             {
-                _logger.LogInformation("📝 Writing Sentence - User: {UserId}, Q{Number}", userId, request.QuestionNumber);
+                _logger.LogInformation("📝 Writing Sentence - User: {UserId}, QuestionId: {QuestionId}",
+                    userId, request.QuestionId);
 
-                var question = await GetQuestionAsync(request.QuestionId, 8, request.QuestionNumber);
+                var question = await GetQuestionAsync(request.QuestionId);
                 if (question == null)
-                    throw new Exception($"Question {request.QuestionNumber} not found");
+                    throw new Exception($"Question {request.QuestionId} not found");
 
                 if (string.IsNullOrEmpty(question.ImageUrl))
-                    throw new Exception($"Question {request.QuestionNumber} missing image");
+                    throw new Exception($"Question {request.QuestionId} missing image");
 
                 _logger.LogInformation("📝 Found Question - Id: {QuestionId}, HasImage: {HasImage}",
                     question.QuestionId, !string.IsNullOrEmpty(question.ImageUrl));
@@ -82,8 +83,7 @@ namespace ToeicGenius.Services.Implementations
 
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(request.Text), "text");
-                content.Add(new StringContent(question.Content ?? ""), "question_content");
-                content.Add(new StringContent(request.QuestionNumber.ToString()), "question_number");
+                content.Add(new StringContent("1"), "question_number");
 
                 var imageContent = new StreamContent(imageStream);
                 imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
@@ -119,14 +119,15 @@ namespace ToeicGenius.Services.Implementations
 
                 await _feedbackRepository.CreateAsync(feedback);
 
-                _logger.LogInformation("✅ Completed - FeedbackId: {Id}, Score: {Score}", feedback.FeedbackId, feedback.Score);
+                _logger.LogInformation("✅ Completed - FeedbackId: {Id}, Score: {Score}",
+                    feedback.FeedbackId, feedback.Score);
 
                 return MapToResponseDto(feedback);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error Writing Sentence Q{Number} - Inner: {Inner}",
-                    request.QuestionNumber, ex.InnerException?.Message ?? "None");
+                _logger.LogError(ex, "❌ Error Writing Sentence QuestionId: {QuestionId} - Inner: {Inner}",
+                    request.QuestionId, ex.InnerException?.Message ?? "None");
                 throw;
             }
         }
@@ -137,11 +138,12 @@ namespace ToeicGenius.Services.Implementations
         {
             try
             {
-                _logger.LogInformation("📧 Writing Email - User: {UserId}, Q{Number}", userId, request.QuestionNumber);
+                _logger.LogInformation("📧 Writing Email - User: {UserId}, QuestionId: {QuestionId}",
+                    userId, request.QuestionId);
 
-                var question = await GetQuestionAsync(request.QuestionId, 9, request.QuestionNumber);
+                var question = await GetQuestionAsync(request.QuestionId);
                 if (question == null)
-                    throw new Exception($"Question {request.QuestionNumber} not found");
+                    throw new Exception($"Question {request.QuestionId} not found");
 
                 _logger.LogInformation("📝 Found Question - Id: {QuestionId}, Content: {HasContent}",
                     question.QuestionId, !string.IsNullOrEmpty(question.Content));
@@ -153,7 +155,7 @@ namespace ToeicGenius.Services.Implementations
                     text = request.Text,
                     prompt = question.Content ?? "",
                     part_type = "respond_request",
-                    question_number = request.QuestionNumber
+                    question_number = 1
                 };
 
                 var jsonContent = JsonSerializer.Serialize(pythonRequest, _jsonOptions);
@@ -188,14 +190,15 @@ namespace ToeicGenius.Services.Implementations
 
                 await _feedbackRepository.CreateAsync(feedback);
 
-                _logger.LogInformation("✅ Completed - FeedbackId: {Id}, Score: {Score}", feedback.FeedbackId, feedback.Score);
+                _logger.LogInformation("✅ Completed - FeedbackId: {Id}, Score: {Score}",
+                    feedback.FeedbackId, feedback.Score);
 
                 return MapToResponseDto(feedback);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error Writing Email Q{Number} - Inner: {Inner}",
-                    request.QuestionNumber, ex.InnerException?.Message ?? "None");
+                _logger.LogError(ex, "❌ Error Writing Email QuestionId: {QuestionId} - Inner: {Inner}",
+                    request.QuestionId, ex.InnerException?.Message ?? "None");
                 throw;
             }
         }
@@ -206,11 +209,12 @@ namespace ToeicGenius.Services.Implementations
         {
             try
             {
-                _logger.LogInformation("📄 Writing Essay - User: {UserId}, Q{Number}", userId, request.QuestionNumber);
+                _logger.LogInformation("📄 Writing Essay - User: {UserId}, QuestionId: {QuestionId}",
+                    userId, request.QuestionId);
 
-                var question = await GetQuestionAsync(request.QuestionId, 10, request.QuestionNumber);
+                var question = await GetQuestionAsync(request.QuestionId);
                 if (question == null)
-                    throw new Exception($"Question {request.QuestionNumber} not found");
+                    throw new Exception($"Question {request.QuestionId} not found");
 
                 _logger.LogInformation("📝 Found Question - Id: {QuestionId}, Content: {HasContent}",
                     question.QuestionId, !string.IsNullOrEmpty(question.Content));
@@ -222,7 +226,7 @@ namespace ToeicGenius.Services.Implementations
                     text = request.Text,
                     prompt = question.Content ?? "",
                     part_type = "opinion_essay",
-                    question_number = request.QuestionNumber
+                    question_number = 1
                 };
 
                 var jsonContent = JsonSerializer.Serialize(pythonRequest, _jsonOptions);
@@ -257,81 +261,75 @@ namespace ToeicGenius.Services.Implementations
 
                 await _feedbackRepository.CreateAsync(feedback);
 
-                _logger.LogInformation("✅ Completed - FeedbackId: {Id}, Score: {Score}", feedback.FeedbackId, feedback.Score);
+                _logger.LogInformation("✅ Completed - FeedbackId: {Id}, Score: {Score}",
+                    feedback.FeedbackId, feedback.Score);
 
                 return MapToResponseDto(feedback);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error Writing Essay Q{Number} - Inner: {Inner}",
-                    request.QuestionNumber, ex.InnerException?.Message ?? "None");
+                _logger.LogError(ex, "❌ Error Writing Essay QuestionId: {QuestionId} - Inner: {Inner}",
+                    request.QuestionId, ex.InnerException?.Message ?? "None");
                 throw;
             }
         }
 
         #endregion
 
-        #region SPEAKING ASSESSMENTS
+        #region SPEAKING ASSESSMENT
 
         public async Task<AIFeedbackResponseDto> AssessSpeakingAsync(
             SpeakingAssessmentRequestDto request,
-            string questionType,
+            string taskType,
             Guid userId)
         {
-            string? audioUrl = null;
-
             try
             {
-                _logger.LogInformation("🎤 Speaking - User: {UserId}, Type: {Type}, Q{Number}",
-                    userId, questionType, request.QuestionNumber);
+                _logger.LogInformation("🎤 Speaking {TaskType} - User: {UserId}, QuestionId: {QuestionId}",
+                    taskType, userId, request.QuestionId);
 
-                var partId = GetSpeakingPartId(request.QuestionNumber);
-                var question = await GetQuestionAsync(request.QuestionId, partId, request.QuestionNumber);
-
+                var question = await GetQuestionAsync(request.QuestionId);
                 if (question == null)
-                    throw new Exception($"Question {request.QuestionNumber} not found");
+                    throw new Exception($"Question {request.QuestionId} not found");
 
-                _logger.LogInformation("📝 Found Question - Id: {QuestionId}, PartId: {PartId}, HasImage: {HasImage}",
-                    question.QuestionId, partId, !string.IsNullOrEmpty(question.ImageUrl));
+                _logger.LogInformation("📝 Found Question - Id: {QuestionId}, Content: {HasContent}",
+                    question.QuestionId, !string.IsNullOrEmpty(question.Content));
 
-                // 1. Upload audio
-                _logger.LogInformation("📤 Uploading audio...");
+                // Upload audio file
                 var uploadResult = await _fileService.UploadFileAsync(request.AudioFile, "audio");
                 if (!uploadResult.IsSuccess)
-                    throw new Exception($"Upload failed: {uploadResult.ErrorMessage}");
+                    throw new Exception("Failed to upload audio file");
 
-                audioUrl = uploadResult.Data;
-                _logger.LogInformation("✅ Audio uploaded: {AudioUrl}", audioUrl);
-
-                // 2. Create UserAnswer with audio URL
-                var (userTest, userAnswer) = await CreateSpeakingUserAnswerAsync(userId, question.QuestionId, audioUrl!);
-
-                // 3. Download audio to send to Python
-                var audioStream = await _fileService.DownloadFileAsync(audioUrl!);
+                var audioUrl = uploadResult.Data;
+                var (userTest, userAnswer) = await CreateSpeakingUserAnswerAsync(userId, question.QuestionId, audioUrl);
 
                 using var content = new MultipartFormDataContent();
 
+                // Add audio file
+                var audioStream = request.AudioFile.OpenReadStream();
                 var audioContent = new StreamContent(audioStream);
-                audioContent.Headers.ContentType = new MediaTypeHeaderValue(request.AudioFile.ContentType);
+                audioContent.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
                 content.Add(audioContent, "file", request.AudioFile.FileName);
 
-                content.Add(new StringContent(question.Content ?? ""), "question_content");
-                content.Add(new StringContent(questionType), "question_type");
-                content.Add(new StringContent(request.QuestionNumber.ToString()), "question_number");
+                // Add task type and question number
+                content.Add(new StringContent(taskType), "question_type");
+                content.Add(new StringContent("1"), "question_number");
 
-                if (partId == 11 && !string.IsNullOrEmpty(question.Content))
-                {
+                // Add reference text if exists
+                if (!string.IsNullOrEmpty(question.Content))
                     content.Add(new StringContent(question.Content), "reference_text");
-                    _logger.LogInformation("📄 Added reference text for Read Aloud");
-                }
 
-                if (partId == 12 && !string.IsNullOrEmpty(question.ImageUrl))
+                // Add question context if exists
+                if (!string.IsNullOrEmpty(question.Explanation))
+                    content.Add(new StringContent(question.Explanation), "question_context");
+
+                // Add picture for describe_picture task
+                if (taskType == "describe_picture" && !string.IsNullOrEmpty(question.ImageUrl))
                 {
-                    var pictureStream = await _fileService.DownloadFileAsync(question.ImageUrl);
-                    var pictureContent = new StreamContent(pictureStream);
-                    pictureContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
-                    content.Add(pictureContent, "picture", "picture.jpg");
-                    _logger.LogInformation("🖼️ Added picture: {ImageUrl}", question.ImageUrl);
+                    var imageStream = await _fileService.DownloadFileAsync(question.ImageUrl);
+                    var imageContent = new StreamContent(imageStream);
+                    imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+                    content.Add(imageContent, "picture", "question_image.jpg");
                 }
 
                 _logger.LogInformation("🚀 Calling Python: {Url}/assess", _speakingApiUrl);
@@ -353,14 +351,14 @@ namespace ToeicGenius.Services.Implementations
                     Score = pythonResponse!.OverallScore,
                     Content = GenerateSpeakingContentSummary(pythonResponse),
                     AIScorer = "speaking",
+                    Transcription = pythonResponse.Transcription,
+                    AudioDuration = pythonResponse.Duration,
                     DetailedScoresJson = JsonSerializer.Serialize(pythonResponse.Scores, _jsonOptions),
                     DetailedAnalysisJson = JsonSerializer.Serialize(pythonResponse.DetailedAnalysis, _jsonOptions),
                     RecommendationsJson = JsonSerializer.Serialize(pythonResponse.Recommendations, _jsonOptions),
-                    Transcription = pythonResponse.Transcription,
-                    AudioDuration = (double)pythonResponse.Duration,
                     PythonApiResponse = jsonResponse,
                     AudioFileUrl = audioUrl,
-                    ImageFileUrl = question.ImageUrl,
+                    ImageFileUrl = taskType == "describe_picture" ? question.ImageUrl : null,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -373,60 +371,34 @@ namespace ToeicGenius.Services.Implementations
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error Speaking Q{Number} - Inner: {Inner}",
-                    request.QuestionNumber, ex.InnerException?.Message ?? "None");
-
-                if (!string.IsNullOrEmpty(audioUrl))
-                {
-                    try
-                    {
-                        await _fileService.DeleteFileAsync(audioUrl);
-                        _logger.LogInformation("🗑️ Rolled back audio upload: {AudioUrl}", audioUrl);
-                    }
-                    catch (Exception rollbackEx)
-                    {
-                        _logger.LogError(rollbackEx, "Failed to rollback audio upload");
-                    }
-                }
-
+                _logger.LogError(ex, "❌ Error Speaking {TaskType} QuestionId: {QuestionId} - Inner: {Inner}",
+                    taskType, request.QuestionId, ex.InnerException?.Message ?? "None");
                 throw;
             }
         }
 
         #endregion
 
-        #region FEEDBACK QUERIES
+        #region QUERIES
 
         public async Task<AIFeedbackResponseDto> GetFeedbackAsync(int feedbackId, Guid userId)
         {
             var feedback = await _feedbackRepository.GetByIdAsync(feedbackId);
+
             if (feedback == null)
                 throw new Exception("Feedback not found");
 
-            if (feedback.UserAnswer?.UserTest?.UserId != userId)
-                throw new UnauthorizedAccessException("Access denied");
+            var isOwner = await _feedbackRepository.IsUserOwnerAsync(feedbackId, userId);
+            if (!isOwner)
+                throw new UnauthorizedAccessException("You don't have permission to access this feedback");
 
             return MapToResponseDto(feedback);
         }
 
-        public async Task<List<FeedbackHistoryDto>> GetUserHistoryAsync(Guid userId, string? aiScorer = null)
+        public async Task<List<AIFeedbackResponseDto>> GetUserHistoryAsync(Guid userId, string? aiScorer)
         {
-            var feedbacks = await _feedbackRepository.GetByUserIdAsync(userId);
-
-            if (!string.IsNullOrEmpty(aiScorer))
-            {
-                feedbacks = feedbacks.Where(f => f.AIScorer == aiScorer).ToList();
-            }
-
-            return feedbacks.Select(f => new FeedbackHistoryDto
-            {
-                FeedbackId = f.FeedbackId,
-                QuestionNumber = f.UserAnswer?.Question?.Number ?? 0,
-                QuestionType = DetermineQuestionType(f.UserAnswer?.Question?.PartId ?? 0, f.AIScorer),
-                Score = f.Score,
-                Summary = f.Content?.Length > 100 ? f.Content.Substring(0, 100) + "..." : f.Content,
-                CreatedAt = f.CreatedAt
-            }).ToList();
+            var feedbacks = await _feedbackRepository.GetHistoryAsync(userId, aiScorer);
+            return feedbacks.Select(MapToResponseDto).ToList();
         }
 
         #endregion
@@ -463,36 +435,26 @@ namespace ToeicGenius.Services.Implementations
 
         #region HELPER METHODS
 
-        private async Task<Question?> GetQuestionAsync(int? questionId, int partId, int number)
+        private async Task<Question?> GetQuestionAsync(int questionId)
         {
-            if (questionId.HasValue)
-            {
-                return await _uow.Questions.GetByIdAsync(questionId.Value);
-            }
-
-            return await _uow.Questions.GetByPartAndNumberAsync(partId, number);
+            return await _uow.Questions.GetByIdAsync(questionId);
         }
 
-        // ✅ CHO WRITING - Lưu text
         private async Task<(TestResult userTest, UserAnswer userAnswer)> CreateWritingUserAnswerAsync(
             Guid userId,
             int questionId,
             string answerText)
         {
-            // 1. Get or create UserTest (đã validate TestId exists bên trong)
             var userTest = await _uow.UserTests.GetOrCreateActiveTestAsync(userId);
 
-            // 2. UserTest.UserTestId đã được set sau SaveChanges trong repository
             _logger.LogInformation("💾 Using UserTest: {UserTestId}", userTest.UserTestId);
 
-            // 3. Validate QuestionId exists
             var questionExists = await _uow.Questions.GetByIdAsync(questionId);
             if (questionExists == null)
             {
                 throw new Exception($"Question with ID {questionId} does not exist");
             }
 
-            // 4. Tạo UserAnswer
             var userAnswer = new UserAnswer
             {
                 UserTestId = userTest.UserTestId,
@@ -510,30 +472,25 @@ namespace ToeicGenius.Services.Implementations
             return (userTest, userAnswer);
         }
 
-        // ✅ CHO SPEAKING - Lưu audio URL
         private async Task<(TestResult userTest, UserAnswer userAnswer)> CreateSpeakingUserAnswerAsync(
             Guid userId,
             int questionId,
             string audioUrl)
         {
-            // 1. Get or create UserTest
             var userTest = await _uow.UserTests.GetOrCreateActiveTestAsync(userId);
 
-            // 2. ✅ QUAN TRỌNG: Đảm bảo UserTest đã được save vào DB
             if (userTest.UserTestId == 0)
             {
                 await _uow.SaveChangesAsync();
                 _logger.LogInformation("💾 Saved new UserTest: {UserTestId}", userTest.UserTestId);
             }
 
-            // 3. Validate QuestionId exists
             var questionExists = await _uow.Questions.GetByIdAsync(questionId);
             if (questionExists == null)
             {
                 throw new Exception($"Question with ID {questionId} does not exist");
             }
 
-            // 4. Tạo UserAnswer
             var userAnswer = new UserAnswer
             {
                 UserTestId = userTest.UserTestId,
@@ -549,45 +506,6 @@ namespace ToeicGenius.Services.Implementations
                 userAnswer.UserAnswerId, userTest.UserTestId);
 
             return (userTest, userAnswer);
-        }
-
-        private int GetSpeakingPartId(int questionNumber)
-        {
-            return questionNumber switch
-            {
-                >= 1 and <= 2 => 11,
-                >= 3 and <= 4 => 12,
-                >= 5 and <= 7 => 13,
-                >= 8 and <= 10 => 14,
-                11 => 15,
-                _ => throw new ArgumentException($"Invalid question number: {questionNumber}")
-            };
-        }
-
-        private string DetermineQuestionType(int partId, string? aiScorer)
-        {
-            if (aiScorer == "writing")
-            {
-                return partId switch
-                {
-                    8 => "write_sentence",
-                    9 => "respond_email",
-                    10 => "write_essay",
-                    _ => "writing"
-                };
-            }
-            else
-            {
-                return partId switch
-                {
-                    11 => "read_aloud",
-                    12 => "describe_picture",
-                    13 => "respond_questions",
-                    14 => "respond_info",
-                    15 => "express_opinion",
-                    _ => "speaking"
-                };
-            }
         }
 
         private string GenerateContentSummary(PythonWritingResponse response)
@@ -615,13 +533,16 @@ namespace ToeicGenius.Services.Implementations
                 AIScorer = feedback.AIScorer ?? string.Empty,
                 DetailedScores = string.IsNullOrEmpty(feedback.DetailedScoresJson)
                     ? new Dictionary<string, object>()
-                    : JsonSerializer.Deserialize<Dictionary<string, object>>(feedback.DetailedScoresJson, _jsonOptions) ?? new Dictionary<string, object>(),
+                    : JsonSerializer.Deserialize<Dictionary<string, object>>(feedback.DetailedScoresJson, _jsonOptions)
+                      ?? new Dictionary<string, object>(),
                 DetailedAnalysis = string.IsNullOrEmpty(feedback.DetailedAnalysisJson)
                     ? new Dictionary<string, object>()
-                    : JsonSerializer.Deserialize<Dictionary<string, object>>(feedback.DetailedAnalysisJson, _jsonOptions) ?? new Dictionary<string, object>(),
+                    : JsonSerializer.Deserialize<Dictionary<string, object>>(feedback.DetailedAnalysisJson, _jsonOptions)
+                      ?? new Dictionary<string, object>(),
                 Recommendations = string.IsNullOrEmpty(feedback.RecommendationsJson)
                     ? new List<string>()
-                    : JsonSerializer.Deserialize<List<string>>(feedback.RecommendationsJson, _jsonOptions) ?? new List<string>(),
+                    : JsonSerializer.Deserialize<List<string>>(feedback.RecommendationsJson, _jsonOptions)
+                      ?? new List<string>(),
                 Transcription = feedback.Transcription ?? string.Empty,
                 CorrectedText = feedback.CorrectedText ?? string.Empty,
                 AudioDuration = (double?)feedback.AudioDuration,
