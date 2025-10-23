@@ -68,7 +68,7 @@ namespace ToeicGenius.Controllers
 		// List test
 		[HttpGet]
 		//[Authorize(Roles = "TestCreator")]
-		public async Task<IActionResult> GetTestsActive([FromQuery] TestFilterDto request)
+		public async Task<IActionResult> GetTestsList([FromQuery] TestFilterDto request)
 		{
 			var result = await _testService.FilterAllAsync(request);
 			if (!result.IsSuccess)
@@ -144,6 +144,7 @@ namespace ToeicGenius.Controllers
 		}
 
 		// Examinee 
+
 		// DO TEST
 		[HttpGet("start")]
 		public async Task<IActionResult> GetTestStart([FromQuery] TestStartRequestDto request)
@@ -152,6 +153,16 @@ namespace ToeicGenius.Controllers
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<TestStartResponseDto>.ErrorResponse(result.ErrorMessage!));
 			return Ok(ApiResponse<TestStartResponseDto>.SuccessResponse(result.Data!));
+		}
+
+		// Submit test
+		[HttpPost("submit")]
+		public async Task<IActionResult> SubmitTest([FromBody] SubmitLRTestRequestDto request)
+		{
+			var result = await _testService.SubmitLRTestAsync(request);
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
+			return Ok(result.Data);
 		}
 	}
 }

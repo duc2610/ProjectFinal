@@ -19,6 +19,7 @@ using ToeicGenius.Shared.Validators;
 using Azure.Core;
 using Newtonsoft.Json.Serialization;
 using System.Threading.Tasks;
+using ToeicGenius.Shared.Helpers;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -302,7 +303,7 @@ namespace ToeicGenius.Services.Implementations
 				var first = group.First();
 				var partDto = new TestPartDto
 				{
-					PartId = first.PartId!.Value,
+					PartId = first.PartId!,
 					PartName = first.Part?.Name ?? $"Part {first.PartId}",
 				};
 
@@ -694,7 +695,7 @@ namespace ToeicGenius.Services.Implementations
 				var first = group.First();
 				var partDto = new TestPartDto
 				{
-					PartId = first.PartId!.Value,
+					PartId = first.PartId!,
 					PartName = first.Part?.Name ?? $"Part {first.PartId}",
 				};
 
@@ -718,5 +719,193 @@ namespace ToeicGenius.Services.Implementations
 			}
 			return Result<TestStartResponseDto>.Success(result);
 		}
+
+		// Submit listening & reading test
+		public async Task<Result<GeneralLRResultDto>> SubmitLRTestAsync(SubmitLRTestRequestDto request)
+		{
+			if (request.Answers == null || !request.Answers.Any())
+				return Result<GeneralLRResultDto>.Failure("No answers provided.");
+
+			var testQuestionIds = request.Answers.Select(a => a.TestQuestionId).Distinct().ToList();
+			var testQuestions = await _uow.TestQuestions.GetByListIdAsync(testQuestionIds);
+			if (!testQuestions.Any())
+				return Result<GeneralLRResultDto>.Failure("Invalid test or questions.");
+
+			bool isSimulator = request.TestType == TestType.Simulator;
+
+			var newTestResult = new TestResult
+			{
+				UserId = request.UserId,
+				TestId = request.TestId,
+				Duration = request.Duration,
+				CreatedAt = DateTime.UtcNow
+			};
+
+			// Lấy map Part -> Skill
+			var partIds = testQuestions.Select(q => q.PartId).Distinct().ToList();
+			var partSkillMap = await _uow.Parts.GetSkillMapByIdsAsync(partIds);
+
+			// 1️.Xử lý & chấm bài
+			var (userAnswers, stats) = ProcessUserAnswers(request, testQuestions, partSkillMap, isSimulator, newTestResult);
+
+			// 2️.Lưu vào DB
+			await _uow.UserAnswers.AddRangeAsync(userAnswers);
+			await _uow.SaveChangesAsync();
+
+			// 3️.Tính kết quả cuối cùng
+			var result = isSimulator
+				? CalculateSimulatorResult(stats, request.Duration)
+				: CalculatePracticeResult(stats, request.Duration);
+
+			return Result<GeneralLRResultDto>.Success(result);
+		}
+
+		// Support function for SubmitLR TestAsync
+		private (List<UserAnswer> UserAnswers, TestStats Stats) ProcessUserAnswers(SubmitLRTestRequestDto request, List<TestQuestion> testQuestions, Dictionary<int, QuestionSkill> partSkillMap, bool isSimulator, TestResult newTestResult)
+		{
+			int listeningCorrect = 0, readingCorrect = 0;
+			int listeningTotal = 0, readingTotal = 0;
+			int skipCount = 0, totalQuestions = 0;
+
+			var userAnswers = new List<UserAnswer>();
+
+			foreach (var tq in testQuestions)
+			{
+				bool isListening = partSkillMap.TryGetValue(tq.PartId, out var skill)
+								   && skill == QuestionSkill.Listening;
+
+				if (!tq.IsQuestionGroup) // single question
+				{
+					totalQuestions++;
+					if (isListening) listeningTotal++; else readingTotal++;
+
+					var snapshot = JsonConvert.DeserializeObject<QuestionSnapshotDto>(tq.SnapshotJson);
+					if (snapshot == null) continue;
+
+					var userAnswerDto = request.Answers.FirstOrDefault(a => a.TestQuestionId == tq.TestQuestionId);
+					if (userAnswerDto == null)
+					{
+						skipCount++;
+						continue;
+					}
+
+					bool? isCorrect = null;
+					if (isSimulator)
+					{
+						var chosen = snapshot.Options.FirstOrDefault(o =>
+							o.Label.Equals(userAnswerDto.ChosenOptionLabel, StringComparison.OrdinalIgnoreCase));
+						isCorrect = chosen?.IsCorrect;
+						if (isCorrect == true)
+						{
+							if (isListening) listeningCorrect++; else readingCorrect++;
+						}
+					}
+
+					userAnswers.Add(CreateUserAnswer(newTestResult, tq.TestQuestionId, null, userAnswerDto.ChosenOptionLabel, isCorrect));
+				}
+				else
+				{ // group question
+					var groupSnapshot = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(tq.SnapshotJson);
+					if (groupSnapshot == null) continue;
+
+					for (int i = 0; i < groupSnapshot.QuestionSnapshots.Count; i++)
+					{
+						totalQuestions++;
+						if (isListening) listeningTotal++; else readingTotal++;
+
+						var qSnap = groupSnapshot.QuestionSnapshots[i];
+						var userAnswerDto = request.Answers.FirstOrDefault(a =>
+							a.TestQuestionId == tq.TestQuestionId && a.SubQuestionIndex == i);
+
+						if (userAnswerDto == null)
+						{
+							skipCount++;
+							continue;
+						}
+
+						bool? isCorrect = null;
+						if (isSimulator)
+						{
+							var chosen = qSnap.Options.FirstOrDefault(o =>
+								o.Label.Equals(userAnswerDto.ChosenOptionLabel, StringComparison.OrdinalIgnoreCase));
+							isCorrect = chosen?.IsCorrect;
+							if (isCorrect == true)
+							{
+								if (isListening) listeningCorrect++; else readingCorrect++;
+							}
+						}
+
+						userAnswers.Add(CreateUserAnswer(newTestResult, tq.TestQuestionId, i, userAnswerDto.ChosenOptionLabel, isCorrect));
+					}
+				}
+			}
+
+			var stats = new TestStats
+			{
+				ListeningCorrect = listeningCorrect,
+				ListeningTotal = listeningTotal,
+				ReadingCorrect = readingCorrect,
+				ReadingTotal = readingTotal,
+				SkipCount = skipCount,
+				TotalQuestions = totalQuestions
+			};
+
+			return (userAnswers, stats);
+		}
+
+		private UserAnswer CreateUserAnswer(TestResult testResult, int testQuestionId, int? subIndex, string chosenLabel, bool? isCorrect)
+		{
+			return new UserAnswer
+			{
+				TestResult = testResult,
+				TestQuestionId = testQuestionId,
+				SubQuestionIndex = subIndex,
+				ChosenOptionLabel = chosenLabel,
+				IsCorrect = isCorrect,
+				CreatedAt = DateTime.UtcNow
+			};
+		}
+
+		private GeneralLRResultDto CalculateSimulatorResult(TestStats stats, int duration)
+		{
+			int listeningScore = ToeicScoreTable.GetListeningScore(stats.ListeningCorrect);
+			int readingScore = ToeicScoreTable.GetReadingScore(stats.ReadingCorrect);
+
+			return new GeneralLRResultDto
+			{
+				Duration = duration,
+				TotalQuestions = stats.TotalQuestions,
+				SkipCount = stats.SkipCount,
+
+				ListeningCorrect = stats.ListeningCorrect,
+				ListeningTotal = stats.ListeningTotal,
+				ListeningScore = listeningScore,
+
+				ReadingCorrect = stats.ReadingCorrect,
+				ReadingTotal = stats.ReadingTotal,
+				ReadingScore = readingScore,
+
+				TotalScore = listeningScore + readingScore,
+				CorrectCount = stats.ListeningCorrect + stats.ReadingCorrect,
+				IncorrectCount = stats.TotalQuestions - (stats.ListeningCorrect + stats.ReadingCorrect) - stats.SkipCount
+			};
+		}
+
+		private GeneralLRResultDto CalculatePracticeResult(TestStats stats, int duration)
+		{
+			int totalCorrect = stats.ListeningCorrect + stats.ReadingCorrect;
+
+			return new GeneralLRResultDto
+			{
+				Duration = duration,
+				TotalQuestions = stats.TotalQuestions,
+				SkipCount = stats.SkipCount,
+				CorrectCount = totalCorrect,
+				IncorrectCount = stats.TotalQuestions - totalCorrect - stats.SkipCount,
+				TotalScore = null
+			};
+		}
+
+
 	}
 }
