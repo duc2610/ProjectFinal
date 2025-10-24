@@ -4,7 +4,7 @@ namespace ToeicGenius.Repositories.Interfaces
 {
 	public interface IUserAnswerRepository : IBaseRepository<UserAnswer, int>
 	{
-        Task<UserAnswer?> GetByUserTestAndQuestionAsync(int userTestId, int questionId);
+        Task<UserAnswer?> GetByTestResultAndTestQuestionAsync(int testResultId, int testQuestionId);
     }
 }
 

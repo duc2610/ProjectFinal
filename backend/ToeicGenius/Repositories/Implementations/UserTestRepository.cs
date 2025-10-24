@@ -12,7 +12,7 @@ namespace ToeicGenius.Repositories.Implementations
 
         public UserTestRepository(ToeicGeniusDbContext context) : base(context) { }
 
-        // Constructor with logger (optional - inject n?u có)
+        // Constructor with logger (optional - inject n?u cï¿½)
         public UserTestRepository(ToeicGeniusDbContext context, ILogger<UserTestRepository> logger)
             : base(context)
         {
@@ -39,12 +39,12 @@ namespace ToeicGenius.Repositories.Implementations
         {
             try
             {
-                // 1. Ki?m tra xem có active test không
+                // 1. Ki?m tra xem cï¿½ active test khï¿½ng
                 var activeTest = await GetActiveTestByUserIdAsync(userId);
                 if (activeTest != null)
                 {
-                    _logger?.LogInformation("Found existing active test: {UserTestId} for user {UserId}",
-                        activeTest.UserTestId, userId);
+                    _logger?.LogInformation("Found existing active test: {TestResultId} for user {UserId}",
+                        activeTest.TestResultId, userId);
                     return activeTest;
                 }
 
@@ -72,11 +72,11 @@ namespace ToeicGenius.Repositories.Implementations
 
                 await _context.TestResults.AddAsync(newTest);
 
-                // 4. ? Save changes ?? có UserTestId
+                // 4. ? Save changes ?? cï¿½ TestResultId
                 await _context.SaveChangesAsync();
 
-                _logger?.LogInformation("Created new UserTest: {UserTestId} for user {UserId}",
-                    newTest.UserTestId, userId);
+                _logger?.LogInformation("Created new UserTest: {TestResultId} for user {UserId}",
+                    newTest.TestResultId, userId);
 
                 return newTest;
             }
@@ -93,14 +93,14 @@ namespace ToeicGenius.Repositories.Implementations
             }
         }
 
-        public async Task<bool> CompleteTestAsync(int userTestId, decimal totalScore)
+        public async Task<bool> CompleteTestAsync(int testResultId, decimal totalScore)
         {
             try
             {
-                var userTest = await _context.TestResults.FindAsync(userTestId);
+                var userTest = await _context.TestResults.FindAsync(testResultId);
                 if (userTest == null)
                 {
-                    _logger?.LogWarning("UserTest {UserTestId} not found for completion", userTestId);
+                    _logger?.LogWarning("UserTest {TestResultId} not found for completion", testResultId);
                     return false;
                 }
 
@@ -110,14 +110,14 @@ namespace ToeicGenius.Repositories.Implementations
 
                 await _context.SaveChangesAsync();
 
-                _logger?.LogInformation("Completed UserTest {UserTestId} with score {TotalScore}",
-                    userTestId, totalScore);
+                _logger?.LogInformation("Completed UserTest {TestResultId} with score {TotalScore}",
+                    testResultId, totalScore);
 
                 return true;
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Error completing UserTest {UserTestId}", userTestId);
+                _logger?.LogError(ex, "Error completing UserTest {TestResultId}", testResultId);
                 throw;
             }
         }

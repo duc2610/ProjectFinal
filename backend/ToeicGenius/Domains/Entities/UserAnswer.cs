@@ -9,12 +9,12 @@ namespace ToeicGenius.Domains.Entities
         public int UserAnswerId { get; set; }
 
         [Required]
-        public int UserTestId { get; set; }
-        public TestResult UserTest { get; set; } = null!;
+        public int TestResultId { get; set; }
+        public TestResult TestResult { get; set; } = null!;
 
         [Required]
-        public int QuestionId { get; set; }
-        public Question Question { get; set; } = null!;
+        public int TestQuestionId { get; set; }
+        public TestQuestion TestQuestion { get; set; } = null!;
 
         [Column(TypeName = "nvarchar(max)")]
         public string? AnswerText { get; set; }

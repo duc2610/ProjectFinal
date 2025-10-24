@@ -8,7 +8,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.AI.Speaking
         [Required(ErrorMessage = "Audio file is required")]
         public IFormFile AudioFile { get; set; }
 
-        [Required(ErrorMessage = "Question ID is required")]
-        public int QuestionId { get; set; }
+        [Required(ErrorMessage = "TestQuestion ID is required")]
+        public int TestQuestionId { get; set; }
     }
 }

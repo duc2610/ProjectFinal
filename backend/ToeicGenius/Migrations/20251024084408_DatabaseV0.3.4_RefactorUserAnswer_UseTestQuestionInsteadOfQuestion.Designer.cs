@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ToeicGenius.Repositories.Persistence;
 
@@ -11,9 +12,11 @@ using ToeicGenius.Repositories.Persistence;
 namespace ToeicGenius.Migrations
 {
     [DbContext(typeof(ToeicGeniusDbContext))]
-    partial class ToeicGeniusDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251024084408_DatabaseV0.3.4_RefactorUserAnswer_UseTestQuestionInsteadOfQuestion")]
+    partial class DatabaseV034_RefactorUserAnswer_UseTestQuestionInsteadOfQuestion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

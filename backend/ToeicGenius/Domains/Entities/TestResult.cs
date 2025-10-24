@@ -5,7 +5,7 @@ namespace ToeicGenius.Domains.Entities
 	public class TestResult
 	{
 		[Key]
-		public int UserTestId { get; set; }
+		public int TestResultId { get; set; }
 
 		[Required]
 		public Guid UserId{ get; set; }
