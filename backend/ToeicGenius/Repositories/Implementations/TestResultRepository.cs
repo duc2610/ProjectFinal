@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ToeicGenius.Domains.Entities;
+using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Repositories.Persistence;
 
@@ -23,7 +24,7 @@ namespace ToeicGenius.Repositories.Implementations
 		{
 			try
 			{
-				return await _context.TestResult
+				return await _context.TestResults
 					.Where(ut => ut.UserId == userId && ut.Status == "InProgress")
 					.OrderByDescending(ut => ut.CreatedAt)
 					.FirstOrDefaultAsync();
@@ -65,11 +66,11 @@ namespace ToeicGenius.Repositories.Implementations
 					Status = "InProgress",
 					Duration = 0,
 					TotalScore = 0,
-					TestMode = "Practice",
+					TestType = TestType.Practice,
 					CreatedAt = DateTime.UtcNow
 				};
 
-				await _context.TestResult.AddAsync(newTest);
+				await _context.TestResults.AddAsync(newTest);
 
 				// 4. ? Save changes ?? có UserTestId
 				await _context.SaveChangesAsync();
@@ -96,7 +97,7 @@ namespace ToeicGenius.Repositories.Implementations
 		{
 			try
 			{
-				var userTest = await _context.TestResult.FindAsync(userTestId);
+				var userTest = await _context.TestResults.FindAsync(userTestId);
 				if (userTest == null)
 				{
 					_logger?.LogWarning("UserTest {UserTestId} not found for completion", userTestId);
@@ -125,7 +126,7 @@ namespace ToeicGenius.Repositories.Implementations
 		{
 			try
 			{
-				return await _context.TestResult
+				return await _context.TestResults
 					.Where(ut => ut.UserId == userId)
 					.OrderByDescending(ut => ut.CreatedAt)
 					.Skip(skip)

@@ -24,12 +24,11 @@ namespace ToeicGenius.Controllers
 			_testService = testService;
 		}
 
-		// Test Creator
+		#region TEST CREATOR
 		// Manage Test
-
 		// Create from bank ( for practice test)
 		[HttpPost("from-bank")]
-		//[Authorize(Roles = "TestCreator")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> CreateTestPractice([FromBody] CreateTestFromBankDto request)
 		{
 			var result = await _testService.CreateFromBankAsync(request);
@@ -43,7 +42,7 @@ namespace ToeicGenius.Controllers
 
 		// Create from bank with random selection ( for practice test - Speaking/Writing)
 		[HttpPost("from-bank/random")]
-		//[Authorize(Roles = "TestCreator")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> CreateTestPracticeRandom([FromBody] CreateTestFromBankRandomDto request)
 		{
 			var result = await _testService.CreateFromBankRandomAsync(request);
@@ -57,7 +56,7 @@ namespace ToeicGenius.Controllers
 
 		// Create test manual (for simulator test)
 		[HttpPost("manual")]
-		//[Authorize(Roles = "TestCreator")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> CreateTestSimulator([FromBody] CreateTestManualDto request)
 		{
 			if (request == null)
@@ -81,7 +80,7 @@ namespace ToeicGenius.Controllers
 
 		// List test
 		[HttpGet]
-		//[Authorize(Roles = "TestCreator")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> GetTestsList([FromQuery] TestFilterDto request)
 		{
 			var result = await _testService.FilterAllAsync(request);
@@ -93,7 +92,7 @@ namespace ToeicGenius.Controllers
 		}
 
 		[HttpGet("{id}")]
-		//[Authorize(Roles = "TestCreator")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> GetTestDetail(int id)
 		{
 			var result = await _testService.GetDetailAsync(id);
@@ -105,6 +104,7 @@ namespace ToeicGenius.Controllers
 		}
 
 		[HttpPut("manual/{id}")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> UpdateManualTest(int id, [FromBody] UpdateManualTestDto dto)
 		{
 			var result = await _testService.UpdateManualTestAsync(id, dto);
@@ -112,6 +112,7 @@ namespace ToeicGenius.Controllers
 		}
 
 		[HttpPut("from-bank/{id}")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> UpdateFromBankTest(int id, [FromBody] UpdateTestFromBank dto)
 		{
 			var result = await _testService.UpdateTestFromBankAsync(id, dto);
@@ -119,7 +120,7 @@ namespace ToeicGenius.Controllers
 		}
 
 		[HttpPut("hide/{id}")]
-		//[Authorize(Roles = "TestCreator")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> HideTest(int id)
 		{
 			var request = new UpdateTestStatusDto
@@ -134,7 +135,7 @@ namespace ToeicGenius.Controllers
 		}
 
 		[HttpPut("public/{id}")]
-		//[Authorize(Roles = "TestCreator")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> PublicTest(int id)
 		{
 			var request = new UpdateTestStatusDto
@@ -149,6 +150,7 @@ namespace ToeicGenius.Controllers
 		}
 
 		[HttpGet("versions/{parentTestId}")]
+		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> GetVersions(int parentTestId)
 		{
 			var result = await _testService.GetVersionsByParentIdAsync(parentTestId);
@@ -156,11 +158,13 @@ namespace ToeicGenius.Controllers
 				return NotFound(result.ErrorMessage);
 			return Ok(result);
 		}
+		#endregion
 
+		#region EXAMINEE
 		// Examinee 
-
 		// DO TEST
 		[HttpGet("start")]
+		[Authorize(Roles = "Examinee")]
 		public async Task<IActionResult> GetTestStart([FromQuery] TestStartRequestDto request)
 		{
 			var result = await _testService.GetTestStartAsync(request);
@@ -170,13 +174,20 @@ namespace ToeicGenius.Controllers
 		}
 
 		// Submit test
-		[HttpPost("submit")]
-		public async Task<IActionResult> SubmitTest([FromBody] SubmitLRTestRequestDto request)
+		[HttpPost("submit/L&R")]
+		[Authorize(Roles = "Examinee")]
+		public async Task<IActionResult> SubmitLRTest([FromBody] SubmitLRTestRequestDto request)
 		{
 			var result = await _testService.SubmitLRTestAsync(request);
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
 			return Ok(result.Data);
 		}
+		#endregion
+
+		//TODO: For examinee 
+		// - Test History
+		// - Test Result Detail
+		// - Test list for Examinee
 	}
 }

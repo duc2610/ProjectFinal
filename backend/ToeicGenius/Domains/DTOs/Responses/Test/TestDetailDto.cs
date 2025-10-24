@@ -24,7 +24,6 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 	{
 		public int PartId { get; set; }
 		public string PartName { get; set; }
-		public List<QuestionSnapshotDto> Questions { get; set; } = new();
-		public List<QuestionGroupSnapshotDto> QuestionGroups { get; set; } = new();
+		public List<TestQuestionViewDto> TestQuestions { get; set; } = new();
 	}
 }

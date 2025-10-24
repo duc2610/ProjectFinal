@@ -22,6 +22,7 @@ namespace ToeicGenius.Domains.Entities
 
 		[Column(TypeName = "nvarchar(5)")]
 		public string? ChosenOptionLabel { get; set; }
+		public int? SubQuestionIndex { get; set; }
 
 		// Chấm điểm (nếu có)
 		public bool? IsCorrect { get; set; }

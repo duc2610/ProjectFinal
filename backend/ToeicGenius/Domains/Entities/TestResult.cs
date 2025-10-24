@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -14,12 +15,11 @@ namespace ToeicGenius.Domains.Entities
 		[Required]
 		public int TestId { get; set; }
 		public Test Test { get; set; } = null!;
-
-		public DateTime? StartTime { get; set; }
+		
 		public int Duration { get; set; }
 		public string? Status { get; set; }
 		public decimal TotalScore { get; set; }
-		public string? TestMode { get; set; }
+		public TestType TestType { get; set; }
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 		public DateTime? UpdatedAt { get; set; }
 		public ICollection<UserAnswer> UserAnswers { get; set; } = new List<UserAnswer>();

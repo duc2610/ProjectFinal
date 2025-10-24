@@ -25,7 +25,7 @@ namespace ToeicGenius.Repositories.Implementations
             {
                 return await _context.TestResults
                     .Where(ut => ut.UserId == userId && ut.Status == "InProgress")
-                    .OrderByDescending(ut => ut.StartTime)
+                    .OrderByDescending(ut => ut.CreatedAt)
                     .FirstOrDefaultAsync();
             }
             catch (Exception ex)
@@ -63,10 +63,9 @@ namespace ToeicGenius.Repositories.Implementations
                     UserId = userId,
                     TestId = defaultTestId,
                     Status = "InProgress",
-                    StartTime = DateTime.UtcNow,
                     Duration = 0,
                     TotalScore = 0,
-                    TestMode = "Practice",
+                    TestType = Domains.Enums.TestType.Practice,
                     CreatedAt = DateTime.UtcNow
                 };
 
