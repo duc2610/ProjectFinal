@@ -1,3 +1,4 @@
+// Mock data structured by TOEIC parts. Put sample audio/images in public/audio/ and public/images/ if you want playback/display.
 export const MOCK_PARTS = [
   { id: 1, title: "Part 1: Photographs", description: "Listen & choose", questions: 3, audio: true, type: "photo" },
   { id: 2, title: "Part 2: Question-Response", description: "Short Q&A", questions: 4, audio: true, type: "audio" },
@@ -33,7 +34,7 @@ export function generateMockQuestionsFromParts(partIds) {
         questions.push({
           ...base,
           question: `Look at the picture. What is most likely true? (sample)`,
-          imageUrl: `/images/part1_${i}.jpg`, // put sample images in public/images/
+          imageUrl: `/images/part1_${i}.jpg`, // optional
           options: [
             { key: "A", text: "A. People are talking" },
             { key: "B", text: "B. A person is holding an umbrella" },
@@ -45,7 +46,7 @@ export function generateMockQuestionsFromParts(partIds) {
       } else if (p.type === "audio") {
         questions.push({
           ...base,
-          question: `Listen to the recording. Choose the best response/sample answer.`,
+          question: `Listen to the recording. Choose the best response.`,
           options: [
             { key: "A", text: "A. Option 1" },
             { key: "B", text: "B. Option 2" },
@@ -68,7 +69,7 @@ export function generateMockQuestionsFromParts(partIds) {
       } else if (p.type === "passage") {
         questions.push({
           ...base,
-          question: `Passage: (short paragraph) Q: What is the main idea? (sample)`,
+          question: `Passage Q: What is the main idea? (sample)`,
           passage:
             "This is a sample passage used for mock TOEIC Part 7. Read and answer the question.",
           options: [
@@ -79,7 +80,16 @@ export function generateMockQuestionsFromParts(partIds) {
           ],
         });
       } else {
-        questions.push({ ...base, question: "Sample question", options: [{ key: "A", text: "A" }, { key: "B", text: "B" }, { key: "C", text: "C" }, { key: "D", text: "D" }] });
+        questions.push({
+          ...base,
+          question: "Sample question",
+          options: [
+            { key: "A", text: "A" },
+            { key: "B", text: "B" },
+            { key: "C", text: "C" },
+            { key: "D", text: "D" },
+          ],
+        });
       }
     }
   }

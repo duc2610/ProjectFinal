@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Layout, Button, Modal, Typography } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
-
+import styles from "../../styles/Exam.module.css";
 import QuestionNavigator from "./QuestionNavigator";
 import QuestionCard from "./QuestionCard";
 import { generateMockQuestionsFromParts } from "./mockData";
 import { useNavigate } from "react-router-dom";
-import styles from "../../styles/Exam.module.css";
+
 const { Header, Content } = Layout;
 const { Text } = Typography;
 
@@ -16,6 +16,7 @@ export default function ExamScreen() {
   const durationMinutes = Number(sessionStorage.getItem("toeic_duration") || 60);
 
   const [questions] = useState(() => generateMockQuestionsFromParts(selectedParts));
+  // answers: for multiple choice store selected option; for writing store { text: '...' } under same q.id
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(durationMinutes * 60);
@@ -37,34 +38,62 @@ export default function ExamScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const onAnswer = (qid, option) => setAnswers((p) => ({ ...p, [qid]: option }));
+  const onAnswer = (qid, optionOrText) => setAnswers((p) => ({ ...p, [qid]: optionOrText }));
   const goToQuestionByIndex = (i) => { if (i >= 0 && i < questions.length) setCurrentIndex(i); };
 
   const handleSubmit = (auto = false) => {
     clearInterval(timerRef.current);
+    // scoring: count MCQ correct; writing/speaking are left as-is (mock)
     const total = questions.length;
+    const mcqQuestions = questions.filter((q) => q.type !== "photo" && q.type !== "audio" && q.type !== "mcq" && q.type !== "passage" ? [] : true);
+    // We'll compute correct for MCQ/audio/photo/passage types where 'correct' exists
     const correctCount = questions.reduce((acc, q) => acc + (answers[q.id] && answers[q.id] === q.correct ? 1 : 0), 0);
     const scorePercent = total ? (correctCount / total) : 0;
 
-    const listening = Math.round((scorePercent * 495) * 0.6);
-    const reading = Math.round((scorePercent * 495) * 0.4);
-    const speaking = Math.round((Math.random() * 200));
-    const writing = Math.round((Math.random() * 200));
+    // Map result roughly:
+    const listeningParts = questions.filter((q) => q.type === "audio" || q.type === "photo");
+    const readingParts = questions.filter((q) => q.type === "mcq" || q.type === "passage");
+    const listeningCorrect = listeningParts.reduce((acc, q) => acc + (answers[q.id] && answers[q.id] === q.correct ? 1 : 0), 0);
+    const readingCorrect = readingParts.reduce((acc, q) => acc + (answers[q.id] && answers[q.id] === q.correct ? 1 : 0), 0);
+
+    const listening = Math.round((listeningParts.length ? (listeningCorrect / listeningParts.length) : 0) * 495);
+    const reading = Math.round((readingParts.length ? (readingCorrect / readingParts.length) : 0) * 495);
+    const speaking = Math.round((Math.random() * 200)); // mock
+    const writing = (() => {
+      // derive writing: if user submitted text, give small boost
+      const writingQs = questions.filter((q) => q.type === "passage" && q.partId === 7 ? false : q.type === "mcq" ? false : q.partId === 7 ? false : q); // keep simple
+      // simpler: if any answer text exists for writing-type question (detected by presence of answers[qid] as object/string), give random moderate score
+      const userWritingCount = questions.filter(q => q.type === "photo" || q.type === "audio" || q.type === "passage" ? false : false).length;
+      const anyWritingText = Object.values(answers).some(v => typeof v === "string" && v.trim().length > 0);
+      return anyWritingText ? Math.round(120 + Math.random() * 80) : Math.round(Math.random() * 80);
+    })();
+
     const overall = listening + reading + Math.round((speaking + writing) / 2);
 
     const resultState = {
       totalQuestions: total,
       correctCount,
-      answers,
+answers,
       listening, reading, speaking, writing, overall,
-      detailTasks: [{ title: "Task 1: Write a Sentence Based on a Picture", score: 4.5, feedback: "Excellent accuracy and relevance" }],
+      detailTasks: [
+        {
+          title: "Task 1: Write a Sentence Based on a Picture",
+          score: answers["1-1"] && typeof answers["1-1"] === "string" ? "User text submitted" : "No submission",
+          feedback: "AI mock feedback: Good structure - improve vocabulary.",
+          userWriting: Object.keys(answers).reduce((acc,k)=> {
+            // collect writing-type answers (we define writing-type as keys where user provided text)
+            const v = answers[k];
+            if (typeof v === "string" && v.trim().length > 0) acc[k]=v;
+            return acc;
+          }, {})
+        },
+      ],
       auto,
     };
 
     setShowSubmitModal(true);
     setTimeout(() => {
       setShowSubmitModal(false);
-      // send result as route state
       navigate("/result", { state: resultState });
     }, 900);
   };
@@ -73,7 +102,6 @@ export default function ExamScreen() {
 
   const answeredCount = Object.keys(answers).length;
   const totalCount = questions.length;
-  const progressPercent = totalCount ? Math.round((answeredCount / totalCount) * 100) : 0;
 
   return (
     <Layout className={styles.examLayout}>
@@ -105,7 +133,6 @@ export default function ExamScreen() {
               onAnswer={onAnswer}
               goToQuestionByIndex={goToQuestionByIndex}
               handleSubmit={() => handleSubmit(false)}
-              progressPercent={progressPercent}
             />
           </div>
         </div>

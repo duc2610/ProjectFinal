@@ -8,7 +8,8 @@ import {
   EditOutlined,
   CheckCircleTwoTone,
 } from "@ant-design/icons";
-import styles from "../../styles/Exam.module.css";
+import styles from "../styles/Result.module.css";
+
 const { Title, Text } = Typography;
 
 export default function ResultPage() {
@@ -21,13 +22,13 @@ export default function ResultPage() {
     speaking: 160,
     writing: 170,
     detailTasks: [{ title: "Task 1: Write a Sentence Based on a Picture", score: 4.5, feedback: "Excellent accuracy and relevance" }],
+    answers: {}
   };
 
-  const [selectedSection, setSelectedSection] = useState("writing");
+  const [selectedSection, setSelectedSection] = useState("overall");
   const [displayScore, setDisplayScore] = useState(0);
 
   useEffect(() => {
-    // simple count-up for writing or overall depending selection
     const target = selectedSection === "overall" ? mockResult.overall : (mockResult[selectedSection] || 0);
     let curr = 0;
     const step = Math.max(1, Math.floor(target / 40));
@@ -89,7 +90,7 @@ export default function ResultPage() {
         <div style={{ flex: 1, background: "#f0f2f5" }}>
           <div style={{ background: "#003a8c", padding: "16px 24px", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Title level={3} style={{ color: "#fff", margin: 0 }}>TOEIC Test Results</Title>
-            <Button onClick={() => { sessionStorage.removeItem("toeic_selectedParts"); sessionStorage.removeItem("toeic_duration"); navigate("/toeic-exam", { replace: true }); }} type="primary" ghost>Retake Test</Button>
+            <Button onClick={() => { sessionStorage.removeItem("toeic_selectedParts"); sessionStorage.removeItem("toeic_duration"); navigate("/", { replace: true }); }} type="primary" ghost>Retake Test</Button>
           </div>
 
           <div style={{ padding: "40px 60px" }}>
@@ -111,6 +112,21 @@ export default function ResultPage() {
                   <Text strong style={{ color: "#fa541c", fontSize: 16 }}>{t.score}</Text><br/>
                   <Text>{t.feedback}</Text>
                   <div style={{ marginTop: 8 }}><a href="#">View AI Analysis</a></div>
+
+                  {/* Show user's writing submissions if any */}
+                  <div style={{ marginTop: 12 }}>
+                    <Title level={5}>Your submissions</Title>
+                    {mockResult.detailTasks[0].userWriting && Object.keys(mockResult.detailTasks[0].userWriting).length ? (
+                      Object.entries(mockResult.detailTasks[0].userWriting).map(([qid, text]) => (
+                        <Card key={qid} size="small" style={{ marginTop: 8 }}>
+                          <Text type="secondary">Question {qid}</Text>
+                          <div style={{ marginTop: 6 }}>{text}</div>
+                        </Card>
+                      ))
+                    ) : (
+                      <Text type="secondary">No writing submissions found.</Text>
+                    )}
+                  </div>
                 </Card>
               ))}
 

@@ -1,12 +1,23 @@
-import React, { useRef, useState } from "react";
-import { Card, Typography, Radio, Button } from "antd";
+import React, { useRef, useState, useEffect } from "react";
+import { Card, Typography, Radio, Button, Input } from "antd";
 import styles from "../../styles/Exam.module.css";
 
 const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 export default function QuestionCard({ question, currentIndex, totalCount, answers, onAnswer, goToQuestionByIndex, handleSubmit }) {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [writeText, setWriteText] = useState("");
+
+  useEffect(() => {
+    // if there is a saved answer (writing) load it
+    if (question && typeof answers[question.id] === "string") {
+      setWriteText(answers[question.id]);
+    } else {
+      setWriteText("");
+    }
+  }, [question, answers]);
 
   const toggleAudio = () => {
     if (!audioRef.current) return;
@@ -14,6 +25,10 @@ export default function QuestionCard({ question, currentIndex, totalCount, answe
   };
 
   if (!question) return <Card>No questions</Card>;
+
+  const handleTextSave = () => {
+    onAnswer(question.id, writeText || "");
+  };
 
   return (
     <Card>
@@ -47,14 +62,38 @@ export default function QuestionCard({ question, currentIndex, totalCount, answe
         </div>
 
         <div className={styles.aBox}>
-          <Text strong>Choose the correct answer</Text>
-          <div className={styles.optionsBox} style={{ marginTop: 8 }}>
-            <Radio.Group value={answers[question.id]} onChange={(e) => onAnswer(question.id, e.target.value)}>
-              {question.options.map((o) => (
-                <div key={o.key} className={styles.optionRow}><Radio value={o.key}>{o.text}</Radio></div>
-              ))}
-            </Radio.Group>
-          </div>
+          <Text strong>Answer</Text>
+
+          {/* For writing type allow textarea */}
+          {question.type === "photo" || question.type === "audio" || question.type === "mcq" || question.type === "passage" ? (
+            <div className={styles.optionsBox} style={{ marginTop: 8 }}>
+              <Radio.Group value={answers[question.id]} onChange={(e) => onAnswer(question.id, e.target.value)}>
+                {question.options.map((o) => (
+                  <div key={o.key} className={styles.optionRow}><Radio value={o.key}>{o.text}</Radio></div>
+                ))}
+              </Radio.Group>
+            </div>
+          ) : null}
+
+          {/* Provide a writing box for explicit Writing tasks:
+              We'll treat Part 7 (passage) as reading only; for Writing we will define a question type 'writing' if needed.
+              For convenience, allow a TextArea whenever question has property allowWrite === true (we'll mark some in mock if needed) */}
+          {question.allowWrite && (
+            <div style={{ marginTop: 12 }}>
+              <TextArea rows={8} value={writeText} onChange={(e) => setWriteText(e.target.value)} placeholder="Write your response here..." />
+              <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+                <Button onClick={handleTextSave}>Save</Button>
+                <Button type="primary" onClick={() => { handleTextSave(); handleSubmit(); }}>Save & Submit</Button>
+              </div>
+            </div>
+          )}
+
+          {/* As enhancement: allow writing for Part 1 question if user clicks 'Write answer' */}
+          {question.type === "photo" && (
+            <div style={{ marginTop: 12 }}>
+              <Button onClick={() => onAnswer(question.id, answers[question.id] || "")}>Mark (keep choice)</Button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -17,7 +17,6 @@ export default function ExamSelection() {
   const selectAll = () => setSelectedParts(MOCK_PARTS.map((p) => p.id));
 
   const startExam = () => {
-    // pass selection via sessionStorage (simple) so ExamScreen can read it
     sessionStorage.setItem("toeic_selectedParts", JSON.stringify(selectedParts));
     sessionStorage.setItem("toeic_duration", String(durationMinutes));
     navigate("/exam");
