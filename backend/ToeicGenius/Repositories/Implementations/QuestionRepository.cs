@@ -224,6 +224,29 @@ namespace ToeicGenius.Repositories.Implementations
                 .OrderBy(q => q.QuestionId)
                 .ToListAsync();
         }
+
+		public async Task<List<Question>> GetRandomQuestionsAsync(int partId, int? questionTypeId, int count)
+		{
+			var query = _context.Questions
+				.Include(q => q.Part)
+				.Include(q => q.QuestionType)
+				.Include(q => q.Options)
+				.Where(q => q.PartId == partId
+					&& q.Status == CommonStatus.Active
+					&& q.QuestionGroupId == null);
+
+			// Filter by QuestionType if specified
+			if (questionTypeId.HasValue)
+			{
+				query = query.Where(q => q.QuestionTypeId == questionTypeId.Value);
+			}
+
+			// Random selection using OrderBy with Guid.NewGuid()
+			return await query
+				.OrderBy(q => Guid.NewGuid())
+				.Take(count)
+				.ToListAsync();
+		}
     }
 }
 

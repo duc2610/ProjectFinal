@@ -133,6 +133,29 @@ namespace ToeicGenius.Repositories.Implementations
 				})
 				.ToListAsync();
 		}
+
+		public async Task<List<QuestionGroup>> GetRandomQuestionGroupsAsync(int partId, int? questionTypeId, int count)
+		{
+			var query = _context.QuestionGroups
+				.Include(qg => qg.Questions)
+					.ThenInclude(q => q.Options)
+				.Include(qg => qg.Part)
+				.Where(qg => qg.PartId == partId && qg.Status == CommonStatus.Active);
+
+			// Filter by QuestionType if specified
+			// Note: QuestionType is at Question level, not QuestionGroup level
+			// So we check if the group contains questions of the specified type
+			if (questionTypeId.HasValue)
+			{
+				query = query.Where(qg => qg.Questions.Any(q => q.QuestionTypeId == questionTypeId.Value));
+			}
+
+			// Random selection using OrderBy with Guid.NewGuid()
+			return await query
+				.OrderBy(qg => Guid.NewGuid())
+				.Take(count)
+				.ToListAsync();
+		}
 	}
 }
 
