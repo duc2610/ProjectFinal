@@ -8,7 +8,7 @@ import {
   EditOutlined,
   CheckCircleTwoTone,
 } from "@ant-design/icons";
-import styles from "../styles/Result.module.css";
+import styles from "../../styles/Result.module.css";
 
 const { Title, Text } = Typography;
 
@@ -49,8 +49,8 @@ export default function ResultPage() {
   ];
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#1f1f1f", display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: 24 }}>
-      <div style={{ width: "92%", maxWidth: 1100, background: "#fff", borderRadius: 8, overflow: "hidden", display: "flex" }}>
+    <div style={{ minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: 24 }}>
+      <div style={{ width: "100%", background: "#fff", borderRadius: 8, overflow: "hidden", display: "flex" }}>
         <div style={{ width: 280, background: "#f5f5f5", padding: 20, borderRight: "1px solid #ddd" }}>
           <Title level={4} style={{ marginBottom: 12 }}>Test Sections</Title>
           {sections.map((s) => (
@@ -90,7 +90,7 @@ export default function ResultPage() {
         <div style={{ flex: 1, background: "#f0f2f5" }}>
           <div style={{ background: "#003a8c", padding: "16px 24px", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Title level={3} style={{ color: "#fff", margin: 0 }}>TOEIC Test Results</Title>
-            <Button onClick={() => { sessionStorage.removeItem("toeic_selectedParts"); sessionStorage.removeItem("toeic_duration"); navigate("/", { replace: true }); }} type="primary" ghost>Retake Test</Button>
+            <Button onClick={() => { sessionStorage.removeItem("toeic_selectedParts"); sessionStorage.removeItem("toeic_duration"); navigate("/toeic-exam", { replace: true }); }} type="primary" ghost>Retake Test</Button>
           </div>
 
           <div style={{ padding: "40px 60px" }}>
