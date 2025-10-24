@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import ExamSelection from './ExamSelection'
-import ExamScreen from './ExamScreen'
+import ExamSelection from '../TOEICExam/ExamSelection'
+import ExamScreen from '../TOEICExam/ExamScreen'
 import { useNavigate } from 'react-router-dom'
 
 

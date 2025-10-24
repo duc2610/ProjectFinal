@@ -1,6 +1,6 @@
 import React from 'react'
 import { Badge } from 'antd'
-import styles from './Exam.module.css'
+import styles from '../../styles/Exam.module.css'
 
 
 export default function QuestionNavigator({ filteredQuestions, currentIndex, answers, goToQuestionByIndex }){

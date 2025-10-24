@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Layout, Button, Modal, Typography } from 'antd'
 import { MenuOutlined } from '@ant-design/icons'
-import styles from './Exam.module.css'
+import styles from '../../styles/Exam.module.css'
 import QuestionNavigator from './QuestionNavigator'
-import QuestionCard from './QuestionCard'
+import QuestionCard from '../TOEICExam/QuestionCard'
 import { generateMockQuestionsFromParts } from './mockData'
 
 

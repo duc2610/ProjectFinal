@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react'
 import { Card, Typography, Radio, Button } from 'antd'
-import styles from './Exam.module.css'
+import styles from '../../styles/Exam.module.css'
 
 
 const { Title, Text } = Typography

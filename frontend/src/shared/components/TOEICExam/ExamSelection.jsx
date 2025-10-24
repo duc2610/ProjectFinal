@@ -1,6 +1,6 @@
 import React from 'react'
 import { Card, Checkbox, Button, Select, Typography } from 'antd'
-import styles from './Exam.module.css'
+import styles from '../../styles/Exam.module.css'
 import { MOCK_PARTS } from './mockData'
 
 

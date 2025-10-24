@@ -1,0 +1,73 @@
+.resultPage {
+    max-width: 1100px;
+    margin: 24px auto;
+    background: transparent
+}
+
+.topBar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: #0e4660;
+    border-radius: 6px
+}
+
+.resultBody {
+    display: flex;
+    margin-top: 12px
+}
+
+.leftCol {
+    width: 280;
+    margin-right: 20px
+}
+
+.mainCol {
+    flex: 1;
+    padding: 20px;
+    background: #f2f2f2;
+    border-radius: 6px
+}
+
+.scoreBox {
+    background: #fff;
+    padding: 24px;
+    border-radius: 8px;
+    text-align: center
+}
+
+.scoreNumber {
+    font-size: 48px;
+    color: #ff7f50;
+    font-weight: 700
+}
+
+.scoreMeta {
+    color: #666;
+    margin-top: 8px
+}
+
+.aiBadge {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 6px 10px;
+    background: #fff3e6;
+    border-radius: 20px;
+    color: #d97706
+}
+
+.taskRow {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #f1f1f1
+}
+
+.taskScore {
+    background: #fff6f0;
+    border-radius: 6px;
+    padding: 10px;
+    color: #d97706;
+    font-weight: 700
+}
