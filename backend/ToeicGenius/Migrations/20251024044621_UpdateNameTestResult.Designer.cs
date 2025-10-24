@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ToeicGenius.Repositories.Persistence;
 
@@ -11,9 +12,11 @@ using ToeicGenius.Repositories.Persistence;
 namespace ToeicGenius.Migrations
 {
     [DbContext(typeof(ToeicGeniusDbContext))]
-    partial class ToeicGeniusDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251024044621_UpdateNameTestResult")]
+    partial class UpdateNameTestResult
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -219,7 +222,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 1,
                             Content = "Paris",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1426),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2351),
                             IsCorrect = true,
                             Label = "A",
                             QuestionId = 1,
@@ -229,7 +232,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 2,
                             Content = "London",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1430),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2353),
                             IsCorrect = false,
                             Label = "B",
                             QuestionId = 1,
@@ -239,7 +242,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 3,
                             Content = "Berlin",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1431),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2354),
                             IsCorrect = false,
                             Label = "C",
                             QuestionId = 1,
@@ -249,7 +252,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 4,
                             Content = "Madrid",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1433),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2355),
                             IsCorrect = false,
                             Label = "D",
                             QuestionId = 1,
@@ -259,7 +262,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 5,
                             Content = "At home",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1434),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2357),
                             IsCorrect = true,
                             Label = "A",
                             QuestionId = 2,
@@ -269,7 +272,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 6,
                             Content = "At work",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1436),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2358),
                             IsCorrect = false,
                             Label = "B",
                             QuestionId = 2,
@@ -279,7 +282,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 7,
                             Content = "At school",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1437),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2360),
                             IsCorrect = false,
                             Label = "C",
                             QuestionId = 2,
@@ -289,7 +292,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 8,
                             Content = "8 AM",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1438),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2361),
                             IsCorrect = true,
                             Label = "A",
                             QuestionId = 3,
@@ -299,7 +302,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 9,
                             Content = "9 AM",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1439),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2362),
                             IsCorrect = false,
                             Label = "B",
                             QuestionId = 3,
@@ -309,7 +312,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 10,
                             Content = "10 AM",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1441),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2364),
                             IsCorrect = false,
                             Label = "C",
                             QuestionId = 3,
@@ -319,7 +322,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 11,
                             Content = "Red",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1442),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2365),
                             IsCorrect = true,
                             Label = "A",
                             QuestionId = 4,
@@ -329,7 +332,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 12,
                             Content = "Green",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1443),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2366),
                             IsCorrect = false,
                             Label = "B",
                             QuestionId = 4,
@@ -339,7 +342,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 13,
                             Content = "Blue",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1444),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2367),
                             IsCorrect = false,
                             Label = "C",
                             QuestionId = 4,
@@ -349,7 +352,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 14,
                             Content = "Yellow",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1445),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2368),
                             IsCorrect = false,
                             Label = "D",
                             QuestionId = 4,
@@ -359,7 +362,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 15,
                             Content = "She goes to school.",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1446),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2369),
                             IsCorrect = true,
                             Label = "A",
                             QuestionId = 5,
@@ -369,7 +372,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 16,
                             Content = "She go to school.",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1447),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2370),
                             IsCorrect = false,
                             Label = "B",
                             QuestionId = 5,
@@ -379,7 +382,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 17,
                             Content = "She going to school.",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1448),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2371),
                             IsCorrect = false,
                             Label = "C",
                             QuestionId = 5,
@@ -389,7 +392,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 18,
                             Content = "She gone to school.",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1449),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2372),
                             IsCorrect = false,
                             Label = "D",
                             QuestionId = 5,
@@ -399,7 +402,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 19,
                             Content = "Option A",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1450),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2373),
                             IsCorrect = true,
                             Label = "A",
                             QuestionId = 11,
@@ -409,7 +412,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 20,
                             Content = "Option B",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1452),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2374),
                             IsCorrect = false,
                             Label = "B",
                             QuestionId = 11,
@@ -419,7 +422,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 21,
                             Content = "Option C",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1453),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2375),
                             IsCorrect = false,
                             Label = "C",
                             QuestionId = 11,
@@ -429,7 +432,7 @@ namespace ToeicGenius.Migrations
                         {
                             OptionId = 22,
                             Content = "Option D",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1454),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2376),
                             IsCorrect = false,
                             Label = "D",
                             QuestionId = 11,
@@ -637,7 +640,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 1,
                             Content = "What is the capital of France?",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1294),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2145),
                             PartId = 1,
                             QuestionTypeId = 1,
                             Status = 1
@@ -646,7 +649,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 2,
                             Content = "Where does he live?",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1297),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2158),
                             PartId = 2,
                             QuestionTypeId = 1,
                             Status = 1
@@ -655,7 +658,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 3,
                             Content = "What time does she start work?",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1322),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2160),
                             PartId = 2,
                             QuestionTypeId = 2,
                             Status = 1
@@ -664,7 +667,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 4,
                             Content = "Which color do you like?",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1324),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2162),
                             PartId = 1,
                             QuestionTypeId = 2,
                             Status = 1
@@ -673,7 +676,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 5,
                             Content = "Select the correct sentence.",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1325),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2163),
                             PartId = 5,
                             QuestionTypeId = 1,
                             Status = 1
@@ -682,7 +685,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 6,
                             Content = "Describe your favorite city.",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1326),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2164),
                             PartId = 11,
                             QuestionTypeId = 1,
                             Status = 1
@@ -691,7 +694,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 7,
                             Content = "Write a short essay about your hometown.",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1328),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2165),
                             PartId = 9,
                             QuestionTypeId = 1,
                             Status = 1
@@ -700,7 +703,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 11,
                             Content = "Group 1 - Q1",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1359),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2197),
                             PartId = 3,
                             QuestionGroupId = 1,
                             QuestionTypeId = 1,
@@ -710,7 +713,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 12,
                             Content = "Group 1 - Q2",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1361),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2204),
                             PartId = 3,
                             QuestionGroupId = 1,
                             QuestionTypeId = 1,
@@ -720,7 +723,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 13,
                             Content = "Group 1 - Q3",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1362),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2206),
                             PartId = 3,
                             QuestionGroupId = 1,
                             QuestionTypeId = 1,
@@ -730,7 +733,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 14,
                             Content = "Group 2 - Q1",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1364),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2208),
                             PartId = 4,
                             QuestionGroupId = 2,
                             QuestionTypeId = 2,
@@ -740,7 +743,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 15,
                             Content = "Group 2 - Q2",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1365),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2269),
                             PartId = 4,
                             QuestionGroupId = 2,
                             QuestionTypeId = 2,
@@ -750,7 +753,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 16,
                             Content = "Group 2 - Q3",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1367),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2270),
                             PartId = 4,
                             QuestionGroupId = 2,
                             QuestionTypeId = 2,
@@ -760,7 +763,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 17,
                             Content = "Group 3 - Q1",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1368),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2272),
                             PartId = 6,
                             QuestionGroupId = 3,
                             QuestionTypeId = 1,
@@ -770,7 +773,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 18,
                             Content = "Group 3 - Q2",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1370),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2273),
                             PartId = 6,
                             QuestionGroupId = 3,
                             QuestionTypeId = 1,
@@ -780,7 +783,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 19,
                             Content = "Group 3 - Q3",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1371),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2274),
                             PartId = 6,
                             QuestionGroupId = 3,
                             QuestionTypeId = 1,
@@ -790,7 +793,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 20,
                             Content = "Group 4 - Q1",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1372),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2276),
                             PartId = 7,
                             QuestionGroupId = 4,
                             QuestionTypeId = 2,
@@ -800,7 +803,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 21,
                             Content = "Group 4 - Q2",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1384),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2290),
                             PartId = 7,
                             QuestionGroupId = 4,
                             QuestionTypeId = 2,
@@ -810,7 +813,7 @@ namespace ToeicGenius.Migrations
                         {
                             QuestionId = 22,
                             Content = "Group 4 - Q3",
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1385),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2291),
                             PartId = 7,
                             QuestionGroupId = 4,
                             QuestionTypeId = 2,
@@ -857,7 +860,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             QuestionGroupId = 1,
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1251),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2088),
                             PartId = 3,
                             PassageContent = "Passage for Part 3 - Short Conversation",
                             Status = 1
@@ -865,7 +868,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             QuestionGroupId = 2,
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1254),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2093),
                             PartId = 4,
                             PassageContent = "Passage for Part 4 - Short Talk",
                             Status = 1
@@ -873,7 +876,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             QuestionGroupId = 3,
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1255),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2094),
                             PartId = 6,
                             PassageContent = "Passage for Part 6 - Text Completion",
                             Status = 1
@@ -881,7 +884,7 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             QuestionGroupId = 4,
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 77, DateTimeKind.Utc).AddTicks(1257),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 17, 985, DateTimeKind.Utc).AddTicks(2096),
                             PartId = 7,
                             PassageContent = "Passage for Part 7 - Reading Comprehension",
                             Status = 1
@@ -1377,11 +1380,11 @@ namespace ToeicGenius.Migrations
 
             modelBuilder.Entity("ToeicGenius.Domains.Entities.TestResult", b =>
                 {
-                    b.Property<int>("TestResultId")
+                    b.Property<int>("UserTestId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TestResultId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserTestId"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -1411,7 +1414,7 @@ namespace ToeicGenius.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("TestResultId");
+                    b.HasKey("UserTestId");
 
                     b.HasIndex("TestId");
 
@@ -1463,28 +1466,28 @@ namespace ToeicGenius.Migrations
                         new
                         {
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 249, DateTimeKind.Utc).AddTicks(3888),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 18, 157, DateTimeKind.Utc).AddTicks(1109),
                             Email = "admin@toeicgenius.com",
                             FullName = "System Admin",
-                            PasswordHash = "$2a$11$8Q77WTOweXBaaXsMO8Jh9eJsBLoAgMGRMjVyBnZxu/w4U9Hkkvh8C",
+                            PasswordHash = "$2a$11$2rZyyLem8ZcZTrBzQGKVNeh0K.u4BinvCCooydJtX1SSb63h7ma26",
                             Status = 1
                         },
                         new
                         {
                             Id = new Guid("22222222-2222-2222-2222-222222222222"),
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 421, DateTimeKind.Utc).AddTicks(346),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 18, 326, DateTimeKind.Utc).AddTicks(7584),
                             Email = "creator@toeicgenius.com",
                             FullName = "Test Creator",
-                            PasswordHash = "$2a$11$yaQMZLq9aBkOydyL5NY5WuwE8/KDOUYSaV9QmZZxbuPj7ePM3Wefe",
+                            PasswordHash = "$2a$11$od8rG5EINcYfYX4TSaBHO.HAnosRJQhCd0IjnUJsgtVCkko46HbYq",
                             Status = 1
                         },
                         new
                         {
                             Id = new Guid("33333333-3333-3333-3333-333333333333"),
-                            CreatedAt = new DateTime(2025, 10, 24, 8, 44, 7, 590, DateTimeKind.Utc).AddTicks(5199),
+                            CreatedAt = new DateTime(2025, 10, 24, 4, 46, 18, 494, DateTimeKind.Utc).AddTicks(7390),
                             Email = "examinee@toeicgenius.com",
                             FullName = "Regular Examinee",
-                            PasswordHash = "$2a$11$loXiJm39QyQ8yAsUbGHcb.amEDtluFYKm.Pp7KYw6zkkRC/ZK2dIe",
+                            PasswordHash = "$2a$11$G4LjlHtQanIRndqPzpTh5OAGWeUiY4foqTC/sfAckHXmaykSVcCzm",
                             Status = 1
                         });
                 });
@@ -1509,22 +1512,22 @@ namespace ToeicGenius.Migrations
                     b.Property<int?>("OptionId")
                         .HasColumnType("int");
 
-                    b.Property<int>("TestQuestionId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TestResultId")
+                    b.Property<int>("QuestionId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("UserTestId")
+                        .HasColumnType("int");
+
                     b.HasKey("UserAnswerId");
 
                     b.HasIndex("OptionId");
 
-                    b.HasIndex("TestQuestionId");
+                    b.HasIndex("QuestionId");
 
-                    b.HasIndex("TestResultId");
+                    b.HasIndex("UserTestId");
 
                     b.ToTable("UserAnswers");
                 });
@@ -1577,12 +1580,12 @@ namespace ToeicGenius.Migrations
                     b.Property<string>("Skill")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("TestResultId")
+                    b.Property<int>("UserTestId")
                         .HasColumnType("int");
 
                     b.HasKey("UserTestResultId");
 
-                    b.HasIndex("TestResultId");
+                    b.HasIndex("UserTestId");
 
                     b.ToTable("UserTestSkillScores");
                 });
@@ -1799,34 +1802,34 @@ namespace ToeicGenius.Migrations
                         .WithMany()
                         .HasForeignKey("OptionId");
 
-                    b.HasOne("ToeicGenius.Domains.Entities.TestQuestion", "TestQuestion")
+                    b.HasOne("ToeicGenius.Domains.Entities.Question", "Question")
                         .WithMany()
-                        .HasForeignKey("TestQuestionId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ToeicGenius.Domains.Entities.TestResult", "TestResult")
+                    b.HasOne("ToeicGenius.Domains.Entities.TestResult", "UserTest")
                         .WithMany("UserAnswers")
-                        .HasForeignKey("TestResultId")
+                        .HasForeignKey("UserTestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Option");
 
-                    b.Navigation("TestQuestion");
+                    b.Navigation("Question");
 
-                    b.Navigation("TestResult");
+                    b.Navigation("UserTest");
                 });
 
             modelBuilder.Entity("ToeicGenius.Domains.Entities.UserTestSkillScore", b =>
                 {
-                    b.HasOne("ToeicGenius.Domains.Entities.TestResult", "TestResult")
+                    b.HasOne("ToeicGenius.Domains.Entities.TestResult", "UserTest")
                         .WithMany("SkillScores")
-                        .HasForeignKey("TestResultId")
+                        .HasForeignKey("UserTestId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("TestResult");
+                    b.Navigation("UserTest");
                 });
 
             modelBuilder.Entity("UserRoles", b =>

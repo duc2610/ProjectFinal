@@ -41,6 +41,20 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data!));
 		}
 
+		// Create from bank with random selection ( for practice test - Speaking/Writing)
+		[HttpPost("from-bank/random")]
+		//[Authorize(Roles = "TestCreator")]
+		public async Task<IActionResult> CreateTestPracticeRandom([FromBody] CreateTestFromBankRandomDto request)
+		{
+			var result = await _testService.CreateFromBankRandomAsync(request);
+			if (!result.IsSuccess)
+			{
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
+			}
+
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data!));
+		}
+
 		// Create test manual (for simulator test)
 		[HttpPost("manual")]
 		//[Authorize(Roles = "TestCreator")]

@@ -11,6 +11,7 @@ using ToeicGenius.Domains.DTOs.Requests.Test;
 using ToeicGenius.Domains.DTOs.Responses.Test;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
+using ToeicGenius.Extensions;
 using Newtonsoft.Json;
 using Humanizer;
 using static System.Net.Mime.MediaTypeNames;
@@ -64,11 +65,11 @@ namespace ToeicGenius.Services.Implementations
 				foreach (var q in singleQuestions)
 				{
 					quantityQuestion++;
-					var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
-					{
-						ReferenceHandler = ReferenceHandler.IgnoreCycles
-					});
-					await _uow.TestQuestions.AddAsync(new TestQuestion
+                    var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
+                    {
+                        ReferenceHandler = ReferenceHandler.IgnoreCycles
+                    });
+                    await _uow.TestQuestions.AddAsync(new TestQuestion
 					{
 						Test = test,
 						IsQuestionGroup = false,
@@ -83,12 +84,12 @@ namespace ToeicGenius.Services.Implementations
 				foreach (var q in groupQuestions)
 				{
 					quantityQuestion += q.QuestionSnapshots.Count();
-					var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
-					{
-						ReferenceHandler = ReferenceHandler.IgnoreCycles
-					});
+                    var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
+                    {
+                        ReferenceHandler = ReferenceHandler.IgnoreCycles
+                    });
 
-					await _uow.TestQuestions.AddAsync(new TestQuestion
+                    await _uow.TestQuestions.AddAsync(new TestQuestion
 					{
 						Test = test,
 						IsQuestionGroup = true,
@@ -105,6 +106,121 @@ namespace ToeicGenius.Services.Implementations
 				await _uow.SaveChangesAsync();
 				await _uow.CommitTransactionAsync();
 				return Result<string>.Success($"Created successfully (testId: {test.TestId})");
+			}
+			catch (Exception ex)
+			{
+				await _uow.RollbackTransactionAsync();
+				return Result<string>.Failure(ex.ToString());
+			}
+		}
+
+		// Create from bank with random selection ( for practice test )
+		public async Task<Result<string>> CreateFromBankRandomAsync(CreateTestFromBankRandomDto dto)
+		{
+			await _uow.BeginTransactionAsync();
+			try
+			{
+				if (dto.QuestionRanges == null || !dto.QuestionRanges.Any())
+				{
+					return Result<string>.Failure("Must provide at least one question range");
+				}
+
+				var test = new Test
+				{
+					Title = dto.Title,
+					Description = dto.Description,
+					Duration = dto.Duration,
+					TestSkill = dto.TestSkill,
+					Version = NumberConstants.FirstVersion,
+					TestType = TestType.Practice,
+				};
+
+				var quantityQuestion = 0;
+				var order = NumberConstants.FirstOrderNumber;
+
+				foreach (var range in dto.QuestionRanges)
+				{
+					// Random single questions
+					if (range.SingleQuestionCount.HasValue && range.SingleQuestionCount.Value > 0)
+					{
+						var randomQuestions = await _uow.Questions.GetRandomQuestionsAsync(
+							range.PartId,
+							range.QuestionTypeId,
+							range.SingleQuestionCount.Value
+						);
+
+						if (randomQuestions.Count < range.SingleQuestionCount.Value)
+						{
+							await _uow.RollbackTransactionAsync();
+							return Result<string>.Failure(
+								$"Not enough questions in bank for PartId={range.PartId}. " +
+								$"Requested: {range.SingleQuestionCount.Value}, Available: {randomQuestions.Count}"
+							);
+						}
+
+						foreach (var q in randomQuestions)
+						{
+							quantityQuestion++;
+							var snapshotDto = q.ToSnapshotDto();
+							var snapshot = System.Text.Json.JsonSerializer.Serialize(snapshotDto);
+
+							await _uow.TestQuestions.AddAsync(new TestQuestion
+							{
+								Test = test,
+								IsQuestionGroup = false,
+								PartId = q.PartId,
+								SnapshotJson = snapshot,
+								OrderInTest = order++,
+								SourceType = QuestionSourceType.FromBank,
+								CreatedAt = DateTime.UtcNow
+							});
+						}
+					}
+
+					// Random question groups
+					if (range.GroupQuestionCount.HasValue && range.GroupQuestionCount.Value > 0)
+					{
+						var randomGroups = await _uow.QuestionGroups.GetRandomQuestionGroupsAsync(
+							range.PartId,
+							range.QuestionTypeId,
+							range.GroupQuestionCount.Value
+						);
+
+						if (randomGroups.Count < range.GroupQuestionCount.Value)
+						{
+							await _uow.RollbackTransactionAsync();
+							return Result<string>.Failure(
+								$"Not enough question groups in bank for PartId={range.PartId}. " +
+								$"Requested: {range.GroupQuestionCount.Value}, Available: {randomGroups.Count}"
+							);
+						}
+
+						foreach (var g in randomGroups)
+						{
+							quantityQuestion += g.Questions.Count();
+							var snapshotDto = g.ToSnapshotDto();
+							var snapshot = System.Text.Json.JsonSerializer.Serialize(snapshotDto);
+
+							await _uow.TestQuestions.AddAsync(new TestQuestion
+							{
+								Test = test,
+								IsQuestionGroup = true,
+								PartId = g.PartId,
+								SnapshotJson = snapshot,
+								OrderInTest = order++,
+								SourceType = QuestionSourceType.FromBank,
+								CreatedAt = DateTime.UtcNow,
+							});
+						}
+					}
+				}
+
+				test.QuantityQuestion = quantityQuestion;
+				await _uow.Tests.AddAsync(test);
+
+				await _uow.SaveChangesAsync();
+				await _uow.CommitTransactionAsync();
+				return Result<string>.Success($"Created successfully (testId: {test.TestId}) with {quantityQuestion} questions randomly selected from bank");
 			}
 			catch (Exception ex)
 			{

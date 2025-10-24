@@ -8,12 +8,12 @@ namespace ToeicGenius.Repositories.Implementations
     public class UserAnswerRepository : BaseRepository<UserAnswer, int>, IUserAnswerRepository
     {
         public UserAnswerRepository(ToeicGeniusDbContext context) : base(context) { }
-        public async Task<UserAnswer?> GetByUserTestAndQuestionAsync(int userTestId, int questionId)
+        public async Task<UserAnswer?> GetByTestResultAndTestQuestionAsync(int testResultId, int testQuestionId)
         {
             return await _context.UserAnswers
-                .Include(ua => ua.Question)
-                .Include(ua => ua.UserTest)
-                .Where(ua => ua.UserTestId == userTestId && ua.QuestionId == questionId)
+                .Include(ua => ua.TestQuestion)
+                .Include(ua => ua.TestResult)
+                .Where(ua => ua.TestResultId == testResultId && ua.TestQuestionId == testQuestionId)
                 .FirstOrDefaultAsync();
         }
     }

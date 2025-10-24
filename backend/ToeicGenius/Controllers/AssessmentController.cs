@@ -18,16 +18,13 @@ namespace ToeicGenius.Controllers
     public class AssessmentController : ControllerBase
     {
         private readonly IAssessmentService _assessmentService;
-        private readonly IQuestionService _questionService;
         private readonly ILogger<AssessmentController> _logger;
 
         public AssessmentController(
             IAssessmentService assessmentService,
-            IQuestionService questionService,
             ILogger<AssessmentController> logger)
         {
             _assessmentService = assessmentService;
-            _questionService = questionService;
             _logger = logger;
         }
 
@@ -40,14 +37,6 @@ namespace ToeicGenius.Controllers
             try
             {
                 var userId = GetUserId();
-
-                var question = await _questionService.GetQuestionResponseByIdAsync(request.QuestionId);
-                if (question == null)
-                    return NotFound(ApiResponse<string>.NotFoundResponse("Question not found"));
-
-                if (question.PartId != PartIdConstants.W_PART_1)
-                    return BadRequest(ApiResponse<string>.ErrorResponse("This question is not for Writing Part 1"));
-
                 var result = await _assessmentService.AssessWritingSentenceAsync(request, userId);
                 return Ok(ApiResponse<AIFeedbackResponseDto>.SuccessResponse(result));
             }
@@ -65,14 +54,6 @@ namespace ToeicGenius.Controllers
             try
             {
                 var userId = GetUserId();
-
-                var question = await _questionService.GetQuestionResponseByIdAsync(request.QuestionId);
-                if (question == null)
-                    return NotFound(ApiResponse<string>.NotFoundResponse("Question not found"));
-
-                if (question.PartId != PartIdConstants.W_PART_2)
-                    return BadRequest(ApiResponse<string>.ErrorResponse("This question is not for Writing Part 2"));
-
                 var result = await _assessmentService.AssessWritingEmailAsync(request, userId);
                 return Ok(ApiResponse<AIFeedbackResponseDto>.SuccessResponse(result));
             }
@@ -90,14 +71,6 @@ namespace ToeicGenius.Controllers
             try
             {
                 var userId = GetUserId();
-
-                var question = await _questionService.GetQuestionResponseByIdAsync(request.QuestionId);
-                if (question == null)
-                    return NotFound(ApiResponse<string>.NotFoundResponse("Question not found"));
-
-                if (question.PartId != PartIdConstants.W_PART_3)
-                    return BadRequest(ApiResponse<string>.ErrorResponse("This question is not for Writing Part 3"));
-
                 var result = await _assessmentService.AssessWritingEssayAsync(request, userId);
                 return Ok(ApiResponse<AIFeedbackResponseDto>.SuccessResponse(result));
             }
@@ -120,14 +93,6 @@ namespace ToeicGenius.Controllers
             try
             {
                 var userId = GetUserId();
-
-                var question = await _questionService.GetQuestionResponseByIdAsync(request.QuestionId);
-                if (question == null)
-                    return NotFound(ApiResponse<string>.NotFoundResponse("Question not found"));
-
-                if (question.PartId != PartIdConstants.S_PART_1)
-                    return BadRequest(ApiResponse<string>.ErrorResponse("This question is not for Speaking Part 1"));
-
                 var result = await _assessmentService.AssessSpeakingAsync(request, "read_aloud", userId);
                 return Ok(ApiResponse<AIFeedbackResponseDto>.SuccessResponse(result));
             }
@@ -146,14 +111,6 @@ namespace ToeicGenius.Controllers
             try
             {
                 var userId = GetUserId();
-
-                var question = await _questionService.GetQuestionResponseByIdAsync(request.QuestionId);
-                if (question == null)
-                    return NotFound(ApiResponse<string>.NotFoundResponse("Question not found"));
-
-                if (question.PartId != PartIdConstants.S_PART_2)
-                    return BadRequest(ApiResponse<string>.ErrorResponse("This question is not for Speaking Part 2"));
-
                 var result = await _assessmentService.AssessSpeakingAsync(request, "describe_picture", userId);
                 return Ok(ApiResponse<AIFeedbackResponseDto>.SuccessResponse(result));
             }
@@ -172,14 +129,6 @@ namespace ToeicGenius.Controllers
             try
             {
                 var userId = GetUserId();
-
-                var question = await _questionService.GetQuestionResponseByIdAsync(request.QuestionId);
-                if (question == null)
-                    return NotFound(ApiResponse<string>.NotFoundResponse("Question not found"));
-
-                if (question.PartId != PartIdConstants.S_PART_3)
-                    return BadRequest(ApiResponse<string>.ErrorResponse("This question is not for Speaking Part 3"));
-
                 var result = await _assessmentService.AssessSpeakingAsync(request, "respond_questions", userId);
                 return Ok(ApiResponse<AIFeedbackResponseDto>.SuccessResponse(result));
             }
@@ -198,14 +147,6 @@ namespace ToeicGenius.Controllers
             try
             {
                 var userId = GetUserId();
-
-                var question = await _questionService.GetQuestionResponseByIdAsync(request.QuestionId);
-                if (question == null)
-                    return NotFound(ApiResponse<string>.NotFoundResponse("Question not found"));
-
-                if (question.PartId != PartIdConstants.S_PART_4)
-                    return BadRequest(ApiResponse<string>.ErrorResponse("This question is not for Speaking Part 4"));
-
                 var result = await _assessmentService.AssessSpeakingAsync(request, "respond_with_info", userId);
                 return Ok(ApiResponse<AIFeedbackResponseDto>.SuccessResponse(result));
             }
@@ -224,14 +165,6 @@ namespace ToeicGenius.Controllers
             try
             {
                 var userId = GetUserId();
-
-                var question = await _questionService.GetQuestionResponseByIdAsync(request.QuestionId);
-                if (question == null)
-                    return NotFound(ApiResponse<string>.NotFoundResponse("Question not found"));
-
-                if (question.PartId != PartIdConstants.S_PART_5)
-                    return BadRequest(ApiResponse<string>.ErrorResponse("This question is not for Speaking Part 5"));
-
                 var result = await _assessmentService.AssessSpeakingAsync(request, "express_opinion", userId);
                 return Ok(ApiResponse<AIFeedbackResponseDto>.SuccessResponse(result));
             }

@@ -8,7 +8,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.AI.Writing
         [MinLength(50, ErrorMessage = "Response should be at least 50 characters")]
         public string Text { get; set; }
 
-        [Required(ErrorMessage = "Question ID is required")]
-        public int QuestionId { get; set; }
+        [Required(ErrorMessage = "TestQuestion ID is required")]
+        public int TestQuestionId { get; set; }
     }
 }

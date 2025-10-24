@@ -31,7 +31,7 @@ namespace ToeicGenius.Repositories.Persistence
 		public DbSet<Test> Tests => Set<Test>();
 		public DbSet<TestQuestion> TestQuestions => Set<TestQuestion>();
 		public DbSet<Part> Parts => Set<Part>();
-		public DbSet<TestResult> UserTests => Set<TestResult>();
+		public DbSet<TestResult> TestResults => Set<TestResult>();
 		public DbSet<UserAnswer> UserAnswers => Set<UserAnswer>();
 		public DbSet<AIFeedback> AIFeedbacks => Set<AIFeedback>();
 		public DbSet<UserTestSkillScore> UserTestSkillScores => Set<UserTestSkillScore>();
@@ -150,13 +150,15 @@ namespace ToeicGenius.Repositories.Persistence
 				.HasPrecision(5, 2);
 
 			modelBuilder.Entity<UserAnswer>()
-				.HasOne(ua => ua.UserTest)
+				.HasOne(ua => ua.TestResult)
 				.WithMany(ut => ut.UserAnswers)
-				.HasForeignKey(ua => ua.UserTestId);
+				.HasForeignKey(ua => ua.TestResultId)
+				.OnDelete(DeleteBehavior.Cascade);
 			modelBuilder.Entity<UserAnswer>()
-				.HasOne(ua => ua.Question)
+				.HasOne(ua => ua.TestQuestion)
 				.WithMany()
-				.HasForeignKey(ua => ua.QuestionId);
+				.HasForeignKey(ua => ua.TestQuestionId)
+				.OnDelete(DeleteBehavior.Restrict);
 			modelBuilder.Entity<UserAnswer>()
 				.HasOne(ua => ua.Option)
 				.WithMany()
@@ -172,9 +174,9 @@ namespace ToeicGenius.Repositories.Persistence
 				.HasPrecision(5, 2);
 
 			modelBuilder.Entity<UserTestSkillScore>()
-				.HasOne(ss => ss.UserTest)
+				.HasOne(ss => ss.TestResult)
 				.WithMany(ut => ut.SkillScores)
-				.HasForeignKey(ss => ss.UserTestId);
+				.HasForeignKey(ss => ss.TestResultId);
 			modelBuilder.Entity<UserTestSkillScore>()
 				.Property(uts => uts.Score)
 				.HasPrecision(5, 2);

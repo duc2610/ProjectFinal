@@ -20,10 +20,10 @@ namespace ToeicGenius.Repositories.Implementations
         {
             return await _context.AIFeedbacks
                 .Include(f => f.UserAnswer)
-                    .ThenInclude(ua => ua!.Question)
-                        .ThenInclude(q => q!.Part)
+                    .ThenInclude(ua => ua!.TestQuestion)
+                        .ThenInclude(tq => tq!.Part)
                 .Include(f => f.UserAnswer)
-                    .ThenInclude(ua => ua!.UserTest)
+                    .ThenInclude(ua => ua!.TestResult)
                 .FirstOrDefaultAsync(f => f.FeedbackId == feedbackId);
         }
 
@@ -38,9 +38,9 @@ namespace ToeicGenius.Repositories.Implementations
         {
             return await _context.AIFeedbacks
                 .Include(f => f.UserAnswer)
-                    .ThenInclude(ua => ua!.Question)
-                        .ThenInclude(q => q!.Part)
-                .Where(f => f.UserAnswer!.UserTest!.UserId == userId)
+                    .ThenInclude(ua => ua!.TestQuestion)
+                        .ThenInclude(tq => tq!.Part)
+                .Where(f => f.UserAnswer!.TestResult!.UserId == userId)
                 .OrderByDescending(f => f.CreatedAt)
                 .Skip(skip)
                 .Take(take)
@@ -51,10 +51,10 @@ namespace ToeicGenius.Repositories.Implementations
         {
             var query = _context.AIFeedbacks
                 .Include(f => f.UserAnswer)
-                    .ThenInclude(ua => ua.UserTest)
+                    .ThenInclude(ua => ua.TestResult)
                 .Include(f => f.UserAnswer)
-                    .ThenInclude(ua => ua.Question)
-                .Where(f => f.UserAnswer.UserTest.UserId == userId);
+                    .ThenInclude(ua => ua.TestQuestion)
+                .Where(f => f.UserAnswer.TestResult.UserId == userId);
 
             if (!string.IsNullOrEmpty(aiScorer))
             {
@@ -88,9 +88,9 @@ namespace ToeicGenius.Repositories.Implementations
         {
             return await _context.AIFeedbacks
                 .Include(f => f.UserAnswer)
-                    .ThenInclude(ua => ua.UserTest)
+                    .ThenInclude(ua => ua.TestResult)
                 .AnyAsync(f => f.FeedbackId == feedbackId &&
-                              f.UserAnswer.UserTest.UserId == userId);
+                              f.UserAnswer.TestResult.UserId == userId);
         }
     }
 }

@@ -10,6 +10,7 @@ namespace ToeicGenius.Services.Interfaces
 	{
 		Task<Result<string>> CreateManualAsync(CreateTestManualDto request);
 		Task<Result<string>> CreateFromBankAsync(CreateTestFromBankDto request);
+		Task<Result<string>> CreateFromBankRandomAsync(CreateTestFromBankRandomDto request);
 		Task<Result<PaginationResponse<TestListResponseDto>>> FilterAllAsync(TestFilterDto request);
 		Task<Result<string>> UpdateStatusAsync(UpdateTestStatusDto request);
 		Task<Result<TestDetailDto>> GetDetailAsync(int id);
