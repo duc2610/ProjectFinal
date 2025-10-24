@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Card, Button, Typography, Tag } from "antd";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   SoundOutlined,
   ReadOutlined,
@@ -7,265 +8,124 @@ import {
   EditOutlined,
   CheckCircleTwoTone,
 } from "@ant-design/icons";
-
+import styles from "../../styles/Exam.module.css";
 const { Title, Text } = Typography;
 
-const ResultPage = () => {
-  const [selectedSection, setSelectedSection] = useState("overall");
-
-  const mockResult = {
-    totalScore: 845,
-    level: "Advanced (785–990)",
-    date: "March 15, 2024",
-    duration: "2h 45m",
-    type: "Full TOEIC – Speaking & Writing",
-    aiModel: "Advanced Neural Network",
-    sections: [
-      {
-        key: "overall",
-        icon: <CheckCircleTwoTone twoToneColor="#52c41a" />,
-        title: "Overall Score",
-        score: 845,
-        max: 990,
-      },
-      {
-        key: "listening",
-        icon: <SoundOutlined />,
-        title: "Listening (495 points)",
-        score: 495,
-        max: 495,
-      },
-      {
-        key: "reading",
-        icon: <ReadOutlined />,
-        title: "Reading (495 points)",
-        score: 350,
-        max: 495,
-      },
-      {
-        key: "speaking",
-        icon: <MessageOutlined />,
-        title: "Speaking (200 points) – AI Scored",
-        score: 160,
-        max: 200,
-      },
-      {
-        key: "writing",
-        icon: <EditOutlined />,
-        title: "Writing (200 points) – AI Scored",
-        score: 170,
-        max: 200,
-      },
-    ],
-    writingTask: {
-      task: "Task 1: Write a Sentence Based on a Picture",
-      score: "4.5/5",
-      feedback: "Excellent accuracy and relevance",
-    },
+export default function ResultPage() {
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  const mockResult = state || {
+    overall: 845,
+    listening: 420,
+    reading: 350,
+    speaking: 160,
+    writing: 170,
+    detailTasks: [{ title: "Task 1: Write a Sentence Based on a Picture", score: 4.5, feedback: "Excellent accuracy and relevance" }],
   };
 
-  const section = mockResult.sections.find((s) => s.key === selectedSection);
+  const [selectedSection, setSelectedSection] = useState("writing");
+  const [displayScore, setDisplayScore] = useState(0);
 
-  const renderSectionContent = () => {
-    switch (selectedSection) {
-      case "overall":
-        return (
-          <Card
-            style={{ marginTop: 20, padding: 24, borderRadius: 8 }}
-            bordered={false}
-          >
-            <Title level={1} style={{ color: "#fa8c16", marginBottom: 0 }}>
-              {mockResult.totalScore}
-            </Title>
-            <Text strong>Total Score (Out of 990)</Text>
-            <div style={{ marginTop: 16 }}>
-              <Tag color="green">Performance Level: {mockResult.level}</Tag>
-            </div>
-          </Card>
-        );
+  useEffect(() => {
+    // simple count-up for writing or overall depending selection
+    const target = selectedSection === "overall" ? mockResult.overall : (mockResult[selectedSection] || 0);
+    let curr = 0;
+    const step = Math.max(1, Math.floor(target / 40));
+    const id = setInterval(() => {
+      curr += step;
+      if (curr >= target) { setDisplayScore(target); clearInterval(id); }
+      else setDisplayScore(curr);
+    }, 20);
+    return () => clearInterval(id);
+  }, [selectedSection, mockResult]);
 
-      case "listening":
-        return (
-          <Card title="Listening Results" style={{ marginTop: 20 }}>
-            <p>Your listening comprehension skills are excellent.</p>
-            <p>You answered 89/100 questions correctly.</p>
-          </Card>
-        );
-
-      case "reading":
-        return (
-          <Card title="Reading Results" style={{ marginTop: 20 }}>
-            <p>Your reading accuracy is above average.</p>
-            <p>You answered 70/100 questions correctly.</p>
-          </Card>
-        );
-
-      case "speaking":
-        return (
-          <Card title="Speaking Section (AI Scored)" style={{ marginTop: 20 }}>
-            <p>Score: 160/200</p>
-            <Tag color="orange">AI Neural Network Evaluation</Tag>
-            <p>Feedback: Good pronunciation and fluency.</p>
-          </Card>
-        );
-
-      case "writing":
-        return (
-          <Card
-            title="Writing Section Results (AI Evaluated)"
-            style={{ marginTop: 20 }}
-          >
-            <Title level={1} style={{ color: "#fa8c16", marginBottom: 0 }}>
-              {section.score}
-            </Title>
-            <Text strong>Writing Score</Text>
-            <br />
-            <Text type="secondary">
-              Out of {section.max} points (Advanced Level)
-            </Text>
-            <div style={{ marginTop: 8 }}>
-              <Tag color="orange">AI Neural Network Evaluation</Tag>
-            </div>
-
-            <Card
-              type="inner"
-              title={mockResult.writingTask.task}
-              style={{
-                background: "#fff7e6",
-                border: "1px solid #ffa940",
-                marginTop: 16,
-              }}
-            >
-              <Text strong style={{ color: "#fa541c", fontSize: 16 }}>
-                {mockResult.writingTask.score}
-              </Text>
-              <br />
-              <Text>{mockResult.writingTask.feedback}</Text>
-              <div style={{ marginTop: 8 }}>
-                <a href="#" style={{ color: "#1677ff" }}>
-                  View AI Analysis
-                </a>
-              </div>
-            </Card>
-          </Card>
-        );
-
-      default:
-        return null;
-    }
-  };
+  const sections = [
+    { key: "overall", title: "Overall Score", score: mockResult.overall, max: 990, icon: <CheckCircleTwoTone twoToneColor="#52c41a" /> },
+    { key: "listening", title: "Listening (495 points)", score: mockResult.listening, max: 495, icon: <SoundOutlined /> },
+    { key: "reading", title: "Reading (495 points)", score: mockResult.reading, max: 495, icon: <ReadOutlined /> },
+    { key: "speaking", title: "Speaking (200) - AI Scored", score: mockResult.speaking, max: 200, icon: <MessageOutlined /> },
+    { key: "writing", title: "Writing (200) - AI Scored", score: mockResult.writing, max: 200, icon: <EditOutlined /> },
+  ];
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        backgroundColor: "#1f1f1f",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <div
-        style={{
-          background: "#fff",
-          borderRadius: 8,
-          display: "flex",
-          width: "100%",
-          height: "100vh",
-          overflow: "hidden",
-        }}
-      >
-        {/* Sidebar */}
-        <div
-          style={{
-            width: 280,
-            background: "#f5f5f5",
-            borderRight: "1px solid #ddd",
-            padding: 20,
-            overflowY: "auto",
-          }}
-        >
-          <Title level={4} style={{ color: "#001529" }}>
-            Test Sections
-          </Title>
-          {mockResult.sections.map((s) => (
+    <div style={{ minHeight: "100vh", backgroundColor: "#1f1f1f", display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: 24 }}>
+      <div style={{ width: "92%", maxWidth: 1100, background: "#fff", borderRadius: 8, overflow: "hidden", display: "flex" }}>
+        <div style={{ width: 280, background: "#f5f5f5", padding: 20, borderRight: "1px solid #ddd" }}>
+          <Title level={4} style={{ marginBottom: 12 }}>Test Sections</Title>
+          {sections.map((s) => (
             <Card
               key={s.key}
               size="small"
               onClick={() => setSelectedSection(s.key)}
               style={{
                 marginBottom: 10,
-                border:
-                  selectedSection === s.key
-                    ? "2px solid #1677ff"
-                    : "1px solid #e8e8e8",
-                background:
-                  selectedSection === s.key
-                    ? "#e6f4ff"
-                    : "rgba(255,255,255,0.9)",
+                border: selectedSection === s.key ? "2px solid #1677ff" : "1px solid #e8e8e8",
+                background: selectedSection === s.key ? "#e6f4ff" : "#fff",
                 cursor: "pointer",
-                transition: "0.2s",
               }}
             >
-              <Text strong>
-                {s.icon} {s.title}
-              </Text>
+              <Text strong>{s.icon} {s.title}</Text>
               <br />
-              <Text type="secondary">
-                {s.score}/{s.max} points
-              </Text>
+              <Text type="secondary">{s.score}/{s.max} points</Text>
             </Card>
           ))}
 
-          <div style={{ marginTop: 24 }}>
+          <div style={{ marginTop: 18 }}>
             <Title level={5}>Test Information</Title>
-            <Text>Date: {mockResult.date}</Text>
-            <br />
-            <Text>Duration: {mockResult.duration}</Text>
-            <br />
-            <Text>Test Type: {mockResult.type}</Text>
-            <br />
-            <Text>AI Scoring: {mockResult.aiModel}</Text>
+            <Text>Date: {new Date().toLocaleDateString()}</Text><br/>
+            <Text>Duration: 2h 45m</Text><br/>
+            <Text>Type: Full TOEIC – Speaking & Writing</Text><br/>
+            <Text>AI Scoring: Advanced Neural Network</Text>
           </div>
 
-          <div style={{ marginTop: 24 }}>
+          <div style={{ marginTop: 18 }}>
             <Title level={5}>Performance Level</Title>
             <CheckCircleTwoTone twoToneColor="#52c41a" />
-            <Text style={{ marginLeft: 8 }}>{mockResult.level}</Text>
-            <p style={{ color: "#555", marginTop: 4 }}>
-              You can communicate effectively in most professional situations.
-            </p>
+            <Text style={{ marginLeft: 8 }}>Advanced (785–990)</Text>
+            <p style={{ color: "#555", marginTop: 6 }}>You can communicate effectively in most professional situations.</p>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div style={{ flex: 1, background: "#f0f2f5", overflowY: "auto" }}>
-          <div
-            style={{
-              background: "#003a8c",
-              padding: "16px 24px",
-              color: "#fff",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Title
-              level={3}
-              style={{ color: "#fff", margin: 0, fontWeight: "bold" }}
-            >
-              TOEIC Test Results
-            </Title>
-            <Button type="primary" ghost>
-              Retake Test
-            </Button>
+        <div style={{ flex: 1, background: "#f0f2f5" }}>
+          <div style={{ background: "#003a8c", padding: "16px 24px", color: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Title level={3} style={{ color: "#fff", margin: 0 }}>TOEIC Test Results</Title>
+            <Button onClick={() => { sessionStorage.removeItem("toeic_selectedParts"); sessionStorage.removeItem("toeic_duration"); navigate("/toeic-exam", { replace: true }); }} type="primary" ghost>Retake Test</Button>
           </div>
 
-          <div style={{ padding: "40px 60px" }}>{renderSectionContent()}</div>
+          <div style={{ padding: "40px 60px" }}>
+            <Title level={4} style={{ color: "#003a8c" }}>{ selectedSection === "writing" ? "Writing Section Results (AI Evaluated)" : (selectedSection === "overall" ? "Overall Results" : `${sections.find(s => s.key === selectedSection).title}`) }</Title>
+
+            <Card style={{ marginTop: 20, padding: 24, borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ textAlign: "center", marginBottom: 20 }}>
+                <Title level={1} style={{ color: "#fa8c16", marginBottom: 0 }}>{displayScore}</Title>
+                <Text strong>{ selectedSection === "overall" ? "Overall Score" : (selectedSection.charAt(0).toUpperCase() + selectedSection.slice(1) + " Score") }</Text>
+                <br />
+                <Text type="secondary">Out of { selectedSection === "overall" ? 990 : sections.find(s => s.key === selectedSection).max } points</Text>
+                <div style={{ marginTop: 8 }}>
+                  <Tag color="orange">AI Neural Network Evaluation</Tag>
+                </div>
+              </div>
+
+              {selectedSection === "writing" && mockResult.detailTasks.map((t, i) => (
+                <Card key={i} type="inner" title={t.title} style={{ background: "#fff7e6", border: "1px solid #ffa940", marginTop: 16 }}>
+                  <Text strong style={{ color: "#fa541c", fontSize: 16 }}>{t.score}</Text><br/>
+                  <Text>{t.feedback}</Text>
+                  <div style={{ marginTop: 8 }}><a href="#">View AI Analysis</a></div>
+                </Card>
+              ))}
+
+              {selectedSection === "overall" && (
+                <div style={{ marginTop: 12 }}>
+                  <p>Listening: {mockResult.listening} / 495</p>
+                  <p>Reading: {mockResult.reading} / 495</p>
+                  <p>Speaking: {mockResult.speaking} / 200</p>
+                  <p>Writing: {mockResult.writing} / 200</p>
+                </div>
+              )}
+            </Card>
+          </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default ResultPage;
+}

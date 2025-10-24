@@ -1,10 +1,6 @@
-.wrapper {
-    padding: 20px
-}
-
 .selectionContainer {
-    max-width: 900px;
-    margin: 30px auto
+    max-width: 980px;
+    margin: 40px auto
 }
 
 .cardTitle {
@@ -50,7 +46,6 @@
     margin-right: 8px
 }
 
-
 .examLayout {
     min-height: 70vh
 }
@@ -88,7 +83,7 @@
 }
 
 .sideNav {
-    width: 160;
+    width: 180;
     background: #f7f7f7;
     padding: 12px;
     border-right: 1px solid #ddd
@@ -129,7 +124,6 @@
 .activeNum {
     box-shadow: 0 0 0 3px rgba(14, 70, 96, 0.12)
 }
-
 
 .questionHeader {
     display: flex;
@@ -183,4 +177,8 @@
 
 .audioBox {
     margin: 8px 0
+}
+
+.qText {
+    margin-top: 8px
 }
