@@ -23,7 +23,7 @@ namespace ToeicGenius.Repositories.Implementations
         {
             try
             {
-                return await _context.UserTests
+                return await _context.TestResults
                     .Where(ut => ut.UserId == userId && ut.Status == "InProgress")
                     .OrderByDescending(ut => ut.StartTime)
                     .FirstOrDefaultAsync();
@@ -70,7 +70,7 @@ namespace ToeicGenius.Repositories.Implementations
                     CreatedAt = DateTime.UtcNow
                 };
 
-                await _context.UserTests.AddAsync(newTest);
+                await _context.TestResults.AddAsync(newTest);
 
                 // 4. ? Save changes ?? có UserTestId
                 await _context.SaveChangesAsync();
@@ -97,7 +97,7 @@ namespace ToeicGenius.Repositories.Implementations
         {
             try
             {
-                var userTest = await _context.UserTests.FindAsync(userTestId);
+                var userTest = await _context.TestResults.FindAsync(userTestId);
                 if (userTest == null)
                 {
                     _logger?.LogWarning("UserTest {UserTestId} not found for completion", userTestId);
@@ -126,7 +126,7 @@ namespace ToeicGenius.Repositories.Implementations
         {
             try
             {
-                return await _context.UserTests
+                return await _context.TestResults
                     .Where(ut => ut.UserId == userId)
                     .OrderByDescending(ut => ut.CreatedAt)
                     .Skip(skip)

@@ -11,6 +11,7 @@ using ToeicGenius.Domains.DTOs.Requests.Test;
 using ToeicGenius.Domains.DTOs.Responses.Test;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
+using ToeicGenius.Extensions;
 using Newtonsoft.Json;
 using Humanizer;
 using static System.Net.Mime.MediaTypeNames;
@@ -63,10 +64,7 @@ namespace ToeicGenius.Services.Implementations
 				foreach (var q in singleQuestions)
 				{
 					quantityQuestion++;
-					var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
-					{
-						ReferenceHandler = ReferenceHandler.IgnoreCycles
-					});
+					var snapshot = System.Text.Json.JsonSerializer.Serialize(q);
 					await _uow.TestQuestions.AddAsync(new TestQuestion
 					{
 						Test = test,
@@ -82,10 +80,7 @@ namespace ToeicGenius.Services.Implementations
 				foreach (var q in groupQuestions)
 				{
 					quantityQuestion += q.QuestionSnapshots.Count();
-					var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
-					{
-						ReferenceHandler = ReferenceHandler.IgnoreCycles
-					});
+					var snapshot = System.Text.Json.JsonSerializer.Serialize(q);
 
 					await _uow.TestQuestions.AddAsync(new TestQuestion
 					{
@@ -159,10 +154,8 @@ namespace ToeicGenius.Services.Implementations
 						foreach (var q in randomQuestions)
 						{
 							quantityQuestion++;
-							var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
-							{
-								ReferenceHandler = ReferenceHandler.IgnoreCycles
-							});
+							var snapshotDto = q.ToSnapshotDto();
+							var snapshot = System.Text.Json.JsonSerializer.Serialize(snapshotDto);
 
 							await _uow.TestQuestions.AddAsync(new TestQuestion
 							{
@@ -198,10 +191,8 @@ namespace ToeicGenius.Services.Implementations
 						foreach (var g in randomGroups)
 						{
 							quantityQuestion += g.Questions.Count();
-							var snapshot = System.Text.Json.JsonSerializer.Serialize(g, new JsonSerializerOptions
-							{
-								ReferenceHandler = ReferenceHandler.IgnoreCycles
-							});
+							var snapshotDto = g.ToSnapshotDto();
+							var snapshot = System.Text.Json.JsonSerializer.Serialize(snapshotDto);
 
 							await _uow.TestQuestions.AddAsync(new TestQuestion
 							{

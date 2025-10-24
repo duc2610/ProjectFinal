@@ -31,7 +31,7 @@ namespace ToeicGenius.Repositories.Persistence
 		public DbSet<Test> Tests => Set<Test>();
 		public DbSet<TestQuestion> TestQuestions => Set<TestQuestion>();
 		public DbSet<Part> Parts => Set<Part>();
-		public DbSet<TestResult> UserTests => Set<TestResult>();
+		public DbSet<TestResult> TestResults => Set<TestResult>();
 		public DbSet<UserAnswer> UserAnswers => Set<UserAnswer>();
 		public DbSet<AIFeedback> AIFeedbacks => Set<AIFeedback>();
 		public DbSet<UserTestSkillScore> UserTestSkillScores => Set<UserTestSkillScore>();
