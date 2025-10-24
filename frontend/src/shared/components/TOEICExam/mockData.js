@@ -1,4 +1,3 @@
-// Mock data structured by TOEIC parts. Put sample audio/images in public/audio/ and public/images/ if you want playback/display.
 export const MOCK_PARTS = [
   { id: 1, title: "Part 1: Photographs", description: "Listen & choose", questions: 3, audio: true, type: "photo" },
   { id: 2, title: "Part 2: Question-Response", description: "Short Q&A", questions: 4, audio: true, type: "audio" },
@@ -34,7 +33,7 @@ export function generateMockQuestionsFromParts(partIds) {
         questions.push({
           ...base,
           question: `Look at the picture. What is most likely true? (sample)`,
-          imageUrl: `/images/part1_${i}.jpg`, // optional
+          imageUrl: `/images/part1_${i}.jpg`,
           options: [
             { key: "A", text: "A. People are talking" },
             { key: "B", text: "B. A person is holding an umbrella" },
@@ -42,6 +41,7 @@ export function generateMockQuestionsFromParts(partIds) {
             { key: "D", text: "D. The room is empty" },
           ],
           audioUrl: `/audio/part1_${i}.mp3`,
+          allowWrite: i === 1 ? true : false // allowWrite on first photo for demo (writing)
         });
       } else if (p.type === "audio") {
         questions.push({

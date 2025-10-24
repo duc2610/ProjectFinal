@@ -16,7 +16,6 @@ export default function ExamScreen() {
   const durationMinutes = Number(sessionStorage.getItem("toeic_duration") || 60);
 
   const [questions] = useState(() => generateMockQuestionsFromParts(selectedParts));
-  // answers: for multiple choice store selected option; for writing store { text: '...' } under same q.id
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(durationMinutes * 60);
@@ -35,7 +34,6 @@ export default function ExamScreen() {
       });
     }, 1000);
     return () => clearInterval(timerRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onAnswer = (qid, optionOrText) => setAnswers((p) => ({ ...p, [qid]: optionOrText }));
@@ -43,14 +41,9 @@ export default function ExamScreen() {
 
   const handleSubmit = (auto = false) => {
     clearInterval(timerRef.current);
-    // scoring: count MCQ correct; writing/speaking are left as-is (mock)
     const total = questions.length;
-    const mcqQuestions = questions.filter((q) => q.type !== "photo" && q.type !== "audio" && q.type !== "mcq" && q.type !== "passage" ? [] : true);
-    // We'll compute correct for MCQ/audio/photo/passage types where 'correct' exists
     const correctCount = questions.reduce((acc, q) => acc + (answers[q.id] && answers[q.id] === q.correct ? 1 : 0), 0);
-    const scorePercent = total ? (correctCount / total) : 0;
 
-    // Map result roughly:
     const listeningParts = questions.filter((q) => q.type === "audio" || q.type === "photo");
     const readingParts = questions.filter((q) => q.type === "mcq" || q.type === "passage");
     const listeningCorrect = listeningParts.reduce((acc, q) => acc + (answers[q.id] && answers[q.id] === q.correct ? 1 : 0), 0);
@@ -58,36 +51,34 @@ export default function ExamScreen() {
 
     const listening = Math.round((listeningParts.length ? (listeningCorrect / listeningParts.length) : 0) * 495);
     const reading = Math.round((readingParts.length ? (readingCorrect / readingParts.length) : 0) * 495);
-    const speaking = Math.round((Math.random() * 200)); // mock
+    const speaking = Math.round((Math.random() * 200));
     const writing = (() => {
-      // derive writing: if user submitted text, give small boost
-      const writingQs = questions.filter((q) => q.type === "passage" && q.partId === 7 ? false : q.type === "mcq" ? false : q.partId === 7 ? false : q); // keep simple
-      // simpler: if any answer text exists for writing-type question (detected by presence of answers[qid] as object/string), give random moderate score
-      const userWritingCount = questions.filter(q => q.type === "photo" || q.type === "audio" || q.type === "passage" ? false : false).length;
       const anyWritingText = Object.values(answers).some(v => typeof v === "string" && v.trim().length > 0);
       return anyWritingText ? Math.round(120 + Math.random() * 80) : Math.round(Math.random() * 80);
     })();
 
     const overall = listening + reading + Math.round((speaking + writing) / 2);
 
+    const detailTasks = [
+      {
+        title: "Task 1: Write a Sentence Based on a Picture",
+        score: writing ? Math.round(writing / 40) / 1 : "N/A",
+        feedback: "AI mock feedback: Good structure - improve vocabulary.",
+        userWriting: Object.keys(answers).reduce((acc,k)=> {
+          const v = answers[k];
+          if (typeof v === "string" && v.trim().length > 0) acc[k]=v;
+          return acc;
+        }, {})
+      },
+    ];
+
     const resultState = {
       totalQuestions: total,
       correctCount,
-answers,
+      questions,
+      answers,
       listening, reading, speaking, writing, overall,
-      detailTasks: [
-        {
-          title: "Task 1: Write a Sentence Based on a Picture",
-          score: answers["1-1"] && typeof answers["1-1"] === "string" ? "User text submitted" : "No submission",
-          feedback: "AI mock feedback: Good structure - improve vocabulary.",
-          userWriting: Object.keys(answers).reduce((acc,k)=> {
-            // collect writing-type answers (we define writing-type as keys where user provided text)
-            const v = answers[k];
-            if (typeof v === "string" && v.trim().length > 0) acc[k]=v;
-            return acc;
-          }, {})
-        },
-      ],
+      detailTasks,
       auto,
     };
 

@@ -11,7 +11,6 @@ export default function QuestionCard({ question, currentIndex, totalCount, answe
   const [writeText, setWriteText] = useState("");
 
   useEffect(() => {
-    // if there is a saved answer (writing) load it
     if (question && typeof answers[question.id] === "string") {
       setWriteText(answers[question.id]);
     } else {
@@ -64,8 +63,8 @@ export default function QuestionCard({ question, currentIndex, totalCount, answe
         <div className={styles.aBox}>
           <Text strong>Answer</Text>
 
-          {/* For writing type allow textarea */}
-          {question.type === "photo" || question.type === "audio" || question.type === "mcq" || question.type === "passage" ? (
+          {/* Normal MCQ choices */}
+          {question.options && (!question.allowWrite) && (
             <div className={styles.optionsBox} style={{ marginTop: 8 }}>
               <Radio.Group value={answers[question.id]} onChange={(e) => onAnswer(question.id, e.target.value)}>
                 {question.options.map((o) => (
@@ -73,11 +72,9 @@ export default function QuestionCard({ question, currentIndex, totalCount, answe
                 ))}
               </Radio.Group>
             </div>
-          ) : null}
+          )}
 
-          {/* Provide a writing box for explicit Writing tasks:
-              We'll treat Part 7 (passage) as reading only; for Writing we will define a question type 'writing' if needed.
-              For convenience, allow a TextArea whenever question has property allowWrite === true (we'll mark some in mock if needed) */}
+          {/* Writing area when allowWrite true */}
           {question.allowWrite && (
             <div style={{ marginTop: 12 }}>
               <TextArea rows={8} value={writeText} onChange={(e) => setWriteText(e.target.value)} placeholder="Write your response here..." />
@@ -85,13 +82,6 @@ export default function QuestionCard({ question, currentIndex, totalCount, answe
                 <Button onClick={handleTextSave}>Save</Button>
                 <Button type="primary" onClick={() => { handleTextSave(); handleSubmit(); }}>Save & Submit</Button>
               </div>
-            </div>
-          )}
-
-          {/* As enhancement: allow writing for Part 1 question if user clicks 'Write answer' */}
-          {question.type === "photo" && (
-            <div style={{ marginTop: 12 }}>
-              <Button onClick={() => onAnswer(question.id, answers[question.id] || "")}>Mark (keep choice)</Button>
             </div>
           )}
         </div>
