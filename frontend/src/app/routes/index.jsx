@@ -16,6 +16,7 @@ const AdminDashboard = lazy(() => import("@pages/admin/Dashboard.jsx"));
 const ResetPassword = lazy(() => import("@pages/auth/ResetPassword.jsx"));
 const VerifyReset = lazy(() => import("@pages/auth/VerifyReset.jsx"));
 const TOEICExam = lazy(() => import("../../../src/shared/components/TOEICExam/TOEICExamApp.jsx"));
+const TestResults = lazy(() => import("../../../src/shared/components/TOEICExam/TestResult.jsx"));
 const AccountManagement = lazy(() =>
   import("@pages/admin/AccountManagement.jsx")
 );
@@ -70,6 +71,7 @@ export default function RoutesRoot() {
           </Route>
         </Route>
         <Route path="/toeic-exam" element={<TOEICExam />} />
+        <Route path="/results" element={<TestResults />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
