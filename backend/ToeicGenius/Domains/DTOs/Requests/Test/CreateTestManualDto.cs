@@ -40,7 +40,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Exam
 	{
 		public string? Content { get; set; }
 		public string? ImageUrl { get; set; }
-		public List<OptionDto>? Options { get; set; } = new();
+		public List<OptionRequestDto>? Options { get; set; } = new();
 		public string? Explanation { get; set; }
 	}
 

@@ -42,9 +42,11 @@
 
 ### Features
 - [x] Manage Test 
-- [ ] Take test (Examinee)
-- [ ] View Result, Test History
-- [ ] Scoring: Speaking-Writing(AI) and Listening&Reading(MCQ)
+- [x] Take test (Examinee)
+- [x] View Result
+- [ ] Test History
+- [ ] Test Result Details
+- [x] Scoring: Speaking-Writing(AI) and Listening & Reading test(MCQ)
 ### 📄 Notes
-- Branch: `tts-v0.2`
+- Branch: `tts-v0.3`
 - Status: In Progress 

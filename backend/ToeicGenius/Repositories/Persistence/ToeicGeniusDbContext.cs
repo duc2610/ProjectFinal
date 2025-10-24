@@ -159,11 +159,6 @@ namespace ToeicGenius.Repositories.Persistence
 				.WithMany()
 				.HasForeignKey(ua => ua.TestQuestionId)
 				.OnDelete(DeleteBehavior.Restrict);
-			modelBuilder.Entity<UserAnswer>()
-				.HasOne(ua => ua.Option)
-				.WithMany()
-				.HasForeignKey(ua => ua.OptionId)
-				.IsRequired(false);
 
 			modelBuilder.Entity<AIFeedback>()
 				.HasOne(af => af.UserAnswer)

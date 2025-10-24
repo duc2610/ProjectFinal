@@ -20,6 +20,7 @@ using ToeicGenius.Shared.Validators;
 using Azure.Core;
 using Newtonsoft.Json.Serialization;
 using System.Threading.Tasks;
+using ToeicGenius.Shared.Helpers;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -33,8 +34,9 @@ namespace ToeicGenius.Services.Implementations
 			_fileService = fileService;
 		}
 
-		/* CREATE */
-		// Create from bank ( for practice test )
+		#region Manage Tests - Test Creator
+		/* CREATE - Start */
+		// Create from bank (for practice test)
 		public async Task<Result<string>> CreateFromBankAsync(CreateTestFromBankDto dto)
 		{
 			await _uow.BeginTransactionAsync();
@@ -64,11 +66,11 @@ namespace ToeicGenius.Services.Implementations
 				foreach (var q in singleQuestions)
 				{
 					quantityQuestion++;
-                    var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
-                    {
-                        ReferenceHandler = ReferenceHandler.IgnoreCycles
-                    });
-                    await _uow.TestQuestions.AddAsync(new TestQuestion
+					var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
+					{
+						ReferenceHandler = ReferenceHandler.IgnoreCycles
+					});
+					await _uow.TestQuestions.AddAsync(new TestQuestion
 					{
 						Test = test,
 						IsQuestionGroup = false,
@@ -83,12 +85,12 @@ namespace ToeicGenius.Services.Implementations
 				foreach (var q in groupQuestions)
 				{
 					quantityQuestion += q.QuestionSnapshots.Count();
-                    var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
-                    {
-                        ReferenceHandler = ReferenceHandler.IgnoreCycles
-                    });
+					var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
+					{
+						ReferenceHandler = ReferenceHandler.IgnoreCycles
+					});
 
-                    await _uow.TestQuestions.AddAsync(new TestQuestion
+					await _uow.TestQuestions.AddAsync(new TestQuestion
 					{
 						Test = test,
 						IsQuestionGroup = true,
@@ -113,7 +115,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		// Create from bank with random selection ( for practice test )
+		// Create from bank with random selection (for practice test)
 		public async Task<Result<string>> CreateFromBankRandomAsync(CreateTestFromBankRandomDto dto)
 		{
 			await _uow.BeginTransactionAsync();
@@ -228,7 +230,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		// Create manual ( for simulator test )
+		// Create manual (for simulator test)
 		public async Task<Result<string>> CreateManualAsync(CreateTestManualDto dto)
 		{
 			await _uow.BeginTransactionAsync();
@@ -334,57 +336,17 @@ namespace ToeicGenius.Services.Implementations
 				return Result<string>.Failure($"Error: {ex.Message}");
 			}
 		}
+		/* CREATE - End */
 
-		#region 🔹 Snapshot Handlers
-		private async Task<QuestionGroupSnapshotDto> HandleQuestionGroupSnapshotAsync(QuestionGroupDto dto, int partId, TestSkill skill)
-		{
-			// Mapping thủ công, tránh phụ thuộc EF entity để snapshot chuẩn nhất
-			return new QuestionGroupSnapshotDto
-			{
-				QuestionGroupId = 0,
-				PartId = partId,
-				Passage = dto.Passage ?? string.Empty,
-				ImageUrl = dto.ImageUrl,
-				QuestionSnapshots = dto.Questions?.Select(q => new QuestionSnapshotDto
-				{
-					QuestionId = 0,
-					PartId = partId,
-					Content = q.Content ?? string.Empty,
-					ImageUrl = q.ImageUrl,
-					Explanation = q.Explanation ?? string.Empty,
-					Options = q.Options?.Select(o => new OptionSnapshotDto
-					{
-						Label = o.Label ?? string.Empty,
-						Content = o.Content ?? string.Empty,
-						IsCorrect = o.IsCorrect
-					}).ToList() ?? new List<OptionSnapshotDto>()
-				}).ToList() ?? new List<QuestionSnapshotDto>()
-			};
-		}
-		private async Task<QuestionSnapshotDto> HandleSingleQuestionSnapshotAsync(QuestionDto dto, int partId, TestSkill skill)
-		{
-			return new QuestionSnapshotDto
-			{
-				QuestionId = 0,
-				PartId = partId,
-				Content = dto.Content ?? string.Empty,
-				ImageUrl = dto.ImageUrl,
-				Explanation = dto.Explanation ?? string.Empty,
-				Options = dto.Options?.Select(o => new OptionSnapshotDto
-				{
-					Label = o.Label ?? string.Empty,
-					Content = o.Content ?? string.Empty,
-					IsCorrect = o.IsCorrect
-				}).ToList() ?? new List<OptionSnapshotDto>()
-			};
-		}
-		#endregion
-
+		/* LIST & DETAIL - start */
+		// Get list (for TestCreator)
 		public async Task<Result<PaginationResponse<TestListResponseDto>>> FilterAllAsync(TestFilterDto request)
 		{
 			var result = await _uow.Tests.FilterQuestionsAsync(request);
 			return Result<PaginationResponse<TestListResponseDto>>.Success(result);
 		}
+
+		// Get detail (for TestCreator)
 		public async Task<Result<TestDetailDto>> GetDetailAsync(int id)
 		{
 			var test = await _uow.Tests.GetTestByIdAsync(id);
@@ -418,7 +380,7 @@ namespace ToeicGenius.Services.Implementations
 				var first = group.First();
 				var partDto = new TestPartDto
 				{
-					PartId = first.PartId!.Value,
+					PartId = first.PartId!,
 					PartName = first.Part?.Name ?? $"Part {first.PartId}",
 				};
 
@@ -428,13 +390,29 @@ namespace ToeicGenius.Services.Implementations
 					{
 						var groupSnap = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(tq.SnapshotJson);
 						if (groupSnap != null)
-							partDto.QuestionGroups.Add(groupSnap);
+						{
+							var testQuestion = new TestQuestionViewDto
+							{
+								TestQuestionId = tq.TestQuestionId!,
+								IsGroup = true,
+								QuestionGroupSnapshotDto = groupSnap
+							};
+							partDto.TestQuestions.Add(testQuestion);
+						}
 					}
 					else
 					{
 						var questionSnap = JsonConvert.DeserializeObject<QuestionSnapshotDto>(tq.SnapshotJson);
 						if (questionSnap != null)
-							partDto.Questions.Add(questionSnap);
+						{
+							var testQuestion = new TestQuestionViewDto
+							{
+								TestQuestionId = tq.TestQuestionId!,
+								IsGroup = false,
+								QuestionSnapshotDto = questionSnap
+							};
+							partDto.TestQuestions.Add(testQuestion);
+						}
 					}
 				}
 
@@ -442,8 +420,10 @@ namespace ToeicGenius.Services.Implementations
 			}
 			return Result<TestDetailDto>.Success(result);
 		}
+		/* LIST & DETAIL - end */
 
-		// UPDATE 
+		/* UPDATE - Start */
+		// Update Status
 		public async Task<Result<string>> UpdateStatusAsync(UpdateTestStatusDto request)
 		{
 			var test = await _uow.Tests.GetByIdAsync(request.TestId);
@@ -455,6 +435,8 @@ namespace ToeicGenius.Services.Implementations
 
 			return Result<string>.Success($"Test {test.TestId} {test.Status} successfully");
 		}
+
+		// Update Test From Bank (practice test)
 		public async Task<Result<string>> UpdateTestFromBankAsync(int testId, UpdateTestFromBank dto)
 		{
 			// 1️⃣ Kiểm tra input hợp lệ
@@ -561,7 +543,7 @@ namespace ToeicGenius.Services.Implementations
 					: $"Updated successfully TestId={targetTest.TestId}");
 		}
 
-
+		// Update Test Manual (simulator test)
 		public async Task<Result<string>> UpdateManualTestAsync(int testId, UpdateManualTestDto dto)
 		{
 			var existing = await _uow.Tests.GetByIdAsync(testId);
@@ -670,6 +652,9 @@ namespace ToeicGenius.Services.Implementations
 					? $"Cloned to new version v{targetTest.Version} (TestId={targetTest.TestId})"
 					: $"Updated successfully TestId={targetTest.TestId}");
 		}
+
+		// If test active => clone new version
+		// If test draft => update directly
 		public async Task<Test> CloneTestAsync(int sourceTestId)
 		{
 			var source = await _uow.Tests.GetByIdAsync(sourceTestId);
@@ -708,7 +693,9 @@ namespace ToeicGenius.Services.Implementations
 			await _uow.SaveChangesAsync();
 			return clone;
 		}
+		/* UPDATE - End */
 
+		// Get version
 		public async Task<Result<List<TestVersionDto>>> GetVersionsByParentIdAsync(int parentTestId)
 		{
 			// Lấy test gốc
@@ -733,8 +720,133 @@ namespace ToeicGenius.Services.Implementations
 
 			return Result<List<TestVersionDto>>.Success(dtos);
 		}
+		#endregion
 
-		/* Function support */
+		#region Do Test - Examinee
+		public async Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request)
+		{
+			// Check test existed
+			var test = await _uow.Tests.GetTestByIdAsync(request.Id);
+			if (test == null || test.Status != CommonStatus.Active) return Result<TestStartResponseDto>.Failure("Test not found");
+
+			// Simulator: thời gian cố định
+			// Practice: có thể chọn tính giờ hoặc không
+			int duration = test.Duration;
+			if (test.TestType == TestType.Practice)
+			{
+				duration = request.IsSelectTime ? test.Duration : 0;
+			}
+
+			var result = new TestStartResponseDto
+			{
+				TestId = test.TestId,
+				Title = test.Title,
+				TestType = test.TestType,
+				TestSkill = test.TestSkill,
+				AudioUrl = test.AudioUrl,
+				Duration = duration,
+				QuantityQuestion = test.QuantityQuestion
+			};
+
+			// Nếu test chưa có câu hỏi
+			if (test.TestQuestions == null || !test.TestQuestions.Any())
+				return Result<TestStartResponseDto>.Success(result);
+
+			// Lấy các Parts, mỗi Parts gồm các câu hỏi
+			var groupedByPart = test.TestQuestions
+				.Where(q => q.PartId != null)
+				.GroupBy(q => q.PartId)
+				.ToList();
+
+			foreach (var group in groupedByPart)
+			{
+				var first = group.First();
+				var partDto = new TestPartDto
+				{
+					PartId = first.PartId!,
+					PartName = first.Part?.Name ?? $"Part {first.PartId}",
+				};
+
+				foreach (var tq in group.OrderBy(q => q.OrderInTest))
+				{
+					if (tq.IsQuestionGroup)
+					{
+						var groupSnap = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(tq.SnapshotJson);
+						if (groupSnap != null)
+						{
+							var testQuestion = new TestQuestionViewDto
+							{
+								TestQuestionId = tq.TestQuestionId!,
+								IsGroup = true,
+								QuestionGroupSnapshotDto = groupSnap
+							};
+							partDto.TestQuestions.Add(testQuestion);
+						}
+					}
+					else
+					{
+						var questionSnap = JsonConvert.DeserializeObject<QuestionSnapshotDto>(tq.SnapshotJson);
+						if (questionSnap != null)
+						{
+							var testQuestion = new TestQuestionViewDto
+							{
+								TestQuestionId = tq.TestQuestionId!,
+								IsGroup = false,
+								QuestionSnapshotDto = questionSnap
+							};
+							partDto.TestQuestions.Add(testQuestion);
+						}
+					}
+				}
+
+				result.Parts.Add(partDto);
+			}
+			return Result<TestStartResponseDto>.Success(result);
+		}
+		// Submit listening & reading test
+		public async Task<Result<GeneralLRResultDto>> SubmitLRTestAsync(SubmitLRTestRequestDto request)
+		{
+			if (request.Answers == null || !request.Answers.Any())
+				return Result<GeneralLRResultDto>.Failure("No answers provided.");
+
+			var testQuestionIds = request.Answers.Select(a => a.TestQuestionId).Distinct().ToList();
+			var testQuestions = await _uow.TestQuestions.GetByListIdAsync(testQuestionIds);
+			if (!testQuestions.Any())
+				return Result<GeneralLRResultDto>.Failure("Invalid test or questions.");
+
+			bool isSimulator = request.TestType == TestType.Simulator;
+
+			var newTestResult = new TestResult
+			{
+				UserId = request.UserId,
+				TestId = request.TestId,
+				Duration = request.Duration,
+				TestType = request.TestType,
+				CreatedAt = DateTime.UtcNow
+			};
+
+			// Lấy map Part -> Skill
+			var partIds = testQuestions.Select(q => q.PartId).Distinct().ToList();
+			var partSkillMap = await _uow.Parts.GetSkillMapByIdsAsync(partIds);
+
+			// 1️.Xử lý & chấm bài
+			var (userAnswers, stats) = ProcessUserAnswers(request, testQuestions, partSkillMap, isSimulator, newTestResult);
+
+			// 2.Tính kết quả cuối cùng
+			var result = isSimulator
+				? CalculateSimulatorResult(stats, request.Duration)
+				: CalculatePracticeResult(stats, request.Duration);
+
+			// 3.Lưu vào DB
+			newTestResult.TotalScore = (decimal)(isSimulator ? result.TotalScore : 0);
+			await _uow.UserAnswers.AddRangeAsync(userAnswers);
+			await _uow.SaveChangesAsync();
+
+			return Result<GeneralLRResultDto>.Success(result);
+		}
+		#endregion
+
+		#region Private Helper Methods
 		// Get duration for test (by test skill)
 		private int GetTestDuration(TestSkill skill)
 		{
@@ -769,5 +881,226 @@ namespace ToeicGenius.Services.Implementations
 
 			return quantity;
 		}
+
+		// Support function for SubmitLR TestAsync
+		private (List<UserAnswer> UserAnswers, TestStats Stats) ProcessUserAnswers(SubmitLRTestRequestDto request, List<TestQuestion> testQuestions, Dictionary<int, QuestionSkill> partSkillMap, bool isSimulator, TestResult newTestResult)
+		{
+			int listeningCorrect = 0, readingCorrect = 0;
+			int listeningTotal = 0, readingTotal = 0;
+			int skipCount = 0, totalQuestions = 0;
+
+			var userAnswers = new List<UserAnswer>();
+
+			// Tạo map để tra nhanh câu trả lời người dùng (O(1))
+			var answerMap = request.Answers
+				.GroupBy(a => a.TestQuestionId)
+				.ToDictionary(
+					g => g.Key,
+					g => g.ToDictionary(a => a.SubQuestionIndex ?? 0)
+				);
+
+			foreach (var tq in testQuestions)
+			{
+				// Xác định kỹ năng
+				if (!partSkillMap.TryGetValue(tq.PartId, out var skill))
+					continue;
+
+				bool isListening = skill == QuestionSkill.Listening;
+
+				try
+				{
+					if (!tq.IsQuestionGroup)
+					{
+						totalQuestions++;
+						if (isListening) listeningTotal++; else readingTotal++;
+
+						var snapshot = JsonConvert.DeserializeObject<QuestionSnapshotDto>(tq.SnapshotJson);
+						if (snapshot == null || snapshot.Options == null) continue;
+
+						// Tìm câu trả lời
+						if (!answerMap.TryGetValue(tq.TestQuestionId, out var subMap)
+							|| !subMap.TryGetValue(0, out var userAnswerDto))
+						{
+							skipCount++;
+							continue;
+						}
+
+						bool isCorrect = CheckIsCorrect(snapshot.Options, userAnswerDto.ChosenOptionLabel);
+
+						if (isCorrect)
+						{
+							if (isListening) listeningCorrect++; else readingCorrect++;
+						}
+
+						userAnswers.Add(CreateUserAnswer(
+							newTestResult,
+							tq.TestQuestionId,
+							null,
+							userAnswerDto.ChosenOptionLabel,
+							isCorrect
+						));
+					}
+					else
+					{
+						// GROUP QUESTION
+						var groupSnapshot = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(tq.SnapshotJson);
+						if (groupSnapshot == null || groupSnapshot.QuestionSnapshots == null)
+							continue;
+
+						for (int i = 0; i < groupSnapshot.QuestionSnapshots.Count; i++)
+						{
+							var qSnap = groupSnapshot.QuestionSnapshots[i];
+							totalQuestions++;
+							if (isListening) listeningTotal++; else readingTotal++;
+
+							// Tìm câu trả lời user
+							if (!answerMap.TryGetValue(tq.TestQuestionId, out var subMap)
+								|| !subMap.TryGetValue(i, out var userAnswerDto))
+							{
+								skipCount++;
+								continue;
+							}
+
+							bool isCorrect = CheckIsCorrect(qSnap.Options, userAnswerDto.ChosenOptionLabel);
+
+							if (isCorrect)
+							{
+								if (isListening) listeningCorrect++; else readingCorrect++;
+							}
+
+							userAnswers.Add(CreateUserAnswer(
+								newTestResult,
+								tq.TestQuestionId,
+								i,
+								userAnswerDto.ChosenOptionLabel,
+								isCorrect
+							));
+						}
+					}
+				}
+				catch (Exception ex)
+				{
+					// debug khi snapshot bị lỗi JSON
+					Console.WriteLine($"Error processing TestQuestionId={tq.TestQuestionId}: {ex.Message}");
+				}
+			}
+
+			// Tổng kết thống kê
+			var stats = new TestStats
+			{
+				TotalQuestions = totalQuestions,
+				SkipCount = skipCount,
+				ListeningCorrect = listeningCorrect,
+				ReadingCorrect = readingCorrect,
+				ListeningTotal = listeningTotal,
+				ReadingTotal = readingTotal
+			};
+
+			return (userAnswers, stats);
+		}
+		private bool CheckIsCorrect(List<OptionSnapshotDto>? options, string? chosenLabel)
+		{
+			if (options == null || string.IsNullOrEmpty(chosenLabel))
+				return false;
+
+			var chosen = options.FirstOrDefault(o =>
+				o.Label.Equals(chosenLabel, StringComparison.OrdinalIgnoreCase));
+
+			return chosen?.IsCorrect ?? false;
+		}
+		private UserAnswer CreateUserAnswer(TestResult testResult, int testQuestionId, int? subIndex, string chosenLabel, bool? isCorrect)
+		{
+			return new UserAnswer
+			{
+				TestResult = testResult,
+				TestQuestionId = testQuestionId,
+				SubQuestionIndex = subIndex,
+				ChosenOptionLabel = chosenLabel,
+				IsCorrect = isCorrect,
+				CreatedAt = DateTime.UtcNow
+			};
+		}
+		private GeneralLRResultDto CalculateSimulatorResult(TestStats stats, int duration)
+		{
+			int listeningScore = ToeicScoreTable.GetListeningScore(stats.ListeningCorrect);
+			int readingScore = ToeicScoreTable.GetReadingScore(stats.ReadingCorrect);
+
+			return new GeneralLRResultDto
+			{
+				Duration = duration,
+				TotalQuestions = stats.TotalQuestions,
+				SkipCount = stats.SkipCount,
+
+				ListeningCorrect = stats.ListeningCorrect,
+				ListeningTotal = stats.ListeningTotal,
+				ListeningScore = listeningScore,
+
+				ReadingCorrect = stats.ReadingCorrect,
+				ReadingTotal = stats.ReadingTotal,
+				ReadingScore = readingScore,
+
+				TotalScore = listeningScore + readingScore,
+				CorrectCount = stats.ListeningCorrect + stats.ReadingCorrect,
+				IncorrectCount = stats.TotalQuestions - (stats.ListeningCorrect + stats.ReadingCorrect) - stats.SkipCount
+			};
+		}
+		private GeneralLRResultDto CalculatePracticeResult(TestStats stats, int duration)
+		{
+			int totalCorrect = stats.ListeningCorrect + stats.ReadingCorrect;
+
+			return new GeneralLRResultDto
+			{
+				Duration = duration,
+				TotalQuestions = stats.TotalQuestions,
+				SkipCount = stats.SkipCount,
+				CorrectCount = totalCorrect,
+				IncorrectCount = stats.TotalQuestions - totalCorrect - stats.SkipCount,
+				TotalScore = null
+			};
+		}
+		private async Task<QuestionGroupSnapshotDto> HandleQuestionGroupSnapshotAsync(QuestionGroupDto dto, int partId, TestSkill skill)
+		{
+			// Mapping thủ công, tránh phụ thuộc EF entity để snapshot chuẩn nhất
+			return new QuestionGroupSnapshotDto
+			{
+				QuestionGroupId = 0,
+				PartId = partId,
+				Passage = dto.Passage ?? string.Empty,
+				ImageUrl = dto.ImageUrl,
+				QuestionSnapshots = dto.Questions?.Select(q => new QuestionSnapshotDto
+				{
+					QuestionId = 0,
+					PartId = partId,
+					Content = q.Content ?? string.Empty,
+					ImageUrl = q.ImageUrl,
+					Explanation = q.Explanation ?? string.Empty,
+					Options = q.Options?.Select(o => new OptionSnapshotDto
+					{
+						Label = o.Label ?? string.Empty,
+						Content = o.Content ?? string.Empty,
+						IsCorrect = o.IsCorrect
+					}).ToList() ?? new List<OptionSnapshotDto>()
+				}).ToList() ?? new List<QuestionSnapshotDto>()
+			};
+		}
+		private async Task<QuestionSnapshotDto> HandleSingleQuestionSnapshotAsync(QuestionDto dto, int partId, TestSkill skill)
+		{
+			return new QuestionSnapshotDto
+			{
+				QuestionId = 0,
+				PartId = partId,
+				Content = dto.Content ?? string.Empty,
+				ImageUrl = dto.ImageUrl,
+				Explanation = dto.Explanation ?? string.Empty,
+				Options = dto.Options?.Select(o => new OptionSnapshotDto
+				{
+					Label = o.Label ?? string.Empty,
+					Content = o.Content ?? string.Empty,
+					IsCorrect = o.IsCorrect
+				}).ToList() ?? new List<OptionSnapshotDto>()
+			};
+		}
+		#endregion
+
 	}
 }

@@ -14,8 +14,8 @@ namespace ToeicGenius.Domains.Entities
 		public Test Test { get; set; }
 		[Required]
 		public int OrderInTest { get; set; }
-		public int? PartId { get; set; }
-		public Part? Part { get; set; }
+		public int PartId { get; set; }
+		public Part Part { get; set; }
 		public QuestionSourceType SourceType { get; set; } // Manual or FromBank
 		public bool IsQuestionGroup { get; set; } = false;
 
