@@ -64,8 +64,11 @@ namespace ToeicGenius.Services.Implementations
 				foreach (var q in singleQuestions)
 				{
 					quantityQuestion++;
-					var snapshot = System.Text.Json.JsonSerializer.Serialize(q);
-					await _uow.TestQuestions.AddAsync(new TestQuestion
+                    var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
+                    {
+                        ReferenceHandler = ReferenceHandler.IgnoreCycles
+                    });
+                    await _uow.TestQuestions.AddAsync(new TestQuestion
 					{
 						Test = test,
 						IsQuestionGroup = false,
@@ -80,9 +83,12 @@ namespace ToeicGenius.Services.Implementations
 				foreach (var q in groupQuestions)
 				{
 					quantityQuestion += q.QuestionSnapshots.Count();
-					var snapshot = System.Text.Json.JsonSerializer.Serialize(q);
+                    var snapshot = System.Text.Json.JsonSerializer.Serialize(q, new JsonSerializerOptions
+                    {
+                        ReferenceHandler = ReferenceHandler.IgnoreCycles
+                    });
 
-					await _uow.TestQuestions.AddAsync(new TestQuestion
+                    await _uow.TestQuestions.AddAsync(new TestQuestion
 					{
 						Test = test,
 						IsQuestionGroup = true,
