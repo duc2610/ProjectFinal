@@ -1,4 +1,3 @@
-// AddQuestionModal.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Modal, Tabs, Table, Input, Select, Button, Space, Tag, message } from "antd";
 import QuestionForm from "./QuestionForm";
