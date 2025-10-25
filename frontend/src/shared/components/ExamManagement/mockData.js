@@ -2,25 +2,28 @@ export const MOCK_EXAMS = [
   {
     id: "exam-1",
     title: "TOEIC Practice Test 1",
-    description: "Full-length TOEIC practice test with listening and reading sections.",
+    description: "Full-length TOEIC practice test with listening and reading.",
     duration: 120,
     createdAt: "2024-01-15",
-    parts: [1,2,3,4,5,6,7]
+    parts: ["Part 1","Part 2","Part 3","Part 4","Part 5","Part 6","Part 7"],
+    isActive: true
   },
   {
     id: "exam-2",
     title: "TOEIC Practice Test 2",
     description: "Advanced level TOEIC practice test",
-    duration: 120,
+    duration: 90,
     createdAt: "2024-02-01",
-    parts: [1,2,3,4,5,6,7]
+    parts: ["Part 1","Part 2","Part 3","Part 4","Part 5","Part 6","Part 7"],
+    isActive: true
   }
 ];
 
-// Question bank: sample pool you can pick from
+const rnd = (n=10000) => Math.floor(Math.random()*n);
+
 export const QUESTION_BANK = [
   {
-    id: "bank-1",
+    id: `bank-${rnd()}`,
     type: "Listening",
     part: "Part 1",
     question: "Look at the picture and choose the correct description.",
@@ -28,10 +31,12 @@ export const QUESTION_BANK = [
     correct: "B",
     imageUrl: null,
     audioUrl: null,
-    explanation: ""
+    explanation: "",
+    isActive: true,
+    createdAt: "2024-01-10"
   },
   {
-    id: "bank-2",
+    id: `bank-${rnd()}`,
     type: "Listening",
     part: "Part 2",
     question: "When will the meeting start?",
@@ -39,10 +44,12 @@ export const QUESTION_BANK = [
     correct: "A",
     imageUrl: null,
     audioUrl: null,
-    explanation: ""
+    explanation: "",
+    isActive: true,
+    createdAt: "2024-01-11"
   },
   {
-    id: "bank-3",
+    id: `bank-${rnd()}`,
     type: "Reading",
     part: "Part 5",
     question: "The company ____ a new product line next month.",
@@ -50,10 +57,12 @@ export const QUESTION_BANK = [
     correct: "B",
     imageUrl: null,
     audioUrl: null,
-    explanation: ""
+    explanation: "",
+    isActive: true,
+    createdAt: "2024-01-12"
   },
   {
-    id: "bank-4",
+    id: `bank-${rnd()}`,
     type: "Reading",
     part: "Part 7",
     question: "Please review the attached document and ____ any necessary changes.",
@@ -61,6 +70,8 @@ export const QUESTION_BANK = [
     correct: "A",
     imageUrl: null,
     audioUrl: null,
-    explanation: ""
+    explanation: "",
+    isActive: true,
+    createdAt: "2024-01-13"
   }
 ];

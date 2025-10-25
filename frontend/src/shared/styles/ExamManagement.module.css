@@ -1,26 +1,35 @@
-
 .pageWrap {
-  padding: 28px;
+  padding: 24px;
   max-width: 1200px;
-  margin: 32px auto;
+  margin: 20px auto;
   background: #fff;
   border-radius: 8px;
+}
+
+.headerRow {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:16px;
 }
 
 .controlCard {
   margin-bottom: 16px;
 }
 
-.questionCell {
-  display:flex;
-  justify-content:space-between;
-  gap:12px;
-  align-items:flex-start;
+.tableCard {
+  padding: 0;
 }
 
-.questionText {
-  max-width: 560px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.answerBadge {
+  display:inline-block;
+  padding:4px 8px;
+  background:#f0f0f0;
+  border-radius:6px;
+  font-weight:600;
+}
+
+.statusDisabled {
+  opacity: 0.6;
+  filter: grayscale(30%);
 }
