@@ -19,6 +19,7 @@ export default function ExamScreen() {
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
   const [timeLeft, setTimeLeft] = useState(durationMinutes * 60);
+  const [isNavVisible, setIsNavVisible] = useState(true);
   const timerRef = useRef(null);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
 
@@ -99,7 +100,11 @@ export default function ExamScreen() {
       <Header className={styles.header}>
         <div className={styles.headerInner}>
           <div style={{ display: "flex", alignItems: "center" }}>
-            <MenuOutlined style={{ color: "#fff" }} />
+            <Button
+              type="text"
+              icon={<MenuOutlined style={{ color: "#fff", fontSize: 20 }} />}
+              onClick={() => setIsNavVisible((v) => !v)}
+            />
             <Text style={{ color: "#fff", marginLeft: 12 }}>Online exam</Text>
           </div>
           <div className={styles.headerRight}>
@@ -112,10 +117,17 @@ export default function ExamScreen() {
       </Header>
       <Content className={styles.contentArea}>
         <div className={styles.examBody}>
-          <div className={styles.sideNav}>
-            <QuestionNavigator filteredQuestions={questions} currentIndex={currentIndex} answers={answers} goToQuestionByIndex={goToQuestionByIndex} />
-          </div>
-          <div className={styles.questionArea}>
+          {isNavVisible && (
+            <div className={styles.sideNav}>
+              <QuestionNavigator
+                filteredQuestions={questions}
+                currentIndex={currentIndex}
+                answers={answers}
+                goToQuestionByIndex={goToQuestionByIndex}
+              />
+            </div>
+          )}
+          <div className={styles.questionArea} style={{ flex: isNavVisible ? "1" : "auto", width: "100%" }}>
             <QuestionCard
               question={questions[currentIndex]}
               currentIndex={currentIndex}
