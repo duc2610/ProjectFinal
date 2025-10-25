@@ -20,7 +20,46 @@ namespace ToeicGenius.Services.Implementations
 			_uow = unitOfWork;
 		}
 
-		public async Task<Result<string>> DeleteFileAsync(string fileUrl)
+        public async Task<Stream> DownloadFileAsync(string fileUrl)
+        {
+            try
+            {
+                // Extract key từ CloudFront hoặc S3 URL
+                string key;
+
+                if (!string.IsNullOrEmpty(_cloudFrontDomain) && fileUrl.Contains(_cloudFrontDomain))
+                {
+                    // CloudFront URL: https://d123abc.cloudfront.net/toeic-audio/abc.mp3
+                    var uri = new Uri(fileUrl);
+                    key = uri.AbsolutePath.TrimStart('/');
+                }
+                else if (fileUrl.Contains(".s3"))
+                {
+                    // S3 URL: https://bucket.s3.amazonaws.com/toeic-audio/abc.mp3
+                    var uri = new Uri(fileUrl);
+                    key = uri.AbsolutePath.TrimStart('/');
+                }
+                else
+                {
+                    throw new Exception("Invalid file URL format");
+                }
+
+                // Download từ S3
+                var request = new GetObjectRequest
+                {
+                    BucketName = _bucketName,
+                    Key = key
+                };
+
+                var response = await _s3Client.GetObjectAsync(request);
+                return response.ResponseStream;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to download file from AWS: {ex.Message}");
+            }
+        }
+        public async Task<Result<string>> DeleteFileAsync(string fileUrl)
 		{
 			try
 			{

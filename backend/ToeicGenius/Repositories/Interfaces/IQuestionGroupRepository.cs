@@ -11,6 +11,9 @@ namespace ToeicGenius.Repositories.Interfaces
 		Task<QuestionGroupResponseDto?> GetGroupWithQuestionsAsync(int id);
 		Task<PaginationResponse<QuestionGroupListItemDto>> FilterGroupsAsync(int? part, string? keyWord, int? skill, int page, int pageSize, CommonStatus status);
 		Task<QuestionGroup> GetByIdAndStatusAsync(int? id, CommonStatus status);
+		Task<List<QuestionGroupSnapshotDto>> GetByListIdAsync(List<int> questionGroupIds);
+		Task<List<QuestionGroup>> GetRandomQuestionGroupsAsync(int partId, int? questionTypeId, int count);
+
 	}
 }
 

@@ -28,7 +28,9 @@ namespace ToeicGenius.Repositories.Implementations
         public IUserTestRepository UserTests { get; }
         public IUserTestSkillScoreRepository UserTestSkillScores { get; }
 
-        public UnitOfWork(ToeicGeniusDbContext context)
+		public ITestQuestionRepository TestQuestions { get; }
+
+		public UnitOfWork(ToeicGeniusDbContext context)
         {
             _context = context;
             AIFeedbacks = new AIFeedbackRepository(context);
@@ -48,6 +50,7 @@ namespace ToeicGenius.Repositories.Implementations
             Users = new UserRepository(context);
             UserTests = new UserTestRepository(context);
             UserTestSkillScores = new UserTestSkillScoreRepository(context);
+            TestQuestions = new TestQuestionRepository(context);
         }
 
         public async Task<int> SaveChangesAsync()

@@ -8,15 +8,16 @@ namespace ToeicGenius.Repositories.Interfaces
 {
 	public interface IQuestionRepository : IBaseRepository<Question, int>
 	{
-        Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id);
-        Task<PaginationResponse<QuestionResponseDto>> FilterQuestionsAsync(
+		Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id);
+		Task<PaginationResponse<QuestionResponseDto>> FilterQuestionsAsync(
 			int? partId, int? questionTypeId, string? keyWord, int? skill, int page, int pageSize, CommonStatus status);
 		Task<List<Question>> GetQuestionsByGroupIdAsync(int groupId);
 		Task<Question> GetQuestionByIdAndStatus(int questionId, CommonStatus status);
+		Task<List<QuestionSnapshotDto>> GetByListIdAsync(List<int> questionIds);
 		Task<PaginationResponse<QuestionListItemDto>> FilterAllAsync(int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status);
-
-
-	}
+        Task<List<Question>> GetByPartIdAsync(int partId);
+		Task<List<Question>> GetRandomQuestionsAsync(int partId, int? questionTypeId, int count);
+    }
 }
 
 
