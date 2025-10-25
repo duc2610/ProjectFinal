@@ -90,12 +90,12 @@
 
 ### Features
 #### Screens:
-- [ ] Manage User 
-- [ ] Take test (Examinee)
-- [ ] View Result
+- [x] Manage User 
+- [x] Take test (Examinee)
+- [x] View Result
 - [ ] Test History
-- [ ] Test Result Details
-- [ ] Scoring: Speaking-Writing(AI) and Listening & Reading test(MCQ)
+- [x] Test Result Details
+- [x] Scoring: Speaking-Writing(AI) and Listening & Reading test(MCQ)
 
 #### API connects:
 - [ ] Manage User 
