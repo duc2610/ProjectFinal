@@ -55,3 +55,24 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      console.error("API Error:", {
+        status: error.response.status,
+        data: error.response.data,
+        url: error.config?.url,
+      });
+    } else if (error.request) {
+      console.error("Network Error: No response from server", {
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+      });
+    } else {
+      console.error("Request Error:", error.message);
+    }
+    return Promise.reject(error);
+  }
+);

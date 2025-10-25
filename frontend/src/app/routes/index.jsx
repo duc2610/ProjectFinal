@@ -18,8 +18,8 @@ const VerifyReset = lazy(() => import("@pages/auth/VerifyReset.jsx"));
 const AccountManagement = lazy(() =>
   import("@pages/admin/AccountManagement.jsx")
 );
-const EvaluationBanksManagement = lazy(() =>
-  import("@pages/admin/EvaluationBanksManagement.jsx")
+const TestBanksManagement = lazy(() =>
+  import("@pages/testCreator/TestBanksManagement.jsx")
 );
 const QuestionBankManagement = lazy(() =>
   import("@pages/testCreator/QuestionBankManagement.jsx")
@@ -59,7 +59,7 @@ export default function RoutesRoot() {
             <Route element={<RoleRoute allow={[ROLES.TestCreator]} />}>
               <Route
                 path="/test-creator/evaluation-banks-management"
-                element={<EvaluationBanksManagement />}
+                element={<TestBanksManagement />}
               />
               <Route
                 path="/test-creator/question-bank"
