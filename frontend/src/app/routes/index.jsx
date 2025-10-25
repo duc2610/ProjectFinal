@@ -4,6 +4,8 @@ import { PrivateRoute, PublicOnlyRoute, RoleRoute } from "@app/guards/Guards";
 import { ROLES } from "@shared/utils/acl";
 import AdminShell from "@shared/layouts/AdminShell.jsx";
 import MainLayout from "@shared/layouts/MainLayout";
+import { Spin } from "antd";
+import { LoadingOutlined } from "@ant-design/icons";
 
 const Home = lazy(() => import("@pages/public/Home.jsx"));
 const About = lazy(() => import("@pages/public/About.jsx"));
@@ -18,18 +20,34 @@ const VerifyReset = lazy(() => import("@pages/auth/VerifyReset.jsx"));
 const AccountManagement = lazy(() =>
   import("@pages/admin/AccountManagement.jsx")
 );
-const TestBanksManagement = lazy(() =>
-  import("@pages/testCreator/TestBanksManagement.jsx")
+const EvaluationBanksManagement = lazy(() =>
+  import("@pages/admin/EvaluationBanksManagement.jsx")
 );
 const QuestionBankManagement = lazy(() =>
   import("@pages/testCreator/QuestionBankManagement.jsx")
 );
 import NotFound from "@pages/public/NotFound.jsx";
+
 export default function RoutesRoot() {
+  const antIcon = <LoadingOutlined style={{ fontSize: 36 }} spin />;
+
   return (
-    <Suspense fallback={<div style={{ padding: 16 }}>Đang tải...</div>}>
+    <Suspense
+      fallback={
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100vh",
+          }}
+        >
+          <Spin indicator={antIcon} tip="Đang tải..." size="large" />
+        </div>
+      }
+    >
       <Routes>
-        //khong dung chung layout header voi footer
+        {/* không dùng chung layout header với footer */}
         <Route element={<PublicOnlyRoute />}>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -38,15 +56,18 @@ export default function RoutesRoot() {
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/verify-reset" element={<VerifyReset />} />
         </Route>
-        // dung chung layout header voi footer
+
+        {/* dùng chung layout header với footer */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
-          //chi user binh thuong moi vao duoc
+          {/* chỉ user bình thường mới vào được */}
           <Route element={<PrivateRoute />}>
             <Route path="/profile" element={<Profile />} />
           </Route>
         </Route>
+
+        {/* Role-based routes */}
         <Route element={<RoleRoute allow={[ROLES.Admin, ROLES.TestCreator]} />}>
           <Route element={<AdminShell />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
@@ -68,6 +89,17 @@ export default function RoutesRoot() {
             </Route>
           </Route>
         </Route>
+
+        {/* Public TOEIC routes */}
+        <Route path="/toeic-exam" element={<TOEICExam />} />
+        <Route path="/exam" element={<ExamScreen />} />
+        <Route path="/result" element={<TestResults />} />
+        <Route
+          path="/test-creator/exam-management"
+          element={<ExamManagement />}
+        />
+
+        {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
