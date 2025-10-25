@@ -160,9 +160,9 @@ export default function ResultPage() {
 
       if (isWritingType) {
         qRows.writing.push(row);
-      } else if ([1,2,3,4].includes(part)) {
+      } else if ([1, 2, 3, 4].includes(part)) {
         qRows.listening.push(row);
-      } else if ([5,6,7].includes(part)) {
+      } else if ([5, 6, 7].includes(part)) {
         qRows.reading.push(row);
       } else {
         // default to reading
@@ -285,7 +285,7 @@ export default function ResultPage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <Text strong>{s.icon} {s.title}</Text>
-                <br/>
+                <br />
                 <Text type="secondary">{s.score}/{s.max} points</Text>
               </div>
               <div>
@@ -324,7 +324,7 @@ export default function ResultPage() {
           <Title level={3} style={{ color: "#fff", margin: 0 }}>
             TOEIC Test Results
           </Title>
-          <Button onClick={() => { navigate("/toeic-exam"); }} type="primary" ghost>Retake Test</Button>
+          <Button onClick={() => { navigate("/toeic-exam"); }} ghost>Retake Test</Button>
         </div>
 
         <div className={styles.content}>
@@ -332,8 +332,8 @@ export default function ResultPage() {
             {selectedSection === "writing"
               ? "Writing Section Results (AI Evaluated)"
               : selectedSection === "overall"
-              ? "Overall Results"
-              : `${sections.find((s) => s.key === selectedSection).title}`}
+                ? "Overall Results"
+                : `${sections.find((s) => s.key === selectedSection).title}`}
           </Title>
 
           <Card className={styles.scoreCard}>
@@ -354,7 +354,7 @@ export default function ResultPage() {
             {/* Writing */}
             {selectedSection === "writing" && (resultState.detailTasks || []).map((t, i) => (
               <Card key={i} type="inner" title={t.title} className={styles.taskCard}>
-                <Text strong style={{ color: "#fa541c", fontSize: 16 }}>{t.score}</Text><br/>
+                <Text strong style={{ color: "#fa541c", fontSize: 16 }}>{t.score}</Text><br />
                 <Text>{t.feedback}</Text>
                 <div style={{ marginTop: 8 }}><a href="#">View AI Analysis</a></div>
 
@@ -422,11 +422,11 @@ export default function ResultPage() {
         <Table
           columns={[
             { title: "No.", dataIndex: "index", key: "index", width: 80 },
-            { title: "Question", dataIndex: "question", key: "question", render: (t,r)=>(<div>{r.passage && <div style={{fontStyle:'italic'}}>{r.passage}</div>}{t}</div>) },
-            { title: "Your answer", dataIndex: "userAnswer", key: "userAnswer", render:(v,r)=>(r.isCorrect===null ? <Text type="secondary">{v||'No submission'}</Text> : <Text style={{color: r.isCorrect ? 'green':'red'}}>{v||'No answer'}</Text>) },
+            { title: "Question", dataIndex: "question", key: "question", render: (t, r) => (<div>{r.passage && <div style={{ fontStyle: 'italic' }}>{r.passage}</div>}{t}</div>) },
+            { title: "Your answer", dataIndex: "userAnswer", key: "userAnswer", render: (v, r) => (r.isCorrect === null ? <Text type="secondary">{v || 'No submission'}</Text> : <Text style={{ color: r.isCorrect ? 'green' : 'red' }}>{v || 'No answer'}</Text>) },
             { title: "Correct", dataIndex: "correctAnswer", key: "correctAnswer" },
-            { title: "Result", dataIndex: "isCorrect", key: "isCorrect", render: (val)=>(val===null ? <Tag color="gold">N/A</Tag> : val ? <Tag color="success">Correct</Tag> : <Tag color="error">Wrong</Tag>) },
-            { title: "Report", key:"report", render: (_,row)=>(<Button size="small" onClick={()=>{ setReportQuestion(row); setReportModalVisible(true); }}>Report</Button>) }
+            { title: "Result", dataIndex: "isCorrect", key: "isCorrect", render: (val) => (val === null ? <Tag color="gold">N/A</Tag> : val ? <Tag color="success">Correct</Tag> : <Tag color="error">Wrong</Tag>) },
+            { title: "Report", key: "report", render: (_, row) => (<Button size="small" onClick={() => { setReportQuestion(row); setReportModalVisible(true); }}>Report</Button>) }
           ]}
           dataSource={detailQuestions}
           rowKey="key"

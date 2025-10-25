@@ -263,7 +263,6 @@ export default function ExamManager() {
                                 <Select.Option value="createdDesc">Newest First</Select.Option>
                                 <Select.Option value="createdAsc">Oldest First</Select.Option>
                             </Select>
-                            {/* No create button on Questions tab as requested */}
                         </div>
                     </Card>
 
