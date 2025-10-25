@@ -1,0 +1,26 @@
+
+.pageWrap {
+  padding: 28px;
+  max-width: 1200px;
+  margin: 32px auto;
+  background: #fff;
+  border-radius: 8px;
+}
+
+.controlCard {
+  margin-bottom: 16px;
+}
+
+.questionCell {
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+}
+
+.questionText {
+  max-width: 560px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

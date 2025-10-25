@@ -18,6 +18,7 @@ const VerifyReset = lazy(() => import("@pages/auth/VerifyReset.jsx"));
 const TOEICExam = lazy(() => import("../../../src/shared/components/TOEICExam/ExamSelection.jsx"));
 const TestResults = lazy(() => import("../../../src/shared/components/TOEICExam/TestResult.jsx"));
 const ExamScreen = lazy(() => import("../../../src/shared/components/TOEICExam/ExamScreen.jsx"));
+const ExamManagement = lazy(() => import("../../../src/shared/components/ExamManagement/ExamManagement.jsx"));
 const AccountManagement = lazy(() =>
   import("@pages/admin/AccountManagement.jsx")
 );
@@ -74,6 +75,7 @@ export default function RoutesRoot() {
         <Route path="/toeic-exam" element={<TOEICExam />} />
         <Route path="/exam" element={<ExamScreen />} />
         <Route path="/result" element={<TestResults />} />
+        <Route path="/test-creator/exam-management" element={<ExamManagement />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
