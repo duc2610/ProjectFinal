@@ -26,6 +26,18 @@ const EvaluationBanksManagement = lazy(() =>
 const QuestionBankManagement = lazy(() =>
   import("@pages/testCreator/QuestionBankManagement.jsx")
 );
+const TOEICExam = lazy(() =>
+  import("../../../src/shared/components/TOEICExam/ExamSelection.jsx")
+);
+const TestResults = lazy(() =>
+  import("../../../src/shared/components/TOEICExam/TestResult.jsx")
+);
+const ExamScreen = lazy(() =>
+  import("../../../src/shared/components/TOEICExam/ExamScreen.jsx")
+);
+const ExamManagement = lazy(() =>
+  import("../../../src/shared/components/ExamManagement/ExamManagement.jsx")
+);
 import NotFound from "@pages/public/NotFound.jsx";
 
 export default function RoutesRoot() {
@@ -98,7 +110,6 @@ export default function RoutesRoot() {
           path="/test-creator/exam-management"
           element={<ExamManagement />}
         />
-
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
