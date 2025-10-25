@@ -33,7 +33,7 @@ export function generateMockQuestionsFromParts(partIds) {
         questions.push({
           ...base,
           question: `Look at the picture. What is most likely true? (sample)`,
-          imageUrl: `/images/part1_${i}.jpg`,
+          imageUrl: `src/assets/images/logo.png`,
           options: [
             { key: "A", text: "A. People are talking" },
             { key: "B", text: "B. A person is holding an umbrella" },
