@@ -155,7 +155,7 @@ namespace ToeicGenius.Repositories.Implementations
 				throw;
 			}
 		}
-		public async Task<GeneralLRResultDto?> GetDetailResultLRAsync(int testResultId)
+		public async Task<GeneralLRResultDto> GetDetailResultLRAsync(int testResultId)
 		{
 			var skillScores = await _context.UserTestSkillScores
 				.Where(u => u.TestResultId == testResultId)

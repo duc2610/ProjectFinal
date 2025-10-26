@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Drawing.Printing;
+using System.Security.Claims;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using ToeicGenius.Domains.DTOs.Requests.Test;
@@ -183,6 +184,25 @@ namespace ToeicGenius.Controllers
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
 			return Ok(ApiResponse<GeneralLRResultDto>.SuccessResponse(result.Data));
 		}
+
+		// Test history
+		[HttpGet("history")]
+		[Authorize(Roles = "Examinee")]
+		public async Task<IActionResult> GetTestHistory()
+		{
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var result = await _testService.GetTestHistoryAsync(userId);
+
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<List<TestHistoryDto>>.SuccessResponse(result.Data!));
+		}
+
 		#endregion
 
 		//TODO: For examinee 

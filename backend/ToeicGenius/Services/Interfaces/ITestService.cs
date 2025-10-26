@@ -20,5 +20,6 @@ namespace ToeicGenius.Services.Interfaces
 		Task<Result<List<TestVersionDto>>> GetVersionsByParentIdAsync(int parentTestId);
 		Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request);
 		Task<Result<GeneralLRResultDto>> SubmitLRTestAsync(SubmitLRTestRequestDto request);
+		Task<Result<List<TestHistoryDto>>> GetTestHistoryAsync(Guid userId);
 	}
 }

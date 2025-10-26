@@ -93,7 +93,27 @@ namespace ToeicGenius.Repositories.Implementations
 				.Select(t => t.TotalQuestion)
 				.FirstOrDefaultAsync();
 		}
-		
+		public async Task<List<TestHistoryDto>> GetTestHistoryAsync(Guid userId)
+		{
+			var query = await _context.TestResults
+				.Where(tr => tr.UserId == userId)
+				.Include(tr => tr.Test)
+				.OrderByDescending(tr => tr.CreatedAt)
+				.Select(tr => new TestHistoryDto
+				{
+					TestId = tr.TestId,
+					TestType = tr.TestType,
+					TestSkill = tr.Test.TestSkill,
+					Title = tr.Test.Title,
+					Duration = tr.Duration,
+					CreatedAt = tr.CreatedAt,
+					TotalQuestion = tr.TotalQuestions,
+					CorrectQuestion = tr.CorrectCount
+				})
+				.ToListAsync();
+
+			return query;
+		}
 
 	}
 }

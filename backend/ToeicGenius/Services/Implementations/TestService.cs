@@ -842,32 +842,8 @@ namespace ToeicGenius.Services.Implementations
 				? CalculateSimulatorResult(stats, request.Duration)
 				: CalculatePracticeResult(stats, request.Duration);
 
-			var skillScores = new List<UserTestSkillScore>();
-
-			if (result.ListeningScore.HasValue)
-			{
-				skillScores.Add(new UserTestSkillScore
-				{
-					Skill = "Listening",
-					CorrectCount = result.ListeningCorrect ?? 0,
-					TotalQuestions = result.ListeningTotal ?? 0,
-					Score = result.ListeningScore ?? 0,
-				});
-			}
-
-			if (result.ReadingScore.HasValue)
-			{
-				skillScores.Add(new UserTestSkillScore
-				{
-					Skill = "Reading",
-					CorrectCount = result.ReadingCorrect ?? 0,
-					TotalQuestions = result.ReadingTotal ?? 0,
-					Score = result.ReadingScore ?? 0,
-				});
-			}
-
 			// 3. Set thông tin cho test result
-			newTestResult.SkillScores = skillScores;
+			newTestResult.SkillScores = BuildSkillScores(result,isSimulator);
 			newTestResult.TotalQuestions = totalQuestion;
 			newTestResult.CorrectCount = result.CorrectCount;
 			newTestResult.IncorrectCount = result.IncorrectCount;
@@ -882,6 +858,11 @@ namespace ToeicGenius.Services.Implementations
 			var resultDetail = await _uow.TestResults.GetDetailResultLRAsync(newTestResult.TestResultId);
 
 			return Result<GeneralLRResultDto>.Success(resultDetail);
+		}
+		public async Task<Result<List<TestHistoryDto>>> GetTestHistoryAsync(Guid userId)
+		{
+			var result = await _uow.Tests.GetTestHistoryAsync(userId);
+			return Result<List<TestHistoryDto>>.Success(result);
 		}
 		#endregion
 
@@ -1137,6 +1118,26 @@ namespace ToeicGenius.Services.Implementations
 					Content = o.Content ?? string.Empty,
 					IsCorrect = o.IsCorrect
 				}).ToList() ?? new List<OptionSnapshotDto>()
+			};
+		}
+		private List<UserTestSkillScore> BuildSkillScores(GeneralLRResultDto result, bool isSimulator)
+		{
+			return new List<UserTestSkillScore>
+			{
+				new UserTestSkillScore
+				{
+					Skill = "Listening",
+					CorrectCount = result.ListeningCorrect ?? 0,
+					TotalQuestions = result.ListeningTotal ?? 0,
+					Score = isSimulator ? result.ListeningScore ?? 0 : 0
+				},
+				new UserTestSkillScore
+				{
+					Skill = "Reading",
+					CorrectCount = result.ReadingCorrect ?? 0,
+					TotalQuestions = result.ReadingTotal ?? 0,
+					Score = isSimulator ? result.ReadingScore ?? 0 : 0
+				}
 			};
 		}
 		#endregion
