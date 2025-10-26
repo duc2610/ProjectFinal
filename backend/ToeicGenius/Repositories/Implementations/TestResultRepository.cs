@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using ToeicGenius.Domains.DTOs.Responses.Test;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
@@ -13,7 +14,7 @@ namespace ToeicGenius.Repositories.Implementations
 
 		public TestResultRepository(ToeicGeniusDbContext context) : base(context) { }
 
-		// Constructor with logger (optional - inject n?u c�)
+		// Constructor with logger (optional - inject n?u có)
 		public TestResultRepository(ToeicGeniusDbContext context, ILogger<TestResultRepository> logger)
 			: base(context)
 		{
@@ -40,7 +41,7 @@ namespace ToeicGenius.Repositories.Implementations
 		{
 			try
 			{
-				// 1. Ki?m tra xem c� active test kh�ng
+				// 1. Ki?m tra xem có active test không
 				var activeTest = await GetActiveTestByUserIdAsync(userId);
 				if (activeTest != null)
 				{
@@ -72,7 +73,7 @@ namespace ToeicGenius.Repositories.Implementations
 
 				await _context.TestResults.AddAsync(newTest);
 
-				// 4. ? Save changes ?? c� UserTestId
+				// 4. ? Save changes ?? có UserTestId
 				await _context.SaveChangesAsync();
 
 				_logger?.LogInformation("Created new UserTest: {UserTestId} for user {UserId}",
@@ -154,7 +155,60 @@ namespace ToeicGenius.Repositories.Implementations
 				throw;
 			}
 		}
+		public async Task<GeneralLRResultDto?> GetDetailResultLRAsync(int testResultId)
+		{
+			var skillScores = await _context.UserTestSkillScores
+				.Where(u => u.TestResultId == testResultId)
+				.ToListAsync();
 
+			if (!skillScores.Any())
+				return null;
+
+			// Lấy tổng điểm tổng thể từ TestResult
+			var testResult = await _context.TestResults
+				.Where(tr => tr.TestResultId == testResultId)
+				.Select(tr => new
+				{
+					tr.TotalScore,
+					tr.Duration,
+					tr.TotalQuestions,
+					tr.CorrectCount,
+					tr.IncorrectCount,
+					tr.SkipCount
+				})
+				.FirstOrDefaultAsync();
+
+			var resultDto = new GeneralLRResultDto
+			{
+				TotalScore = (int?)testResult?.TotalScore,
+				Duration = testResult?.Duration ?? 0
+			};
+
+			// Gán thông tin từng skill
+			foreach (var s in skillScores)
+			{
+				if (s.Skill.Equals("Listening", StringComparison.OrdinalIgnoreCase))
+				{
+					resultDto.ListeningScore = (int)s.Score;
+					resultDto.ListeningCorrect = s.CorrectCount;
+					resultDto.ListeningTotal = s.TotalQuestions;
+				}
+				else if (s.Skill.Equals("Reading", StringComparison.OrdinalIgnoreCase))
+				{
+					resultDto.ReadingScore = (int)s.Score;
+					resultDto.ReadingCorrect = s.CorrectCount;
+					resultDto.ReadingTotal = s.TotalQuestions;
+				}
+			}
+
+			// Tổng hợp chung
+			resultDto.TotalQuestions = testResult.TotalQuestions;
+			resultDto.CorrectCount = testResult.CorrectCount;
+			resultDto.IncorrectCount = testResult.IncorrectCount;
+			resultDto.SkipCount = testResult.SkipCount;
+
+			return resultDto;
+		}
 
 	}
 }

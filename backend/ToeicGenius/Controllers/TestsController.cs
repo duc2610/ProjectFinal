@@ -181,7 +181,7 @@ namespace ToeicGenius.Controllers
 			var result = await _testService.SubmitLRTestAsync(request);
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
-			return Ok(result.Data);
+			return Ok(ApiResponse<GeneralLRResultDto>.SuccessResponse(result.Data));
 		}
 		#endregion
 

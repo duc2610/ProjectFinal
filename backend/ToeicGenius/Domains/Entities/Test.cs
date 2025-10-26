@@ -24,7 +24,7 @@ namespace ToeicGenius.Domains.Entities
 		public int Version { get; set; } = 1;  //  Version control
 		public int? ParentTestId { get; set; } // Liên kết test gốc (nếu là bản clone)
 		public Test? ParentTest { get; set; }
-		public int QuantityQuestion { get; set; }
+		public int TotalQuestion { get; set; }
 		public Guid? CreatedById { get; set; }
 		public User? CreatedBy { get; set; }
 		public ICollection<TestQuestion> TestQuestions { get; set; } = new List<TestQuestion>();

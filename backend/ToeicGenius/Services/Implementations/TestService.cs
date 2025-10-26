@@ -101,7 +101,7 @@ namespace ToeicGenius.Services.Implementations
 						CreatedAt = DateTime.UtcNow,
 					});
 				}
-				test.QuantityQuestion = quantityQuestion;
+				test.TotalQuestion = quantityQuestion;
 				await _uow.Tests.AddAsync(test);
 
 				await _uow.SaveChangesAsync();
@@ -216,7 +216,7 @@ namespace ToeicGenius.Services.Implementations
 					}
 				}
 
-				test.QuantityQuestion = quantityQuestion;
+				test.TotalQuestion = quantityQuestion;
 				await _uow.Tests.AddAsync(test);
 
 				await _uow.SaveChangesAsync();
@@ -264,7 +264,7 @@ namespace ToeicGenius.Services.Implementations
 					TestType = TestType.Simulator,
 					AudioUrl = dto.AudioUrl,
 					Version = NumberConstants.FirstVersion,
-					QuantityQuestion = quantity,
+					TotalQuestion = quantity,
 					CreatedAt = DateTime.UtcNow
 				};
 
@@ -358,7 +358,7 @@ namespace ToeicGenius.Services.Implementations
 				Title = test.Title,
 				Description = test.Description,
 				Duration = test.Duration,
-				QuantityQuestion = test.QuantityQuestion,
+				QuantityQuestion = test.TotalQuestion,
 				AudioUrl = test.AudioUrl,
 				TestType = test.TestType,
 				TestSkill = test.TestSkill,
@@ -462,7 +462,7 @@ namespace ToeicGenius.Services.Implementations
 					TestSkill = dto.TestSkill,
 					TestType = dto.TestType,
 					Duration = dto.Duration,
-					QuantityQuestion = 0,
+					TotalQuestion = 0,
 					Status = CommonStatus.Draft,
 					ParentTestId = existing.ParentTestId ?? existing.TestId,
 					Version = newVersion,
@@ -531,7 +531,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 
 			// 6️⃣ Cập nhật lại số lượng câu hỏi
-			targetTest.QuantityQuestion = testQuestions.Count;
+			targetTest.TotalQuestion = testQuestions.Count;
 
 			await _uow.TestQuestions.AddRangeAsync(testQuestions);
 			await _uow.SaveChangesAsync();
@@ -565,7 +565,7 @@ namespace ToeicGenius.Services.Implementations
 					TestType = dto.TestType,
 					AudioUrl = dto.AudioUrl,
 					Duration = GetTestDuration(dto.TestSkill),
-					QuantityQuestion = 0, // sẽ cập nhật sau
+					TotalQuestion = 0, // sẽ cập nhật sau
 					Status = CommonStatus.Draft,
 					ParentTestId = existing.ParentTestId ?? existing.TestId,
 					Version = newVersion,
@@ -643,7 +643,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 
 			await _uow.TestQuestions.AddRangeAsync(testQuestions);
-			targetTest.QuantityQuestion = testQuestions.Count;
+			targetTest.TotalQuestion = testQuestions.Count;
 
 			await _uow.SaveChangesAsync();
 
@@ -667,7 +667,7 @@ namespace ToeicGenius.Services.Implementations
 				Description = source.Description,
 				AudioUrl = source.AudioUrl,
 				Duration = source.Duration,
-				QuantityQuestion = source.QuantityQuestion,
+				TotalQuestion = source.TotalQuestion,
 				TestSkill = source.TestSkill,
 				TestType = source.TestType,
 				Status = CommonStatus.Draft,
@@ -745,7 +745,7 @@ namespace ToeicGenius.Services.Implementations
 				TestSkill = test.TestSkill,
 				AudioUrl = test.AudioUrl,
 				Duration = duration,
-				QuantityQuestion = test.QuantityQuestion
+				QuantityQuestion = test.TotalQuestion
 			};
 
 			// Nếu test chưa có câu hỏi
@@ -809,8 +809,13 @@ namespace ToeicGenius.Services.Implementations
 			if (request.Answers == null || !request.Answers.Any())
 				return Result<GeneralLRResultDto>.Failure("No answers provided.");
 
-			var testQuestionIds = request.Answers.Select(a => a.TestQuestionId).Distinct().ToList();
-			var testQuestions = await _uow.TestQuestions.GetByListIdAsync(testQuestionIds);
+
+			// Tổng số câu hỏi
+			var totalQuestion = await _uow.Tests.GetTotalQuestionAsync(request.TestId);
+
+			// Test question của bài test
+			var testQuestions = await _uow.TestQuestions.GetByTestIdAsync(request.TestId);
+
 			if (!testQuestions.Any())
 				return Result<GeneralLRResultDto>.Failure("Invalid test or questions.");
 
@@ -837,12 +842,46 @@ namespace ToeicGenius.Services.Implementations
 				? CalculateSimulatorResult(stats, request.Duration)
 				: CalculatePracticeResult(stats, request.Duration);
 
-			// 3.Lưu vào DB
+			var skillScores = new List<UserTestSkillScore>();
+
+			if (result.ListeningScore.HasValue)
+			{
+				skillScores.Add(new UserTestSkillScore
+				{
+					Skill = "Listening",
+					CorrectCount = result.ListeningCorrect ?? 0,
+					TotalQuestions = result.ListeningTotal ?? 0,
+					Score = result.ListeningScore ?? 0,
+				});
+			}
+
+			if (result.ReadingScore.HasValue)
+			{
+				skillScores.Add(new UserTestSkillScore
+				{
+					Skill = "Reading",
+					CorrectCount = result.ReadingCorrect ?? 0,
+					TotalQuestions = result.ReadingTotal ?? 0,
+					Score = result.ReadingScore ?? 0,
+				});
+			}
+
+			// 3. Set thông tin cho test result
+			newTestResult.SkillScores = skillScores;
+			newTestResult.TotalQuestions = totalQuestion;
+			newTestResult.CorrectCount = result.CorrectCount;
+			newTestResult.IncorrectCount = result.IncorrectCount;
+			newTestResult.SkipCount = result.SkipCount;
 			newTestResult.TotalScore = (decimal)(isSimulator ? result.TotalScore : 0);
+
+			// 4.Lưu vào DB
+			await _uow.TestResults.AddAsync(newTestResult);
 			await _uow.UserAnswers.AddRangeAsync(userAnswers);
 			await _uow.SaveChangesAsync();
 
-			return Result<GeneralLRResultDto>.Success(result);
+			var resultDetail = await _uow.TestResults.GetDetailResultLRAsync(newTestResult.TestResultId);
+
+			return Result<GeneralLRResultDto>.Success(resultDetail);
 		}
 		#endregion
 

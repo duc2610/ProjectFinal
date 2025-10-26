@@ -9,13 +9,6 @@ namespace ToeicGenius.Repositories.Implementations
 	{
 		public TestQuestionRepository(ToeicGeniusDbContext context) : base(context) { }
 
-		public async Task<List<TestQuestion>> GetByListIdAsync(List<int> testQuestionId)
-		{
-			return await _context.TestQuestions
-				.Where(tq => testQuestionId.Contains(tq.TestQuestionId))
-				.ToListAsync();
-		}
-
 		public async Task<List<TestQuestion>> GetByTestIdAsync(int testId)
 		{
 			return await _context.TestQuestions

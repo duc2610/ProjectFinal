@@ -25,6 +25,7 @@ namespace ToeicGenius.Repositories.Implementations
         public IUserAnswerRepository UserAnswers { get; }
         public IUserOtpRepository UserOtps { get; }
         public IUserRepository Users { get; }
+        public ITestResultRepository TestResults { get; }
         public IUserTestRepository UserTests { get; }
         public IUserTestSkillScoreRepository UserTestSkillScores { get; }
 
@@ -48,6 +49,7 @@ namespace ToeicGenius.Repositories.Implementations
             UserAnswers = new UserAnswerRepository(context);
             UserOtps = new UserOtpRepository(context);
             Users = new UserRepository(context);
+            TestResults = new TestResultRepository(context);
             UserTests = new UserTestRepository(context);
             UserTestSkillScores = new UserTestSkillScoreRepository(context);
             TestQuestions = new TestQuestionRepository(context);
