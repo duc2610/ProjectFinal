@@ -20,6 +20,7 @@ namespace ToeicGenius.Repositories.Interfaces
         IUserAnswerRepository UserAnswers { get; }
         IUserOtpRepository UserOtps { get; }
         IUserRepository Users { get; }
+        ITestResultRepository TestResults { get; }
         IUserTestRepository UserTests { get; }
         IUserTestSkillScoreRepository UserTestSkillScores { get; }
         ITestQuestionRepository TestQuestions{ get; }

@@ -54,7 +54,7 @@ namespace ToeicGenius.Repositories.Implementations
 					TestType = t.TestType,
 					TestSkill = t.TestSkill,
 					Title = t.Title,
-					QuestionQuantity = t.QuantityQuestion,
+					QuestionQuantity = t.TotalQuestion,
 					Duration = t.Duration,
 					CreatedAt = t.CreatedAt,
 					Status = t.Status
@@ -63,7 +63,6 @@ namespace ToeicGenius.Repositories.Implementations
 
 			return new PaginationResponse<TestListResponseDto>(data, totalRecords, page, pageSize);
 		}
-
 		public async Task<Test> GetTestByIdAsync(int id)
 		{
 			return await _context.Tests.Include(t => t.TestQuestions)
@@ -87,6 +86,15 @@ namespace ToeicGenius.Repositories.Implementations
 
 			return maxVersion + 1;
 		}
+		public async Task<int> GetTotalQuestionAsync(int testId)
+		{
+			return await _context.Tests
+				.Where(t => t.TestId == testId)
+				.Select(t => t.TotalQuestion)
+				.FirstOrDefaultAsync();
+		}
+		
+
 	}
 }
 
