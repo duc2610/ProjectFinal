@@ -11,25 +11,25 @@ namespace ToeicGenius.Repositories.Interfaces
         Task<TestResult?> GetActiveTestByUserIdAsync(Guid userId);
 
         /// <summary>
-        /// L?y ho?c t?o TestResult active cho user. N?u ch?a có thì t?o m?i.
+        /// L?y ho?c t?o TestResult active cho user. N?u ch?a c? th? t?o m?i.
         /// </summary>
         Task<TestResult> GetOrCreateActiveTestAsync(Guid userId, int defaultTestId = 1);
 
         /// <summary>
-        /// Hoàn thành m?t TestResult và c?p nh?t TotalScore
+        /// Ho?n th?nh m?t TestResult v? c?p nh?t TotalScore
         /// </summary>
         Task<bool> CompleteTestAsync(int TestResultId, decimal totalScore);
 
         /// <summary>
-        /// L?y l?ch s? các bài test c?a user
+        /// L?y l?ch s? c?c b?i test c?a user
         /// </summary>
         Task<List<TestResult>> GetTestResultHistoryAsync(Guid userId, int skip = 0, int take = 10);
 
         /// <summary>
-        /// Ki?m tra Test có t?n t?i không
+        /// Ki?m tra Test c? t?n t?i kh?ng
         /// </summary>
         Task<bool> TestExistsAsync(int testId);
-		Task<GeneralLRResultDto> GetDetailResultLRAsync(int testResultId);
+        Task<GeneralLRResultDto?> GetDetailResultLRAsync(int testResultId);
 
-	}
+    }
 }

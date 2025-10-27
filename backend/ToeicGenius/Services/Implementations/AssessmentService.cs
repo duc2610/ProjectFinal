@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ToeicGenius.Configurations;
+using ToeicGenius.Domains.DTOs.Requests.AI;
 using ToeicGenius.Domains.DTOs.Requests.AI.Speaking;
 using ToeicGenius.Domains.DTOs.Requests.AI.Writing;
 using ToeicGenius.Domains.DTOs.Responses;
@@ -375,6 +376,203 @@ namespace ToeicGenius.Services.Implementations
 
         #endregion
 
+        #region BULK ASSESSMENT
+
+        public async Task<BulkAssessmentResponseDto> BulkAssessAsync(BulkAssessmentRequestDto request, Guid userId)
+        {
+            try
+            {
+                _logger.LogInformation("📦 Bulk Assessment - User: {UserId}, TestResult: {TestResultId}",
+                    userId, request.TestResultId);
+
+                var response = new BulkAssessmentResponseDto
+                {
+                    TestResultId = request.TestResultId,
+                    CompletedAt = DateTime.UtcNow
+                };
+
+                // Process Writing if provided
+                if (request.WritingAnswers != null && request.WritingAnswers.Any())
+                {
+                    _logger.LogInformation("📝 Processing {Count} Writing parts...", request.WritingAnswers.Count);
+                    response.WritingResult = await ProcessWritingAnswersAsync(request.WritingAnswers, userId);
+                }
+
+                // Process Speaking if provided
+                if (request.SpeakingAnswers != null && request.SpeakingAnswers.Any())
+                {
+                    _logger.LogInformation("🎤 Processing {Count} Speaking parts...", request.SpeakingAnswers.Count);
+                    response.SpeakingResult = await ProcessSpeakingAnswersAsync(request.SpeakingAnswers, userId);
+                }
+
+                _logger.LogInformation("✅ Bulk Assessment Completed");
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error in Bulk Assessment");
+                throw;
+            }
+        }
+
+        private async Task<SkillResultDto> ProcessWritingAnswersAsync(List<WritingAnswerDto> writingAnswers, Guid userId)
+        {
+            var partResults = new List<PartResultDto>();
+
+            foreach (var answer in writingAnswers.OrderBy(a => a.PartNumber))
+            {
+                try
+                {
+                    AIFeedbackResponseDto feedback;
+
+                    // Call appropriate method based on part number
+                    switch (answer.PartNumber)
+                    {
+                        case 1: // Sentence
+                            var sentenceRequest = new WritingSentenceRequestDto
+                            {
+                                TestQuestionId = answer.TestQuestionId,
+                                Text = answer.Text
+                            };
+                            feedback = await AssessWritingSentenceAsync(sentenceRequest, userId);
+                            break;
+
+                        case 2: // Email
+                            var emailRequest = new WritingEmailRequestDto
+                            {
+                                TestQuestionId = answer.TestQuestionId,
+                                Text = answer.Text
+                            };
+                            feedback = await AssessWritingEmailAsync(emailRequest, userId);
+                            break;
+
+                        case 3: // Essay
+                            var essayRequest = new WritingEssayRequestDto
+                            {
+                                TestQuestionId = answer.TestQuestionId,
+                                Text = answer.Text
+                            };
+                            feedback = await AssessWritingEssayAsync(essayRequest, userId);
+                            break;
+
+                        default:
+                            _logger.LogWarning("⚠️ Unknown Writing part number: {PartNumber}", answer.PartNumber);
+                            continue;
+                    }
+
+                    // Convert to PartResultDto
+                    partResults.Add(new PartResultDto
+                    {
+                        PartNumber = answer.PartNumber,
+                        PartName = GetPartName("writing", answer.PartNumber),
+                        Score = feedback.Score,
+                        FeedbackId = feedback.FeedbackId,
+                        DetailedScores = feedback.DetailedScores,
+                        DetailedAnalysis = feedback.DetailedAnalysis,
+                        Recommendations = feedback.Recommendations,
+                        CorrectedText = feedback.CorrectedText
+                    });
+
+                    _logger.LogInformation("✅ Writing Part {Part} scored: {Score}/100", answer.PartNumber, feedback.Score);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ Error processing Writing Part {Part}", answer.PartNumber);
+                    throw;
+                }
+            }
+
+            // Calculate total score
+            var totalScore = partResults.Average(p => p.Score);
+            var completedParts = partResults.Count;
+            var totalParts = 3; // Writing has 3 parts
+            var isComplete = completedParts == totalParts;
+
+            _logger.LogInformation("📊 Writing: {Completed}/{Total} parts, Total Score: {Score}/100",
+                completedParts, totalParts, totalScore);
+
+            return new SkillResultDto
+            {
+                Skill = "Writing",
+                TotalScore = totalScore,
+                CompletedParts = completedParts,
+                TotalParts = totalParts,
+                IsComplete = isComplete,
+                PartResults = partResults
+            };
+        }
+
+        private async Task<SkillResultDto> ProcessSpeakingAnswersAsync(List<SpeakingAnswerDto> speakingAnswers, Guid userId)
+        {
+            var partResults = new List<PartResultDto>();
+
+            foreach (var answer in speakingAnswers.OrderBy(a => a.PartNumber))
+            {
+                try
+                {
+                    // Determine task type based on part number
+                    string taskType = answer.PartNumber switch
+                    {
+                        1 => "read_aloud",
+                        2 => "describe_picture",
+                        3 => "respond_questions",
+                        4 => "respond_with_info",
+                        5 => "express_opinion",
+                        _ => throw new Exception($"Unknown Speaking part number: {answer.PartNumber}")
+                    };
+
+                    var speakingRequest = new SpeakingAssessmentRequestDto
+                    {
+                        TestQuestionId = answer.TestQuestionId,
+                        AudioFile = answer.AudioFile
+                    };
+
+                    var feedback = await AssessSpeakingAsync(speakingRequest, taskType, userId);
+
+                    // Convert to PartResultDto
+                    partResults.Add(new PartResultDto
+                    {
+                        PartNumber = answer.PartNumber,
+                        PartName = GetPartName("speaking", answer.PartNumber),
+                        Score = feedback.Score,
+                        FeedbackId = feedback.FeedbackId,
+                        DetailedScores = feedback.DetailedScores,
+                        DetailedAnalysis = feedback.DetailedAnalysis,
+                        Recommendations = feedback.Recommendations,
+                        Transcription = feedback.Transcription
+                    });
+
+                    _logger.LogInformation("✅ Speaking Part {Part} scored: {Score}/100", answer.PartNumber, feedback.Score);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ Error processing Speaking Part {Part}", answer.PartNumber);
+                    throw;
+                }
+            }
+
+            // Calculate total score
+            var totalScore = partResults.Average(p => p.Score);
+            var completedParts = partResults.Count;
+            var totalParts = 5; // Speaking has 5 parts
+            var isComplete = completedParts == totalParts;
+
+            _logger.LogInformation("📊 Speaking: {Completed}/{Total} parts, Total Score: {Score}/100",
+                completedParts, totalParts, totalScore);
+
+            return new SkillResultDto
+            {
+                Skill = "Speaking",
+                TotalScore = totalScore,
+                CompletedParts = completedParts,
+                TotalParts = totalParts,
+                IsComplete = isComplete,
+                PartResults = partResults
+            };
+        }
+
+        #endregion
+
         #region QUERIES
 
         public async Task<AIFeedbackResponseDto> GetFeedbackAsync(int feedbackId, Guid userId)
@@ -552,6 +750,34 @@ namespace ToeicGenius.Services.Implementations
                 AudioDuration = (double?)feedback.AudioDuration,
                 CreatedAt = feedback.CreatedAt
             };
+        }
+
+        private string GetPartName(string skill, int partNumber)
+        {
+            if (skill == "Writing")
+            {
+                return partNumber switch
+                {
+                    1 => "Write a Sentence",
+                    2 => "Respond to Request",
+                    3 => "Opinion Essay",
+                    _ => $"Part {partNumber}"
+                };
+            }
+            else if (skill == "Speaking")
+            {
+                return partNumber switch
+                {
+                    1 => "Read Aloud",
+                    2 => "Describe Picture",
+                    3 => "Respond to Questions",
+                    4 => "Respond with Information",
+                    5 => "Express Opinion",
+                    _ => $"Part {partNumber}"
+                };
+            }
+
+            return $"Part {partNumber}";
         }
 
         #endregion

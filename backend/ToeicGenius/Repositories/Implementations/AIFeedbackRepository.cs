@@ -5,9 +5,9 @@ using ToeicGenius.Repositories.Persistence;
 
 namespace ToeicGenius.Repositories.Implementations
 {
-	public class AIFeedbackRepository : BaseRepository<AIFeedback, int>, IAIFeedbackRepository
-	{
-		public AIFeedbackRepository(ToeicGeniusDbContext context) : base(context) { }
+    public class AIFeedbackRepository : BaseRepository<AIFeedback, int>, IAIFeedbackRepository
+    {
+        public AIFeedbackRepository(ToeicGeniusDbContext context) : base(context) { }
 
         public async Task<AIFeedback> CreateAsync(AIFeedback feedback)
         {
@@ -63,6 +63,21 @@ namespace ToeicGenius.Repositories.Implementations
 
             return await query
                 .OrderByDescending(f => f.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<List<AIFeedback>> GetByTestResultAndSkillAsync(int testResultId, string skill)
+        {
+            // skill is "writing" or "speaking" (lowercase from AIScorer field)
+            var aiScorer = skill.ToLower();
+
+            return await _context.AIFeedbacks
+                .Include(f => f.UserAnswer)
+                    .ThenInclude(ua => ua!.TestQuestion)
+                        .ThenInclude(tq => tq!.Part)
+                .Where(f => f.UserAnswer!.TestResultId == testResultId &&
+                           f.AIScorer == aiScorer)
+                .OrderBy(f => f.UserAnswer!.TestQuestion!.OrderInTest)
                 .ToListAsync();
         }
 

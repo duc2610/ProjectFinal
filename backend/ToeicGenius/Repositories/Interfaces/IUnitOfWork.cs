@@ -17,13 +17,13 @@ namespace ToeicGenius.Repositories.Interfaces
         IRefreshTokenRepository RefreshTokens { get; }
         IRoleRepository Roles { get; }
         ITestRepository Tests { get; }
+        ITestResultRepository TestResults { get; }
         IUserAnswerRepository UserAnswers { get; }
         IUserOtpRepository UserOtps { get; }
         IUserRepository Users { get; }
-        ITestResultRepository TestResults { get; }
         IUserTestRepository UserTests { get; }
         IUserTestSkillScoreRepository UserTestSkillScores { get; }
-        ITestQuestionRepository TestQuestions{ get; }
+        ITestQuestionRepository TestQuestions { get; }
 
         Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();

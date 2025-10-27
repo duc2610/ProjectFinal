@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using ToeicGenius.Domains.DTOs.Common;
+using ToeicGenius.Domains.DTOs.Requests.AI;
 using ToeicGenius.Domains.DTOs.Requests.AI.Speaking;
 using ToeicGenius.Domains.DTOs.Requests.AI.Writing;
 using ToeicGenius.Domains.DTOs.Responses.AI;
@@ -217,6 +218,50 @@ namespace ToeicGenius.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetHistory");
+                return StatusCode(500, ApiResponse<string>.ErrorResponse(ex.Message, 500));
+            }
+        }
+
+        /// <summary>
+        /// BULK SUBMISSION - Submit all answers at once (Writing + Speaking)
+        /// User completes entire test/practice, then submits all answers together
+        /// Backend assesses each part and returns complete results with total scores
+        /// </summary>
+        [HttpPost("submit-bulk")]
+        [Consumes("multipart/form-data")]
+        [Authorize]
+        public async Task<IActionResult> BulkSubmit([FromForm] BulkAssessmentRequestDto request)
+        {
+            try
+            {
+                var userId = GetUserId();
+
+                _logger.LogInformation("📦 Bulk submission received - User: {UserId}, TestResultId: {TestResultId}",
+                    userId, request.TestResultId);
+
+                // Log what we received
+                _logger.LogInformation("📝 WritingAnswers count: {Count}", request.WritingAnswers?.Count ?? 0);
+                _logger.LogInformation("🎤 SpeakingAnswers count: {Count}", request.SpeakingAnswers?.Count ?? 0);
+
+                // Validate that at least one skill is provided
+                bool hasWriting = request.WritingAnswers != null && request.WritingAnswers.Any();
+                bool hasSpeaking = request.SpeakingAnswers != null && request.SpeakingAnswers.Any();
+
+                if (!hasWriting && !hasSpeaking)
+                {
+                    return BadRequest(ApiResponse<string>.ErrorResponse(
+                        "At least one skill (Writing or Speaking) must be provided", 400));
+                }
+
+                // Process bulk assessment
+                var result = await _assessmentService.BulkAssessAsync(request, userId);
+
+                return Ok(ApiResponse<BulkAssessmentResponseDto>.SuccessResponse(result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error in BulkSubmit - Message: {Message}, Inner: {Inner}",
+                    ex.Message, ex.InnerException?.Message ?? "None");
                 return StatusCode(500, ApiResponse<string>.ErrorResponse(ex.Message, 500));
             }
         }

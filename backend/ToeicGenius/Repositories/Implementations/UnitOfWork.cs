@@ -22,16 +22,16 @@ namespace ToeicGenius.Repositories.Implementations
         public IRefreshTokenRepository RefreshTokens { get; }
         public IRoleRepository Roles { get; }
         public ITestRepository Tests { get; }
+        public ITestResultRepository TestResults { get; }
         public IUserAnswerRepository UserAnswers { get; }
         public IUserOtpRepository UserOtps { get; }
         public IUserRepository Users { get; }
-        public ITestResultRepository TestResults { get; }
         public IUserTestRepository UserTests { get; }
         public IUserTestSkillScoreRepository UserTestSkillScores { get; }
 
-		public ITestQuestionRepository TestQuestions { get; }
+        public ITestQuestionRepository TestQuestions { get; }
 
-		public UnitOfWork(ToeicGeniusDbContext context)
+        public UnitOfWork(ToeicGeniusDbContext context)
         {
             _context = context;
             AIFeedbacks = new AIFeedbackRepository(context);
@@ -46,10 +46,10 @@ namespace ToeicGenius.Repositories.Implementations
             RefreshTokens = new RefreshTokenRepository(context);
             Roles = new RoleRepository(context);
             Tests = new TestRepository(context);
+            TestResults = new TestResultRepository(context);
             UserAnswers = new UserAnswerRepository(context);
             UserOtps = new UserOtpRepository(context);
             Users = new UserRepository(context);
-            TestResults = new TestResultRepository(context);
             UserTests = new UserTestRepository(context);
             UserTestSkillScores = new UserTestSkillScoreRepository(context);
             TestQuestions = new TestQuestionRepository(context);
@@ -87,5 +87,5 @@ namespace ToeicGenius.Repositories.Implementations
                 _disposed = true;
             }
         }
-	}
+    }
 }
