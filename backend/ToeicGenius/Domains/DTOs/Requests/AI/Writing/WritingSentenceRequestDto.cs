@@ -10,5 +10,11 @@ namespace ToeicGenius.Domains.DTOs.Requests.AI.Writing
 
         [Required(ErrorMessage = "TestQuestion ID is required")]
         public int TestQuestionId { get; set; }
+
+        /// <summary>
+        /// Optional: If provided, will use this TestResult instead of creating/finding one.
+        /// Useful for bulk assessment flow where TestResult is created at test start.
+        /// </summary>
+        public int? TestResultId { get; set; }
     }
 }

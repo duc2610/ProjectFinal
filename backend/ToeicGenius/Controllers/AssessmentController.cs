@@ -83,6 +83,23 @@ namespace ToeicGenius.Controllers
 
         #endregion
 
+        [HttpPost("bulk")]
+        [Authorize]
+        public async Task<IActionResult> SubmitBulkAssessment([FromBody] ToeicGenius.Domains.DTOs.Requests.AI.SubmitBulkAssessmentRequestDto request)
+        {
+            try
+            {
+                var userId = GetUserId();
+                var result = await _assessmentService.SubmitBulkAssessmentAsync(request, userId);
+                return Ok(ApiResponse<ToeicGenius.Domains.DTOs.Responses.AI.SubmitBulkAssessmentResponseDto>.SuccessResponse(result));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in SubmitBulkAssessment");
+                return StatusCode(500, ApiResponse<string>.ErrorResponse(ex.Message, 500));
+            }
+        }
+
         #region SPEAKING
 
         [HttpPost("speaking/read-aloud")]
