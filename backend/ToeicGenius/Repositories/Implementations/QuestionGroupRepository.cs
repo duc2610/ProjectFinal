@@ -54,40 +54,49 @@ namespace ToeicGenius.Repositories.Implementations
 
 			return group;
 		}
-		public async Task<PaginationResponse<QuestionGroupListItemDto>> FilterGroupsAsync(int? part, string? keyWord, int? skill, int page, int pageSize, CommonStatus status)
+		public async Task<PaginationResponse<QuestionListItemDto>> FilterGroupAsync(int? partId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
 		{
-			var query = _context.QuestionGroups.Where(g => g.Status == status).AsQueryable();
+			var query = _context.QuestionGroups
+				.Include(g => g.Part)
+				.Include(g => g.Questions)
+				.Where(g => g.Status == status)
+				.AsQueryable();
 
-			// Lọc theo part
-			if (part.HasValue)
-				query = query.Where(g => g.PartId == part.Value);
-			if (!string.IsNullOrEmpty(keyWord))
-				query = query.Where(g => g.PassageContent.ToLower().Contains(keyWord.ToLower()));
+			if (partId.HasValue)
+				query = query.Where(g => g.PartId == partId);
+
 			if (skill.HasValue)
 				query = query.Where(g => g.Part.Skill == (QuestionSkill)skill);
 
-			var totalCount = await query.CountAsync();
+			if (!string.IsNullOrEmpty(keyWord))
+				query = query.Where(g => g.PassageContent.ToLower().Contains(keyWord.ToLower()));
 
 			var data = await query
-				.OrderByDescending(q => q.QuestionGroupId)
-				.Skip((page - 1) * pageSize)
-				.Take(pageSize)
-				.Select(g => new QuestionGroupListItemDto
+				.Select(g => new QuestionListItemDto
 				{
-					QuestionGroupId = g.QuestionGroupId,
+					Id = g.QuestionGroupId,
+					IsGroupQuestion = true,
+					PartName = g.Part.Name,
 					PartId = g.PartId,
-					PartName = g.Part.Name ?? "",
 					Skill = g.Part.Skill,
-					AudioUrl = g.AudioUrl,
-					ImageUrl = g.ImageUrl,
-					PassageContent = g.PassageContent,
+					Content = g.PassageContent,
 					QuestionCount = g.Questions.Count(),
 					Status = g.Status,
+					CreatedAt = g.CreatedAt
 				})
 				.ToListAsync();
 
-			return new PaginationResponse<QuestionGroupListItemDto>(data, totalCount, page, pageSize);
+			// Sort & paginate
+			data = sortOrder?.ToLower() == "desc"
+				? data.OrderByDescending(x => x.CreatedAt).ToList()
+				: data.OrderBy(x => x.CreatedAt).ToList();
+
+			var totalCount = data.Count;
+			var pagedData = data.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+			return new PaginationResponse<QuestionListItemDto>(pagedData, totalCount, page, pageSize);
 		}
+
 		public async Task<QuestionGroup> GetByIdAndStatusAsync(int? id, CommonStatus status)
 		{
 			return await _context.QuestionGroups
