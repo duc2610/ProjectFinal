@@ -14,10 +14,7 @@ namespace ToeicGenius.Services.Interfaces
 		Task<Result<string>> UpdateAsync(int questionId, UpdateQuestionDto dto);
 		Task<Result<string>> UpdateStatusAsync(int id, bool isGroupQuestion, bool isRestore);
 		Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id);
-		Task<Result<PaginationResponse<QuestionResponseDto>>> FilterQuestionsAsync(
-			int? partId, int? questionTypeId, string? keyWord, int? skill, int page, int pageSize, CommonStatus status);
-		Task<Result<PaginationResponse<QuestionListItemDto>>> FilterAllAsync(
+		Task<Result<PaginationResponse<QuestionListItemDto>>> FilterSingleQuestionAsync(
 			int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status);
-
 	}
 }

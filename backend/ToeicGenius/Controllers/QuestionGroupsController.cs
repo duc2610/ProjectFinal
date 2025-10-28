@@ -65,13 +65,14 @@ namespace ToeicGenius.Controllers
 			[FromQuery] int? part,
 			[FromQuery] string? keyWord,
 			[FromQuery] int? skill,
+			[FromQuery] string sortOrder = "desc",
 			[FromQuery] int page = NumberConstants.DefaultFirstPage,
 			[FromQuery] int pageSize = NumberConstants.DefaultPageSize)
 		{
-			var result = await _questionGroupService.FilterAsync(part, keyWord, skill, page, pageSize, Domains.Enums.CommonStatus.Active);
+			var result = await _questionGroupService.FilterQuestionGroupAsync(part, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Active);
 			if (!result.IsSuccess)
-				return BadRequest(ApiResponse<PaginationResponse<QuestionGroupListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
-			return Ok(ApiResponse<PaginationResponse<QuestionGroupListItemDto>>.SuccessResponse(result.Data!));
+				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));
 		}
 
 		// GET: api/question-group/deleted?part=&page=&pageSize=
@@ -81,13 +82,14 @@ namespace ToeicGenius.Controllers
 			[FromQuery] int? part,
 			[FromQuery] string? keyWord,
 			[FromQuery] int? skill,
+			[FromQuery] string sortOrder = "desc",
 			[FromQuery] int page = NumberConstants.DefaultFirstPage,
 			[FromQuery] int pageSize = NumberConstants.DefaultPageSize)
 		{
-			var result = await _questionGroupService.FilterAsync(part, keyWord, skill, page, pageSize, Domains.Enums.CommonStatus.Inactive);
+			var result = await _questionGroupService.FilterQuestionGroupAsync(part, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Inactive);
 			if (!result.IsSuccess)
-				return BadRequest(ApiResponse<PaginationResponse<QuestionGroupListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
-			return Ok(ApiResponse<PaginationResponse<QuestionGroupListItemDto>>.SuccessResponse(result.Data!));
+				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));
 		}
 
 		// PUT: api/question-group/{id}
