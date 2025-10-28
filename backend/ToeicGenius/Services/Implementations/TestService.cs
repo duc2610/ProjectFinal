@@ -61,6 +61,25 @@ namespace ToeicGenius.Services.Implementations
 				var singleQuestions = await _uow.Questions.GetByListIdAsync(dto.SingleQuestionIds);
 				var groupQuestions = await _uow.QuestionGroups.GetByListIdAsync(dto.GroupQuestionIds);
 
+				// Validate all PartIds from fetched questions match TestSkill
+				foreach (var q in singleQuestions)
+				{
+					var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(q.PartId, dto.TestSkill);
+					if (!isValid)
+					{
+						return Result<string>.Failure($"Question {q.QuestionId}: {errorMessage}");
+					}
+				}
+
+				foreach (var g in groupQuestions)
+				{
+					var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(g.PartId, dto.TestSkill);
+					if (!isValid)
+					{
+						return Result<string>.Failure($"QuestionGroup {g.QuestionGroupId}: {errorMessage}");
+					}
+				}
+
 				var quantityQuestion = 0;
 				var order = NumberConstants.FirstOrderNumber;
 				foreach (var q in singleQuestions)
@@ -124,6 +143,16 @@ namespace ToeicGenius.Services.Implementations
 				if (dto.QuestionRanges == null || !dto.QuestionRanges.Any())
 				{
 					return Result<string>.Failure("Must provide at least one question range");
+				}
+
+				// Validate all PartIds match TestSkill
+				foreach (var range in dto.QuestionRanges)
+				{
+					var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(range.PartId, dto.TestSkill);
+					if (!isValid)
+					{
+						return Result<string>.Failure(errorMessage);
+					}
 				}
 
 				var test = new Test
@@ -723,7 +752,7 @@ namespace ToeicGenius.Services.Implementations
 		#endregion
 
 		#region Do Test - Examinee
-		public async Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request)
+	public async Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request, Guid userId)
 		{
 			// Check test existed
 			var test = await _uow.Tests.GetTestByIdAsync(request.Id);
@@ -747,6 +776,23 @@ namespace ToeicGenius.Services.Implementations
 				Duration = duration,
 				QuantityQuestion = test.TotalQuestion
 			};
+
+			// Create a TestResult record for this user session and return id to client
+			var userTest = new TestResult
+			{
+				UserId = userId,
+				TestId = test.TestId,
+				Status = "InProgress",
+				Duration = 0,
+				TotalScore = 0,
+				TestType = test.TestType,
+				CreatedAt = DateTime.UtcNow
+			};
+
+			await _uow.TestResults.AddAsync(userTest);
+			await _uow.SaveChangesAsync();
+
+			result.TestResultId = userTest.TestResultId;
 
 			// Nếu test chưa có câu hỏi
 			if (test.TestQuestions == null || !test.TestQuestions.Any())
@@ -1139,6 +1185,48 @@ namespace ToeicGenius.Services.Implementations
 				}).ToList() ?? new List<OptionSnapshotDto>()
 			};
 		}
+		#endregion
+
+		#region Validation Helpers
+
+		/// <summary>
+		/// Validate if PartId is compatible with TestSkill
+		/// </summary>
+		private async Task<(bool isValid, string errorMessage)> ValidatePartForTestSkillAsync(int partId, TestSkill testSkill)
+		{
+			var part = await _uow.Parts.GetByIdAsync(partId);
+			if (part == null)
+				return (false, $"Part {partId} not found");
+
+			// Mapping validation:
+			// TestSkill.Speaking (1) → QuestionSkill.Speaking (1) → Parts 11-15
+			// TestSkill.Writing (2) → QuestionSkill.Writing (2) → Parts 8-10
+			// TestSkill.LR (3) → QuestionSkill.Listening (3) or Reading (4) → Parts 1-7
+
+			switch (testSkill)
+			{
+				case TestSkill.Speaking:
+					if (part.Skill != QuestionSkill.Speaking)
+						return (false, $"Part {partId} ({part.Name}) is not a Speaking part. TestSkill is Speaking but Part skill is {part.Skill}");
+					break;
+
+				case TestSkill.Writing:
+					if (part.Skill != QuestionSkill.Writing)
+						return (false, $"Part {partId} ({part.Name}) is not a Writing part. TestSkill is Writing but Part skill is {part.Skill}");
+					break;
+
+				case TestSkill.LR:
+					if (part.Skill != QuestionSkill.Listening && part.Skill != QuestionSkill.Reading)
+						return (false, $"Part {partId} ({part.Name}) is not a Listening or Reading part. TestSkill is LR but Part skill is {part.Skill}");
+					break;
+
+				default:
+					return (false, $"Invalid TestSkill: {testSkill}");
+			}
+
+			return (true, string.Empty);
+		}
+
 		#endregion
 
 	}
