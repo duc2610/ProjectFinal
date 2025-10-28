@@ -34,7 +34,7 @@ const ExamScreen = lazy(() =>
   import("../../../src/shared/components/TOEICExam/ExamScreen.jsx")
 );
 const ExamManagement = lazy(() =>
-  import("../../../src/shared/components/ExamManagement/ExamManagement.jsx")
+  import("@pages/testCreator/ExamManagement.jsx")
 );
 import NotFound from "@pages/public/NotFound.jsx";
 

@@ -50,3 +50,17 @@ export const deleteFiles = async (urls) => {
   return response.data;
 };
 
+/**
+ * Rollback uploaded files (for error handling)
+ * @param {string[]} urls - Array of file URLs to delete
+ */
+export const rollbackFiles = async (urls) => {
+  if (!urls || urls.length === 0) return;
+  try {
+    await deleteFiles(urls);
+    console.log("Rolled back files:", urls);
+  } catch (error) {
+    console.error("Failed to rollback files:", error);
+  }
+};
+
