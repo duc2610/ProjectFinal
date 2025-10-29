@@ -21,6 +21,7 @@ using Azure.Core;
 using Newtonsoft.Json.Serialization;
 using System.Threading.Tasks;
 using ToeicGenius.Shared.Helpers;
+using NuGet.Protocol.Core.Types;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -752,7 +753,7 @@ namespace ToeicGenius.Services.Implementations
 		#endregion
 
 		#region Do Test - Examinee
-	public async Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request, Guid userId)
+		public async Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request, Guid userId)
 		{
 			// Check test existed
 			var test = await _uow.Tests.GetTestByIdAsync(request.Id);
@@ -889,7 +890,7 @@ namespace ToeicGenius.Services.Implementations
 				: CalculatePracticeResult(stats, request.Duration);
 
 			// 3. Set thông tin cho test result
-			newTestResult.SkillScores = BuildSkillScores(result,isSimulator);
+			newTestResult.SkillScores = BuildSkillScores(result, isSimulator);
 			newTestResult.TotalQuestions = totalQuestion;
 			newTestResult.CorrectCount = result.CorrectCount;
 			newTestResult.IncorrectCount = result.IncorrectCount;
@@ -901,7 +902,7 @@ namespace ToeicGenius.Services.Implementations
 			await _uow.UserAnswers.AddRangeAsync(userAnswers);
 			await _uow.SaveChangesAsync();
 
-			var resultDetail = await _uow.TestResults.GetDetailResultLRAsync(newTestResult.TestResultId);
+			var resultDetail = await _uow.TestResults.GetTestResultLRAsync(newTestResult.TestResultId);
 
 			return Result<GeneralLRResultDto>.Success(resultDetail);
 		}
@@ -910,6 +911,100 @@ namespace ToeicGenius.Services.Implementations
 			var result = await _uow.Tests.GetTestHistoryAsync(userId);
 			return Result<List<TestHistoryDto>>.Success(result);
 		}
+		public async Task<Result<TestResultDetailDto>> GetListeningReadingResultDetailAsync(int testResultId, Guid userId)
+		{
+			var testResult = await _uow.TestResults.GetListeningReadingResultDetailAsync(testResultId, userId);
+
+			if (testResult == null || testResult.UserId != userId)
+				return Result<TestResultDetailDto>.Failure("Test result not found or unauthorized.");
+
+			var test = testResult.Test;
+
+			var dto = new TestResultDetailDto
+			{
+				TestResultId = testResult.TestResultId,
+				TestId = test.TestId,
+				Title = test.Title,
+				TestSkill = test.TestSkill,
+				TestType = test.TestType,
+				AudioUrl = test.AudioUrl,
+				Duration = test.Duration,
+				QuantityQuestion = test.TotalQuestion,
+				CorrectCount = testResult.CorrectCount,
+				TotalScore = (int)testResult.TotalScore
+			};
+
+			// Gom theo Part
+			var groupedByPart = test.TestQuestions
+				.Where(q => q.PartId != null)
+				.GroupBy(q => q.PartId)
+				.ToList();
+
+			foreach (var group in groupedByPart)
+			{
+				var first = group.First();
+				var partDto = new TestPartDto
+				{
+					PartId = first.PartId,
+					PartName = first.Part?.Name ?? $"Part {first.PartId}"
+				};
+
+				foreach (var tq in group.OrderBy(q => q.OrderInTest))
+				{
+					// Với question group
+					if (tq.IsQuestionGroup)
+					{
+						var groupSnap = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(tq.SnapshotJson ?? "{}");
+						if (groupSnap == null) continue;
+
+						for (int i = 0; i < groupSnap.QuestionSnapshots.Count; i++)
+						{
+							var subQuestion = groupSnap.QuestionSnapshots[i];
+
+							// 🔹 match theo TestQuestionId + SubQuestionIndex
+							var subAnswer = testResult.UserAnswers.FirstOrDefault(x =>
+								x.TestQuestionId == tq.TestQuestionId &&
+								x.SubQuestionIndex == i);
+
+							subQuestion.UserAnswer = subAnswer?.ChosenOptionLabel;
+							subQuestion.IsCorrect = subAnswer?.IsCorrect;
+						}
+
+						partDto.TestQuestions.Add(new TestQuestionViewDto
+						{
+							TestQuestionId = tq.TestQuestionId,
+							IsGroup = true,
+							QuestionGroupSnapshotDto = groupSnap
+						});
+					}
+					else
+					{
+						// 🔹 Câu hỏi đơn
+						var questionSnap = JsonConvert.DeserializeObject<QuestionSnapshotDto>(tq.SnapshotJson ?? "{}");
+						if (questionSnap == null) continue;
+
+						var userAnswer = testResult.UserAnswers.FirstOrDefault(x => x.TestQuestionId == tq.TestQuestionId);
+
+						questionSnap.UserAnswer = userAnswer?.ChosenOptionLabel;
+						questionSnap.IsCorrect = userAnswer?.IsCorrect;
+
+						partDto.TestQuestions.Add(new TestQuestionViewDto
+						{
+							TestQuestionId = tq.TestQuestionId,
+							IsGroup = false,
+							QuestionSnapshotDto = questionSnap
+						});
+					}
+				}
+				dto.Parts.Add(partDto);
+			}
+
+			return Result<TestResultDetailDto>.Success(dto);
+		}
+
+
+
+
 		#endregion
 
 		#region Private Helper Methods
@@ -1227,6 +1322,8 @@ namespace ToeicGenius.Services.Implementations
 
 			return (true, string.Empty);
 		}
+
+
 
 		#endregion
 

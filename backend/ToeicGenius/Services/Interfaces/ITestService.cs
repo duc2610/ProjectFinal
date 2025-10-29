@@ -21,5 +21,6 @@ namespace ToeicGenius.Services.Interfaces
 	Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request, Guid userId);
 		Task<Result<GeneralLRResultDto>> SubmitLRTestAsync(SubmitLRTestRequestDto request);
 		Task<Result<List<TestHistoryDto>>> GetTestHistoryAsync(Guid userId);
+		Task<Result<TestResultDetailDto?>> GetListeningReadingResultDetailAsync(int testResultId, Guid userId);
 	}
 }

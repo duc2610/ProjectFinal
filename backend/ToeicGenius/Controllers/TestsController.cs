@@ -210,6 +210,23 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<List<TestHistoryDto>>.SuccessResponse(result.Data!));
 		}
 
+		// Test Result Detail
+		[HttpGet("result/listening-reading/detail/{testResultId}")]
+		[Authorize(Roles = "Examinee")]
+		public async Task<IActionResult> GetTestResultDetail(int testResultId)
+		{
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var result = await _testService.GetListeningReadingResultDetailAsync(testResultId, userId);
+
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<TestResultDetailDto>.SuccessResponse(result.Data!));
+		}
 		#endregion
 
 		//TODO: For examinee 
