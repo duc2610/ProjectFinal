@@ -4,6 +4,8 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 {
 	public class TestStartResponseDto
 	{
+        // Created TestResultId for this user's session (server-side)
+        public int TestResultId { get; set; }
 		public int TestId { get; set; }
 		public string Title { get; set; } = string.Empty;
 		public TestSkill TestSkill { get; set; }

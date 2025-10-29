@@ -18,7 +18,7 @@ namespace ToeicGenius.Services.Interfaces
 		Task<Result<string>> UpdateTestFromBankAsync(int id, UpdateTestFromBank dto);
 		Task<Test> CloneTestAsync(int sourceTestId);
 		Task<Result<List<TestVersionDto>>> GetVersionsByParentIdAsync(int parentTestId);
-		Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request);
+	Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request, Guid userId);
 		Task<Result<GeneralLRResultDto>> SubmitLRTestAsync(SubmitLRTestRequestDto request);
 		Task<Result<List<TestHistoryDto>>> GetTestHistoryAsync(Guid userId);
 	}

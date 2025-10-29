@@ -60,6 +60,279 @@ namespace ToeicGenius.Services.Implementations
             };
         }
 
+        // Bulk assessment for writing & speaking
+        public async Task<ToeicGenius.Domains.DTOs.Responses.AI.SubmitBulkAssessmentResponseDto> SubmitBulkAssessmentAsync(
+            ToeicGenius.Domains.DTOs.Requests.AI.SubmitBulkAssessmentRequestDto request,
+            Guid userId)
+        {
+            if (request == null || request.Parts == null || !request.Parts.Any())
+                throw new Exception("No parts provided for bulk assessment.");
+
+            // Validate TestResult ownership
+            var testResult = await _uow.TestResults.GetByIdAsync(request.TestResultId);
+            if (testResult == null)
+                throw new Exception($"TestResult {request.TestResultId} not found");
+            if (testResult.UserId != userId)
+                throw new UnauthorizedAccessException("You don't have permission to submit this test result");
+            if (testResult.Status == "Completed")
+                throw new Exception("This test has already been submitted/completed.");
+
+            var response = new ToeicGenius.Domains.DTOs.Responses.AI.SubmitBulkAssessmentResponseDto();
+
+            var perPartResponses = new List<ToeicGenius.Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto>();
+
+            foreach (var part in request.Parts)
+            {
+                try
+                {
+                    ToeicGenius.Domains.DTOs.Responses.AI.AIFeedbackResponseDto aiResponse = null!;
+
+                    // Writing parts
+                    if (part.PartType?.StartsWith("writing") == true)
+                    {
+                        if (part.PartType == "writing_sentence")
+                        {
+                            var dto = new ToeicGenius.Domains.DTOs.Requests.AI.Writing.WritingSentenceRequestDto
+                            {
+                                TestQuestionId = part.TestQuestionId,
+                                Text = part.AnswerText ?? string.Empty
+                            };
+                            aiResponse = await AssessWritingSentenceAsync(dto, userId);
+                        }
+                        else if (part.PartType == "writing_email")
+                        {
+                            var dto = new ToeicGenius.Domains.DTOs.Requests.AI.Writing.WritingEmailRequestDto
+                            {
+                                TestQuestionId = part.TestQuestionId,
+                                Text = part.AnswerText ?? string.Empty
+                            };
+                            aiResponse = await AssessWritingEmailAsync(dto, userId);
+                        }
+                        else if (part.PartType == "writing_essay")
+                        {
+                            var dto = new ToeicGenius.Domains.DTOs.Requests.AI.Writing.WritingEssayRequestDto
+                            {
+                                TestQuestionId = part.TestQuestionId,
+                                Text = part.AnswerText ?? string.Empty
+                            };
+                            aiResponse = await AssessWritingEssayAsync(dto, userId);
+                        }
+                    }
+                    else // Speaking parts
+                    {
+                        if (string.IsNullOrEmpty(part.AudioFileUrl))
+                            throw new Exception($"AudioFileUrl is required for speaking part TestQuestionId={part.TestQuestionId}");
+
+                        // Map part type names to taskType used by python API
+                        var taskType = part.PartType switch
+                        {
+                            "read_aloud" => "read_aloud",
+                            "describe_picture" => "describe_picture",
+                            "respond_questions" => "respond_questions",
+                            "respond_with_info" => "respond_with_info",
+                            "express_opinion" => "express_opinion",
+                            _ => part.PartType
+                        };
+
+                        aiResponse = await AssessSpeakingFromUrlAsync(part.TestQuestionId, taskType ?? string.Empty, part.AudioFileUrl!, userId);
+                    }
+
+                    // Map to PerPartAssessmentFeedbackDto
+                    var mapped = new ToeicGenius.Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto
+                    {
+                        TestQuestionId = part.TestQuestionId,
+                        FeedbackId = aiResponse.FeedbackId,
+                        UserAnswerId = aiResponse.UserAnswerId ?? 0,
+                        Score = (double)aiResponse.Score,
+                        Content = aiResponse.Content ?? string.Empty,
+                        AIScorer = aiResponse.AIScorer ?? string.Empty,
+                        DetailedScores = aiResponse.DetailedScores ?? new Dictionary<string, object>(),
+                        DetailedAnalysis = aiResponse.DetailedAnalysis ?? new Dictionary<string, object>(),
+                        Recommendations = aiResponse.Recommendations ?? new List<string>(),
+                        Transcription = aiResponse.Transcription ?? string.Empty,
+                        CorrectedText = aiResponse.CorrectedText ?? string.Empty,
+                        AudioDuration = aiResponse.AudioDuration,
+                        CreatedAt = aiResponse.CreatedAt
+                    };
+
+                    perPartResponses.Add(mapped);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing part {TestQuestionId} in bulk assessment", part.TestQuestionId);
+                    // Continue with other parts; optionally we could record partial failures
+                }
+            }
+
+            // Aggregate scores
+            var writingScores = perPartResponses.Where(p => p.AIScorer?.ToLower().Contains("writing") == true).Select(p => p.Score).ToList();
+            var speakingScores = perPartResponses.Where(p => p.AIScorer?.ToLower().Contains("speaking") == true).Select(p => p.Score).ToList();
+
+            double? writingAvg = writingScores.Any() ? writingScores.Average() : (double?)null;
+            double? speakingAvg = speakingScores.Any() ? speakingScores.Average() : (double?)null;
+
+            response.WritingScore = writingAvg;
+            response.SpeakingScore = speakingAvg;
+            response.PerPartFeedbacks = perPartResponses;
+
+            // Update TestResult
+            var skillScores = new List<ToeicGenius.Domains.Entities.UserTestSkillScore>();
+            if (writingAvg.HasValue)
+            {
+                skillScores.Add(new ToeicGenius.Domains.Entities.UserTestSkillScore
+                {
+                    Skill = "Writing",
+                    CorrectCount = 0,
+                    TotalQuestions = writingScores.Count,
+                    Score = (int)Math.Round(writingAvg.Value)
+                });
+            }
+            if (speakingAvg.HasValue)
+            {
+                skillScores.Add(new ToeicGenius.Domains.Entities.UserTestSkillScore
+                {
+                    Skill = "Speaking",
+                    CorrectCount = 0,
+                    TotalQuestions = speakingScores.Count,
+                    Score = (int)Math.Round(speakingAvg.Value)
+                });
+            }
+
+            testResult.SkillScores = skillScores;
+            testResult.Duration = request.Duration;
+            testResult.UpdatedAt = DateTime.UtcNow;
+            testResult.Status = "Completed";
+
+            // If Simulator type provided and both skills present, set TotalScore as sum of both
+            if (!string.IsNullOrEmpty(request.TestType) && request.TestType.ToLower().Contains("simulator") && writingAvg.HasValue && speakingAvg.HasValue)
+            {
+                testResult.TotalScore = (decimal)(writingAvg.Value + speakingAvg.Value);
+            }
+
+            await _uow.SaveChangesAsync();
+
+            return response;
+        }
+
+        private async Task<ToeicGenius.Domains.DTOs.Responses.AI.AIFeedbackResponseDto> AssessSpeakingFromUrlAsync(
+            int testQuestionId,
+            string taskType,
+            string audioUrl,
+            Guid userId)
+        {
+            // Download audio stream
+            var audioStream = await _fileService.DownloadFileAsync(audioUrl);
+            if (audioStream == null)
+                throw new Exception("Failed to download audio file from provided URL.");
+
+            // Get TestQuestion
+            var testQuestion = await _testQuestionRepository.GetByIdAsync(testQuestionId);
+            if (testQuestion == null)
+                throw new Exception($"TestQuestion {testQuestionId} not found");
+
+            var (testResult, userAnswer) = await CreateSpeakingUserAnswerAsync(userId, testQuestionId, audioUrl);
+
+            using var content = new MultipartFormDataContent();
+
+            var audioContent = new StreamContent(audioStream);
+            audioContent.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
+            content.Add(audioContent, "file", "upload.wav");
+
+            content.Add(new StringContent(taskType), "question_type");
+            content.Add(new StringContent(testQuestion.OrderInTest.ToString()), "question_number");
+
+            // Declare snapshot outside for later use
+            ToeicGenius.Domains.DTOs.Responses.Question.QuestionSnapshotDto? singleSnapshot = null;
+
+            // Handle Group Questions (Part 3/4: respond_questions, respond_with_info)
+            if (testQuestion.IsQuestionGroup)
+            {
+                var groupSnapshot = JsonSerializer.Deserialize<ToeicGenius.Domains.DTOs.Responses.QuestionGroup.QuestionGroupSnapshotDto>(
+                    testQuestion.SnapshotJson, _jsonOptions);
+
+                if (groupSnapshot != null)
+                {
+                    // Send passage/context
+                    if (!string.IsNullOrEmpty(groupSnapshot.Passage))
+                        content.Add(new StringContent(groupSnapshot.Passage), "passage");
+
+                    // Send all questions as JSON array with order index
+                    var questionsJson = JsonSerializer.Serialize(
+                        groupSnapshot.QuestionSnapshots.Select((q, index) => new
+                        {
+                            order = index + 1,
+                            content = q.Content
+                        }).ToList(),
+                        _jsonOptions
+                    );
+                    content.Add(new StringContent(questionsJson), "questions");
+
+                    _logger.LogInformation("🔗 Group Questions - Passage length: {Length}, Questions count: {Count}",
+                        groupSnapshot.Passage?.Length ?? 0, groupSnapshot.QuestionSnapshots.Count);
+                }
+            }
+            else
+            {
+                // Single question
+                singleSnapshot = JsonSerializer.Deserialize<ToeicGenius.Domains.DTOs.Responses.Question.QuestionSnapshotDto>(
+                    testQuestion.SnapshotJson, _jsonOptions);
+
+                if (singleSnapshot != null)
+                {
+                    if (!string.IsNullOrEmpty(singleSnapshot.Content))
+                        content.Add(new StringContent(singleSnapshot.Content), "reference_text");
+
+                    if (!string.IsNullOrEmpty(singleSnapshot.Explanation))
+                        content.Add(new StringContent(singleSnapshot.Explanation), "question_context");
+                }
+            }
+
+            // Handle describe_picture image (only for single questions)
+            if (taskType == "describe_picture" && !testQuestion.IsQuestionGroup && singleSnapshot != null)
+            {
+                if (!string.IsNullOrEmpty(singleSnapshot.ImageUrl))
+                {
+                    var imageStream = await _fileService.DownloadFileAsync(singleSnapshot.ImageUrl);
+                    var imageContent = new StreamContent(imageStream);
+                    imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+                    content.Add(imageContent, "picture", "question_image.jpg");
+                }
+            }
+
+            _logger.LogInformation("🚀 Calling Python: {Url}/assess (speaking from url)", _speakingApiUrl);
+
+            var response = await _speakingHttpClient.PostAsync($"{_speakingApiUrl}/assess", content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception($"Python API error: {response.StatusCode} - {error}");
+            }
+
+            var jsonResponse = await response.Content.ReadAsStringAsync();
+            var pythonResponse = JsonSerializer.Deserialize<PythonSpeakingResponse>(jsonResponse, _jsonOptions);
+
+            var feedback = new AIFeedback
+            {
+                UserAnswerId = userAnswer.UserAnswerId,
+                Score = pythonResponse!.OverallScore,
+                Content = GenerateSpeakingContentSummary(pythonResponse),
+                AIScorer = "speaking",
+                Transcription = pythonResponse.Transcription,
+                AudioDuration = pythonResponse.Duration,
+                DetailedScoresJson = JsonSerializer.Serialize(pythonResponse.Scores, _jsonOptions),
+                DetailedAnalysisJson = JsonSerializer.Serialize(pythonResponse.DetailedAnalysis, _jsonOptions),
+                RecommendationsJson = JsonSerializer.Serialize(pythonResponse.Recommendations, _jsonOptions),
+                PythonApiResponse = jsonResponse,
+                AudioFileUrl = audioUrl,
+                ImageFileUrl = taskType == "describe_picture" ? singleSnapshot?.ImageUrl : null,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _feedbackRepository.CreateAsync(feedback);
+
+            return MapToResponseDto(feedback);
+        }
         #region WRITING ASSESSMENTS
 
         public async Task<AIFeedbackResponseDto> AssessWritingSentenceAsync(
@@ -79,7 +352,7 @@ namespace ToeicGenius.Services.Implementations
                 _logger.LogInformation("📝 Found TestQuestion - Id: {TestQuestionId}, HasImage: {HasImage}",
                     testQuestion.TestQuestionId, !string.IsNullOrEmpty(snapshot.ImageUrl));
 
-                var (testResult, userAnswer) = await CreateWritingUserAnswerAsync(userId, request.TestQuestionId, request.Text);
+                var (testResult, userAnswer) = await CreateWritingUserAnswerAsync(userId, request.TestQuestionId, request.Text, request.TestResultId);
 
                 var imageStream = await _fileService.DownloadFileAsync(snapshot.ImageUrl);
 
@@ -148,7 +421,7 @@ namespace ToeicGenius.Services.Implementations
                 _logger.LogInformation("📝 Found TestQuestion - Id: {TestQuestionId}, Content: {HasContent}",
                     testQuestion.TestQuestionId, !string.IsNullOrEmpty(snapshot.Content));
 
-                var (testResult, userAnswer) = await CreateWritingUserAnswerAsync(userId, request.TestQuestionId, request.Text);
+                var (testResult, userAnswer) = await CreateWritingUserAnswerAsync(userId, request.TestQuestionId, request.Text, request.TestResultId);
 
                 var pythonRequest = new
                 {
@@ -217,7 +490,7 @@ namespace ToeicGenius.Services.Implementations
                 _logger.LogInformation("📝 Found TestQuestion - Id: {TestQuestionId}, Content: {HasContent}",
                     testQuestion.TestQuestionId, !string.IsNullOrEmpty(snapshot.Content));
 
-                var (testResult, userAnswer) = await CreateWritingUserAnswerAsync(userId, request.TestQuestionId, request.Text);
+                var (testResult, userAnswer) = await CreateWritingUserAnswerAsync(userId, request.TestQuestionId, request.Text, request.TestResultId);
 
                 var pythonRequest = new
                 {
@@ -297,7 +570,7 @@ namespace ToeicGenius.Services.Implementations
                     throw new Exception("Failed to upload audio file");
 
                 var audioUrl = uploadResult.Data;
-                var (testResult, userAnswer) = await CreateSpeakingUserAnswerAsync(userId, request.TestQuestionId, audioUrl);
+                var (testResult, userAnswer) = await CreateSpeakingUserAnswerAsync(userId, request.TestQuestionId, audioUrl, request.TestResultId);
 
                 using var content = new MultipartFormDataContent();
 
@@ -447,11 +720,30 @@ namespace ToeicGenius.Services.Implementations
         private async Task<(TestResult testResult, UserAnswer userAnswer)> CreateWritingUserAnswerAsync(
             Guid userId,
             int testQuestionId,
-            string answerText)
+            string answerText,
+            int? testResultId = null)
         {
-            var testResult = await _uow.UserTests.GetOrCreateActiveTestAsync(userId);
+            TestResult testResult;
 
-            _logger.LogInformation("💾 Using TestResult: {TestResultId}", testResult.TestResultId);
+            // If testResultId provided, validate and use it
+            if (testResultId.HasValue)
+            {
+                testResult = await _uow.TestResults.GetByIdAsync(testResultId.Value);
+                if (testResult == null)
+                    throw new Exception($"TestResult {testResultId.Value} not found");
+                if (testResult.UserId != userId)
+                    throw new UnauthorizedAccessException("You don't have permission to use this TestResult");
+                if (testResult.Status == "Completed")
+                    throw new Exception("This test has already been completed");
+
+                _logger.LogInformation("💾 Using provided TestResult: {TestResultId}", testResult.TestResultId);
+            }
+            else
+            {
+                // Backward compatible: use GetOrCreateActiveTestAsync
+                testResult = await _uow.UserTests.GetOrCreateActiveTestAsync(userId);
+                _logger.LogInformation("💾 Using or created TestResult: {TestResultId}", testResult.TestResultId);
+            }
 
             var testQuestionExists = await _testQuestionRepository.GetByIdAsync(testQuestionId);
             if (testQuestionExists == null)
@@ -479,14 +771,38 @@ namespace ToeicGenius.Services.Implementations
         private async Task<(TestResult testResult, UserAnswer userAnswer)> CreateSpeakingUserAnswerAsync(
             Guid userId,
             int testQuestionId,
-            string audioUrl)
+            string audioUrl,
+            int? testResultId = null)
         {
-            var testResult = await _uow.UserTests.GetOrCreateActiveTestAsync(userId);
+            TestResult testResult;
 
-            if (testResult.TestResultId == 0)
+            // If testResultId provided, validate and use it
+            if (testResultId.HasValue)
             {
-                await _uow.SaveChangesAsync();
-                _logger.LogInformation("💾 Saved new TestResult: {TestResultId}", testResult.TestResultId);
+                testResult = await _uow.TestResults.GetByIdAsync(testResultId.Value);
+                if (testResult == null)
+                    throw new Exception($"TestResult {testResultId.Value} not found");
+                if (testResult.UserId != userId)
+                    throw new UnauthorizedAccessException("You don't have permission to use this TestResult");
+                if (testResult.Status == "Completed")
+                    throw new Exception("This test has already been completed");
+
+                _logger.LogInformation("💾 Using provided TestResult: {TestResultId}", testResult.TestResultId);
+            }
+            else
+            {
+                // Backward compatible: use GetOrCreateActiveTestAsync
+                testResult = await _uow.UserTests.GetOrCreateActiveTestAsync(userId);
+
+                if (testResult.TestResultId == 0)
+                {
+                    await _uow.SaveChangesAsync();
+                    _logger.LogInformation("💾 Saved new TestResult: {TestResultId}", testResult.TestResultId);
+                }
+                else
+                {
+                    _logger.LogInformation("💾 Using or created TestResult: {TestResultId}", testResult.TestResultId);
+                }
             }
 
             var testQuestionExists = await _testQuestionRepository.GetByIdAsync(testQuestionId);

@@ -11,691 +11,765 @@ namespace ToeicGenius.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
+            migrationBuilder.RenameColumn(
+                name: "UserTestResultId",
+                table: "UserTestSkillScores",
+                newName: "TestSkillScoreId");
+
+            migrationBuilder.RenameColumn(
+                name: "QuantityQuestion",
+                table: "Tests",
+                newName: "TotalQuestion");
+
+            migrationBuilder.AddColumn<int>(
+                name: "CorrectCount",
+                table: "UserTestSkillScores",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "TotalQuestions",
+                table: "UserTestSkillScores",
+                type: "int",
+                nullable: true);
+
+            migrationBuilder.AddColumn<int>(
+                name: "CorrectCount",
+                table: "TestResults",
+                type: "int",
+                nullable: false,
+                defaultValue: 0);
+
+            migrationBuilder.AddColumn<int>(
                 name: "IncorrectCount",
-                table: "UserTestSkillScores");
+                table: "TestResults",
+                type: "int",
+                nullable: false,
+                defaultValue: 0);
+
+            migrationBuilder.AddColumn<int>(
+                name: "SkipCount",
+                table: "TestResults",
+                type: "int",
+                nullable: false,
+                defaultValue: 0);
+
+            migrationBuilder.AddColumn<int>(
+                name: "TotalQuestions",
+                table: "TestResults",
+                type: "int",
+                nullable: false,
+                defaultValue: 0);
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 1,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8237));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3889));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 2,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8238));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3892));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 3,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8239));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3893));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 4,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8240));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3895));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 5,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8241));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3896));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 6,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8242));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3898));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 7,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8243));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3899));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 8,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8244));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3901));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 9,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8245));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3902));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 10,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8246));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3904));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 11,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8247));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3905));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 12,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8247));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3907));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 13,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8248));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3908));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 14,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8249));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3912));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 15,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8250));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3913));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 16,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8251));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3915));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 17,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8252));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3916));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 18,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8253));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3918));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 19,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8254));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3919));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 20,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8255));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3921));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 21,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8256));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3922));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 22,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8257));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3924));
 
             migrationBuilder.UpdateData(
                 table: "QuestionGroups",
                 keyColumn: "QuestionGroupId",
                 keyValue: 1,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8126));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3706));
 
             migrationBuilder.UpdateData(
                 table: "QuestionGroups",
                 keyColumn: "QuestionGroupId",
                 keyValue: 2,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8129));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3710));
 
             migrationBuilder.UpdateData(
                 table: "QuestionGroups",
                 keyColumn: "QuestionGroupId",
                 keyValue: 3,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8129));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3711));
 
             migrationBuilder.UpdateData(
                 table: "QuestionGroups",
                 keyColumn: "QuestionGroupId",
                 keyValue: 4,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8130));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3713));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 1,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8157));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3754));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 2,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8159));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3757));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 3,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8160));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3759));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 4,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8161));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3761));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 5,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8162));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3762));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 6,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8163));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3764));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 7,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8164));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3766));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 11,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8188));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3808));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 12,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8190));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3810));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 13,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8191));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3812));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 14,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8192));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3814));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 15,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8193));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3816));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 16,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8194));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3817));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 17,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8195));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3819));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 18,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8196));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3821));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 19,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8197));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3823));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 20,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8199));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3825));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 21,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8203));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3836));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 22,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 16, 4, 53, 430, DateTimeKind.Utc).AddTicks(8205));
+                value: new DateTime(2025, 10, 28, 5, 6, 29, 290, DateTimeKind.Utc).AddTicks(3838));
 
             migrationBuilder.UpdateData(
                 table: "Users",
                 keyColumn: "Id",
                 keyValue: new Guid("11111111-1111-1111-1111-111111111111"),
                 columns: new[] { "CreatedAt", "PasswordHash" },
-                values: new object[] { new DateTime(2025, 10, 26, 16, 4, 53, 547, DateTimeKind.Utc).AddTicks(5288), "$2a$11$0QAyWw3JzCm5alatP45bt.91EG.z5DHO.soEIjTRW70TljkAxRhSC" });
+                values: new object[] { new DateTime(2025, 10, 28, 5, 6, 29, 481, DateTimeKind.Utc).AddTicks(1481), "$2a$11$EJ7Q5GyA7qaIB/vdyuHNK.KxPVC0kUm6stwmUf6qM05LV.YmGIVvK" });
 
             migrationBuilder.UpdateData(
                 table: "Users",
                 keyColumn: "Id",
                 keyValue: new Guid("22222222-2222-2222-2222-222222222222"),
                 columns: new[] { "CreatedAt", "PasswordHash" },
-                values: new object[] { new DateTime(2025, 10, 26, 16, 4, 53, 664, DateTimeKind.Utc).AddTicks(4948), "$2a$11$TWyyV97ktpUHbyHpXcXuIeN2G0UUzTZlQwzbUSUr4RLJgiuJpxK3G" });
+                values: new object[] { new DateTime(2025, 10, 28, 5, 6, 29, 665, DateTimeKind.Utc).AddTicks(7673), "$2a$11$klroocBdinoDF4kkYOEKrevNRxkZP6.WKxjDLzkg4HLGhRcGkEpY." });
 
             migrationBuilder.UpdateData(
                 table: "Users",
                 keyColumn: "Id",
                 keyValue: new Guid("33333333-3333-3333-3333-333333333333"),
                 columns: new[] { "CreatedAt", "PasswordHash" },
-                values: new object[] { new DateTime(2025, 10, 26, 16, 4, 53, 780, DateTimeKind.Utc).AddTicks(7583), "$2a$11$6o7O5s0yzQ3I8sAeTn2//.taxrYvrl9thtFwgadFBR0OecloGOJda" });
+                values: new object[] { new DateTime(2025, 10, 28, 5, 6, 29, 828, DateTimeKind.Utc).AddTicks(9046), "$2a$11$d7w4.hDK1V440yahC8YfQe72lPn2wAxAVu9lWgeiAN8xNpw5pgsRu" });
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
+            migrationBuilder.DropColumn(
+                name: "CorrectCount",
+                table: "UserTestSkillScores");
+
+            migrationBuilder.DropColumn(
+                name: "TotalQuestions",
+                table: "UserTestSkillScores");
+
+            migrationBuilder.DropColumn(
+                name: "CorrectCount",
+                table: "TestResults");
+
+            migrationBuilder.DropColumn(
                 name: "IncorrectCount",
+                table: "TestResults");
+
+            migrationBuilder.DropColumn(
+                name: "SkipCount",
+                table: "TestResults");
+
+            migrationBuilder.DropColumn(
+                name: "TotalQuestions",
+                table: "TestResults");
+
+            migrationBuilder.RenameColumn(
+                name: "TestSkillScoreId",
                 table: "UserTestSkillScores",
-                type: "int",
-                nullable: true);
+                newName: "UserTestResultId");
+
+            migrationBuilder.RenameColumn(
+                name: "TotalQuestion",
+                table: "Tests",
+                newName: "QuantityQuestion");
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 1,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(17));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1261));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 2,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(19));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1263));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 3,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(20));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1264));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 4,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(21));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1265));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 5,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(22));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1266));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 6,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(23));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1267));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 7,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(23));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1268));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 8,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(24));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1269));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 9,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(25));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1270));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 10,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(27));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1271));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 11,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(27));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1271));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 12,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(28));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1272));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 13,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(29));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1273));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 14,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(30));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1274));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 15,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(31));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1275));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 16,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(32));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1276));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 17,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(33));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1277));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 18,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(34));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1278));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 19,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(35));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1279));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 20,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(36));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1280));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 21,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(37));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1281));
 
             migrationBuilder.UpdateData(
                 table: "Options",
                 keyColumn: "OptionId",
                 keyValue: 22,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 41, DateTimeKind.Utc).AddTicks(37));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1282));
 
             migrationBuilder.UpdateData(
                 table: "QuestionGroups",
                 keyColumn: "QuestionGroupId",
                 keyValue: 1,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9862));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1092));
 
             migrationBuilder.UpdateData(
                 table: "QuestionGroups",
                 keyColumn: "QuestionGroupId",
                 keyValue: 2,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9865));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1094));
 
             migrationBuilder.UpdateData(
                 table: "QuestionGroups",
                 keyColumn: "QuestionGroupId",
                 keyValue: 3,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9866));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1095));
 
             migrationBuilder.UpdateData(
                 table: "QuestionGroups",
                 keyColumn: "QuestionGroupId",
                 keyValue: 4,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9866));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1096));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 1,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9892));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1124));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 2,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9894));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1126));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 3,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9895));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1128));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 4,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9896));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1129));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 5,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9897));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1130));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 6,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9898));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1131));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 7,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9899));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1132));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 11,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9924));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1213));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 12,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9926));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1215));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 13,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9927));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1216));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 14,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9928));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1217));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 15,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9929));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1218));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 16,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9930));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1219));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 17,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9931));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1220));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 18,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9932));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1222));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 19,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9933));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1223));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 20,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9935));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1224));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 21,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9940));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1227));
 
             migrationBuilder.UpdateData(
                 table: "Questions",
                 keyColumn: "QuestionId",
                 keyValue: 22,
                 column: "CreatedAt",
-                value: new DateTime(2025, 10, 26, 15, 41, 36, 40, DateTimeKind.Utc).AddTicks(9984));
+                value: new DateTime(2025, 10, 24, 16, 31, 14, 405, DateTimeKind.Utc).AddTicks(1229));
 
             migrationBuilder.UpdateData(
                 table: "Users",
                 keyColumn: "Id",
                 keyValue: new Guid("11111111-1111-1111-1111-111111111111"),
                 columns: new[] { "CreatedAt", "PasswordHash" },
-                values: new object[] { new DateTime(2025, 10, 26, 15, 41, 36, 157, DateTimeKind.Utc).AddTicks(9668), "$2a$11$hV/WkNj5QtW6j72JZx8mG.ytYIWCzUrUl.iqhGbvEYbeWRwu/MD0." });
+                values: new object[] { new DateTime(2025, 10, 24, 16, 31, 14, 521, DateTimeKind.Utc).AddTicks(7082), "$2a$11$CSS2yJ45a7huqqG7BUMDbe1Hmt7Smnk.agcERJe65zKfOnhvgu3/u" });
 
             migrationBuilder.UpdateData(
                 table: "Users",
                 keyColumn: "Id",
                 keyValue: new Guid("22222222-2222-2222-2222-222222222222"),
                 columns: new[] { "CreatedAt", "PasswordHash" },
-                values: new object[] { new DateTime(2025, 10, 26, 15, 41, 36, 274, DateTimeKind.Utc).AddTicks(5546), "$2a$11$xnjayWDb0ibVknmqYg.vceCmNzfkKTkdbE7BUoqfEog4sQNQStYOO" });
+                values: new object[] { new DateTime(2025, 10, 24, 16, 31, 14, 638, DateTimeKind.Utc).AddTicks(1376), "$2a$11$taEWebTEhLh1yvYgWgDrWuqlI.fkpTirNG3uJaTXudZk3GdmWFxx." });
 
             migrationBuilder.UpdateData(
                 table: "Users",
                 keyColumn: "Id",
                 keyValue: new Guid("33333333-3333-3333-3333-333333333333"),
                 columns: new[] { "CreatedAt", "PasswordHash" },
-                values: new object[] { new DateTime(2025, 10, 26, 15, 41, 36, 391, DateTimeKind.Utc).AddTicks(2163), "$2a$11$suyvMF5rrQKE9FW9IwQGnOuHi9NyCXo5kgDlnjdvHgTNJP.dab08e" });
+                values: new object[] { new DateTime(2025, 10, 24, 16, 31, 14, 754, DateTimeKind.Utc).AddTicks(3396), "$2a$11$ksN97KhZguJYNeRHgIXUtO2M2AOo/MIKxCu19p6LjnUgY6jm6B/Uq" });
         }
     }
 }

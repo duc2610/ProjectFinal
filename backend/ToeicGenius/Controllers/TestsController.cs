@@ -168,7 +168,14 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "Examinee")]
 		public async Task<IActionResult> GetTestStart([FromQuery] TestStartRequestDto request)
 		{
-			var result = await _testService.GetTestStartAsync(request);
+			// Get user id from token
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+
+			var result = await _testService.GetTestStartAsync(request, userId);
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<TestStartResponseDto>.ErrorResponse(result.ErrorMessage!));
 			return Ok(ApiResponse<TestStartResponseDto>.SuccessResponse(result.Data!));

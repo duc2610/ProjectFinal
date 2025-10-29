@@ -7,6 +7,7 @@ using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.GroupQuestion;
 using ToeicGenius.Domains.DTOs.Requests.Question;
 using ToeicGenius.Domains.DTOs.Requests.QuestionGroup;
+using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
@@ -58,7 +59,7 @@ namespace ToeicGenius.Services.Implementations
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(request.PartId);
-			if(part != null && part.Skill == QuestionSkill.Listening)
+			if (part != null && part.Skill == QuestionSkill.Listening)
 			{
 				if (request.Audio == null || request.Audio.Length == 0)
 				{
@@ -145,7 +146,7 @@ namespace ToeicGenius.Services.Implementations
 						Content = opt.Content,
 						Label = opt.Label,
 						IsCorrect = opt.IsCorrect,
-						Question=question
+						Question = question
 					}).ToList();
 					await _uow.Questions.AddAsync(question);
 					await _uow.Options.AddRangeAsync(options);
@@ -164,10 +165,10 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<Result<PaginationResponse<QuestionGroupListItemDto>>> FilterAsync(int? part, string? keyWord, int? skill, int page, int pageSize, CommonStatus status)
+		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterQuestionGroupAsync(int? partId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
 		{
-			var result = await _uow.QuestionGroups.FilterGroupsAsync(part, keyWord, skill, page, pageSize, status);
-			return Result<PaginationResponse<QuestionGroupListItemDto>>.Success(result);
+			var result = await _uow.QuestionGroups.FilterGroupAsync(partId, keyWord, skill, sortOrder, page, pageSize, status);
+			return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
 		}
 
 		public async Task<Result<string>> UpdateAsync(int questionGroupId, UpdateQuestionGroupDto dto)
