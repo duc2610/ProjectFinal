@@ -19,6 +19,10 @@ namespace ToeicGenius.Domains.Entities
 		public int Duration { get; set; }
 		public string? Status { get; set; }
 		public decimal TotalScore { get; set; }
+		public int TotalQuestions { get; set; }
+		public int CorrectCount { get; set; }
+		public int IncorrectCount { get; set; }
+		public int SkipCount { get; set; }
 		public TestType TestType { get; set; }
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 		public DateTime? UpdatedAt { get; set; }
