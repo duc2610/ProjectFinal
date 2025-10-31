@@ -5,6 +5,7 @@ using ToeicGenius.Domains.DTOs.Requests.GroupQuestion;
 using ToeicGenius.Domains.DTOs.Requests.Question;
 using ToeicGenius.Domains.DTOs.Requests.QuestionGroup;
 using ToeicGenius.Domains.Enums;
+using ToeicGenius.Domains.DTOs.Responses.Question;
 
 namespace ToeicGenius.Services.Interfaces
 {
@@ -12,7 +13,7 @@ namespace ToeicGenius.Services.Interfaces
 	{
 		Task<QuestionGroupResponseDto?> GetDetailAsync(int id);
 		Task<Result<string>> CreateAsync(QuestionGroupRequestDto request);
-		Task<Result<PaginationResponse<QuestionGroupListItemDto>>> FilterAsync(int? part, string? keyWord, int? skill, int page, int pageSize, CommonStatus status);
+		Task<Result<PaginationResponse<QuestionListItemDto>>> FilterQuestionGroupAsync(int? partId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status);
 		Task<Result<string>> UpdateAsync(int questionGroupId, UpdateQuestionGroupDto request);
 	}
 }

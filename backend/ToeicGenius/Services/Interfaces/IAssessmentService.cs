@@ -1,4 +1,5 @@
-﻿using ToeicGenius.Domains.DTOs.Requests.AI.Speaking;
+﻿using System;
+using ToeicGenius.Domains.DTOs.Requests.AI.Speaking;
 using ToeicGenius.Domains.DTOs.Requests.AI.Writing;
 using ToeicGenius.Domains.DTOs.Responses.AI;
 
@@ -6,6 +7,7 @@ namespace ToeicGenius.Services.Interfaces
 {
     public interface IAssessmentService
     {
+    Task<SubmitBulkAssessmentResponseDto> SubmitBulkAssessmentAsync(ToeicGenius.Domains.DTOs.Requests.AI.SubmitBulkAssessmentRequestDto request, Guid userId);
         // Writing
         Task<AIFeedbackResponseDto> AssessWritingSentenceAsync(WritingSentenceRequestDto request, Guid userId);
         Task<AIFeedbackResponseDto> AssessWritingEmailAsync(WritingEmailRequestDto request, Guid userId);

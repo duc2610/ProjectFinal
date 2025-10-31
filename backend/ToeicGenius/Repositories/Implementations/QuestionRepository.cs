@@ -128,28 +128,28 @@ namespace ToeicGenius.Repositories.Implementations
 				})
 				.ToListAsync();
 		}
-		public async Task<PaginationResponse<QuestionListItemDto>> FilterAllAsync(int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
+		
+		public async Task<PaginationResponse<QuestionListItemDto>> FilterSingleAsync(int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
 		{
-			// GET SINGLE QUESTION
-			var questionsQuery = _context.Questions
+			var query = _context.Questions
 				.Include(q => q.Part)
 				.Include(q => q.QuestionType)
 				.Where(q => q.Status == status && q.QuestionGroupId == null)
 				.AsQueryable();
 
 			if (partId.HasValue)
-				questionsQuery = questionsQuery.Where(q => q.PartId == partId);
+				query = query.Where(q => q.PartId == partId);
 
 			if (questionTypeId.HasValue)
-				questionsQuery = questionsQuery.Where(q => q.QuestionTypeId == questionTypeId);
+				query = query.Where(q => q.QuestionTypeId == questionTypeId);
 
 			if (skill.HasValue)
-				questionsQuery = questionsQuery.Where(q => q.Part.Skill == (QuestionSkill)skill);
+				query = query.Where(q => q.Part.Skill == (QuestionSkill)skill);
 
 			if (!string.IsNullOrEmpty(keyWord))
-				questionsQuery = questionsQuery.Where(q => q.Content.ToLower().Contains(keyWord.ToLower()));
+				query = query.Where(q => q.Content.ToLower().Contains(keyWord.ToLower()));
 
-			var questions = await questionsQuery
+			var data = await query
 				.Select(q => new QuestionListItemDto
 				{
 					Id = q.QuestionId,
@@ -157,73 +157,35 @@ namespace ToeicGenius.Repositories.Implementations
 					PartName = q.Part.Name,
 					PartId = q.PartId,
 					Skill = q.Part.Skill,
-					QuestionCount = 1, // single question 
+					QuestionCount = 1,
 					Content = q.Content,
 					Status = q.Status,
 					CreatedAt = q.CreatedAt
 				})
 				.ToListAsync();
 
-			// GET GROUP QUESTION
-			var groupsQuery = _context.QuestionGroups
-				.Include(g => g.Part)
-				.Include(g => g.Questions)
-				.Where(g => g.Status == status)
-				.AsQueryable();
+			// Sort & paginate
+			data = sortOrder?.ToLower() == "desc"
+				? data.OrderByDescending(x => x.CreatedAt).ToList()
+				: data.OrderBy(x => x.CreatedAt).ToList();
 
-			if (partId.HasValue)
-				groupsQuery = groupsQuery.Where(g => g.PartId == partId);
-
-			if (skill.HasValue)
-				groupsQuery = groupsQuery.Where(g => g.Part.Skill == (QuestionSkill)skill);
-
-			if (!string.IsNullOrEmpty(keyWord))
-				groupsQuery = groupsQuery.Where(g => g.PassageContent.ToLower().Contains(keyWord.ToLower()));
-
-			var groups = await groupsQuery
-				.Select(g => new QuestionListItemDto
-				{
-					Id = g.QuestionGroupId,
-					IsGroupQuestion = true,
-					PartName = g.Part.Name,
-					PartId = g.PartId,
-					Skill = g.Part.Skill,
-					Content = g.PassageContent,
-					QuestionCount = g.Questions.Count(),
-					Status = g.Status,
-					CreatedAt = g.CreatedAt
-				})
-				.ToListAsync();
-
-			// Concat  
-			var allData = questions.Concat(groups);
-
-			// Sort by CreateAt
-			allData = sortOrder?.ToLower() == "desc"
-					? allData.OrderByDescending(x => x.CreatedAt)
-					: allData.OrderBy(x => x.CreatedAt);
-
-
-			// Pagination
-			var totalCount = allData.Count();
-			var pagedData = allData
-				.Skip((page - 1) * pageSize)
-				.Take(pageSize)
-				.ToList();
+			var totalCount = data.Count;
+			var pagedData = data.Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
 			return new PaginationResponse<QuestionListItemDto>(pagedData, totalCount, page, pageSize);
 		}
+		
 
-        public async Task<List<Question>> GetByPartIdAsync(int partId)
-        {
-            return await _context.Questions
-                .Include(q => q.Part)
-                .Include(q => q.QuestionType)
-                .Include(q => q.Options)
-                .Where(q => q.PartId == partId && q.Status == CommonStatus.Active && q.QuestionGroupId == null)
-                .OrderBy(q => q.QuestionId)
-                .ToListAsync();
-        }
+		public async Task<List<Question>> GetByPartIdAsync(int partId)
+		{
+			return await _context.Questions
+				.Include(q => q.Part)
+				.Include(q => q.QuestionType)
+				.Include(q => q.Options)
+				.Where(q => q.PartId == partId && q.Status == CommonStatus.Active && q.QuestionGroupId == null)
+				.OrderBy(q => q.QuestionId)
+				.ToListAsync();
+		}
 
 		public async Task<List<Question>> GetRandomQuestionsAsync(int partId, int? questionTypeId, int count)
 		{
@@ -247,7 +209,7 @@ namespace ToeicGenius.Repositories.Implementations
 				.Take(count)
 				.ToListAsync();
 		}
-    }
+	}
 }
 
 

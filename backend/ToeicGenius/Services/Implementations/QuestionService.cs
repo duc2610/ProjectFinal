@@ -366,18 +366,10 @@ namespace ToeicGenius.Services.Implementations
 			return await _uow.Questions.GetQuestionResponseByIdAsync(id);
 		}
 
-		public async Task<Result<PaginationResponse<QuestionResponseDto>>> FilterQuestionsAsync(
-			int? partId, int? questionTypeId, string? keyWord, int? skill, int page, int pageSize, CommonStatus status)
-		{
-			var result = await _uow.Questions.FilterQuestionsAsync(partId, questionTypeId, keyWord, skill, page, pageSize, status);
-			return Result<PaginationResponse<QuestionResponseDto>>.Success(result);
-		}
-
-
-		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterAllAsync(
+		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterSingleQuestionAsync(
 			int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
 		{
-			var result = await _uow.Questions.FilterAllAsync(partId, questionTypeId, keyWord, skill, sortOrder, page, pageSize, status);
+			var result = await _uow.Questions.FilterSingleAsync(partId, questionTypeId, keyWord, skill, sortOrder, page, pageSize, status);
 			return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
 		}
 	}

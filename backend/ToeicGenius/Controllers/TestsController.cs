@@ -19,9 +19,11 @@ namespace ToeicGenius.Controllers
 	public class TestsController : ControllerBase
 	{
 		private readonly ITestService _testService;
-		public TestsController(ITestService testService)
+		private readonly IExcelService _excelService;
+		public TestsController(ITestService testService, IExcelService excelService)
 		{
 			_testService = testService;
+			_excelService = excelService;
 		}
 
 		#region TEST CREATOR
@@ -75,6 +77,62 @@ namespace ToeicGenius.Controllers
 			catch (Exception ex)
 			{
 				return StatusCode(500, ApiResponse<string>.ErrorResponse("Internal server error:" + ex));
+			}
+		}
+
+		// Import test from Excel file
+		[HttpPost("import-excel")]
+		[Authorize(Roles = "TestCreator")]
+		public async Task<IActionResult> ImportTestFromExcel([FromForm] ExcelImportDto request)
+		{
+			if (request == null || request.ExcelFile == null)
+			{
+				return BadRequest(ApiResponse<string>.ErrorResponse("Excel file is required"));
+			}
+
+			try
+			{
+				// Parse Excel to DTO
+				var parseResult = await _excelService.ParseExcelToTestAsync(request.ExcelFile);
+				if (!parseResult.IsSuccess)
+					return BadRequest(ApiResponse<string>.ErrorResponse(parseResult.ErrorMessage ?? "Failed to parse Excel file"));
+
+				// Create test from parsed DTO
+				var createResult = await _testService.CreateManualAsync(parseResult.Data!);
+				if (!createResult.IsSuccess)
+					return BadRequest(ApiResponse<string>.ErrorResponse(createResult.ErrorMessage ?? "Failed to create test"));
+
+				return Ok(ApiResponse<string>.SuccessResponse(createResult.Data!));
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, ApiResponse<string>.ErrorResponse($"Internal server error: {ex.Message}"));
+			}
+		}
+
+		// Download Excel template
+		[HttpGet("download-template")]
+		[Authorize(Roles = "TestCreator")]
+		public async Task<IActionResult> DownloadExcelTemplate()
+		{
+			try
+			{
+				var result = await _excelService.GenerateTemplateAsync();
+				if (!result.IsSuccess)
+					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Failed to generate template"));
+
+				var fileName = $"TOEIC_LR_Test_Template_{DateTime.UtcNow:yyyyMMdd}.xlsx";
+
+				// Set Content-Disposition header with both filename and filename* (RFC 5987) to ensure correct file extension
+				Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{fileName}";
+
+				return File(result.Data!,
+					"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+					fileName);
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, ApiResponse<string>.ErrorResponse($"Internal server error: {ex.Message}"));
 			}
 		}
 
@@ -167,7 +225,14 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "Examinee")]
 		public async Task<IActionResult> GetTestStart([FromQuery] TestStartRequestDto request)
 		{
-			var result = await _testService.GetTestStartAsync(request);
+			// Get user id from token
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+
+			var result = await _testService.GetTestStartAsync(request, userId);
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<TestStartResponseDto>.ErrorResponse(result.ErrorMessage!));
 			return Ok(ApiResponse<TestStartResponseDto>.SuccessResponse(result.Data!));
