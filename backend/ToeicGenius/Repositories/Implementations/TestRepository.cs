@@ -57,7 +57,9 @@ namespace ToeicGenius.Repositories.Implementations
 					QuestionQuantity = t.TotalQuestion,
 					Duration = t.Duration,
 					CreatedAt = t.CreatedAt,
-					Status = t.Status
+					Status = t.Status,
+					Version = t.Version,
+					ParentTestId = t.ParentTestId
 				})
 				.ToListAsync();
 

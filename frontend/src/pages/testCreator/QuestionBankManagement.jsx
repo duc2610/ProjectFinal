@@ -22,6 +22,12 @@ import {
   restoreQuestion,
   buildQuestionListParams,
 } from "@services/questionsService";
+import {
+  getQuestionGroups,
+  getDeletedQuestionGroups,
+  deleteQuestionGroup,
+  restoreQuestionGroup,
+} from "@services/questionGroupService";
 
 const QUESTION_SKILLS = [
   { value: 3, label: "Listening" },
@@ -83,9 +89,16 @@ export default function QuestionBankManagement() {
     try {
       setListLoading(true);
       const params = buildQuestionListParams({ page, pageSize });
-      const res = showDeleted
-        ? await getDeletedQuestions(params)
-        : await getQuestions(params);
+      let res;
+      if (tabKey === "single") {
+        res = showDeleted
+          ? await getDeletedQuestions(params)
+          : await getQuestions(params);
+      } else {
+        res = showDeleted
+          ? await getDeletedQuestionGroups(params)
+          : await getQuestionGroups(params);
+      }
 
       const data = res?.data || res;
       const raw = data?.dataPaginated || data?.items || data?.records || [];
@@ -97,15 +110,26 @@ export default function QuestionBankManagement() {
         const skillId =
           typeof skillStr === "number" ? skillStr : skillNameToId(skillStr);
 
-        const isGroup = !!r.isGroupQuestion;
-        const id =
-          (isGroup
-            ? r.questionGroupId ?? r.groupId ?? r.id
-            : r.questionId ?? r.id) ?? r.id;
+        if (tabKey === "group") {
+          const id = (r.questionGroupId ?? r.groupId ?? r.id) ?? r.id;
+          return {
+            ...r,
+            id,
+            isGroupQuestion: true,
+            content: r.passageContent ?? r.content,
+            isActive: st.isActive,
+            statusText: st.text,
+            statusColor: st.color,
+            __skillId: skillId,
+            __skillName: skillStr,
+          };
+        }
 
+        const id = (r.questionId ?? r.id) ?? r.id;
         return {
           ...r,
           id,
+          isGroupQuestion: false,
           isActive: st.isActive,
           statusText: st.text,
           statusColor: st.color,
@@ -127,15 +151,9 @@ export default function QuestionBankManagement() {
 
   useEffect(() => {
     loadList(1, 10);
-  }, [showDeleted]);
+  }, [showDeleted, tabKey]);
 
-  const filteredData = useMemo(
-    () =>
-      dataSource.filter((r) =>
-        tabKey === "single" ? !r.isGroupQuestion : !!r.isGroupQuestion
-      ),
-    [dataSource, tabKey]
-  );
+  const filteredData = useMemo(() => dataSource, [dataSource]);
 
   const openAddSingle = () => {
     setEditingSingleId(null);
@@ -257,10 +275,11 @@ export default function QuestionBankManagement() {
                         title="Xoá?"
                         onConfirm={async () => {
                           try {
-                            await deleteQuestion(
-                              record.id,
-                              !!record.isGroupQuestion
-                            );
+                            if (record.isGroupQuestion) {
+                              await deleteQuestionGroup(record.id);
+                            } else {
+                              await deleteQuestion(record.id, false);
+                            }
                             loadList(pagination.current, pagination.pageSize);
                           } catch (e) {
                             const msg =
@@ -280,10 +299,11 @@ export default function QuestionBankManagement() {
                         title="Khôi phục?"
                         onConfirm={async () => {
                           try {
-                            await restoreQuestion(
-                              record.id,
-                              !!record.isGroupQuestion
-                            );
+                            if (record.isGroupQuestion) {
+                              await restoreQuestionGroup(record.id);
+                            } else {
+                              await restoreQuestion(record.id, false);
+                            }
                             loadList(pagination.current, pagination.pageSize);
                           } catch (e) {
                             const msg =

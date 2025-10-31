@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Table, Input, Select, Button, Space, Tag, message, Tooltip } from "antd";
 import { SearchOutlined, InfoCircleOutlined } from "@ant-design/icons";
-import { getQuestions, buildQuestionListParams } from "@services/questionsService";
+import { buildQuestionListParams } from "@services/questionsService";
+import { getQuestionGroups } from "@services/questionGroupService";
 import { getPartsBySkill } from "@services/partsService";
 
 const { Option } = Select;
@@ -44,55 +45,33 @@ export default function QuestionGroupSelectorModal({
         }
     };
 
-    const loadQuestionGroups = async (page = 1, pageSize = 10) => {
+    const loadQuestionGroups = async (page = 1, pageSize = 10, withFilters = false) => {
         setLoading(true);
         try {
-            const params = buildQuestionListParams({
-                page,
-                pageSize,
-                skill,
-                partId: filterPart,
-                keyword: searchKeyword,
-            });
+            // Chỉ truyền filter khi người dùng bấm Tìm kiếm
+            const baseParams = buildQuestionListParams({ page, pageSize, skill });
+            const params = withFilters
+                ? { ...baseParams, part: filterPart ?? undefined, keyWord: searchKeyword || undefined }
+                : baseParams;
 
-            // Note: Cần API riêng để lấy question groups
-            // Tạm thời dùng getQuestions với filter isGroup
-            // TODO: Cần có API GET /api/question-groups với pagination
-            const response = await getQuestions(params);
-            
-            if (response?.dataPaginated) {
-                const { data, currentPage, pageSize: size, totalCount } = response;
-                
-                // Filter chỉ lấy các câu hỏi có questionGroupId
-                const groups = (data || []).filter(q => q.questionGroupId);
-                
-                // Group by questionGroupId
-                const groupMap = {};
-                groups.forEach(q => {
-                    if (!groupMap[q.questionGroupId]) {
-                        groupMap[q.questionGroupId] = {
-                            id: q.questionGroupId,
-                            partName: q.partName,
-                            passage: q.passage || "Không có đoạn văn",
-                            imageUrl: q.imageUrl,
-                            questionCount: 0,
-                            questions: []
-                        };
-                    }
-                    groupMap[q.questionGroupId].questions.push(q);
-                    groupMap[q.questionGroupId].questionCount++;
-                });
+            const response = await getQuestionGroups(params);
 
-                const groupList = Object.values(groupMap);
-                setQuestionGroups(groupList);
-                setPagination({
-                    current: currentPage,
-                    pageSize: size,
-                    total: groupList.length,
-                });
-            } else {
-                setQuestionGroups([]);
-            }
+            const payload = response?.data || response || {};
+            const data = payload.dataPaginated || payload.items || payload.records || [];
+            const currentPage = payload.currentPage || page;
+            const size = payload.pageSize || pageSize;
+            const totalCount = payload.totalCount || payload.total || data.length || 0;
+
+            const mapped = (data || []).map((g) => ({
+                id: g.questionGroupId ?? g.groupId ?? g.id,
+                partName: g.partName,
+                passage: g.passageContent ?? g.passage ?? g.content ?? "",
+                imageUrl: g.imageUrl,
+                questionCount: g.questionCount ?? (Array.isArray(g.questions) ? g.questions.length : undefined),
+            }));
+
+            setQuestionGroups(mapped);
+            setPagination({ current: currentPage, pageSize: size, total: totalCount });
         } catch (error) {
             console.error("Error loading question groups:", error);
             message.error("Lỗi khi tải danh sách nhóm câu hỏi");
@@ -102,7 +81,7 @@ export default function QuestionGroupSelectorModal({
     };
 
     const handleSearch = () => {
-        loadQuestionGroups(1, pagination.pageSize);
+        loadQuestionGroups(1, pagination.pageSize, true);
     };
 
     const handleTableChange = (newPagination) => {
@@ -114,11 +93,7 @@ export default function QuestionGroupSelectorModal({
         setPagination({ ...pagination, current: 1 });
     };
 
-    useEffect(() => {
-        if (open && skill) {
-            loadQuestionGroups(1, pagination.pageSize);
-        }
-    }, [filterPart]);
+    // Bỏ auto-reload khi đổi Part; chỉ reload khi bấm Tìm kiếm
 
     const handleOk = () => {
         if (selectedRowKeys.length === 0) {
@@ -254,5 +229,6 @@ export default function QuestionGroupSelectorModal({
         </Modal>
     );
 }
+
 
 

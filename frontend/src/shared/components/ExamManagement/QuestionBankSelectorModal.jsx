@@ -44,30 +44,45 @@ export default function QuestionBankSelectorModal({
         }
     };
 
-    const loadQuestions = async (page = 1, pageSize = 10) => {
+    const loadQuestions = async (page = 1, pageSize = 10, withFilters = false) => {
         setLoading(true);
         try {
-            const params = buildQuestionListParams({
-                page,
-                pageSize,
-                skill,
-                partId: filterPart,
-                keyword: searchKeyword,
-            });
+            const baseParams = buildQuestionListParams({ page, pageSize, skill });
+            const params = withFilters
+                ? { ...baseParams, part: filterPart ?? undefined, keyWord: searchKeyword || undefined }
+                : baseParams;
 
             const response = await getQuestions(params);
-            
-            if (response?.dataPaginated) {
-                const { data, currentPage, pageSize: size, totalCount } = response;
-                setQuestions(data || []);
-                setPagination({
-                    current: currentPage,
-                    pageSize: size,
-                    total: totalCount,
-                });
-            } else {
-                setQuestions([]);
-            }
+            const payload = response?.data || response || {};
+            const data = payload.dataPaginated || payload.items || payload.records || [];
+            const currentPage = payload.currentPage || page;
+            const size = payload.pageSize || pageSize;
+            const totalCount = payload.totalCount || payload.total || data.length || 0;
+
+            const mapped = (data || []).map((q) => {
+                const rawStatus = q.status;
+                let statusNum;
+                if (typeof rawStatus === "number") {
+                    // BE: 1 = Active, -1 = Inactive
+                    statusNum = rawStatus === 1 ? 1 : -1;
+                } else if (typeof rawStatus === "string") {
+                    const s = rawStatus.toLowerCase();
+                    statusNum = s === "active" ? 1 : -1;
+                } else {
+                    statusNum = q.isActive === true ? 1 : -1;
+                }
+
+                return {
+                    id: q.questionId ?? q.id,
+                    partName: q.partName ?? q.part ?? q.partId,
+                    questionTypeName: q.questionTypeName ?? q.typeName ?? q.name,
+                    content: q.content ?? "",
+                    status: statusNum,
+                };
+            });
+
+            setQuestions(mapped);
+            setPagination({ current: currentPage, pageSize: size, total: totalCount });
         } catch (error) {
             console.error("Error loading questions:", error);
             message.error("Lỗi khi tải danh sách câu hỏi");
@@ -77,7 +92,7 @@ export default function QuestionBankSelectorModal({
     };
 
     const handleSearch = () => {
-        loadQuestions(1, pagination.pageSize);
+        loadQuestions(1, pagination.pageSize, true);
     };
 
     const handleTableChange = (newPagination) => {
@@ -89,11 +104,6 @@ export default function QuestionBankSelectorModal({
         setPagination({ ...pagination, current: 1 });
     };
 
-    useEffect(() => {
-        if (open && skill) {
-            loadQuestions(1, pagination.pageSize);
-        }
-    }, [filterPart]);
 
     const handleOk = () => {
         if (selectedRowKeys.length === 0) {
@@ -221,5 +231,6 @@ export default function QuestionBankSelectorModal({
         </Modal>
     );
 }
+
 
 

@@ -24,7 +24,7 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import styles from "@shared/styles/AdminAccountManagement.module.css";
+import styles from "@shared/styles/AccountManagement.module.css";
 import { format, parseISO } from "date-fns";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";

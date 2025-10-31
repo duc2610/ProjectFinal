@@ -6,8 +6,10 @@ import {
     hideTest, 
     publishTest,
 } from "@services/testsService";
+import { HistoryOutlined } from "@ant-design/icons";
 import TestTypeSelectionModal from "@shared/components/ExamManagement/TestTypeSelectionModal";
 import FromBankTestForm from "@shared/components/ExamManagement/FromBankTestForm";
+import TestVersionsModal from "@shared/components/ExamManagement/TestVersionsModal";
 
 export default function ExamManagement() {
     const [exams, setExams] = useState([]);
@@ -19,8 +21,12 @@ export default function ExamManagement() {
     });
     const [testTypeModalOpen, setTestTypeModalOpen] = useState(false);
     const [fromBankFormOpen, setFromBankFormOpen] = useState(false);
-    const [manualFormOpen, setManualFormOpen] = useState(false);
+    const [viewFormOpen, setViewFormOpen] = useState(false);
     const [editingExam, setEditingExam] = useState(null);
+    const [viewingExam, setViewingExam] = useState(null);
+    const [versionsModalOpen, setVersionsModalOpen] = useState(false);
+    const [selectedParentTestId, setSelectedParentTestId] = useState(null);
+    const [manualFormOpen, setManualFormOpen] = useState(false);
     const [searchExam, setSearchExam] = useState("");
     const [filterSkill, setFilterSkill] = useState("all");
     const [searchTimeout, setSearchTimeout] = useState(null);
@@ -28,9 +34,10 @@ export default function ExamManagement() {
     const fetchExams = async (page = 1, pageSize = 10, search = "", skill = "all") => {
         setLoading(true);
         try {
+            // Fetch tất cả tests (không paginate) để đảm bảo có đủ tất cả versions để filter
             const params = {
-                page,
-                pageSize,
+                page: 1,
+                pageSize: 10000, // Lấy tất cả để filter version mới nhất
                 keyword: search || undefined,
                 testSkill: skill !== "all" ? skill : undefined,
             };
@@ -39,11 +46,45 @@ export default function ExamManagement() {
             
             if (response?.success && response?.data) {
                 const { dataPaginated, currentPage, pageSize: size, totalCount } = response.data;
-                setExams(dataPaginated || []);
+                const allExams = dataPaginated || [];
+                
+                // Filter: chỉ giữ lại version mới nhất của mỗi test (group by parentTestId hoặc id)
+                // Logic: Group theo root test ID (nếu có parentTestId thì dùng parentTestId, không thì dùng id)
+                const latestVersions = allExams
+                    .reduce((acc, exam) => {
+                        // Xác định root test ID
+                        // - Test gốc: parentTestId = null/undefined → rootId = id
+                        // - Version mới: có parentTestId → rootId = parentTestId
+                        const rootId = exam.parentTestId ?? exam.id;
+                        
+                        const existing = acc.get(rootId);
+                        const currentVersion = Number(exam.version) || 0;
+                        
+                        // So sánh version: nếu chưa có hoặc version hiện tại lớn hơn thì cập nhật
+                        if (!existing) {
+                            acc.set(rootId, exam);
+                        } else {
+                            const existingVersion = Number(existing.version) || 0;
+                            if (currentVersion > existingVersion) {
+                                acc.set(rootId, exam);
+                            }
+                        }
+                        return acc;
+                    }, new Map())
+                    .values();
+                
+                const filtered = Array.from(latestVersions);
+                
+                // Paginate lại sau khi filter
+                const startIndex = (page - 1) * pageSize;
+                const endIndex = startIndex + pageSize;
+                const paginatedExams = filtered.slice(startIndex, endIndex);
+                
+                setExams(paginatedExams);
                 setPagination({
-                    current: currentPage,
-                    pageSize: size,
-                    total: totalCount,
+                    current: page,
+                    pageSize: pageSize,
+                    total: filtered.length, // Total sau khi filter
                 });
             } else {
                 message.error("Không thể tải dữ liệu bài thi");
@@ -109,14 +150,32 @@ export default function ExamManagement() {
     };
     
     const openEditExam = (exam) => { 
-        setEditingExam(exam); 
-        // TODO: Determine test type from exam data and open appropriate form
-        message.info("Đang phát triển: Chỉnh sửa bài thi");
+        setEditingExam(exam);
+        setFromBankFormOpen(true);
+    };
+
+    const openViewExam = (exam) => {
+        setViewingExam(exam);
+        setViewFormOpen(true);
+    };
+
+    const openVersionsModal = (exam) => {
+        const parentId = exam.parentTestId || exam.id;
+        setSelectedParentTestId(parentId);
+        setVersionsModalOpen(true);
+    };
+
+    const handleSelectVersion = (testId) => {
+        setVersionsModalOpen(false);
+        setViewingExam({ id: testId });
+        setViewFormOpen(true);
     };
 
     const handleTestCreated = () => {
-        // Sau khi tạo bài thi thành công, reload danh sách
-        fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill);
+        // Sau khi tạo/cập nhật bài thi thành công, reload danh sách
+        // Reset về trang 1 để đảm bảo hiển thị version mới nhất
+        setPagination({ ...pagination, current: 1 });
+        fetchExams(1, pagination.pageSize, searchExam, filterSkill);
     };
 
     // toggle test status (Active/Inactive)
@@ -189,6 +248,14 @@ export default function ExamManagement() {
             align: "center",
         },
         { 
+            title: "Version", 
+            dataIndex: "version", 
+            key: "version", 
+            width: 100,
+            align: "center",
+            render: (version) => version ? `v${version}` : "v1"
+        },
+        { 
             title: "Trạng thái", 
             key: "status", 
             width: 160,
@@ -231,13 +298,19 @@ export default function ExamManagement() {
                         <Button 
                             type="primary"
                             icon={<EyeOutlined />} 
-                            onClick={() => openEditExam(rec)}
+                            onClick={() => openViewExam(rec)}
                         />
                     </Tooltip>
                     <Tooltip title="Chỉnh sửa">
                         <Button 
                             icon={<EditOutlined />} 
                             onClick={() => openEditExam(rec)} 
+                        />
+                    </Tooltip>
+                    <Tooltip title="Xem version">
+                        <Button 
+                            icon={<HistoryOutlined />} 
+                            onClick={() => openVersionsModal(rec)}
                         />
                     </Tooltip>
                 </Space>
@@ -311,8 +384,25 @@ export default function ExamManagement() {
             
             <FromBankTestForm
                 open={fromBankFormOpen}
-                onClose={() => setFromBankFormOpen(false)}
+                onClose={() => { setFromBankFormOpen(false); setEditingExam(null); }}
                 onSuccess={handleTestCreated}
+                editingId={editingExam?.id}
+                readOnly={false}
+            />
+
+            <FromBankTestForm
+                open={viewFormOpen}
+                onClose={() => { setViewFormOpen(false); setViewingExam(null); }}
+                onSuccess={() => {}}
+                editingId={viewingExam?.id}
+                readOnly={true}
+            />
+
+            <TestVersionsModal
+                open={versionsModalOpen}
+                onClose={() => { setVersionsModalOpen(false); setSelectedParentTestId(null); }}
+                parentTestId={selectedParentTestId}
+                onSelectVersion={handleSelectVersion}
             />
             
             {/* TODO: Add Manual Test Form */}

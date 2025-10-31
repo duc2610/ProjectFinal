@@ -1,5 +1,15 @@
 import { api } from "./apiClient";
 
+export async function getQuestionGroups(params = {}) {
+  const res = await api.get(`/api/question-group`, { params });
+  return res?.data?.data ?? res?.data;
+}
+
+export async function getDeletedQuestionGroups(params = {}) {
+  const res = await api.get(`/api/question-group/deleted`, { params });
+  return res?.data?.data ?? res?.data;
+}
+
 export async function createQuestionGroup(formData) {
   const res = await api.post(`/api/question-group`, formData);
   return res?.data?.data ?? res?.data;
@@ -28,3 +38,4 @@ export async function restoreQuestionGroup(id) {
   });
   return res?.data?.data ?? res?.data;
 }
+

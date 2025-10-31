@@ -478,45 +478,26 @@ namespace ToeicGenius.Services.Implementations
 			if (existing == null)
 				return Result<string>.Failure("Test not found");
 
-			// 3️⃣ Nếu test đang ACTIVE → clone version mới
-			Test targetTest;
-			if (existing.Status == CommonStatus.Active)
+			// 3️⃣ Luôn tạo version mới khi update (không update trực tiếp)
+			int parentId = existing.ParentTestId ?? existing.TestId;
+			int newVersion = await _uow.Tests.GetNextVersionAsync(parentId);
+
+			Test targetTest = new Test
 			{
-				int newVersion = await _uow.Tests.GetNextVersionAsync(existing.ParentTestId ?? existing.TestId);
+				Title = dto.Title,
+				Description = dto.Description,
+				TestSkill = dto.TestSkill,
+				TestType = dto.TestType,
+				Duration = dto.Duration,
+				TotalQuestion = 0,
+				Status = existing.Status == CommonStatus.Active ? CommonStatus.Draft : existing.Status,
+				ParentTestId = parentId,
+				Version = newVersion,
+				CreatedAt = DateTime.UtcNow
+			};
 
-				targetTest = new Test
-				{
-					Title = dto.Title,
-					Description = dto.Description,
-					TestSkill = dto.TestSkill,
-					TestType = dto.TestType,
-					Duration = dto.Duration,
-					TotalQuestion = 0,
-					Status = CommonStatus.Draft,
-					ParentTestId = existing.ParentTestId ?? existing.TestId,
-					Version = newVersion,
-					CreatedAt = DateTime.UtcNow
-				};
-
-				await _uow.Tests.AddAsync(targetTest);
-				await _uow.SaveChangesAsync(); // để có TestId
-			}
-			else
-			{
-				// 4️⃣ Nếu là Draft → update trực tiếp
-				targetTest = existing;
-				targetTest.Title = dto.Title;
-				targetTest.Description = dto.Description;
-				targetTest.TestSkill = dto.TestSkill;
-				targetTest.TestType = dto.TestType;
-				targetTest.Duration = dto.Duration;
-				targetTest.UpdatedAt = DateTime.UtcNow;
-
-				// Xóa TestQuestion cũ
-				var oldQuestions = await _uow.TestQuestions.GetByTestIdAsync(targetTest.TestId);
-				if (oldQuestions.Any())
-					_uow.TestQuestions.RemoveRange(oldQuestions);
-			}
+			await _uow.Tests.AddAsync(targetTest);
+			await _uow.SaveChangesAsync(); // để có TestId
 
 			// 5️⃣ Snapshot câu hỏi từ bank
 			var jsonSettings = new JsonSerializerSettings
@@ -567,9 +548,7 @@ namespace ToeicGenius.Services.Implementations
 
 			// 7️⃣ Trả về kết quả
 			return Result<string>.Success(
-				existing.Status == CommonStatus.Active
-					? $"Cloned and updated new version v{targetTest.Version} (TestId={targetTest.TestId})"
-					: $"Updated successfully TestId={targetTest.TestId}");
+				$"Updated to version v{targetTest.Version} (TestId={targetTest.TestId})");
 		}
 
 		// Update Test Manual (simulator test)
