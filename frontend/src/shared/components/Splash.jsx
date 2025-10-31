@@ -1,5 +1,19 @@
 import { Spin } from "antd";
-
-export default function Splash({ tip = "Loading..." }) {
-  return <Spin fullscreen size="large" tip={tip} />;
+import { LoadingOutlined } from "@ant-design/icons";
+export default function Splash() {
+  const antIcon = <LoadingOutlined style={{ fontSize: 36 }} spin />;
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100vh",
+        }}
+      >
+        <Spin indicator={antIcon} tip="Đang tải..." size="large" />
+      </div>
+    </>
+  );
 }

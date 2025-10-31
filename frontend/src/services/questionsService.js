@@ -68,7 +68,7 @@ export function buildQuestionListParams({
   if (pageSize) p.pageSize = pageSize;
   if (partId != null) p.part = partId;
   if (questionTypeId != null) p.questionType = questionTypeId;
-  if (skill != null) p.skill = SKILL_NAME[skill] || skill;
+  if (skill != null) p.skill = Number(skill);
   if (keyword) p.keyWord = keyword;
   if (sortOrder) p.sortOrder = sortOrder;
   return p;

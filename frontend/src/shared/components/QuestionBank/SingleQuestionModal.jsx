@@ -83,11 +83,24 @@ export default function SingleQuestionModal({
   const isAudioVisible = isListening;
   const isAudioRequired = isListening;
 
+  // Các part cần ảnh theo chuẩn TOEIC:
+  // ẢNH BẮT BUỘC:
+  //   - partId = 1: L-Part 1 (Photographs)
+  //   - partId = 8: W-Part 1 (Write a sentence based on a picture)
+  //   - partId = 12: S-Part 2 (Describe a picture)
+  // ẢNH TÙY CHỌN:
+  //   - partId = 3: L-Part 3 (Conversations - một số câu có biểu đồ/bảng)
+  //   - partId = 4: L-Part 4 (Talks - một số câu có biểu đồ/bảng)
+  //   - partId = 7: R-Part 7 (Reading Comprehension - một số câu có hình ảnh)
+  //   - partId = 14: S-Part 4 (Respond using information - bảng/lịch)
   const isImageVisible = useMemo(
-    () => [8, 12].includes(Number(selectedPart)),
+    () => [1, 3, 4, 7, 8, 12, 14].includes(Number(selectedPart)),
     [selectedPart]
   );
-  const isImageRequired = isImageVisible;
+  const isImageRequired = useMemo(
+    () => [1, 8, 12].includes(Number(selectedPart)), // L-Part 1, W-Part 1, S-Part 2
+    [selectedPart]
+  );
 
   const isOptionSkill =
     Number(selectedSkill) === 3 || Number(selectedSkill) === 4;
@@ -313,9 +326,15 @@ export default function SingleQuestionModal({
         };
       }
       if (isImageRequired && !imageFile && !hasOldImage) {
+        const partNum = Number(values.partId);
+        let errorMsg = "Bắt buộc phải có ảnh";
+        if (partNum === 1) errorMsg = "L-Part 1 (Photographs) bắt buộc phải có ảnh";
+        else if (partNum === 8) errorMsg = "W-Part 1 (Write sentence) bắt buộc phải có ảnh";
+        else if (partNum === 12) errorMsg = "S-Part 2 (Describe picture) bắt buộc phải có ảnh";
+        
         throw {
           errorFields: [
-            { name: ["image"], errors: ["Listening Part 1 bắt buộc Image"] },
+            { name: ["image"], errors: [errorMsg] },
           ],
         };
       }
@@ -459,13 +478,11 @@ export default function SingleQuestionModal({
                     Number(form.getFieldValue("skill")),
                     partId
                   );
-                  try {
-                    await form.validateFields([
-                      "answerOptions",
-                      "audio",
-                      "image",
-                    ]);
-                  } catch {}
+                  form.setFields([
+                    { name: "audio", errors: [] },
+                    { name: "image", errors: [] },
+                    { name: "answerOptions", errors: [] },
+                  ]);
                   const types = await loadTypesByPart(partId);
                   const firstVal = toNum(types?.[0]?.__val);
                   if (firstVal !== undefined)
@@ -584,11 +601,16 @@ export default function SingleQuestionModal({
                         value.length > 0 &&
                         !!value[0]?.originFileObj;
                       const hasOld = !!value?.[0]?.url;
-                      return hasNew || hasOld
-                        ? Promise.resolve()
-                        : Promise.reject(
-                            new Error("Listening Part 1 bắt buộc Image")
-                          );
+                      
+                      if (hasNew || hasOld) return Promise.resolve();
+                      
+                      const partNum = Number(form.getFieldValue("partId"));
+                      let errorMsg = "Bắt buộc phải có ảnh";
+                      if (partNum === 1) errorMsg = "L-Part 1 (Photographs) bắt buộc phải có ảnh";
+                      else if (partNum === 8) errorMsg = "W-Part 1 (Write sentence) bắt buộc phải có ảnh";
+                      else if (partNum === 12) errorMsg = "S-Part 2 (Describe picture) bắt buộc phải có ảnh";
+                      
+                      return Promise.reject(new Error(errorMsg));
                     },
                   }),
                 ]}

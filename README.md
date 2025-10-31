@@ -254,6 +254,261 @@ dotnet ef migrations script
     }
 }
 ```
-# ToeicGenius - Frontend (Update sau)
+# ToeicGenius - Frontend
+
+## Technologies Used
+- **Framework**: React 18.2.0
+- **Build Tool**: Vite 7.1.6
+- **UI Library**: Ant Design 5.27.3, Material-UI 7.3.2
+- **Routing**: React Router DOM 7.9.1
+- **HTTP Client**: Axios 1.12.1
+- **Authentication**: React OAuth Google
+- **State Management**: React Hooks (Context API)
+- **Styling**: CSS Modules, TailwindCSS (via Ant Design)
+
+## Project Structure
+```
+frontend/src/
+├── app/                      # Application configuration
+│   ├── guards/              # Route guards (PrivateRoute, RoleRoute)
+│   ├── providers/           # Context providers (AuthProvider)
+│   └── routes/               # Route definitions
+├── assets/                   # Static assets (images, fonts)
+├── config/                   # Configuration files (env.js)
+├── pages/                    # Page components
+│   ├── account/             # User account pages
+│   ├── admin/               # Admin pages
+│   ├── auth/                # Authentication pages
+│   ├── public/              # Public pages
+│   └── testCreator/         # Test creator pages
+├── services/                 # API service layer
+├── shared/                   # Shared components and utilities
+│   ├── components/          # Reusable components
+│   ├── constants/           # Application constants
+│   ├── hooks/               # Custom React hooks
+│   ├── layouts/             # Layout components
+│   ├── styles/              # CSS modules
+│   └── utils/               # Utility functions
+├── App.jsx                   # Root component
+├── main.jsx                  # Application entry point
+└── index.css                 # Global styles
+```
+
+## Key Directories
+
+- **app/**: Contains route guards, context providers, and route definitions
+  - `guards/`: Route protection logic (PrivateRoute, PublicOnlyRoute, RoleRoute)
+  - `providers/`: React context providers (e.g., AuthProvider)
+  - `routes/`: Centralized route configuration
+
+- **pages/**: Page-level components organized by feature
+  - `account/`: User profile and account management
+  - `admin/`: Admin dashboard and account management
+  - `auth/`: Login, register, password reset, email verification
+  - `public/`: Public pages (Home, About, NotFound)
+  - `testCreator/`: Test and question bank management
+
+- **services/**: API service layer for backend communication
+  - Each service file corresponds to a backend resource (auth, tests, questions, etc.)
+  - Uses axios with configured interceptors for authentication
+
+- **shared/**: Reusable components, utilities, and configurations
+  - `components/`: Shared UI components (ExamManagement, QuestionBank, TOEICExam)
+  - `layouts/`: Layout wrappers (MainLayout, AdminShell, Header, Footer)
+  - `constants/`: Application constants (TOEIC structure, roles, etc.)
+  - `hooks/`: Custom React hooks (useAuth)
+  - `styles/`: CSS module files
+  - `utils/`: Helper functions (ACL, validators)
+
+## Installation Guide
+
+### System Requirements:
+- Node.js 18.x (or higher)
+- npm or yarn package manager
+
+### Clone the repository:
+```bash
+git clone <repository-url>
+cd frontend
+```
+
+### Install dependencies:
+```bash
+npm install
+# or
+yarn install
+```
+
+### Setup environment variables:
+1. Create a `.env` file in the `frontend` directory (or update `src/config/env.js`):
+```javascript
+// src/config/env.js
+export default {
+  API_BASE_URL: "https://localhost:7100", // Backend API URL
+  GOOGLE_CLIENT_ID: "your-google-client-id",
+  // Add other environment variables as needed
+};
+```
+
+### Run the development server:
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+The application will start at:
+- **Frontend**: `http://localhost:3000`
+- The browser will automatically open the application
+
+### Build for production:
+```bash
+npm run build
+# or
+yarn build
+```
+
+### Preview production build:
+```bash
+npm run preview
+# or
+yarn preview
+```
+
+## Path Aliases
+
+The project uses path aliases configured in `vite.config.js` for cleaner imports:
+
+- `@app` → `/src/app`
+- `@pages` → `/src/pages`
+- `@shared` → `/src/shared`
+- `@services` → `/src/services`
+- `@config` → `/src/config`
+- `@assets` → `/src/assets`
+- `@hooks` → `/src/hooks`
+- `@utils` → `/src/utils`
+
+### Example Usage:
+```javascript
+import { useAuth } from "@hooks/useAuth";
+import { getTests } from "@services/testsService";
+import MainLayout from "@shared/layouts/MainLayout";
+import Login from "@pages/auth/Login";
+```
+
+## Development Guidelines
+
+### Component Structure:
+- Use functional components with React Hooks
+- Prefer `const` over `function` declarations
+- Use descriptive variable and function names
+- Event handlers should be prefixed with "handle" (e.g., `handleClick`, `handleSubmit`)
+
+### State Management:
+- Use `useState` for local component state
+- Use Context API (`AuthProvider`) for global authentication state
+- Avoid prop drilling; use Context or lift state up when needed
+
+### API Integration:
+- All API calls should go through service files in `src/services/`
+- Use the configured `apiClient` which includes:
+  - Automatic JWT token injection
+  - Error handling interceptors
+  - FormData handling
+- Service functions should return promises and handle errors appropriately
+
+### Routing:
+- Routes are defined in `app/routes/index.jsx`
+- Use lazy loading for route components
+- Protect routes using guards:
+  - `PrivateRoute`: Requires authentication
+  - `PublicOnlyRoute`: Only accessible when logged out
+  - `RoleRoute`: Requires specific user roles
+
+### Styling:
+- Use Ant Design components for UI elements
+- Use CSS Modules for custom styling (`.module.css` files)
+- Follow Ant Design design system guidelines
+- Use TailwindCSS classes when needed (via Ant Design)
+
+### File Organization:
+- One component per file
+- Export default for main component
+- Use named exports for utilities and hooks
+- Group related components in subdirectories
+
+## Key Features
+
+### Authentication:
+- JWT-based authentication
+- Google OAuth integration
+- Email verification flow
+- Password reset functionality
+
+### Role-Based Access Control:
+- **Admin**: Full system access
+- **TestCreator**: Can create and manage tests
+- **Examinee**: Can take tests and view results
+
+### Test Management:
+- Create tests from question bank (Practice tests)
+- Create manual tests (Simulator tests)
+- Import/Export tests via Excel
+- Version control for tests
+- Test structure validation (TOEIC format)
+
+### Question Bank:
+- Single question management
+- Question group management
+- Search and filter by skill, part, keyword
+- Soft delete and restore functionality
+
+### Exam Taking:
+- Full TOEIC exam simulation
+- Timer functionality
+- Question navigation
+- Test result display with detailed scoring
+
+## Common Development Tasks
+
+### Adding a New Page:
+1. Create component in appropriate `pages/` subdirectory
+2. Add route in `app/routes/index.jsx`
+3. Apply appropriate route guard
+4. Add navigation links if needed
+
+### Adding a New API Service:
+1. Create service file in `src/services/`
+2. Import `api` from `apiClient`
+3. Export async functions that return promises
+4. Handle errors appropriately
+
+### Creating a Shared Component:
+1. Create component in `shared/components/`
+2. Use Ant Design components when possible
+3. Export as default
+4. Document props using JSDoc if needed
+
+## Troubleshooting
+
+### Port already in use:
+Change the port in `vite.config.js`:
+```javascript
+server: {
+  port: 3001, // Change to available port
+}
+```
+
+### API connection errors:
+- Verify `API_BASE_URL` in `src/config/env.js`
+- Check backend server is running
+- Verify CORS settings on backend
+- Check browser console for detailed error messages
+
+### Authentication issues:
+- Check token storage in localStorage
+- Verify JWT token expiration
+- Clear localStorage and re-login if needed
+
 ---
-*Tài liệu này được cập nhật thường xuyên. Vui lòng đóng góp để cải thiện chất lượng dự án.*
+*This documentation is updated regularly. Please contribute to improve project quality.*
