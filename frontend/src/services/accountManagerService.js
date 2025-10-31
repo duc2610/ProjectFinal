@@ -5,7 +5,6 @@ export async function getAllUsers() {
   const url = `/api/Users`;
   try {
     const res = await api.get(url);
-    logApiCall("GET ALL USERS", url, "GET", null, res);
     return res?.data?.data?.dataPaginated ?? [];
   } catch (error) {
     console.error("Error fetching all users:", error);
@@ -21,7 +20,6 @@ export async function getBannedUsers() {
   const url = `/api/Users?${params.toString()}`;
   try {
     const res = await api.get(url);
-    logApiCall("GET BANNED USERS", url, "GET", null, res);
     return res?.data?.data?.dataPaginated ?? [];
   } catch (error) {
     console.error("Error fetching banned users:", error);
@@ -34,7 +32,6 @@ export async function getUserById(userId) {
   const url = `/api/Users/${userId}`;
   try {
     const res = await api.get(url);
-    logApiCall("GET USER BY ID", url, "GET", null, res);
     return res?.data?.data ?? res?.data;
   } catch (error) {
     console.error(`Error fetching user ${userId}:`, error);
@@ -47,7 +44,6 @@ export async function createUser(data) {
   const url = `/api/Users`;
   try {
     const res = await api.post(url, data);
-    logApiCall("CREATE USER", url, "POST", data, res);
     return res?.data?.data ?? res?.data;
   } catch (error) {
     console.error("Error creating user:", error);
@@ -60,7 +56,6 @@ export async function updateUser(userId, data) {
   const url = `/api/Users/${userId}`;
   try {
     const res = await api.put(url, data);
-    logApiCall("UPDATE USER", url, "PUT", data, res);
     return res?.data?.data ?? res?.data;
   } catch (error) {
     console.error(`Error updating user ${userId}:`, error);
@@ -73,7 +68,6 @@ export async function banUser(userId) {
   const url = `/api/Users/${userId}/ban`;
   try {
     const res = await api.put(url);
-    logApiCall("BAN USER", url, "PUT", null, res);
     return res?.data?.data ?? res?.data;
   } catch (error) {
     console.error(`Error banning user ${userId}:`, error);
@@ -86,7 +80,6 @@ export async function unbanUser(userId) {
   const url = `/api/Users/${userId}/unban`;
   try {
     const res = await api.put(url);
-    logApiCall("UNBAN USER", url, "PUT", null, res);
     return res?.data?.data ?? res?.data;
   } catch (error) {
     console.error(`Error unbanning user ${userId}:`, error);
