@@ -24,10 +24,18 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import styles from "@shared/styles/AdminAccountManagement.module.css";
 import { format, parseISO } from "date-fns";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import styles from "@shared/styles/AccountManagement.module.css";
+import {
+  getAllUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  banUser,
+  unbanUser,
+} from "@services/accountManagerService"; // ✅ import service API
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -44,68 +52,39 @@ const AccountManagement = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState([]);
   const [pageSize, setPageSize] = useState(10);
 
-  // Load data từ localStorage
+  // ✅ Lấy danh sách user từ API
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const res = await getAllUsers();
+      if (Array.isArray(res)) {
+        // backend có thể trả thêm metadata => chỉ lấy danh sách
+        setData(res);
+        setFilteredData(res);
+      } else {
+        message.warning("Không lấy được danh sách người dùng.");
+      }
+    } catch (error) {
+      console.error(error);
+      message.error("Lỗi khi tải danh sách tài khoản!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    loadData();
+    loadUsers();
   }, []);
 
-  const loadData = () => {
-    const saved = localStorage.getItem("accounts");
-    if (saved) {
-      setData(JSON.parse(saved));
-    } else {
-      // Dữ liệu mẫu nếu chưa có
-      const mockData = [
-        {
-          key: "1",
-          name: "Nguyễn Văn A",
-          dob: "1990-01-01",
-          address: "123 Đường ABC, Quận 1, TP.HCM",
-          phone: "0123456789",
-          email: "nva@example.com",
-          role: "Admin",
-          status: true,
-        },
-        {
-          key: "2",
-          name: "Trần Thị B",
-          dob: "1995-05-15",
-          address: "456 Đường XYZ, Hà Nội",
-          phone: "0987654321",
-          email: "ttb@example.com",
-          role: "User ",
-          status: true,
-        },
-        {
-          key: "3",
-          name: "Lê Văn C",
-          dob: "1985-12-20",
-          address: "789 Đường DEF, Đà Nẵng",
-          phone: "0111222333",
-          email: "lvc@example.com",
-          role: "Moderator",
-          status: false,
-        },
-      ];
-      setData(mockData);
-      saveData(mockData);
-    }
-    filterData(); // Áp dụng filter ban đầu
-  };
-
-  const saveData = (newData) => {
-    localStorage.setItem("accounts", JSON.stringify(newData));
-  };
-
-  // Filter data theo search và role
+  // ✅ Lọc data (search + role)
   const filterData = () => {
     let filtered = [...data];
     if (searchText) {
       filtered = filtered.filter(
         (item) =>
-          item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.email.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.phone.includes(searchText)
+          item.fullName?.toLowerCase().includes(searchText.toLowerCase()) ||
+          item.email?.toLowerCase().includes(searchText.toLowerCase()) ||
+          item.phoneNumber?.includes(searchText)
       );
     }
     if (roleFilter !== "all") {
@@ -118,47 +97,140 @@ const AccountManagement = () => {
     filterData();
   }, [searchText, roleFilter, data]);
 
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: setSelectedRowKeys,
+  // ✅ Toggle trạng thái (ban/unban)
+  const handleToggleStatus = async (userId, isActive) => {
+    try {
+      setLoading(true);
+      if (isActive) {
+        await banUser(userId);
+        message.success("Đã khóa tài khoản!");
+      } else {
+        await unbanUser(userId);
+        message.success("Đã mở khóa tài khoản!");
+      }
+      loadUsers();
+    } catch (error) {
+      console.error(error);
+      message.error("Lỗi khi cập nhật trạng thái!");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // ✅ Thêm hoặc cập nhật tài khoản
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+      if (!dayjs.isDayjs(values.dob) || !values.dob.isValid()) {
+        message.error("Ngày sinh không hợp lệ!");
+        return;
+      }
+
+      const payload = {
+        fullName: values.name,
+        dateOfBirth: values.dob.format("YYYY-MM-DD"),
+        address: values.address,
+        phoneNumber: values.phone,
+        email: values.email,
+        role: values.role,
+      };
+
+      setLoading(true);
+      if (editingAccount) {
+        await updateUser(editingAccount.id, payload);
+        message.success("Cập nhật tài khoản thành công!");
+      } else {
+        await createUser(payload);
+        message.success("Thêm tài khoản thành công!");
+      }
+
+      setIsModalVisible(false);
+      form.resetFields();
+      setEditingAccount(null);
+      loadUsers();
+    } catch (error) {
+      console.error(error);
+      message.error("Lỗi khi lưu tài khoản!");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ Mở modal thêm mới
+  const handleAdd = () => {
+    setEditingAccount(null);
+    form.resetFields();
+    setIsModalVisible(true);
+  };
+
+  // ✅ Mở modal chỉnh sửa
+  const handleEdit = (record) => {
+    setEditingAccount(record);
+    form.setFieldsValue({
+      name: record.fullName,
+      dob: record.dateOfBirth ? dayjs(record.dateOfBirth) : null,
+      address: record.address,
+      phone: record.phoneNumber,
+      email: record.email,
+      role: record.role,
+      status: record.isActive,
+    });
+    setIsModalVisible(true);
+  };
+
+  // ✅ Xóa tài khoản
+  const handleDelete = async (ids) => {
+    Modal.confirm({
+      title: `Xác nhận xóa ${ids.length > 1 ? `${ids.length} tài khoản` : "tài khoản"}?`,
+      content: "Dữ liệu sẽ bị xóa vĩnh viễn.",
+      onOk: async () => {
+        try {
+          setLoading(true);
+          // API chưa có delete => có thể implement thêm trong backend nếu cần
+          message.info("Tính năng xóa chưa khả dụng từ API!");
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    setEditingAccount(null);
+    form.resetFields();
+  };
+
+  // ✅ Cấu hình bảng
   const columns = [
     {
       title: "Tên",
-      dataIndex: "name",
+      dataIndex: "fullName",
       key: "name",
-      sorter: (a, b) => a.name.localeCompare(b.name),
-      responsive: ["sm"],
+      sorter: (a, b) => a.fullName.localeCompare(b.fullName),
     },
     {
       title: "Ngày sinh",
-      dataIndex: "dob",
+      dataIndex: "dateOfBirth",
       key: "dob",
-      render: (text) => format(parseISO(text), "dd/MM/yyyy"),
-      sorter: (a, b) => new Date(a.dob) - new Date(b.dob),
-      responsive: ["md"],
+      render: (text) => (text ? format(parseISO(text), "dd/MM/yyyy") : "-"),
+      sorter: (a, b) => new Date(a.dateOfBirth) - new Date(b.dateOfBirth),
     },
     {
       title: "Địa chỉ",
       dataIndex: "address",
       key: "address",
       ellipsis: true,
-      responsive: ["lg"],
     },
     {
       title: "SĐT",
-      dataIndex: "phone",
+      dataIndex: "phoneNumber",
       key: "phone",
-      sorter: (a, b) => a.phone.localeCompare(b.phone),
-      responsive: ["sm"],
     },
     {
       title: "Email",
       dataIndex: "email",
       key: "email",
-      sorter: (a, b) => a.email.localeCompare(b.email),
-      responsive: ["md"],
     },
     {
       title: "Role",
@@ -169,7 +241,7 @@ const AccountManagement = () => {
           color={
             role === "Admin"
               ? "volcano"
-              : role === "User "
+              : role === "User"
               ? "geekblue"
               : "green"
           }
@@ -177,28 +249,20 @@ const AccountManagement = () => {
           {role}
         </Tag>
       ),
-      filters: [
-        { text: "Admin", value: "Admin" },
-        { text: "User ", value: "User " },
-        { text: "Moderator", value: "Moderator" },
-      ],
-      onFilter: (value, record) => record.role === value,
     },
     {
       title: "Trạng thái",
-      dataIndex: "status",
+      dataIndex: "isActive",
       key: "status",
       render: (status, record) => (
         <Switch
           checked={status}
-          onChange={() => handleToggleStatus(record.key)}
+          onChange={() => handleToggleStatus(record.id, status)}
           checkedChildren="Active"
           unCheckedChildren="Inactive"
-          loading={loading}
           disabled={loading}
         />
       ),
-      sorter: (a, b) => Number(a.status) - Number(b.status),
     },
     {
       title: "Hành động",
@@ -218,7 +282,7 @@ const AccountManagement = () => {
             type="link"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => handleDelete([record.key])}
+            onClick={() => handleDelete([record.id])}
             size="small"
             disabled={loading}
           >
@@ -226,124 +290,10 @@ const AccountManagement = () => {
           </Button>
         </Space>
       ),
-      responsive: ["sm"],
     },
   ];
 
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  const handleAdd = () => {
-    setEditingAccount(null);
-    form.resetFields();
-    setIsModalVisible(true);
-  };
-
-  const handleEdit = (record) => {
-    setEditingAccount(record);
-    form.setFieldsValue({
-      name: record.name,
-      dob: dayjs(record.dob),
-      address: record.address,
-      phone: record.phone,
-      email: record.email,
-      role: record.role,
-      status: record.status,
-    });
-    setIsModalVisible(true);
-  };
-
-  const handleDelete = (keys) => {
-    if (keys.length === 0) return;
-    Modal.confirm({
-      title: `Xác nhận xóa ${
-        keys.length > 1 ? `${keys.length} tài khoản` : "tài khoản"
-      }?`,
-      content: "Dữ liệu sẽ bị xóa vĩnh viễn.",
-      onOk: async () => {
-        setLoading(true);
-        await delay(1000);
-        const newData = data.filter((item) => !keys.includes(item.key));
-        setData(newData);
-        saveData(newData);
-        setSelectedRowKeys([]);
-        message.success(`Đã xóa ${keys.length} tài khoản.`);
-        setLoading(false);
-      },
-    });
-  };
-
-  const handleToggleStatus = async (key) => {
-    setLoading(true);
-    await delay(500);
-    const newData = data.map((item) =>
-      item.key === key ? { ...item, status: !item.status } : item
-    );
-    setData(newData);
-    saveData(newData);
-    message.success("Cập nhật trạng thái thành công.");
-    setLoading(false);
-  };
-
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields();
-
-      // Kiểm tra ngày sinh hợp lệ
-      if (!dayjs.isDayjs(values.dob) || !values.dob.isValid()) {
-        message.error("Ngày sinh không hợp lệ!");
-        return;
-      }
-
-      // Kiểm tra duplicate (trừ chính record đang edit)
-      const isDuplicate = data.some(
-        (item) =>
-          item.key !== editingAccount?.key &&
-          (item.email === values.email || item.phone === values.phone)
-      );
-      if (isDuplicate) {
-        message.error("Email hoặc SĐT đã tồn tại!");
-        return;
-      }
-
-      setLoading(true);
-      await delay(1000);
-
-      const newAccount = {
-        ...values,
-        dob: values.dob.format("YYYY-MM-DD"),
-        status: values.status !== undefined ? values.status : true,
-        key: editingAccount ? editingAccount.key : Date.now().toString(),
-      };
-
-      let newData;
-      if (editingAccount) {
-        newData = data.map((item) =>
-          item.key === editingAccount.key ? newAccount : item
-        );
-        message.success("Cập nhật tài khoản thành công.");
-      } else {
-        newData = [...data, newAccount];
-        message.success("Thêm tài khoản thành công.");
-      }
-      setData(newData);
-      saveData(newData);
-      setIsModalVisible(false);
-      form.resetFields();
-      setEditingAccount(null);
-      setLoading(false);
-    } catch (error) {
-      console.error("Validation error:", error);
-      message.error("Lỗi validation hoặc dữ liệu không hợp lệ.");
-    }
-  };
-
-  const handleCancel = () => {
-    setIsModalVisible(false);
-    setEditingAccount(null);
-    form.resetFields();
-  };
-
-  // Export Excel
+  // ✅ Export Excel
   const handleExport = () => {
     const headers = [
       "Tên",
@@ -354,71 +304,41 @@ const AccountManagement = () => {
       "Role",
       "Trạng thái",
     ];
-
-    const data = filteredData.map((item) => [
-      item.name,
-      format(parseISO(item.dob), "dd/MM/yyyy"),
+    const excelData = filteredData.map((item) => [
+      item.fullName,
+      item.dateOfBirth ? format(parseISO(item.dateOfBirth), "dd/MM/yyyy") : "",
       item.address,
-      item.phone,
+      item.phoneNumber,
       item.email,
       item.role,
-      item.status ? "Active" : "Inactive",
+      item.isActive ? "Active" : "Inactive",
     ]);
-
-    // Gộp header + data
-    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
-
-    // Auto-width cho cột
-    const colWidths = headers.map((h, i) => ({
-      wch:
-        Math.max(
-          h.length,
-          ...data.map((row) => (row[i] ? row[i].toString().length : 0))
-        ) + 2,
-    }));
-    worksheet["!cols"] = colWidths;
-
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...excelData]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Accounts");
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
+    const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([buffer], { type: "application/octet-stream" });
     saveAs(blob, `accounts_${dayjs().format("YYYY-MM-DD")}.xlsx`);
-
-    message.success("Xuất file Excel thành công.");
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchText(e.target.value);
-  };
-
-  const handleRoleFilter = (value) => {
-    setRoleFilter(value);
+    message.success("Xuất Excel thành công!");
   };
 
   return (
     <Spin spinning={loading}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Quản lý Tài khoản Admin</h1>
+          <h1 className={styles.title}>Quản lý Tài khoản</h1>
           <Space>
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={handleAdd}
-              size="large"
-              className={styles.addButton}
               disabled={loading}
             >
-              Thêm Tài khoản
+              Thêm tài khoản
             </Button>
             <Button
               icon={<ExportOutlined />}
               onClick={handleExport}
-              className={styles.exportButton}
               disabled={loading}
             >
               Xuất Excel
@@ -433,76 +353,52 @@ const AccountManagement = () => {
                 placeholder="Tìm kiếm theo tên, email, SĐT"
                 prefix={<SearchOutlined />}
                 value={searchText}
-                onChange={handleSearchChange}
+                onChange={(e) => setSearchText(e.target.value)}
                 allowClear
-                className={styles.searchInput}
               />
             </Col>
             <Col xs={24} sm={12} md={6}>
               <Select
-                placeholder="Lọc theo Role"
-                onChange={handleRoleFilter}
-                style={{ width: "100%" }}
                 value={roleFilter}
-                allowClear
+                onChange={setRoleFilter}
+                style={{ width: "100%" }}
               >
                 <Option value="all">Tất cả</Option>
                 <Option value="Admin">Admin</Option>
-                <Option value="User ">User </Option>
+                <Option value="User">User</Option>
                 <Option value="Moderator">Moderator</Option>
               </Select>
             </Col>
-            {selectedRowKeys.length > 0 && (
-              <Col xs={24} sm={24} md={10}>
-                <Space>
-                  <span className={styles.selectedText}>
-                    {selectedRowKeys.length} mục được chọn
-                  </span>
-                  <Button
-                    danger
-                    onClick={() => handleDelete(selectedRowKeys)}
-                    disabled={loading}
-                  >
-                    Xóa mục đã chọn
-                  </Button>
-                </Space>
-              </Col>
-            )}
           </Row>
         </Card>
 
         <Table
-          rowSelection={rowSelection}
           columns={columns}
           dataSource={filteredData}
+          rowKey="id"
           pagination={{
             pageSize,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total, range) =>
               `${range[0]}-${range[1]} của ${total} tài khoản`,
-            onShowSizeChange: (current, size) => setPageSize(size),
-            style: { marginRight: 16 },
+            onShowSizeChange: (_, size) => setPageSize(size),
           }}
           scroll={{ x: 1200 }}
-          loading={loading}
-          className={styles.table}
-          rowKey="key"
         />
 
+        {/* Modal thêm/sửa */}
         <Modal
-          title={editingAccount ? "Sửa Tài khoản" : "Thêm Tài khoản"}
+          title={editingAccount ? "Sửa tài khoản" : "Thêm tài khoản"}
           open={isModalVisible}
           onOk={handleOk}
           onCancel={handleCancel}
           okText="Lưu"
           cancelText="Hủy"
-          width={600}
-          className={styles.modal}
-          confirmLoading={loading} // Loading khi save
-          destroyOnClose // Reset form khi đóng modal
+          confirmLoading={loading}
+          destroyOnClose
         >
-          <Form form={form} layout="vertical" name="accountForm">
+          <Form form={form} layout="vertical">
             <Form.Item
               name="name"
               label="Tên"
@@ -510,27 +406,13 @@ const AccountManagement = () => {
             >
               <Input placeholder="Nhập tên đầy đủ" />
             </Form.Item>
-
             <Form.Item
               name="dob"
               label="Ngày sinh"
-              rules={[
-                { required: true, message: "Vui lòng chọn ngày sinh!" },
-                {
-                  validator: (_, value) => {
-                    if (value && value.isAfter(dayjs(), "day")) {
-                      return Promise.reject(
-                        "Ngày sinh không thể là ngày tương lai!"
-                      );
-                    }
-                    return Promise.resolve();
-                  },
-                },
-              ]}
+              rules={[{ required: true, message: "Vui lòng chọn ngày sinh!" }]}
             >
               <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
             </Form.Item>
-
             <Form.Item
               name="address"
               label="Địa chỉ"
@@ -538,7 +420,6 @@ const AccountManagement = () => {
             >
               <TextArea rows={2} placeholder="Nhập địa chỉ chi tiết" />
             </Form.Item>
-
             <Form.Item
               name="phone"
               label="SĐT"
@@ -549,7 +430,6 @@ const AccountManagement = () => {
             >
               <Input placeholder="Nhập số điện thoại" />
             </Form.Item>
-
             <Form.Item
               name="email"
               label="Email"
@@ -560,7 +440,6 @@ const AccountManagement = () => {
             >
               <Input placeholder="Nhập email" />
             </Form.Item>
-
             <Form.Item
               name="role"
               label="Role"
@@ -568,18 +447,9 @@ const AccountManagement = () => {
             >
               <Select placeholder="Chọn role">
                 <Option value="Admin">Admin</Option>
-                <Option value="User ">User </Option>
+                <Option value="User">User</Option>
                 <Option value="Moderator">Moderator</Option>
               </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="status"
-              label="Trạng thái"
-              valuePropName="checked"
-              initialValue={true}
-            >
-              <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
             </Form.Item>
           </Form>
         </Modal>
