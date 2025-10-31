@@ -9,6 +9,7 @@ namespace ToeicGenius.Repositories.Interfaces
 	{
 		Task<User?> GetByEmailAsync(string email);
 		Task<User?> GetByRefreshTokenAsync(string refreshToken);
+		Task<User?> GetUserAndRoleByUserIdAsync(Guid userId);
 		Task<int> CountTotalUsersAsync();
 		Task<int> CountActiveUsersAsync();
 		Task<int> CountBannedUsersAsync();
