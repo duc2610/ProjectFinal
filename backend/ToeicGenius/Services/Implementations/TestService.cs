@@ -21,6 +21,9 @@ using Azure.Core;
 using Newtonsoft.Json.Serialization;
 using System.Threading.Tasks;
 using ToeicGenius.Shared.Helpers;
+using NuGet.Protocol.Core.Types;
+using System.Collections.Generic;
+using ToeicGenius.Repositories.Implementations;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -752,7 +755,7 @@ namespace ToeicGenius.Services.Implementations
 		#endregion
 
 		#region Do Test - Examinee
-	public async Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request, Guid userId)
+		public async Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request, Guid userId)
 		{
 			// Check test existed
 			var test = await _uow.Tests.GetTestByIdAsync(request.Id);
@@ -888,32 +891,8 @@ namespace ToeicGenius.Services.Implementations
 				? CalculateSimulatorResult(stats, request.Duration)
 				: CalculatePracticeResult(stats, request.Duration);
 
-			var skillScores = new List<UserTestSkillScore>();
-
-			if (result.ListeningScore.HasValue)
-			{
-				skillScores.Add(new UserTestSkillScore
-				{
-					Skill = "Listening",
-					CorrectCount = result.ListeningCorrect ?? 0,
-					TotalQuestions = result.ListeningTotal ?? 0,
-					Score = result.ListeningScore ?? 0,
-				});
-			}
-
-			if (result.ReadingScore.HasValue)
-			{
-				skillScores.Add(new UserTestSkillScore
-				{
-					Skill = "Reading",
-					CorrectCount = result.ReadingCorrect ?? 0,
-					TotalQuestions = result.ReadingTotal ?? 0,
-					Score = result.ReadingScore ?? 0,
-				});
-			}
-
 			// 3. Set thông tin cho test result
-			newTestResult.SkillScores = skillScores;
+			newTestResult.SkillScores = BuildSkillScores(result, isSimulator);
 			newTestResult.TotalQuestions = totalQuestion;
 			newTestResult.CorrectCount = result.CorrectCount;
 			newTestResult.IncorrectCount = result.IncorrectCount;
@@ -925,10 +904,184 @@ namespace ToeicGenius.Services.Implementations
 			await _uow.UserAnswers.AddRangeAsync(userAnswers);
 			await _uow.SaveChangesAsync();
 
-			var resultDetail = await _uow.TestResults.GetDetailResultLRAsync(newTestResult.TestResultId);
+			var resultDetail = await _uow.TestResults.GetTestResultLRAsync(newTestResult.TestResultId);
 
 			return Result<GeneralLRResultDto>.Success(resultDetail);
 		}
+		public async Task<Result<List<TestHistoryDto>>> GetTestHistoryAsync(Guid userId)
+		{
+			var result = await _uow.Tests.GetTestHistoryAsync(userId);
+			return Result<List<TestHistoryDto>>.Success(result);
+		}
+		public async Task<Result<TestResultDetailDto>> GetListeningReadingResultDetailAsync(int testResultId, Guid userId)
+		{
+			var testResult = await _uow.TestResults.GetListeningReadingResultDetailAsync(testResultId, userId);
+
+			if (testResult == null || testResult.UserId != userId)
+				return Result<TestResultDetailDto>.Failure("Test result not found or unauthorized.");
+
+			var test = testResult.Test;
+
+			var dto = new TestResultDetailDto
+			{
+				TestResultId = testResult.TestResultId,
+				TestId = test.TestId,
+				Title = test.Title,
+				TestSkill = test.TestSkill,
+				TestType = test.TestType,
+				AudioUrl = test.AudioUrl,
+				Duration = test.Duration,
+				QuantityQuestion = test.TotalQuestion,
+				CorrectCount = testResult.CorrectCount,
+				TotalScore = (int)testResult.TotalScore
+			};
+
+			// Gom theo Part
+			var groupedByPart = test.TestQuestions
+				.Where(q => q.PartId != null)
+				.GroupBy(q => q.PartId)
+				.ToList();
+
+			foreach (var group in groupedByPart)
+			{
+				var first = group.First();
+				var partDto = new TestPartDto
+				{
+					PartId = first.PartId,
+					PartName = first.Part?.Name ?? $"Part {first.PartId}"
+				};
+
+				foreach (var tq in group.OrderBy(q => q.OrderInTest))
+				{
+					// Với question group
+					if (tq.IsQuestionGroup)
+					{
+						var groupSnap = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(tq.SnapshotJson ?? "{}");
+						if (groupSnap == null) continue;
+
+						for (int i = 0; i < groupSnap.QuestionSnapshots.Count; i++)
+						{
+							var subQuestion = groupSnap.QuestionSnapshots[i];
+
+							// 🔹 match theo TestQuestionId + SubQuestionIndex
+							var subAnswer = testResult.UserAnswers.FirstOrDefault(x =>
+								x.TestQuestionId == tq.TestQuestionId &&
+								x.SubQuestionIndex == i);
+
+							subQuestion.UserAnswer = subAnswer?.ChosenOptionLabel;
+							subQuestion.IsCorrect = subAnswer?.IsCorrect;
+						}
+
+						partDto.TestQuestions.Add(new TestQuestionViewDto
+						{
+							TestQuestionId = tq.TestQuestionId,
+							IsGroup = true,
+							QuestionGroupSnapshotDto = groupSnap
+						});
+					}
+					else
+					{
+						// 🔹 Câu hỏi đơn
+						var questionSnap = JsonConvert.DeserializeObject<QuestionSnapshotDto>(tq.SnapshotJson ?? "{}");
+						if (questionSnap == null) continue;
+
+						var userAnswer = testResult.UserAnswers.FirstOrDefault(x => x.TestQuestionId == tq.TestQuestionId);
+
+						questionSnap.UserAnswer = userAnswer?.ChosenOptionLabel;
+						questionSnap.IsCorrect = userAnswer?.IsCorrect;
+
+						partDto.TestQuestions.Add(new TestQuestionViewDto
+						{
+							TestQuestionId = tq.TestQuestionId,
+							IsGroup = false,
+							QuestionSnapshotDto = questionSnap
+						});
+					}
+				}
+				dto.Parts.Add(partDto);
+			}
+
+			return Result<TestResultDetailDto>.Success(dto);
+		}
+
+		public async Task<Result<List<TestListResponseDto>>> GetTestsByTypeAsync(TestType testType)
+		{
+			var result = await _uow.Tests.GetTestByType(testType);
+			if (result == null || !result.Any())
+			{
+				return Result<List<TestListResponseDto>>.Failure("Not found");
+			}
+			return Result<List<TestListResponseDto>>.Success(result);
+		}
+		public async Task<Result<StatisticResultDto>> GetDashboardStatisticAsync(Guid examineeId, TestSkill skill, string range)
+		{
+			var dateFrom = GetDateRangeStart(range);
+			var results = await _uow.TestResults.GetResultsWithinRangeAsync(examineeId, dateFrom);
+
+			if (results == null || !results.Any())
+				return Result<StatisticResultDto>.Failure("No test results found.");
+
+			// Lọc kết quả theo kỹ năng
+			IEnumerable<TestResult> filtered = skill switch
+			{
+				TestSkill.Speaking => results.Where(r => r.Test.TestSkill == TestSkill.Speaking),
+				TestSkill.Writing => results.Where(r => r.Test.TestSkill == TestSkill.Writing),
+				_ => results.Where(r => r.Test.TestSkill == TestSkill.LR)
+			};
+
+			if (!filtered.Any())
+				return Result<StatisticResultDto>.Failure($"No test results found for skill: {skill}");
+
+			// Hàm chia an toàn (tránh NaN / Infinity)
+			static double SafeDivide(double numerator, double denominator)
+				=> denominator == 0 ? 0 : numerator / denominator;
+
+			var dto = new StatisticResultDto
+			{
+				Skill = skill,
+				Range = range,
+				TotalTests = filtered.Count(),
+				AverageScore = (int)Math.Round(filtered.Average(r => r.TotalScore), 2),
+				HighestScore = (int)filtered.Max(r => r.TotalScore),
+				AverageAccuracy = Math.Round(filtered.Average(r => SafeDivide(r.CorrectCount, r.TotalQuestions) * 100), 2),
+				AverageDurationMinutes = Math.Round(filtered.Average(r => SafeDivide(r.Duration, 60.0)), 2)
+			};
+
+			// Nếu là ListeningReading thì chia nhỏ phần bên trong
+			if (skill == TestSkill.LR)
+			{
+				var listeningScores = filtered
+					.SelectMany(r => r.SkillScores)
+					.Where(s => s.Skill == "Listening")
+					.ToList();
+
+				var readingScores = filtered
+					.SelectMany(r => r.SkillScores)
+					.Where(s => s.Skill == "Reading")
+					.ToList();
+
+				dto.Listening = new SkillBreakdownDto
+				{
+					AverageScore = listeningScores.Any() ? (int)Math.Round(listeningScores.Average(s => s.Score), 2) : 0,
+					HighestScore = listeningScores.Any() ? (int)listeningScores.Max(s => s.Score) : 0,
+					Accuracy = listeningScores.Any()
+						? Math.Round(listeningScores.Average(s => SafeDivide(s.CorrectCount ?? 0, s.TotalQuestions ?? 0) * 100), 2)
+						: 0
+				};
+
+				dto.Reading = new SkillBreakdownDto
+				{
+					AverageScore = readingScores.Any() ? (int)Math.Round(readingScores.Average(s => s.Score), 2) : 0,
+					HighestScore = readingScores.Any() ? (int)readingScores.Max(s => s.Score) : 0,
+					Accuracy = readingScores.Any()
+						? Math.Round(readingScores.Average(s => SafeDivide(s.CorrectCount ?? 0, s.TotalQuestions ?? 0) * 100), 2)
+						: 0
+				};
+			}
+
+			return Result<StatisticResultDto>.Success(dto);
+		}
+
 		#endregion
 
 		#region Private Helper Methods
@@ -1185,10 +1338,42 @@ namespace ToeicGenius.Services.Implementations
 				}).ToList() ?? new List<OptionSnapshotDto>()
 			};
 		}
+		private List<UserTestSkillScore> BuildSkillScores(GeneralLRResultDto result, bool isSimulator)
+		{
+			return new List<UserTestSkillScore>
+			{
+				new UserTestSkillScore
+				{
+					Skill = "Listening",
+					CorrectCount = result.ListeningCorrect ?? 0,
+					TotalQuestions = result.ListeningTotal ?? 0,
+					Score = isSimulator ? result.ListeningScore ?? 0 : 0
+				},
+				new UserTestSkillScore
+				{
+					Skill = "Reading",
+					CorrectCount = result.ReadingCorrect ?? 0,
+					TotalQuestions = result.ReadingTotal ?? 0,
+					Score = isSimulator ? result.ReadingScore ?? 0 : 0
+				}
+			};
+		}
+		private DateTime? GetDateRangeStart(string range)
+		{
+			return range.ToLower() switch
+			{
+				"1y" => DateTime.UtcNow.AddYears(-1),
+				"6m" => DateTime.UtcNow.AddMonths(-6),
+				"3m" => DateTime.UtcNow.AddMonths(-3),
+				"1m" => DateTime.UtcNow.AddMonths(-1),
+				"7d" => DateTime.UtcNow.AddDays(-7),
+				"3d" => DateTime.UtcNow.AddDays(-3),
+				_ => null // all
+			};
+		}
 		#endregion
 
 		#region Validation Helpers
-
 		/// <summary>
 		/// Validate if PartId is compatible with TestSkill
 		/// </summary>
@@ -1226,6 +1411,7 @@ namespace ToeicGenius.Services.Implementations
 
 			return (true, string.Empty);
 		}
+
 
 		#endregion
 

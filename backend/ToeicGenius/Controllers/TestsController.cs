@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Drawing.Printing;
+using System.Security.Claims;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using ToeicGenius.Domains.DTOs.Requests.Test;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.Test;
 using ToeicGenius.Domains.Entities;
+using ToeicGenius.Domains.Enums;
 using ToeicGenius.Services.Implementations;
 using ToeicGenius.Services.Interfaces;
 
@@ -248,11 +250,90 @@ namespace ToeicGenius.Controllers
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
 			return Ok(ApiResponse<GeneralLRResultDto>.SuccessResponse(result.Data));
 		}
+
+		// Test history
+		[HttpGet("history")]
+		[Authorize(Roles = "Examinee")]
+		public async Task<IActionResult> GetTestHistory()
+		{
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var result = await _testService.GetTestHistoryAsync(userId);
+
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<List<TestHistoryDto>>.SuccessResponse(result.Data!));
+		}
+
+		// Test Result Detail
+		[HttpGet("result/listening-reading/detail/{testResultId}")]
+		[Authorize(Roles = "Examinee")]
+		public async Task<IActionResult> GetTestResultDetail(int testResultId)
+		{
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var result = await _testService.GetListeningReadingResultDetailAsync(testResultId, userId);
+
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<TestResultDetailDto>.SuccessResponse(result.Data!));
+		}
+
+		// Test List For Examinee or Guest: Practice
+		[HttpGet("examinee/list/practice")]
+		public async Task<IActionResult> GetPracticeTests(int testResultId)
+		{
+			var tests = await _testService.GetTestsByTypeAsync(TestType.Practice);
+			if (!tests.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(tests.ErrorMessage!));
+
+			return Ok(ApiResponse<List<TestListResponseDto>>.SuccessResponse(tests.Data!));
+		}
+
+		// Test List For Examinee or Guest: Simulator
+		[HttpGet("examinee/list/simulator")]
+		public async Task<IActionResult> GetSimulatorTests()
+		{
+			var tests = await _testService.GetTestsByTypeAsync(TestType.Simulator);
+			if (!tests.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(tests.ErrorMessage!));
+
+			return Ok(ApiResponse<List<TestListResponseDto>>.SuccessResponse(tests.Data!));
+		}
+
+		// Statistic result for examinee: Only Simulator
+		[HttpGet("examinee/statistic")]
+		[Authorize(Roles = "Examinee")]
+		public async Task<IActionResult> GetStatistic(
+			[FromQuery] TestSkill skill = TestSkill.LR,
+			[FromQuery] string range = "all")
+		{
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var result = await _testService.GetDashboardStatisticAsync(userId, skill, range);
+
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<StatisticResultDto>.SuccessResponse(result.Data!));
+		}
 		#endregion
 
+
 		//TODO: For examinee 
-		// - Test History
-		// - Test Result Detail
-		// - Test list for Examinee
+		// - Test History ok
+		// - Test Result Detail ok 
+		// - Test list for Examinee ok 
+		// - Statistic result for Examinee
 	}
 }

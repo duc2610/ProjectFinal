@@ -29,7 +29,8 @@ namespace ToeicGenius.Repositories.Interfaces
         /// Ki?m tra Test có t?n t?i không
         /// </summary>
         Task<bool> TestExistsAsync(int testId);
-		Task<GeneralLRResultDto> GetDetailResultLRAsync(int testResultId);
-
+		Task<GeneralLRResultDto> GetTestResultLRAsync(int testResultId);
+		Task<TestResult?> GetListeningReadingResultDetailAsync(int testResultId, Guid userId);
+		Task<List<TestResult>> GetResultsWithinRangeAsync(Guid examineeId, DateTime? fromDate);
 	}
 }
