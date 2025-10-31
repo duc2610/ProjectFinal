@@ -2,6 +2,7 @@ using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Test;
 using ToeicGenius.Domains.DTOs.Responses.Test;
 using ToeicGenius.Domains.Entities;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Repositories.Interfaces
 {
@@ -13,7 +14,7 @@ namespace ToeicGenius.Repositories.Interfaces
 		Task<int> GetNextVersionAsync(int parentTestId);
 		Task<int> GetTotalQuestionAsync(int testId);
 		Task<List<TestHistoryDto>> GetTestHistoryAsync(Guid userId);
-
+		Task<List<TestListResponseDto>> GetTestByType(TestType testType);
 	}
 }
 

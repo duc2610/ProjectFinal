@@ -114,7 +114,24 @@ namespace ToeicGenius.Repositories.Implementations
 
 			return query;
 		}
-
+		public async Task<List<TestListResponseDto>> GetTestByType(TestType testType)
+		{
+			var result = await _context.Tests
+							.Where(t => t.TestType == testType && t.Status == CommonStatus.Active)
+							.Select(t => new TestListResponseDto
+							{
+								Id = t.TestId,
+								TestType = t.TestType,
+								TestSkill = t.TestSkill,
+								Title = t.Title,
+								QuestionQuantity = t.TotalQuestion,
+								Duration = t.Duration,
+								Status = t.Status,
+								CreatedAt = t.CreatedAt,
+							})
+							.ToListAsync();
+			return result;
+		}
 	}
 }
 
