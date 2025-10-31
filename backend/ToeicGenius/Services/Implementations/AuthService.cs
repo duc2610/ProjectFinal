@@ -148,7 +148,7 @@ namespace ToeicGenius.Services.Implementations
                     CreatedAt = DateTime.UtcNow
                 };
 
-                var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.User);
+                var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.Examinee);
                 if (defaultRole != null)
                     user.Roles.Add(defaultRole);
 
@@ -222,7 +222,7 @@ namespace ToeicGenius.Services.Implementations
                     Status = UserStatus.Active,
                 };
 
-                var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.User);
+                var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.Examinee);
                 if (defaultRole != null) user.Roles.Add(defaultRole);
 
                 await _unitOfWork.Users.AddAsync(user);
