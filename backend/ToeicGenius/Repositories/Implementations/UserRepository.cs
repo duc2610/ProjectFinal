@@ -48,7 +48,7 @@ namespace ToeicGenius.Repositories.Implementations
 		// Get user by Email
 		public async Task<User?> GetByEmailAsync(string email)
 		{
-			return await _context.Users.Include(u=> u.Roles).FirstOrDefaultAsync(u => u.Email == email);
+			return await _context.Users.Include(u => u.Roles).FirstOrDefaultAsync(u => u.Email == email);
 		}
 
 		// Get user by refreshToken
@@ -57,6 +57,11 @@ namespace ToeicGenius.Repositories.Implementations
 			return await _context.Users
 								.Include(u => u.RefreshTokens) // load refresh tokens
 								.FirstOrDefaultAsync(u => u.RefreshTokens.Any(rt => rt.Token == refreshToken));
+		}
+
+		public async Task<User?> GetUserAndRoleByUserIdAsync(Guid userId)
+		{
+			return await _context.Users.Include(u => u.Roles).FirstOrDefaultAsync(u => u.Id == userId);
 		}
 
 		public async Task<PaginationResponse<UserResponseDto>> GetUsersAsync(UserResquestDto request)
