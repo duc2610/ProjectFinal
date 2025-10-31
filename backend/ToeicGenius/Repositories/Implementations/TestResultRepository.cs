@@ -220,5 +220,18 @@ namespace ToeicGenius.Repositories.Implementations
 				.Include(tr => tr.UserAnswers)
 				.FirstOrDefaultAsync(tr => tr.TestResultId == testResultId && tr.UserId == userId);
 		}
+
+		public async Task<List<TestResult>> GetResultsWithinRangeAsync(Guid examineeId, DateTime? fromDate)
+		{
+			var query = _context.TestResults
+			.Include(r => r.Test)
+			.Include(r => r.SkillScores)
+			.Where(r => r.UserId == examineeId && r.Test.TestType == TestType.Simulator);
+
+			if (fromDate.HasValue)
+				query = query.Where(r => r.CreatedAt >= fromDate.Value);
+
+			return await query.ToListAsync();
+		}
 	}
 }

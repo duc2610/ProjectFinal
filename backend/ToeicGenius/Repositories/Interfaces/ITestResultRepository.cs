@@ -31,6 +31,6 @@ namespace ToeicGenius.Repositories.Interfaces
         Task<bool> TestExistsAsync(int testId);
 		Task<GeneralLRResultDto> GetTestResultLRAsync(int testResultId);
 		Task<TestResult?> GetListeningReadingResultDetailAsync(int testResultId, Guid userId);
-
+		Task<List<TestResult>> GetResultsWithinRangeAsync(Guid examineeId, DateTime? fromDate);
 	}
 }
