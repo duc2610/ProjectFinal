@@ -17,13 +17,25 @@ const Profile = lazy(() => import("@pages/account/Profile.jsx"));
 const AdminDashboard = lazy(() => import("@pages/admin/Dashboard.jsx"));
 const ResetPassword = lazy(() => import("@pages/auth/ResetPassword.jsx"));
 const VerifyReset = lazy(() => import("@pages/auth/VerifyReset.jsx"));
-const TOEICExam = lazy(() => import("../../../src/shared/components/TOEICExam/ExamSelection.jsx"));
-const TestResults = lazy(() => import("../../../src/shared/components/TOEICExam/TestResult.jsx"));
-const ExamScreen = lazy(() => import("../../../src/shared/components/TOEICExam/ExamScreen.jsx"));
-const ExamManagement = lazy(() => import("../../../src/shared/components/ExamManagement/ExamManagement.jsx"));
-const AccountManagement = lazy(() => import("@pages/admin/AccountManagement.jsx"));
-const EvaluationBanksManagement = lazy(() => import("@pages/admin/EvaluationBanksManagement.jsx"));
-const QuestionBankManagement = lazy(() => import("@pages/testCreator/QuestionBankManagement.jsx"));
+const AccountManagement = lazy(() =>
+  import("@pages/admin/AccountManagement.jsx")
+);
+
+const QuestionBankManagement = lazy(() =>
+  import("@pages/testCreator/QuestionBankManagement.jsx")
+);
+const TOEICExam = lazy(() =>
+  import("../../../src/shared/components/TOEICExam/ExamSelection.jsx")
+);
+const TestResults = lazy(() =>
+  import("../../../src/shared/components/TOEICExam/TestResult.jsx")
+);
+const ExamScreen = lazy(() =>
+  import("../../../src/shared/components/TOEICExam/ExamScreen.jsx")
+);
+const ExamManagement = lazy(() =>
+  import("@pages/testCreator/ExamManagement.jsx")
+);
 import NotFound from "@pages/public/NotFound.jsx";
 
 export default function RoutesRoot() {
@@ -77,24 +89,23 @@ export default function RoutesRoot() {
             </Route>
             <Route element={<RoleRoute allow={[ROLES.TestCreator]} />}>
               <Route
-                path="/test-creator/evaluation-banks-management"
-                element={<EvaluationBanksManagement />}
-              />
-              <Route
                 path="/test-creator/question-bank"
                 element={<QuestionBankManagement />}
+              />
+            </Route>
+            <Route element={<RoleRoute allow={[ROLES.TestCreator]} />}>
+              <Route
+                path="/test-creator/exam-management"
+                element={<ExamManagement />}
               />
             </Route>
           </Route>
         </Route>
 
-        {/* Public TOEIC routes */}
         <Route path="/toeic-exam" element={<TOEICExam />} />
         <Route path="/exam" element={<ExamScreen />} />
         <Route path="/result" element={<TestResults />} />
-        <Route path="/test-creator/exam-management" element={<ExamManagement />} />
 
-        {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

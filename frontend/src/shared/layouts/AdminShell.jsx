@@ -67,7 +67,7 @@ export default function AdminShell() {
         label: "QuestionBank",
       },
       {
-        key: "/test-creator/evaluation-banks-management",
+        key: "/test-creator/exam-management",
         icon: <FileTextOutlined />,
         label: "Test Bank",
       },
