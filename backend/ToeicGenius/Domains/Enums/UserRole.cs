@@ -3,6 +3,7 @@
 	public enum UserRole
 	{
 		Admin = 1,
-		User = 2
+		Examinee = 2,
+		TestCreator = 3
 	}
 }

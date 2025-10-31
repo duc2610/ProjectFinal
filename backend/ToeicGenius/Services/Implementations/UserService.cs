@@ -15,7 +15,7 @@ namespace ToeicGenius.Services.Implementations
 	{
 		private readonly IUnitOfWork _uow;
 		private readonly IEmailService _emailService;
-		
+
 		public UserService(IUnitOfWork unitOfWork, IEmailService emailService)
 		{
 			_uow = unitOfWork;
@@ -131,31 +131,55 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<Result<UserResponseDto>> UpdateUserAsync(Guid userId, UpdateUserDto dto)
 		{
-			var user = await _uow.Users.GetByIdAsync(userId);
+			var user = await _uow.Users.GetUserAndRoleByUserIdAsync(userId);
 			if (user == null)
-			{
 				return Result<UserResponseDto>.Failure(ErrorMessages.UserNotFound);
-			}
 
+			// Cập nhật thông tin cơ bản
 			user.FullName = dto.FullName;
-			if (!string.IsNullOrWhiteSpace(dto.Password))
-			{
-				user.PasswordHash = SecurityHelper.HashPassword(dto.Password);
-			}
 			user.UpdatedAt = DateTime.UtcNow;
 
-			await _uow.Users.UpdateAsync(user);
-
-			// Update roles if provided
-			if (dto.Roles != null)
+			// Cập nhật mật khẩu nếu có
+			if (!string.IsNullOrWhiteSpace(dto.Password))
 			{
-				var rolesToAssign = await _uow.Roles.GetRolesByNamesAsync(dto.Roles);
-				user.Roles = rolesToAssign;
-				await _uow.Users.UpdateAsync(user);
+				var (isValid, error) = SecurityHelper.ValidatePassword(dto.Password);
+				if (!isValid)
+					return Result<UserResponseDto>.Failure(error);
+
+				user.PasswordHash = SecurityHelper.HashPassword(dto.Password);
 			}
 
+			// ✅ Cập nhật roles nếu có
+			if (dto.Roles != null)
+			{
+				// Lấy danh sách role hợp lệ từ DB
+				var validRoles = await _uow.Roles.GetRolesByNamesAsync(dto.Roles);
+
+				if (!validRoles.Any())
+					return Result<UserResponseDto>.Failure("No valid roles found.");
+
+				// Xóa các role cũ không còn trong danh sách mới
+				var rolesToRemove = user.Roles
+					.Where(r => !validRoles.Any(v => v.Id == r.Id))
+					.ToList();
+
+				foreach (var role in rolesToRemove)
+					user.Roles.Remove(role);
+
+				// Thêm các role mới chưa có
+				foreach (var role in validRoles)
+				{
+					if (!user.Roles.Any(r => r.Id == role.Id))
+						user.Roles.Add(role);
+				}
+			}
+
+			await _uow.Users.UpdateAsync(user);
 			await _uow.SaveChangesAsync();
-			var roles = await _uow.Roles.GetRolesByUserIdAsync(user.Id);
+
+			// Load lại roles sau khi cập nhật
+			var updatedRoles = await _uow.Roles.GetRolesByUserIdAsync(user.Id);
+
 			var response = new UserResponseDto
 			{
 				Id = user.Id,
@@ -163,11 +187,13 @@ namespace ToeicGenius.Services.Implementations
 				FullName = user.FullName,
 				Status = user.Status,
 				CreatedAt = user.CreatedAt,
-				Roles = roles.Select(r => r.RoleName).ToList()
+				Roles = updatedRoles.Select(r => r.RoleName).ToList()
 			};
 
 			return Result<UserResponseDto>.Success(response);
 		}
+
+
 
 		// Generate password
 		private static string GenerateTemporaryPassword(int length = NumberConstants.MinPasswordLength)
