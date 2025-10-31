@@ -180,3 +180,21 @@ export const TEST_STATUS_COLORS = {
   1: "success",
 };
 
+// Download Excel template
+export async function downloadTemplate() {
+  const res = await api.get("/api/tests/download-template", {
+    responseType: "blob",
+  });
+  return res.data;
+}
+
+// Import test from Excel file
+export async function importTestFromExcel(file) {
+  const formData = new FormData();
+  formData.append("ExcelFile", file);
+  
+  // apiClient will automatically handle FormData and remove Content-Type header
+  const res = await api.post("/api/tests/import-excel", formData);
+  return res?.data?.data ?? res?.data;
+}
+

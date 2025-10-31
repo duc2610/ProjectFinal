@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Input, Table, Space, Tag, Switch, message, Tooltip, Select, Row, Col } from "antd";
-import { PlusOutlined, EditOutlined, EyeOutlined, SearchOutlined } from "@ant-design/icons";
+import { Card, Button, Input, Table, Space, Tag, Switch, message, Tooltip, Select, Row, Col, Modal, Upload } from "antd";
+import { PlusOutlined, EditOutlined, EyeOutlined, SearchOutlined, DownloadOutlined, UploadOutlined, FileExcelOutlined } from "@ant-design/icons";
 import { 
     getTests, 
     hideTest, 
     publishTest,
+    downloadTemplate,
+    importTestFromExcel,
 } from "@services/testsService";
 import { HistoryOutlined } from "@ant-design/icons";
 import TestTypeSelectionModal from "@shared/components/ExamManagement/TestTypeSelectionModal";
 import FromBankTestForm from "@shared/components/ExamManagement/FromBankTestForm";
+import ManualTestForm from "@shared/components/ExamManagement/ManualTestForm";
 import TestVersionsModal from "@shared/components/ExamManagement/TestVersionsModal";
 
 export default function ExamManagement() {
@@ -29,9 +32,13 @@ export default function ExamManagement() {
     const [manualFormOpen, setManualFormOpen] = useState(false);
     const [searchExam, setSearchExam] = useState("");
     const [filterSkill, setFilterSkill] = useState("all");
+    const [filterTestType, setFilterTestType] = useState("all");
     const [searchTimeout, setSearchTimeout] = useState(null);
+    const [importModalOpen, setImportModalOpen] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [fileList, setFileList] = useState([]);
 
-    const fetchExams = async (page = 1, pageSize = 10, search = "", skill = "all") => {
+    const fetchExams = async (page = 1, pageSize = 10, search = "", skill = "all", testType = "all") => {
         setLoading(true);
         try {
             // Fetch tất cả tests (không paginate) để đảm bảo có đủ tất cả versions để filter
@@ -46,7 +53,12 @@ export default function ExamManagement() {
             
             if (response?.success && response?.data) {
                 const { dataPaginated, currentPage, pageSize: size, totalCount } = response.data;
-                const allExams = dataPaginated || [];
+                let allExams = dataPaginated || [];
+                
+                // Filter theo testType nếu được chọn
+                if (testType !== "all") {
+                    allExams = allExams.filter(exam => exam.testType === testType);
+                }
                 
                 // Filter: chỉ giữ lại version mới nhất của mỗi test (group by parentTestId hoặc id)
                 // Logic: Group theo root test ID (nếu có parentTestId thì dùng parentTestId, không thì dùng id)
@@ -98,7 +110,7 @@ export default function ExamManagement() {
     };
 
     useEffect(() => {
-        fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill);
+        fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType);
         
         // Cleanup timeout khi component unmount
         return () => {
@@ -109,7 +121,7 @@ export default function ExamManagement() {
     }, []);
 
     const handleTableChange = (newPagination) => {
-        fetchExams(newPagination.current, newPagination.pageSize, searchExam, filterSkill);
+        fetchExams(newPagination.current, newPagination.pageSize, searchExam, filterSkill, filterTestType);
     };
 
     const handleSearchChange = (e) => {
@@ -124,7 +136,7 @@ export default function ExamManagement() {
         // Tạo timeout mới để debounce search
         const newTimeout = setTimeout(() => {
             setPagination({ ...pagination, current: 1 });
-            fetchExams(1, pagination.pageSize, value, filterSkill);
+            fetchExams(1, pagination.pageSize, value, filterSkill, filterTestType);
         }, 500); // Delay 500ms sau khi người dùng ngừng gõ
         
         setSearchTimeout(newTimeout);
@@ -133,7 +145,71 @@ export default function ExamManagement() {
     const handleFilterChange = (skill) => {
         setFilterSkill(skill);
         setPagination({ ...pagination, current: 1 });
-        fetchExams(1, pagination.pageSize, searchExam, skill);
+        fetchExams(1, pagination.pageSize, searchExam, skill, filterTestType);
+    };
+
+    const handleTestTypeFilterChange = (testType) => {
+        setFilterTestType(testType);
+        setPagination({ ...pagination, current: 1 });
+        fetchExams(1, pagination.pageSize, searchExam, filterSkill, testType);
+    };
+
+    const handleDownloadTemplate = async () => {
+        try {
+            const blob = await downloadTemplate();
+            const url = window.URL.createObjectURL(new Blob([blob]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", `TOEIC_LR_Test_Template_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.xlsx`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            message.success("Đã tải template thành công");
+        } catch (error) {
+            console.error("Download template error:", error);
+            message.error("Lỗi khi tải template: " + (error.message || "Unknown error"));
+        }
+    };
+
+    const handleImportExcel = async () => {
+        if (fileList.length === 0) {
+            message.warning("Vui lòng chọn file Excel để import");
+            return;
+        }
+
+        const file = fileList[0].originFileObj;
+        if (!file) {
+            message.warning("File không hợp lệ");
+            return;
+        }
+
+        // Validate file extension
+        const fileName = file.name.toLowerCase();
+        if (!fileName.endsWith(".xlsx") && !fileName.endsWith(".xls")) {
+            message.error("File phải có định dạng Excel (.xlsx hoặc .xls)");
+            return;
+        }
+
+        try {
+            setUploading(true);
+            await importTestFromExcel(file);
+            message.success("Import bài thi thành công");
+            setImportModalOpen(false);
+            setFileList([]);
+            handleTestCreated(); // Reload danh sách
+        } catch (error) {
+            console.error("Import Excel error:", error);
+            const errorMsg = error?.response?.data?.message || error?.response?.data?.data || error?.message || "Unknown error";
+            message.error("Lỗi khi import: " + errorMsg);
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleImportModalClose = () => {
+        setImportModalOpen(false);
+        setFileList([]);
     };
 
     const openCreateExam = () => { 
@@ -151,11 +227,16 @@ export default function ExamManagement() {
     
     const openEditExam = (exam) => { 
         setEditingExam(exam);
-        setFromBankFormOpen(true);
+        if (exam.testType === "Simulator") {
+            setManualFormOpen(true);
+        } else {
+            setFromBankFormOpen(true);
+        }
     };
 
     const openViewExam = (exam) => {
         setViewingExam(exam);
+        // View sẽ dùng đúng form tương ứng (FromBankTestForm hoặc ManualTestForm)
         setViewFormOpen(true);
     };
 
@@ -175,7 +256,7 @@ export default function ExamManagement() {
         // Sau khi tạo/cập nhật bài thi thành công, reload danh sách
         // Reset về trang 1 để đảm bảo hiển thị version mới nhất
         setPagination({ ...pagination, current: 1 });
-        fetchExams(1, pagination.pageSize, searchExam, filterSkill);
+        fetchExams(1, pagination.pageSize, searchExam, filterSkill, filterTestType);
     };
 
     // toggle test status (Active/Inactive)
@@ -189,7 +270,7 @@ export default function ExamManagement() {
                 await publishTest(testId);
                 message.success("Đã công khai bài thi");
             }
-            fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill);
+            fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType);
         } catch (error) {
             console.error("Toggle status error:", error);
             message.error("Lỗi khi cập nhật trạng thái");
@@ -347,12 +428,36 @@ export default function ExamManagement() {
                                 <Select.Option value={1}>Speaking</Select.Option>
                                 <Select.Option value={2}>Writing</Select.Option>
                             </Select>
+                            <Select
+                                value={filterTestType}
+                                onChange={handleTestTypeFilterChange}
+                                style={{ width: 200 }}
+                                placeholder="Chọn loại bài thi"
+                            >
+                                <Select.Option value="all">Tất cả loại</Select.Option>
+                                <Select.Option value="Practice">Practice</Select.Option>
+                                <Select.Option value="Simulator">Simulator</Select.Option>
+                            </Select>
                         </Space>
                     </Col>
                     <Col>
-                        <Button type="primary" icon={<PlusOutlined />} onClick={openCreateExam}>
-                            Tạo bài thi mới
-                        </Button>
+                        <Space>
+                            <Button 
+                                icon={<DownloadOutlined />} 
+                                onClick={handleDownloadTemplate}
+                            >
+                                Download Template
+                            </Button>
+                            <Button 
+                                icon={<UploadOutlined />} 
+                                onClick={() => setImportModalOpen(true)}
+                            >
+                                Import Excel
+                            </Button>
+                            <Button type="primary" icon={<PlusOutlined />} onClick={openCreateExam}>
+                                Tạo bài thi mới
+                            </Button>
+                        </Space>
                     </Col>
                 </Row>
             </Card>
@@ -391,11 +496,27 @@ export default function ExamManagement() {
             />
 
             <FromBankTestForm
-                open={viewFormOpen}
+                open={viewFormOpen && viewingExam?.testType !== "Simulator"}
                 onClose={() => { setViewFormOpen(false); setViewingExam(null); }}
                 onSuccess={() => {}}
                 editingId={viewingExam?.id}
                 readOnly={true}
+            />
+
+            <ManualTestForm
+                open={viewFormOpen && viewingExam?.testType === "Simulator"}
+                onClose={() => { setViewFormOpen(false); setViewingExam(null); }}
+                onSuccess={() => {}}
+                editingId={viewingExam?.id}
+                readOnly={true}
+            />
+
+            <ManualTestForm
+                open={manualFormOpen}
+                onClose={() => { setManualFormOpen(false); setEditingExam(null); }}
+                onSuccess={handleTestCreated}
+                editingId={editingExam?.id}
+                readOnly={false}
             />
 
             <TestVersionsModal
@@ -404,8 +525,50 @@ export default function ExamManagement() {
                 parentTestId={selectedParentTestId}
                 onSelectVersion={handleSelectVersion}
             />
-            
-            {/* TODO: Add Manual Test Form */}
+
+            <Modal
+                title="Import bài thi từ Excel"
+                open={importModalOpen}
+                onOk={handleImportExcel}
+                onCancel={handleImportModalClose}
+                okText="Import"
+                cancelText="Hủy"
+                confirmLoading={uploading}
+                okButtonProps={{ disabled: fileList.length === 0 || uploading }}
+            >
+                <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                    <div>
+                        <p style={{ marginBottom: 8 }}>
+                            Vui lòng chọn file Excel đã điền đầy đủ thông tin theo template.
+                        </p>
+                        <p style={{ color: "#999", fontSize: 12 }}>
+                            Hỗ trợ định dạng: .xlsx, .xls
+                        </p>
+                    </div>
+                    <Upload
+                        fileList={fileList}
+                        beforeUpload={(file) => {
+                            // Chỉ cho phép 1 file
+                            setFileList([{
+                                uid: file.uid,
+                                name: file.name,
+                                status: 'done',
+                                originFileObj: file,
+                            }]);
+                            return false; // Prevent auto upload
+                        }}
+                        onRemove={() => {
+                            setFileList([]);
+                        }}
+                        accept=".xlsx,.xls"
+                        maxCount={1}
+                    >
+                        <Button icon={<FileExcelOutlined />}>
+                            Chọn file Excel
+                        </Button>
+                    </Upload>
+                </Space>
+            </Modal>
         </div>
     );
 }

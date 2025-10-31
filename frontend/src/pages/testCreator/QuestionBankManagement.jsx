@@ -10,7 +10,12 @@ import {
   Switch,
   Tabs,
   Tooltip,
+  Input,
+  Select,
+  Row,
+  Col,
 } from "antd";
+import { SearchOutlined } from "@ant-design/icons";
 
 import SingleQuestionModal from "@shared/components/QuestionBank/SingleQuestionModal.jsx";
 import QuestionGroupModal from "@shared/components/QuestionBank/QuestionGroupModal.jsx";
@@ -76,6 +81,9 @@ export default function QuestionBankManagement() {
   });
   const [showDeleted, setShowDeleted] = useState(false);
   const [tabKey, setTabKey] = useState("single");
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [filterSkill, setFilterSkill] = useState("all");
+  const [searchTimeout, setSearchTimeout] = useState(null);
 
   // Modal state - Single
   const [singleModalOpen, setSingleModalOpen] = useState(false);
@@ -85,10 +93,15 @@ export default function QuestionBankManagement() {
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [editingGroupId, setEditingGroupId] = useState(null);
 
-  const loadList = async (page = 1, pageSize = 10) => {
+  const loadList = async (page = 1, pageSize = 10, keyword = "", skill = "all") => {
     try {
       setListLoading(true);
-      const params = buildQuestionListParams({ page, pageSize });
+      const params = buildQuestionListParams({ 
+        page, 
+        pageSize,
+        keyword: keyword || undefined,
+        skill: skill !== "all" ? skill : undefined,
+      });
       let res;
       if (tabKey === "single") {
         res = showDeleted
@@ -150,7 +163,14 @@ export default function QuestionBankManagement() {
   };
 
   useEffect(() => {
-    loadList(1, 10);
+    loadList(1, 10, searchKeyword, filterSkill);
+    
+    // Cleanup timeout khi component unmount
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
   }, [showDeleted, tabKey]);
 
   const filteredData = useMemo(() => dataSource, [dataSource]);
@@ -176,7 +196,35 @@ export default function QuestionBankManagement() {
   };
 
   const afterSaved = () => {
-    loadList(pagination.current, pagination.pageSize);
+    loadList(pagination.current, pagination.pageSize, searchKeyword, filterSkill);
+  };
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchKeyword(value);
+    
+    // Clear timeout cũ
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Tạo timeout mới để debounce search
+    const newTimeout = setTimeout(() => {
+      setPagination({ ...pagination, current: 1 });
+      loadList(1, pagination.pageSize, value, filterSkill);
+    }, 500); // Delay 500ms sau khi người dùng ngừng gõ
+    
+    setSearchTimeout(newTimeout);
+  };
+
+  const handleSkillFilterChange = (skill) => {
+    setFilterSkill(skill);
+    setPagination({ ...pagination, current: 1 });
+    loadList(1, pagination.pageSize, searchKeyword, skill);
+  };
+
+  const handleTableChange = (newPagination) => {
+    loadList(newPagination.current, newPagination.pageSize, searchKeyword, filterSkill);
   };
 
   return (
@@ -199,6 +247,34 @@ export default function QuestionBankManagement() {
           </Space>
         }
       >
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col flex="auto">
+            <Space size="middle" style={{ width: '100%' }}>
+              <Input
+                placeholder="Tìm kiếm theo tên/nội dung..."
+                style={{ width: 300 }}
+                value={searchKeyword}
+                onChange={handleSearchChange}
+                allowClear
+                prefix={<SearchOutlined style={{ color: '#bfbfbf' }} />}
+              />
+              <Select
+                value={filterSkill}
+                onChange={handleSkillFilterChange}
+                style={{ width: 200 }}
+                placeholder="Chọn kỹ năng"
+              >
+                <Select.Option value="all">Tất cả kỹ năng</Select.Option>
+                {QUESTION_SKILLS.map((skill) => (
+                  <Select.Option key={skill.value} value={skill.value}>
+                    {skill.label}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Space>
+          </Col>
+        </Row>
+        
         <Tabs
           activeKey={tabKey}
           onChange={setTabKey}
@@ -216,7 +292,7 @@ export default function QuestionBankManagement() {
             current: pagination.current,
             pageSize: pagination.pageSize,
             total: pagination.total,
-            onChange: (p, ps) => loadList(p, ps),
+            onChange: (p, ps) => loadList(p, ps, searchKeyword, filterSkill),
           }}
           columns={[
             { title: "ID", dataIndex: "id", width: 80 },
@@ -280,7 +356,7 @@ export default function QuestionBankManagement() {
                             } else {
                               await deleteQuestion(record.id, false);
                             }
-                            loadList(pagination.current, pagination.pageSize);
+                            loadList(pagination.current, pagination.pageSize, searchKeyword, filterSkill);
                           } catch (e) {
                             const msg =
                               e?.response?.data?.message ||
@@ -304,7 +380,7 @@ export default function QuestionBankManagement() {
                             } else {
                               await restoreQuestion(record.id, false);
                             }
-                            loadList(pagination.current, pagination.pageSize);
+                            loadList(pagination.current, pagination.pageSize, searchKeyword, filterSkill);
                           } catch (e) {
                             const msg =
                               e?.response?.data?.message ||

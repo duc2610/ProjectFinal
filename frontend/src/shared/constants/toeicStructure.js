@@ -55,7 +55,17 @@ export const TEST_TYPE = {
  */
 export async function loadPartsBySkill(skill) {
     try {
-        const parts = await getPartsBySkill(skill);
+        let parts = [];
+        if (skill === TEST_SKILL.LR) {
+            // L&R bao gồm cả Listening (skill=3) và Reading (skill=4)
+            const listeningParts = await getPartsBySkill(3); // Listening = 3
+            const readingParts = await getPartsBySkill(4); // Reading = 4
+            parts = [...(listeningParts || []), ...(readingParts || [])];
+        } else if (skill === TEST_SKILL.SPEAKING) {
+            parts = await getPartsBySkill(1); // Speaking = 1
+        } else if (skill === TEST_SKILL.WRITING) {
+            parts = await getPartsBySkill(2); // Writing = 2
+        }
         return parts || [];
     } catch (error) {
         console.error("Error loading parts:", error);
@@ -118,4 +128,43 @@ export function validateTestStructure(skill, parts) {
  */
 export function requiresAudio(skill) {
     return REQUIRES_AUDIO[skill] || false;
+}
+
+/**
+ * Kiểm tra xem part có hỗ trợ question groups không
+ * @param {number} partId
+ * @returns {boolean}
+ */
+export function supportsQuestionGroups(partId) {
+    // Part 3, 4, 6, 7 (L&R) hỗ trợ question groups
+    // Part 1, 2, 5 (L&R) chỉ có single questions
+    // Speaking và Writing parts có thể có groups tùy vào cấu trúc
+    const partsWithGroups = [3, 4, 6, 7]; // L&R parts có groups
+    return partsWithGroups.includes(partId);
+}
+
+/**
+ * Lấy số lượng đáp án cho part
+ * @param {number} partId
+ * @returns {number} - Số lượng options (3 hoặc 4)
+ */
+export function getOptionCountForPart(partId) {
+    // Part 2 (Question-Response) chỉ có 3 đáp án (A, B, C)
+    // Các part khác có 4 đáp án (A, B, C, D)
+    return partId === 2 ? 3 : 4;
+}
+
+/**
+ * Tạo mảng options mặc định cho part
+ * @param {number} partId
+ * @returns {Array} - Mảng options với label và isCorrect
+ */
+export function createDefaultOptions(partId) {
+    const count = getOptionCountForPart(partId);
+    const labels = ['A', 'B', 'C', 'D'];
+    return labels.slice(0, count).map(label => ({
+        label,
+        content: "",
+        isCorrect: false,
+    }));
 }
