@@ -1,102 +1,174 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Card, Typography, Radio, Button, Input } from "antd";
+import { Card, Typography, Radio, Button, Image, Progress } from "antd";
 import styles from "../../styles/Exam.module.css";
 
 const { Title, Text } = Typography;
-const { TextArea } = Input;
 
-export default function QuestionCard({ question, currentIndex, totalCount, answers, onAnswer, goToQuestionByIndex, handleSubmit }) {
+export default function QuestionCard({
+  question,
+  currentIndex,
+  totalCount,
+  answers,
+  onAnswer,
+  goToQuestionByIndex,
+  handleSubmit,
+  globalAudioUrl,
+}) {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [writeText, setWriteText] = useState("");
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [audioError, setAudioError] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const isListeningPart = question.partId >= 1 && question.partId <= 4;
+  const hasGlobalAudio = globalAudioUrl && globalAudioUrl.trim() !== "";
+  const hasImage = question.imageUrl && question.imageUrl.trim() !== "";
 
   useEffect(() => {
-    if (question && typeof answers[question.id] === "string") {
-      setWriteText(answers[question.id]);
-    } else {
-      setWriteText("");
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setImageError(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
-  }, [question, answers]);
+  }, [question]);
+
+  useEffect(() => {
+    if (!audioRef.current || !hasGlobalAudio) return;
+    const audio = audioRef.current;
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration);
+    const handleEnd = () => setIsPlaying(false);
+    const handleError = () => setAudioError(true);
+
+    audio.addEventListener("timeupdate", updateTime);
+    audio.addEventListener("loadedmetadata", updateDuration);
+    audio.addEventListener("ended", handleEnd);
+    audio.addEventListener("error", handleError);
+
+    return () => {
+      audio.removeEventListener("timeupdate", updateTime);
+      audio.removeEventListener("loadedmetadata", updateDuration);
+      audio.removeEventListener("ended", handleEnd);
+      audio.removeEventListener("error", handleError);
+    };
+  }, [globalAudioUrl, question]);
 
   const toggleAudio = () => {
-    if (!audioRef.current) return;
-    if (isPlaying) { audioRef.current.pause(); setIsPlaying(false); } else { audioRef.current.play(); setIsPlaying(true); }
+    if (!audioRef.current || audioError) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(() => setAudioError(true));
+    }
+    setIsPlaying(!isPlaying);
   };
 
-  if (!question) return <Card>No questions</Card>;
-
-  const handleTextSave = () => {
-    onAnswer(question.id, writeText || "");
+  const formatTime = (sec) => {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
   return (
-    <Card>
+    <Card style={{ margin: 16 }}>
       <div className={styles.questionHeader}>
-        <Title level={4}>Question {question.globalIndex}</Title>
-        <div className={styles.partBadge}>Part {question.partId}</div>
+        <Title level={4}>Câu {question.globalIndex}</Title>
+        <div className={styles.partBadge}>{question.partName}</div>
       </div>
 
       <div className={styles.qContentRow}>
-        <div className={styles.qBox}>
-          <Text strong>Question</Text>
+        {question.passage && (
+          <div style={{ margin: "12px 0", padding: 12, background: "#f5f5f5", borderRadius: 6 }}>
+            <Text italic>{question.passage}</Text>
+          </div>
+        )}
 
-          {question.type === "photo" && question.imageUrl && (
-            <div style={{ marginTop: 10 }}>
-              <img src={question.imageUrl} alt="photo" style={{ maxWidth: "100%", borderRadius: 6 }} />
-            </div>
-          )}
+        {isListeningPart && hasGlobalAudio && (
+          <div className={styles.audioBox} style={{ margin: "16px 0" }}>
+            {!audioError ? (
+              <>
+                <audio ref={audioRef} src={globalAudioUrl} />
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <Button size="small" onClick={toggleAudio} type={isPlaying ? "primary" : "default"}>
+                    {isPlaying ? "Tạm dừng" : "Nghe"}
+                  </Button>
+                  <div style={{ flex: 1 }}>
+                    <Progress
+                      percent={(currentTime / duration) * 100 || 0}
+                      showInfo={false}
+                      strokeColor="#1890ff"
+                      size="small"
+                    />
+                    <Text type="secondary" style={{ fontSize: 12 }}>
+                      {formatTime(currentTime)} / {formatTime(duration || 0)}
+                    </Text>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <Text type="danger">Không phát được âm thanh</Text>
+            )}
+          </div>
+        )}
 
-          {question.passage && (
-            <div style={{ marginTop: 8, padding: 8, background: "#fafafa", borderRadius: 6 }}>{question.passage}</div>
-          )}
+        {hasImage && !imageError ? (
+          <div style={{ margin: "16px 0", textAlign: "center" }}>
+            <Image
+              src={question.imageUrl}
+              alt="Câu hỏi"
+              style={{ maxHeight: 300, borderRadius: 6, objectFit: "contain" }}
+              onError={() => setImageError(true)}
+              preview={false}
+            />
+          </div>
+        ) : hasImage && imageError ? (
+          <div style={{ color: "red", textAlign: "center", margin: "16px 0" }}>
+            Không tải được ảnh
+          </div>
+        ) : null}
 
-          {question.audioUrl && (
-            <div className={styles.audioBox}>
-              <audio ref={audioRef} src={question.audioUrl} preload="none" />
-              <Button size="small" onClick={toggleAudio}>{isPlaying ? "Pause" : "Play Audio"}</Button>
-            </div>
-          )}
-
-          <div className={styles.qText} style={{ marginTop: 12 }}>{question.question}</div>
-        </div>
-
-        <div className={styles.aBox}>
-          <Text strong>Answer</Text>
-
-          {/* Normal MCQ choices */}
-          {question.options && (!question.allowWrite) && (
-            <div className={styles.optionsBox} style={{ marginTop: 8 }}>
-              <Radio.Group value={answers[question.id]} onChange={(e) => onAnswer(question.id, e.target.value)}>
-                {question.options.map((o) => (
-                  <div key={o.key} className={styles.optionRow}><Radio value={o.key}>{o.text}</Radio></div>
-                ))}
-              </Radio.Group>
-            </div>
-          )}
-
-          {/* Writing area when allowWrite true */}
-          {question.allowWrite && (
-            <div style={{ marginTop: 12 }}>
-              <TextArea rows={8} value={writeText} onChange={(e) => setWriteText(e.target.value)} placeholder="Write your response here..." />
-              <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
-                <Button onClick={handleTextSave}>Save</Button>
-                <Button type="primary" onClick={() => { handleTextSave(); handleSubmit(); }}>Save & Submit</Button>
-              </div>
-            </div>
-          )}
+        <div style={{ marginTop: 12, fontSize: 16, lineHeight: 1.6 }}>
+          <Text strong>{question.question}</Text>
         </div>
       </div>
 
-      <div className={styles.qFooter}>
-        <div>
-          <Button onClick={() => goToQuestionByIndex(currentIndex - 1)} disabled={currentIndex === 0}>Previous</Button>
-          <Button style={{ marginLeft: 8 }} onClick={() => goToQuestionByIndex(currentIndex + 1)} disabled={currentIndex === totalCount - 1}>Next</Button>
+      <div className={styles.aBox} style={{ marginTop: 20 }}>
+        <Text strong>Chọn đáp án</Text>
+        <div style={{ marginTop: 12 }}>
+          <Radio.Group
+            value={answers[question.testQuestionId]}
+            onChange={(e) => onAnswer(question.testQuestionId, e.target.value)}
+          >
+            {question.options.map((opt) => (
+              <div key={opt.key} style={{ margin: "10px 0" }}>
+                <Radio value={opt.key}>
+                  <Text strong>{opt.key}.</Text> {opt.text}
+                </Radio>
+              </div>
+            ))}
+          </Radio.Group>
         </div>
+      </div>
 
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <div style={{ width: 160 }}></div>
-          <Button style={{ marginLeft: 12 }} type="primary" onClick={handleSubmit}>Submit</Button>
+      <div className={styles.qFooter} style={{ marginTop: 24 }}>
+        <div>
+          <Button onClick={() => goToQuestionByIndex(currentIndex - 1)} disabled={currentIndex === 0}>
+            Câu trước
+          </Button>
+          <Button
+            style={{ marginLeft: 8 }}
+            onClick={() => goToQuestionByIndex(currentIndex + 1)}
+            disabled={currentIndex === totalCount - 1}
+          >
+            Câu sau
+          </Button>
         </div>
+        <Button type="primary" onClick={handleSubmit}>
+          Nộp bài
+        </Button>
       </div>
     </Card>
   );

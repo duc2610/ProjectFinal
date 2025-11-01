@@ -4,7 +4,6 @@ import {
   Button,
   Form,
   Input,
-  DatePicker,
   Select,
   Modal,
   Space,
@@ -15,6 +14,7 @@ import {
   Row,
   Col,
   Card,
+  Tabs,
 } from "antd";
 import {
   PlusOutlined,
@@ -24,181 +24,296 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
-import styles from "@shared/styles/AccountManagement.module.css";
 import { format, parseISO } from "date-fns";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import styles from "@shared/styles/AccountManagement.module.css";
+import {
+  getAllUsers,
+  getBannedUsers,
+  createUser,
+  updateUser,
+  banUser,
+  unbanUser,
+} from "@services/accountManagerService";
 
 const { Option } = Select;
-const { TextArea } = Input;
+const { TabPane } = Tabs;
 
 const AccountManagement = () => {
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
-  const [data, setData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [searchText, setSearchText] = useState("");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
-  const [pageSize, setPageSize] = useState(10);
+  const [activeUsers, setActiveUsers] = useState([]);
+  const [bannedUsers, setBannedUsers] = useState([]);
+  const [filteredActive, setFilteredActive] = useState([]);
+  const [filteredBanned, setFilteredBanned] = useState([]);
+  const [loading, setLoading] = useState({ active: false, banned: false });
+  const [activeTab, setActiveTab] = useState("active");
 
-  // Load data từ localStorage
+  const [searchText, setSearchText] = useState({ active: "", banned: "" });
+  const [roleFilter, setRoleFilter] = useState({ active: "all", banned: "all" });
+  const [pageSize, setPageSize] = useState({ active: 10, banned: 10 });
+
+  const loadActiveUsers = async () => {
+    try {
+      setLoading(prev => ({ ...prev, active: true }));
+      const res = await getAllUsers();
+      if (Array.isArray(res)) {
+        const normalized = res
+          .filter(item => item.isActive === true || item.status === "Active")
+          .map(item => ({
+            ...item,
+            role: Array.isArray(item.roles) ? item.roles[0] : item.role || "User",
+            isActive: true,
+          }));
+        setActiveUsers(normalized);
+        setFilteredActive(normalized);
+      }
+    } catch (error) {
+      message.error("Lỗi khi tải danh sách tài khoản hoạt động!");
+    } finally {
+      setLoading(prev => ({ ...prev, active: false }));
+    }
+  };
+
+  const loadBannedUsers = async () => {
+    try {
+      setLoading(prev => ({ ...prev, banned: true }));
+      const res = await getBannedUsers();
+      if (Array.isArray(res)) {
+        const normalized = res.map(item => ({
+          ...item,
+          role: Array.isArray(item.roles) ? item.roles[0] : item.role || "User",
+          isActive: false,
+        }));
+        setBannedUsers(normalized);
+        setFilteredBanned(normalized);
+      }
+    } catch (error) {
+      message.error("Lỗi khi tải danh sách tài khoản bị ban!");
+    } finally {
+      setLoading(prev => ({ ...prev, banned: false }));
+    }
+  };
+
   useEffect(() => {
-    loadData();
+    loadActiveUsers();
+    loadBannedUsers();
   }, []);
 
-  const loadData = () => {
-    const saved = localStorage.getItem("accounts");
-    if (saved) {
-      setData(JSON.parse(saved));
-    } else {
-      // Dữ liệu mẫu nếu chưa có
-      const mockData = [
-        {
-          key: "1",
-          name: "Nguyễn Văn A",
-          dob: "1990-01-01",
-          address: "123 Đường ABC, Quận 1, TP.HCM",
-          phone: "0123456789",
-          email: "nva@example.com",
-          role: "Admin",
-          status: true,
-        },
-        {
-          key: "2",
-          name: "Trần Thị B",
-          dob: "1995-05-15",
-          address: "456 Đường XYZ, Hà Nội",
-          phone: "0987654321",
-          email: "ttb@example.com",
-          role: "User ",
-          status: true,
-        },
-        {
-          key: "3",
-          name: "Lê Văn C",
-          dob: "1985-12-20",
-          address: "789 Đường DEF, Đà Nẵng",
-          phone: "0111222333",
-          email: "lvc@example.com",
-          role: "Moderator",
-          status: false,
-        },
-      ];
-      setData(mockData);
-      saveData(mockData);
-    }
-    filterData(); // Áp dụng filter ban đầu
-  };
+  const filterData = (type) => {
+    const data = type === "active" ? activeUsers : bannedUsers;
+    const search = searchText[type] || "";
+    const role = roleFilter[type] || "all";
 
-  const saveData = (newData) => {
-    localStorage.setItem("accounts", JSON.stringify(newData));
-  };
-
-  // Filter data theo search và role
-  const filterData = () => {
     let filtered = [...data];
-    if (searchText) {
+
+    if (search) {
+      const lower = search.toLowerCase();
       filtered = filtered.filter(
-        (item) =>
-          item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.email.toLowerCase().includes(searchText.toLowerCase()) ||
-          item.phone.includes(searchText)
+        item =>
+          item.fullName?.toLowerCase().includes(lower) ||
+          item.email?.toLowerCase().includes(lower)
       );
     }
-    if (roleFilter !== "all") {
-      filtered = filtered.filter((item) => item.role === roleFilter);
+
+    if (role !== "all") {
+      filtered = filtered.filter(item => item.role === role);
     }
-    setFilteredData(filtered);
+
+    if (type === "active") setFilteredActive(filtered);
+    else setFilteredBanned(filtered);
   };
 
   useEffect(() => {
-    filterData();
-  }, [searchText, roleFilter, data]);
+    filterData(activeTab);
+  }, [searchText[activeTab], roleFilter[activeTab], activeUsers, bannedUsers, activeTab]);
 
-  const rowSelection = {
-    selectedRowKeys,
-    onChange: setSelectedRowKeys,
+  const handleToggleStatus = async (userId, currentActive) => {
+    const user = [...activeUsers, ...bannedUsers].find(u => u.id === userId);
+    if (user?.role === "Admin") {
+      message.warning("Không thể thay đổi trạng thái tài khoản Admin!");
+      return;
+    }
+
+    try {
+      setLoading(prev => ({ ...prev, [currentActive ? "active" : "banned"]: true }));
+      if (currentActive) {
+        await banUser(userId);
+        message.success("Đã khóa tài khoản!");
+      } else {
+        await unbanUser(userId);
+        message.success("Đã mở khóa tài khoản!");
+      }
+      loadActiveUsers();
+      loadBannedUsers();
+    } catch (error) {
+      message.error("Lỗi khi cập nhật trạng thái!");
+    } finally {
+      setLoading(prev => ({ ...prev, [currentActive ? "active" : "banned"]: false }));
+    }
+  };
+
+  const handleOk = async () => {
+    try {
+      const values = await form.validateFields();
+
+      const payload = {
+        fullName: values.fullName,
+        email: editingAccount ? editingAccount.email : values.email,
+        roles: [values.role],
+      };
+
+      if (!editingAccount) {
+        payload.password = values.password;
+      }
+
+      if (editingAccount && values.newPassword) {
+        payload.password = values.newPassword;
+      }
+
+      setLoading(prev => ({ ...prev, active: true }));
+
+      if (editingAccount) {
+        await updateUser(editingAccount.id, payload);
+        message.success("Cập nhật tài khoản thành công!");
+      } else {
+        await createUser(payload);
+        message.success("Thêm tài khoản thành công!");
+      }
+
+      setIsModalVisible(false);
+      form.resetFields();
+      setEditingAccount(null);
+      loadActiveUsers();
+      loadBannedUsers();
+    } catch (error) {
+      if (error.errorFields) return;
+
+      const errMsg =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        "Lỗi không xác định khi lưu tài khoản!";
+
+      message.error(errMsg);
+      console.error("Lỗi lưu tài khoản:", error);
+    } finally {
+      setLoading(prev => ({ ...prev, active: false }));
+    }
+  };
+
+  const handleAdd = () => {
+    setEditingAccount(null);
+    form.resetFields();
+    setIsModalVisible(true);
+  };
+
+  const handleEdit = (record) => {
+    setEditingAccount(record);
+    form.setFieldsValue({
+      fullName: record.fullName,
+      email: record.email,
+      role: record.role,
+      newPassword: "",
+    });
+    setIsModalVisible(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+    setEditingAccount(null);
+    form.resetFields();
+  };
+
+  const handleExport = () => {
+    const data = activeTab === "active" ? filteredActive : filteredBanned;
+    const status = activeTab === "active" ? "Đang hoạt động" : "Bị ban";
+
+    const headers = ["Tên", "Email", "Role", "Trạng thái", "Ngày tạo"];
+    const excelData = data.map(item => [
+      item.fullName,
+      item.email,
+      item.role,
+      status,
+      item.createdAt ? format(parseISO(item.createdAt), "dd/MM/yyyy HH:mm") : "",
+    ]);
+
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...excelData]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Accounts");
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([buffer], { type: "application/octet-stream" });
+    saveAs(blob, `accounts_${status}_${dayjs().format("YYYY-MM-DD")}.xlsx`);
+    message.success("Xuất Excel thành công!");
   };
 
   const columns = [
     {
       title: "Tên",
-      dataIndex: "name",
-      key: "name",
-      sorter: (a, b) => a.name.localeCompare(b.name),
-      responsive: ["sm"],
-    },
-    {
-      title: "Ngày sinh",
-      dataIndex: "dob",
-      key: "dob",
-      render: (text) => format(parseISO(text), "dd/MM/yyyy"),
-      sorter: (a, b) => new Date(a.dob) - new Date(b.dob),
-      responsive: ["md"],
-    },
-    {
-      title: "Địa chỉ",
-      dataIndex: "address",
-      key: "address",
-      ellipsis: true,
-      responsive: ["lg"],
-    },
-    {
-      title: "SĐT",
-      dataIndex: "phone",
-      key: "phone",
-      sorter: (a, b) => a.phone.localeCompare(b.phone),
-      responsive: ["sm"],
+      dataIndex: "fullName",
+      key: "fullName",
+      sorter: (a, b) => (a.fullName || "").localeCompare(b.fullName || ""),
     },
     {
       title: "Email",
       dataIndex: "email",
       key: "email",
-      sorter: (a, b) => a.email.localeCompare(b.email),
-      responsive: ["md"],
     },
     {
       title: "Role",
-      dataIndex: "role",
       key: "role",
-      render: (role) => (
-        <Tag
-          color={
-            role === "Admin"
-              ? "volcano"
-              : role === "User "
-              ? "geekblue"
-              : "green"
-          }
-        >
-          {role}
-        </Tag>
-      ),
-      filters: [
-        { text: "Admin", value: "Admin" },
-        { text: "User ", value: "User " },
-        { text: "Moderator", value: "Moderator" },
-      ],
-      onFilter: (value, record) => record.role === value,
+      render: (_, record) => {
+        const role = record.role;
+        const colorMap = {
+          Admin: "volcano",
+          TestCreator: "geekblue",
+          Moderator: "purple",
+          User: "green",
+          Examinee: "orange",
+        };
+        return <Tag color={colorMap[role] || "default"}>{role || "-"}</Tag>;
+      },
     },
     {
       title: "Trạng thái",
-      dataIndex: "status",
       key: "status",
-      render: (status, record) => (
-        <Switch
-          checked={status}
-          onChange={() => handleToggleStatus(record.key)}
-          checkedChildren="Active"
-          unCheckedChildren="Inactive"
-          loading={loading}
-          disabled={loading}
-        />
-      ),
-      sorter: (a, b) => Number(a.status) - Number(b.status),
+      render: (_, record) => {
+        const isAdmin = record.role === "Admin";
+
+        if (isAdmin) {
+          return (
+            <Tag color="green" style={{ margin: 0 }}>
+              Đang hoạt động
+            </Tag>
+          );
+        }
+
+        return (
+          <Switch
+            checked={record.isActive}
+            onChange={() => handleToggleStatus(record.id, record.isActive)}
+            checkedChildren="Đang hoạt động"
+            unCheckedChildren="Bị ban"
+            disabled={loading[record.isActive ? "active" : "banned"]}
+          />
+        );
+      },
+    },
+    {
+      title: "Ngày tạo",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      defaultSortOrder: "descend",
+      sorter: (a, b) => {
+        const dateA = a.createdAt ? dayjs(a.createdAt) : null;
+        const dateB = b.createdAt ? dayjs(b.createdAt) : null;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.isAfter(dateB) ? -1 : 1;
+      },
+      render: (text) => (text ? format(parseISO(text), "dd/MM/yyyy HH:mm") : "-"),
     },
     {
       title: "Hành động",
@@ -210,7 +325,7 @@ const AccountManagement = () => {
             icon={<EditOutlined />}
             onClick={() => handleEdit(record)}
             size="small"
-            disabled={loading}
+            disabled={loading[record.isActive ? "active" : "banned"]}
           >
             Sửa
           </Button>
@@ -218,368 +333,213 @@ const AccountManagement = () => {
             type="link"
             danger
             icon={<DeleteOutlined />}
-            onClick={() => handleDelete([record.key])}
             size="small"
-            disabled={loading}
+            disabled={loading[record.isActive ? "active" : "banned"] || record.role === "Admin"}
+            onClick={() => {
+              if (record.role === "Admin") {
+                message.warning("Không thể xóa tài khoản Admin!");
+                return;
+              }
+              Modal.confirm({
+                title: "Xác nhận xóa?",
+                content: "Tính năng xóa chưa được hỗ trợ.",
+                onOk: () => message.info("Chưa có API xóa!"),
+              });
+            }}
           >
             Xóa
           </Button>
         </Space>
       ),
-      responsive: ["sm"],
     },
   ];
-
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  const handleAdd = () => {
-    setEditingAccount(null);
-    form.resetFields();
-    setIsModalVisible(true);
-  };
-
-  const handleEdit = (record) => {
-    setEditingAccount(record);
-    form.setFieldsValue({
-      name: record.name,
-      dob: dayjs(record.dob),
-      address: record.address,
-      phone: record.phone,
-      email: record.email,
-      role: record.role,
-      status: record.status,
-    });
-    setIsModalVisible(true);
-  };
-
-  const handleDelete = (keys) => {
-    if (keys.length === 0) return;
-    Modal.confirm({
-      title: `Xác nhận xóa ${
-        keys.length > 1 ? `${keys.length} tài khoản` : "tài khoản"
-      }?`,
-      content: "Dữ liệu sẽ bị xóa vĩnh viễn.",
-      onOk: async () => {
-        setLoading(true);
-        await delay(1000);
-        const newData = data.filter((item) => !keys.includes(item.key));
-        setData(newData);
-        saveData(newData);
-        setSelectedRowKeys([]);
-        message.success(`Đã xóa ${keys.length} tài khoản.`);
-        setLoading(false);
-      },
-    });
-  };
-
-  const handleToggleStatus = async (key) => {
-    setLoading(true);
-    await delay(500);
-    const newData = data.map((item) =>
-      item.key === key ? { ...item, status: !item.status } : item
-    );
-    setData(newData);
-    saveData(newData);
-    message.success("Cập nhật trạng thái thành công.");
-    setLoading(false);
-  };
-
-  const handleOk = async () => {
-    try {
-      const values = await form.validateFields();
-
-      // Kiểm tra ngày sinh hợp lệ
-      if (!dayjs.isDayjs(values.dob) || !values.dob.isValid()) {
-        message.error("Ngày sinh không hợp lệ!");
-        return;
-      }
-
-      // Kiểm tra duplicate (trừ chính record đang edit)
-      const isDuplicate = data.some(
-        (item) =>
-          item.key !== editingAccount?.key &&
-          (item.email === values.email || item.phone === values.phone)
-      );
-      if (isDuplicate) {
-        message.error("Email hoặc SĐT đã tồn tại!");
-        return;
-      }
-
-      setLoading(true);
-      await delay(1000);
-
-      const newAccount = {
-        ...values,
-        dob: values.dob.format("YYYY-MM-DD"),
-        status: values.status !== undefined ? values.status : true,
-        key: editingAccount ? editingAccount.key : Date.now().toString(),
-      };
-
-      let newData;
-      if (editingAccount) {
-        newData = data.map((item) =>
-          item.key === editingAccount.key ? newAccount : item
-        );
-        message.success("Cập nhật tài khoản thành công.");
-      } else {
-        newData = [...data, newAccount];
-        message.success("Thêm tài khoản thành công.");
-      }
-      setData(newData);
-      saveData(newData);
-      setIsModalVisible(false);
-      form.resetFields();
-      setEditingAccount(null);
-      setLoading(false);
-    } catch (error) {
-      console.error("Validation error:", error);
-      message.error("Lỗi validation hoặc dữ liệu không hợp lệ.");
-    }
-  };
-
-  const handleCancel = () => {
-    setIsModalVisible(false);
-    setEditingAccount(null);
-    form.resetFields();
-  };
-
-  // Export Excel
-  const handleExport = () => {
-    const headers = [
-      "Tên",
-      "Ngày sinh",
-      "Địa chỉ",
-      "SĐT",
-      "Email",
-      "Role",
-      "Trạng thái",
-    ];
-
-    const data = filteredData.map((item) => [
-      item.name,
-      format(parseISO(item.dob), "dd/MM/yyyy"),
-      item.address,
-      item.phone,
-      item.email,
-      item.role,
-      item.status ? "Active" : "Inactive",
-    ]);
-
-    // Gộp header + data
-    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...data]);
-
-    // Auto-width cho cột
-    const colWidths = headers.map((h, i) => ({
-      wch:
-        Math.max(
-          h.length,
-          ...data.map((row) => (row[i] ? row[i].toString().length : 0))
-        ) + 2,
-    }));
-    worksheet["!cols"] = colWidths;
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Accounts");
-
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-    const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
-    saveAs(blob, `accounts_${dayjs().format("YYYY-MM-DD")}.xlsx`);
-
-    message.success("Xuất file Excel thành công.");
-  };
-
-  const handleSearchChange = (e) => {
-    setSearchText(e.target.value);
-  };
-
-  const handleRoleFilter = (value) => {
-    setRoleFilter(value);
-  };
+  const currentData = activeTab === "active" ? filteredActive : filteredBanned;
+  const currentLoading = loading[activeTab];
 
   return (
-    <Spin spinning={loading}>
+    <Spin spinning={currentLoading}>
       <div className={styles.container}>
         <div className={styles.header}>
-          <h1 className={styles.title}>Quản lý Tài khoản Admin</h1>
+          <h1 className={styles.title}>Quản lý Tài khoản</h1>
           <Space>
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleAdd}
-              size="large"
-              className={styles.addButton}
-              disabled={loading}
-            >
-              Thêm Tài khoản
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd} disabled={currentLoading}>
+              Thêm tài khoản
             </Button>
             <Button
               icon={<ExportOutlined />}
               onClick={handleExport}
-              className={styles.exportButton}
-              disabled={loading}
+              disabled={currentLoading || currentData.length === 0}
             >
               Xuất Excel
             </Button>
           </Space>
         </div>
 
-        <Card className={styles.controlsCard}>
-          <Row gutter={16} align="middle">
-            <Col xs={24} sm={12} md={8}>
-              <Input
-                placeholder="Tìm kiếm theo tên, email, SĐT"
-                prefix={<SearchOutlined />}
-                value={searchText}
-                onChange={handleSearchChange}
-                allowClear
-                className={styles.searchInput}
-              />
-            </Col>
-            <Col xs={24} sm={12} md={6}>
-              <Select
-                placeholder="Lọc theo Role"
-                onChange={handleRoleFilter}
-                style={{ width: "100%" }}
-                value={roleFilter}
-                allowClear
-              >
-                <Option value="all">Tất cả</Option>
-                <Option value="Admin">Admin</Option>
-                <Option value="User ">User </Option>
-                <Option value="Moderator">Moderator</Option>
-              </Select>
-            </Col>
-            {selectedRowKeys.length > 0 && (
-              <Col xs={24} sm={24} md={10}>
-                <Space>
-                  <span className={styles.selectedText}>
-                    {selectedRowKeys.length} mục được chọn
-                  </span>
-                  <Button
-                    danger
-                    onClick={() => handleDelete(selectedRowKeys)}
-                    disabled={loading}
+        <Tabs activeKey={activeTab} onChange={setActiveTab}>
+          <TabPane tab={`Tài khoản đang hoạt động (${activeUsers.length})`} key="active">
+            <Card className={styles.controlsCard}>
+              <Row gutter={[16, 16]} align="middle">
+                <Col xs={24} sm={12} md={8}>
+                  <Input
+                    placeholder="Tìm kiếm tên, email..."
+                    prefix={<SearchOutlined />}
+                    value={searchText.active || ""}
+                    onChange={(e) => setSearchText(prev => ({ ...prev, active: e.target.value }))}
+                    allowClear
+                  />
+                </Col>
+                <Col xs={12} sm={6} md={4}>
+                  <Select
+                    value={roleFilter.active || "all"}
+                    onChange={(val) => setRoleFilter(prev => ({ ...prev, active: val }))}
+                    style={{ width: "100%" }}
                   >
-                    Xóa mục đã chọn
-                  </Button>
-                </Space>
-              </Col>
-            )}
-          </Row>
-        </Card>
+                    <Option value="all">Tất cả Role</Option>
+                    <Option value="Admin">Admin</Option>
+                    <Option value="TestCreator">TestCreator</Option>
+                    <Option value="Examinee">Examinee</Option>
+                  </Select>
+                </Col>
+              </Row>
+            </Card>
 
-        <Table
-          rowSelection={rowSelection}
-          columns={columns}
-          dataSource={filteredData}
-          pagination={{
-            pageSize,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} của ${total} tài khoản`,
-            onShowSizeChange: (current, size) => setPageSize(size),
-            style: { marginRight: 16 },
-          }}
-          scroll={{ x: 1200 }}
-          loading={loading}
-          className={styles.table}
-          rowKey="key"
-        />
+            <Table
+              columns={columns}
+              dataSource={filteredActive}
+              rowKey="id"
+              pagination={{
+                pageSize: pageSize.active,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} tài khoản`,
+                onShowSizeChange: (_, size) => setPageSize(prev => ({ ...prev, active: size })),
+              }}
+              scroll={{ x: 1000 }}
+            />
+          </TabPane>
+
+          <TabPane tab={`Tài khoản bị ban (${bannedUsers.length})`} key="banned">
+            <Card className={styles.controlsCard}>
+              <Row gutter={[16, 16]} align="middle">
+                <Col xs={24} sm={12} md={8}>
+                  <Input
+                    placeholder="Tìm kiếm tên, email..."
+                    prefix={<SearchOutlined />}
+                    value={searchText.banned || ""}
+                    onChange={(e) => setSearchText(prev => ({ ...prev, banned: e.target.value }))}
+                    allowClear
+                  />
+                </Col>
+                <Col xs={12} sm={6} md={4}>
+                  <Select
+                    value={roleFilter.banned || "all"}
+                    onChange={(val) => setRoleFilter(prev => ({ ...prev, banned: val }))}
+                    style={{ width: "100%" }}
+                  >
+                    <Option value="all">Tất cả Role</Option>
+                    <Option value="Admin">Admin</Option>
+                    <Option value="TestCreator">TestCreator</Option>
+                    <Option value="Examinee">Examinee</Option>
+                  </Select>
+                </Col>
+              </Row>
+            </Card>
+
+            <Table
+              columns={columns}
+              dataSource={filteredBanned}
+              rowKey="id"
+              pagination={{
+                pageSize: pageSize.banned,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} tài khoản`,
+                onShowSizeChange: (_, size) => setPageSize(prev => ({ ...prev, banned: size })),
+              }}
+              scroll={{ x: 1000 }}
+            />
+          </TabPane>
+        </Tabs>
 
         <Modal
-          title={editingAccount ? "Sửa Tài khoản" : "Thêm Tài khoản"}
+          title={editingAccount ? "Sửa tài khoản" : "Thêm tài khoản"}
           open={isModalVisible}
           onOk={handleOk}
           onCancel={handleCancel}
           okText="Lưu"
           cancelText="Hủy"
+          confirmLoading={loading.active}
+          destroyOnClose
           width={600}
-          className={styles.modal}
-          confirmLoading={loading} // Loading khi save
-          destroyOnClose // Reset form khi đóng modal
         >
-          <Form form={form} layout="vertical" name="accountForm">
+          <Form form={form} layout="vertical">
             <Form.Item
-              name="name"
-              label="Tên"
+              name="fullName"
+              label="Tên đầy đủ"
               rules={[{ required: true, message: "Vui lòng nhập tên!" }]}
             >
               <Input placeholder="Nhập tên đầy đủ" />
             </Form.Item>
 
-            <Form.Item
-              name="dob"
-              label="Ngày sinh"
-              rules={[
-                { required: true, message: "Vui lòng chọn ngày sinh!" },
-                {
-                  validator: (_, value) => {
-                    if (value && value.isAfter(dayjs(), "day")) {
-                      return Promise.reject(
-                        "Ngày sinh không thể là ngày tương lai!"
-                      );
-                    }
-                    return Promise.resolve();
-                  },
-                },
-              ]}
-            >
-              <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
-            </Form.Item>
+            {!editingAccount && (
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: true, message: "Vui lòng nhập email!" },
+                  { type: "email", message: "Email không hợp lệ!" },
+                ]}
+              >
+                <Input placeholder="Nhập email" />
+              </Form.Item>
+            )}
 
-            <Form.Item
-              name="address"
-              label="Địa chỉ"
-              rules={[{ required: true, message: "Vui lòng nhập địa chỉ!" }]}
-            >
-              <TextArea rows={2} placeholder="Nhập địa chỉ chi tiết" />
-            </Form.Item>
+            {editingAccount && (
+              <Form.Item label="Email">
+                <Input value={editingAccount.email} disabled />
+              </Form.Item>
+            )}
 
-            <Form.Item
-              name="phone"
-              label="SĐT"
-              rules={[
-                { required: true, message: "Vui lòng nhập SĐT!" },
-                { pattern: /^[0-9]{10,11}$/, message: "SĐT phải là 10-11 số!" },
-              ]}
-            >
-              <Input placeholder="Nhập số điện thoại" />
-            </Form.Item>
+            {!editingAccount && (
+              <Form.Item
+                name="password"
+                label="Mật khẩu"
+                rules={[
+                  { required: true, message: "Vui lòng nhập mật khẩu!" },
+                  { min: 6, message: "Mật khẩu phải ít nhất 6 ký tự!" },
+                ]}
+              >
+                <Input.Password placeholder="Nhập mật khẩu" />
+              </Form.Item>
+            )}
 
-            <Form.Item
-              name="email"
-              label="Email"
-              rules={[
-                { required: true, message: "Vui lòng nhập email!" },
-                { type: "email", message: "Email không hợp lệ!" },
-              ]}
-            >
-              <Input placeholder="Nhập email" />
-            </Form.Item>
+            {editingAccount && (
+              <Form.Item
+                name="newPassword"
+                label="Mật khẩu mới (để trống nếu không đổi)"
+                rules={[
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || value.length >= 6) return Promise.resolve();
+                      return Promise.reject(new Error("Mật khẩu phải ít nhất 6 ký tự!"));
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password placeholder="Nhập mật khẩu mới" />
+              </Form.Item>
+            )}
 
             <Form.Item
               name="role"
-              label="Role"
+              label="Quyền"
               rules={[{ required: true, message: "Vui lòng chọn role!" }]}
             >
               <Select placeholder="Chọn role">
                 <Option value="Admin">Admin</Option>
-                <Option value="User ">User </Option>
-                <Option value="Moderator">Moderator</Option>
+                <Option value="TestCreator">TestCreator</Option>
+                <Option value="Examinee">Examinee</Option>
               </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="status"
-              label="Trạng thái"
-              valuePropName="checked"
-              initialValue={true}
-            >
-              <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
             </Form.Item>
           </Form>
         </Modal>
