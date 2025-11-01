@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React from "react";
 import {
   Card,
   Form,
@@ -6,7 +6,6 @@ import {
   Button,
   Typography,
   Divider,
-  message,
   notification,
 } from "antd";
 import { GoogleOutlined, ArrowRightOutlined } from "@ant-design/icons";
@@ -44,21 +43,45 @@ export default function Login() {
         redirectAfterLogin(res.user);
       } else {
         const msg = res?.message || "Email hoặc mật khẩu không đúng";
+        
+        // Hiển thị notification error
+        notification.error({
+          message: "Đăng nhập thất bại",
+          description: msg,
+          duration: 5,
+          placement: "top",
+        });
+        
+        // Set errors vào form fields
         form.setFields([
           { name: "email", errors: [msg] },
           { name: "password", errors: [msg] },
         ]);
+        
+        // Xóa password để người dùng nhập lại
+        form.setFieldsValue({ password: "" });
       }
     } catch (error) {
       const beMsg =
         error?.response?.data?.message ||
         error?.message ||
         "Đã có lỗi xảy ra, vui lòng thử lại sau.";
+      
       notification.error({
         message: "Đăng nhập thất bại",
         description: beMsg,
         duration: 5,
+        placement: "top",
       });
+      
+      // Set errors vào form fields
+      form.setFields([
+        { name: "email", errors: [beMsg] },
+        { name: "password", errors: [beMsg] },
+      ]);
+      
+      // Xóa password để người dùng nhập lại
+      form.setFieldsValue({ password: "" });
     }
   };
   const googleLogin = useGoogleLogin({
