@@ -4,7 +4,6 @@ namespace ToeicGenius.Domains.DTOs.Requests.Test
 {
 	public class SubmitLRTestRequestDto
 	{
-		public Guid UserId { get; set; } = default!;
 		public int TestId { get; set; }
 		public int Duration { get; set; }
 		public TestType TestType { get; set; }
