@@ -245,10 +245,15 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "Examinee")]
 		public async Task<IActionResult> SubmitLRTest([FromBody] SubmitLRTestRequestDto request)
 		{
-			var result = await _testService.SubmitLRTestAsync(request);
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var result = await _testService.SubmitLRTestAsync(userId,request);
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
-			return Ok(ApiResponse<GeneralLRResultDto>.SuccessResponse(result.Data));
+			return Ok(ApiResponse<GeneralLRResultDto>.SuccessResponse(result.Data!));
 		}
 
 		// Test history

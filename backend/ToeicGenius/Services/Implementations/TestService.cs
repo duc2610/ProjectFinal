@@ -837,7 +837,7 @@ namespace ToeicGenius.Services.Implementations
 			return Result<TestStartResponseDto>.Success(result);
 		}
 		// Submit listening & reading test
-		public async Task<Result<GeneralLRResultDto>> SubmitLRTestAsync(SubmitLRTestRequestDto request)
+		public async Task<Result<GeneralLRResultDto>> SubmitLRTestAsync(Guid userId, SubmitLRTestRequestDto request)
 		{
 			if (request.Answers == null || !request.Answers.Any())
 				return Result<GeneralLRResultDto>.Failure("No answers provided.");
@@ -856,10 +856,11 @@ namespace ToeicGenius.Services.Implementations
 
 			var newTestResult = new TestResult
 			{
-				UserId = request.UserId,
+				UserId = userId,
 				TestId = request.TestId,
 				Duration = request.Duration,
 				TestType = request.TestType,
+				Status = "Success",
 				CreatedAt = DateTime.UtcNow
 			};
 
@@ -987,7 +988,6 @@ namespace ToeicGenius.Services.Implementations
 
 			return Result<TestResultDetailDto>.Success(dto);
 		}
-
 		public async Task<Result<List<TestListResponseDto>>> GetTestsByTypeAsync(TestType testType)
 		{
 			var result = await _uow.Tests.GetTestByType(testType);
@@ -1065,7 +1065,6 @@ namespace ToeicGenius.Services.Implementations
 
 			return Result<StatisticResultDto>.Success(dto);
 		}
-
 		#endregion
 
 		#region Private Helper Methods
