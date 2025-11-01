@@ -560,9 +560,10 @@ namespace ToeicGenius.Services.Implementations
 			var existing = await _uow.Tests.GetByIdAsync(testId);
 			if (existing == null)
 				return Result<string>.Failure("Test not found");
-
+			int totalQuestion = GetQuantityQuestion(dto);
 			// ✅ Nếu test đang ACTIVE -> tạo bản clone
 			Test targetTest;
+
 			if (existing.Status == CommonStatus.Active)
 			{
 				// Lấy version mới
@@ -576,7 +577,7 @@ namespace ToeicGenius.Services.Implementations
 					TestType = dto.TestType,
 					AudioUrl = dto.AudioUrl,
 					Duration = GetTestDuration(dto.TestSkill),
-					TotalQuestion = 0, // sẽ cập nhật sau
+					TotalQuestion = totalQuestion, // sẽ cập nhật sau
 					Status = CommonStatus.Draft,
 					ParentTestId = existing.ParentTestId ?? existing.TestId,
 					Version = newVersion,
@@ -594,6 +595,7 @@ namespace ToeicGenius.Services.Implementations
 				targetTest.Description = dto.Description;
 				targetTest.AudioUrl = dto.AudioUrl;
 				targetTest.TestSkill = dto.TestSkill;
+				targetTest.TotalQuestion = totalQuestion; 
 				targetTest.UpdatedAt = DateTime.UtcNow;
 
 				// Xóa test question cũ
@@ -625,6 +627,7 @@ namespace ToeicGenius.Services.Implementations
 							Test = targetTest,
 							PartId = part.PartId,
 							OrderInTest = order++,
+							IsQuestionGroup = true,
 							SourceType = QuestionSourceType.Manual,
 							SnapshotJson = snapshot,
 							CreatedAt = DateTime.UtcNow
@@ -654,7 +657,6 @@ namespace ToeicGenius.Services.Implementations
 			}
 
 			await _uow.TestQuestions.AddRangeAsync(testQuestions);
-			targetTest.TotalQuestion = testQuestions.Count;
 
 			await _uow.SaveChangesAsync();
 
@@ -1101,7 +1103,29 @@ namespace ToeicGenius.Services.Implementations
 
 			return quantity;
 		}
+		private int GetQuantityQuestion(UpdateManualTestDto dto)
+		{
+			int quantity = 0;
 
+			foreach (var part in dto.Parts)
+			{
+				// Đếm câu hỏi trực tiếp trong part
+				if (part.Questions != null)
+					quantity += part.Questions.Count;
+
+				// Đếm câu hỏi trong từng group của part
+				if (part.Groups != null)
+				{
+					foreach (var group in part.Groups)
+					{
+						if (group.Questions != null)
+							quantity += group.Questions.Count;
+					}
+				}
+			}
+
+			return quantity;
+		}
 		// Support function for SubmitLR TestAsync
 		private (List<UserAnswer> UserAnswers, TestStats Stats) ProcessUserAnswers(SubmitLRTestRequestDto request, List<TestQuestion> testQuestions, Dictionary<int, QuestionSkill> partSkillMap, bool isSimulator, TestResult newTestResult)
 		{
