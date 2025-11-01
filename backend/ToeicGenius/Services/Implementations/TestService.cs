@@ -756,8 +756,10 @@ namespace ToeicGenius.Services.Implementations
 				TestSkill = test.TestSkill,
 				AudioUrl = test.AudioUrl,
 				Duration = duration,
-				QuantityQuestion = test.TotalQuestion
-			};
+				QuantityQuestion = test.TotalQuestion,
+                CreatedAt = test.CreatedAt,
+                UpdatedAt = test.UpdatedAt
+            };
 
 			// Create a TestResult record for this user session and return id to client
 			var userTest = new TestResult
@@ -793,7 +795,8 @@ namespace ToeicGenius.Services.Implementations
 				{
 					PartId = first.PartId!,
 					PartName = first.Part?.Name ?? $"Part {first.PartId}",
-				};
+                    Description = first.Part?.Description,
+                };
 
 				foreach (var tq in group.OrderBy(q => q.OrderInTest))
 				{
