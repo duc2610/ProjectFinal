@@ -6,7 +6,6 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
-    cors: true,
   },
   resolve: {
     alias: {
@@ -14,12 +13,6 @@ export default defineConfig({
       "@pages": "/src/pages",
       "@shared": "/src/shared",
       "@modules": "/src/modules",
-      "@config": "/src/config",
-      "@assets": "/src/assets",
-      "@hooks": "/src/hooks",
-      "@services": "/src/services",
-      "@utils": "/src/utils",
-      "@CSS": "/src/styles",
     },
   },
 });
