@@ -1,0 +1,38 @@
+import { api } from "./apiClient";
+
+export async function startTest(testId, isSelectTime = false) {
+  const url = `/api/tests/start?Id=${testId}&IsSelectTime=${isSelectTime}`;
+  try {
+    const res = await api.get(url);
+    return res?.data?.data ?? res?.data;
+  } catch (error) {
+    console.error(`Error starting test ${testId}:`, error);
+    throw error;
+  }
+}
+
+export async function submitTest(payload) {
+  // SỬA: Dùng /L&R (không có &)
+  const url = `/api/tests/submit/L&R`;
+  try {
+    console.log("Submitting payload:", payload); // Debug
+    const res = await api.post(url, payload);
+    console.log("Submit success:", res.data);
+    return res?.data?.data ?? res?.data;
+  } catch (error) {
+    console.error("Submit failed:", error.response?.data || error);
+    throw error;
+  }
+}
+
+export async function getTestResultDetail(testResultId) {
+  const url = `/api/tests/result/${testResultId}`;
+  try {
+    const res = await api.get(url);
+    // Backend trả: { statusCode: 200, data: { ... } }
+    return res?.data?.data ?? res?.data;
+  } catch (error) {
+    console.error(`Error fetching result ${testResultId}:`, error.response?.data || error);
+    throw error;
+  }
+}

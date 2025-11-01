@@ -131,6 +131,12 @@ const AccountManagement = () => {
   }, [searchText[activeTab], roleFilter[activeTab], activeUsers, bannedUsers, activeTab]);
 
   const handleToggleStatus = async (userId, currentActive) => {
+    const user = [...activeUsers, ...bannedUsers].find(u => u.id === userId);
+    if (user?.role === "Admin") {
+      message.warning("Không thể thay đổi trạng thái tài khoản Admin!");
+      return;
+    }
+
     try {
       setLoading(prev => ({ ...prev, [currentActive ? "active" : "banned"]: true }));
       if (currentActive) {
@@ -243,93 +249,110 @@ const AccountManagement = () => {
     message.success("Xuất Excel thành công!");
   };
 
-const columns = [
-  {
-    title: "Tên",
-    dataIndex: "fullName",
-    key: "fullName",
-    sorter: (a, b) => (a.fullName || "").localeCompare(b.fullName || ""),
-  },
-  {
-    title: "Email",
-    dataIndex: "email",
-    key: "email",
-  },
-  {
-    title: "Role",
-    key: "role",
-    render: (_, record) => {
-      const role = record.role;
-      const colorMap = {
-        Admin: "volcano",
-        TestCreator: "geekblue",
-        Moderator: "purple",
-        User: "green",
-        Examinee: "orange",
-      };
-      return <Tag color={colorMap[role] || "default"}>{role || "-"}</Tag>;
+  const columns = [
+    {
+      title: "Tên",
+      dataIndex: "fullName",
+      key: "fullName",
+      sorter: (a, b) => (a.fullName || "").localeCompare(b.fullName || ""),
     },
-  },
-  {
-    title: "Trạng thái",
-    key: "status",
-    render: (_, record) => (
-      <Switch
-        checked={record.isActive}
-        onChange={() => handleToggleStatus(record.id, record.isActive)}
-        checkedChildren="Đang hoạt động"
-        unCheckedChildren="Bị ban"
-        disabled={loading[record.isActive ? "active" : "banned"]}
-      />
-    ),
-  },
-  {
-    title: "Ngày tạo",
-    dataIndex: "createdAt",
-    key: "createdAt",
-    sorter: (a, b) => {
-      const dateA = a.createdAt ? dayjs(a.createdAt) : null;
-      const dateB = b.createdAt ? dayjs(b.createdAt) : null;
-      if (!dateA) return 1;
-      if (!dateB) return -1;
-      return dateA.isAfter(dateB) ? -1 : 1;
+    {
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
     },
-    render: (text) => (text ? format(parseISO(text), "dd/MM/yyyy HH:mm") : "-"),
-  },
-  {
-    title: "Hành động",
-    key: "actions",
-    render: (_, record) => (
-      <Space size="middle">
-        <Button
-          type="link"
-          icon={<EditOutlined />}
-          onClick={() => handleEdit(record)}
-          size="small"
-          disabled={loading[record.isActive ? "active" : "banned"]}
-        >
-          Sửa
-        </Button>
-        <Button
-          type="link"
-          danger
-          icon={<DeleteOutlined />}
-          size="small"
-          disabled={loading[record.isActive ? "active" : "banned"]}
-          onClick={() => {
-            Modal.confirm({
-              title: "Xác nhận xóa?",
-              content: "Tính năng xóa chưa được hỗ trợ.",
-              onOk: () => message.info("Chưa có API xóa!"),
-            });
-          }}
-        >
-          Xóa
-        </Button>
-      </Space>
-    ),
-  },
-];
+    {
+      title: "Role",
+      key: "role",
+      render: (_, record) => {
+        const role = record.role;
+        const colorMap = {
+          Admin: "volcano",
+          TestCreator: "geekblue",
+          Moderator: "purple",
+          User: "green",
+          Examinee: "orange",
+        };
+        return <Tag color={colorMap[role] || "default"}>{role || "-"}</Tag>;
+      },
+    },
+    {
+      title: "Trạng thái",
+      key: "status",
+      render: (_, record) => {
+        const isAdmin = record.role === "Admin";
+
+        if (isAdmin) {
+          return (
+            <Tag color="green" style={{ margin: 0 }}>
+              Đang hoạt động
+            </Tag>
+          );
+        }
+
+        return (
+          <Switch
+            checked={record.isActive}
+            onChange={() => handleToggleStatus(record.id, record.isActive)}
+            checkedChildren="Đang hoạt động"
+            unCheckedChildren="Bị ban"
+            disabled={loading[record.isActive ? "active" : "banned"]}
+          />
+        );
+      },
+    },
+    {
+      title: "Ngày tạo",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      defaultSortOrder: "descend",
+      sorter: (a, b) => {
+        const dateA = a.createdAt ? dayjs(a.createdAt) : null;
+        const dateB = b.createdAt ? dayjs(b.createdAt) : null;
+        if (!dateA) return 1;
+        if (!dateB) return -1;
+        return dateA.isAfter(dateB) ? -1 : 1;
+      },
+      render: (text) => (text ? format(parseISO(text), "dd/MM/yyyy HH:mm") : "-"),
+    },
+    {
+      title: "Hành động",
+      key: "actions",
+      render: (_, record) => (
+        <Space size="middle">
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEdit(record)}
+            size="small"
+            disabled={loading[record.isActive ? "active" : "banned"]}
+          >
+            Sửa
+          </Button>
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            size="small"
+            disabled={loading[record.isActive ? "active" : "banned"] || record.role === "Admin"}
+            onClick={() => {
+              if (record.role === "Admin") {
+                message.warning("Không thể xóa tài khoản Admin!");
+                return;
+              }
+              Modal.confirm({
+                title: "Xác nhận xóa?",
+                content: "Tính năng xóa chưa được hỗ trợ.",
+                onOk: () => message.info("Chưa có API xóa!"),
+              });
+            }}
+          >
+            Xóa
+          </Button>
+        </Space>
+      ),
+    },
+  ];
   const currentData = activeTab === "active" ? filteredActive : filteredBanned;
   const currentLoading = loading[activeTab];
 
