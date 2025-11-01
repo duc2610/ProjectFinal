@@ -59,86 +59,149 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
 
                 // Parse parts data từ detail
                 const partsArr = d.parts || d.Parts || [];
+                console.log("=== DỮ LIỆU TỪ API ===");
+                console.log(`API trả về ${partsArr.length} parts`);
+                partsArr.forEach((p, idx) => {
+                    const partId = p.partId || p.PartId;
+                    const tqs = p.testQuestions || p.TestQuestions || [];
+                    const groupCount = tqs.filter(tq => (tq.isGroup ?? tq.IsGroup) === true).length;
+                    const singleCount = tqs.filter(tq => (tq.isGroup ?? tq.IsGroup) === false).length;
+                    console.log(`Part ${partId} (index ${idx}): ${tqs.length} testQuestions (${groupCount} groups, ${singleCount} single)`);
+                });
+                console.log("====================");
+                
                 const newPartsData = {};
                 
-                loadedParts.forEach(p => {
-                    newPartsData[p.partId] = { groups: [], questions: [] };
-                });
-
+                // Chỉ khởi tạo parts có trong response từ API
+                // Không khởi tạo tất cả parts từ skill để tránh mất dữ liệu khi một part không có trong response
                 partsArr.forEach((p) => {
-                    const partId = p.partId || p.PartId;
-                    if (!newPartsData[partId]) {
-                        newPartsData[partId] = { groups: [], questions: [] };
-                    }
+                    try {
+                        const partId = p.partId || p.PartId;
+                        if (!partId) {
+                            console.warn("Part không có partId:", p);
+                            return;
+                        }
+                        
+                        if (!newPartsData[partId]) {
+                            newPartsData[partId] = { groups: [], questions: [] };
+                        }
 
-                    const tqs = p.testQuestions || p.TestQuestions || [];
-                    tqs.forEach((tq) => {
-                        const isGroup = tq.isGroup ?? tq.IsGroup;
-                        if (isGroup) {
-                            const gSnap = tq.questionGroupSnapshotDto || tq.QuestionGroupSnapshotDto;
-                            if (gSnap) {
-                                newPartsData[partId].groups.push({
-                                    passage: gSnap.passage || gSnap.Passage || "",
-                                    imageUrl: gSnap.imageUrl || gSnap.ImageUrl || "",
-                                    audioUrl: gSnap.audioUrl || gSnap.AudioUrl || "",
-                                    questions: (gSnap.questionSnapshots || gSnap.QuestionSnapshots || []).map(q => {
-                                        const loadedOptions = (q.options || q.Options || []).map(o => ({
-                                            label: o.label || o.Label || "",
-                                            content: o.content || o.Content || "",
-                                            isCorrect: o.isCorrect || o.IsCorrect || false,
-                                        }));
-                                        // Đảm bảo số lượng options đúng với part (Part 2 = 3, các part khác = 4)
-                                        const expectedCount = createDefaultOptions(partId).length;
-                                        const normalizedOptions = loadedOptions.slice(0, expectedCount);
-                                        // Nếu thiếu, bổ sung options rỗng
-                                        while (normalizedOptions.length < expectedCount) {
-                                            const labels = ['A', 'B', 'C', 'D'];
-                                            normalizedOptions.push({
-                                                label: labels[normalizedOptions.length],
-                                                content: "",
-                                                isCorrect: false,
-                                            });
-                                        }
-                                        return {
-                                            content: q.content || q.Content || "",
-                                            imageUrl: q.imageUrl || q.ImageUrl || "",
-                                            audioUrl: q.audioUrl || q.AudioUrl || "",
-                                            explanation: q.explanation || q.Explanation || "",
-                                            options: normalizedOptions,
-                                        };
-                                    }),
-                                });
-                            }
-                        } else {
-                            const qSnap = tq.questionSnapshotDto || tq.QuestionSnapshotDto;
-                            if (qSnap) {
-                                const loadedOptions = (qSnap.options || qSnap.Options || []).map(o => ({
-                                    label: o.label || o.Label || "",
-                                    content: o.content || o.Content || "",
-                                    isCorrect: o.isCorrect || o.IsCorrect || false,
-                                }));
-                                // Đảm bảo số lượng options đúng với part (Part 2 = 3, các part khác = 4)
-                                const expectedCount = createDefaultOptions(partId).length;
-                                const normalizedOptions = loadedOptions.slice(0, expectedCount);
-                                // Nếu thiếu, bổ sung options rỗng
-                                while (normalizedOptions.length < expectedCount) {
-                                    const labels = ['A', 'B', 'C', 'D'];
-                                    normalizedOptions.push({
-                                        label: labels[normalizedOptions.length],
-                                        content: "",
-                                        isCorrect: false,
+                        const tqs = p.testQuestions || p.TestQuestions || [];
+                        console.log(`Part ${partId} có ${tqs.length} testQuestions`);
+                        tqs.forEach((tq, tqIndex) => {
+                            try {
+                                // Thử nhiều cách để xác định isGroup
+                                const isGroup = tq.isGroup ?? tq.IsGroup ?? tq.isQuestionGroup ?? tq.IsQuestionGroup ?? false;
+                                if (isGroup) {
+                                    const gSnap = tq.questionGroupSnapshotDto || tq.QuestionGroupSnapshotDto;
+                                    if (!gSnap) {
+                                        console.warn(`Part ${partId}, TestQuestion ${tqIndex}: Group snapshot không tồn tại`, tq);
+                                        return;
+                                    }
+                                    
+                                    // Kiểm tra questionSnapshots
+                                    const questionSnapshots = gSnap.questionSnapshots || gSnap.QuestionSnapshots || [];
+                                    console.log(`Part ${partId}, Group ${tqIndex}: có ${questionSnapshots.length} questions trong group`);
+                                    
+                                    if (questionSnapshots.length === 0) {
+                                        console.warn(`Part ${partId}, Group ${tqIndex}: Group không có questions!`, gSnap);
+                                    }
+                                    
+                                    newPartsData[partId].groups.push({
+                                        passage: gSnap.passage || gSnap.Passage || "",
+                                        imageUrl: gSnap.imageUrl || gSnap.ImageUrl || "",
+                                        audioUrl: gSnap.audioUrl || gSnap.AudioUrl || "",
+                                        questions: questionSnapshots.map((q, qIdx) => {
+                                            const loadedOptions = (q.options || q.Options || []).map(o => ({
+                                                label: o.label || o.Label || "",
+                                                content: o.content || o.Content || "",
+                                                isCorrect: o.isCorrect || o.IsCorrect || false,
+                                            }));
+                                            // Đảm bảo số lượng options đúng với part (Part 2 = 3, các part khác = 4)
+                                            const expectedCount = createDefaultOptions(partId).length;
+                                            const normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                            // Nếu thiếu, bổ sung options rỗng
+                                            while (normalizedOptions.length < expectedCount) {
+                                                const labels = ['A', 'B', 'C', 'D'];
+                                                normalizedOptions.push({
+                                                    label: labels[normalizedOptions.length],
+                                                    content: "",
+                                                    isCorrect: false,
+                                                });
+                                            }
+                                            return {
+                                                content: q.content || q.Content || "",
+                                                imageUrl: q.imageUrl || q.ImageUrl || "",
+                                                audioUrl: q.audioUrl || q.AudioUrl || "",
+                                                explanation: q.explanation || q.Explanation || "",
+                                                options: normalizedOptions,
+                                            };
+                                        }),
+                                    });
+                                } else {
+                                    const qSnap = tq.questionSnapshotDto || tq.QuestionSnapshotDto;
+                                    if (!qSnap) {
+                                        console.warn(`Part ${partId}, TestQuestion ${tqIndex}: Question snapshot không tồn tại`, tq);
+                                        return;
+                                    }
+                                    console.log(`Part ${partId}, Single Question ${tqIndex}: đã parse`);
+                                    const loadedOptions = (qSnap.options || qSnap.Options || []).map(o => ({
+                                        label: o.label || o.Label || "",
+                                        content: o.content || o.Content || "",
+                                        isCorrect: o.isCorrect || o.IsCorrect || false,
+                                    }));
+                                    // Đảm bảo số lượng options đúng với part (Part 2 = 3, các part khác = 4)
+                                    const expectedCount = createDefaultOptions(partId).length;
+                                    const normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                    // Nếu thiếu, bổ sung options rỗng
+                                    while (normalizedOptions.length < expectedCount) {
+                                        const labels = ['A', 'B', 'C', 'D'];
+                                        normalizedOptions.push({
+                                            label: labels[normalizedOptions.length],
+                                            content: "",
+                                            isCorrect: false,
+                                        });
+                                    }
+                                    newPartsData[partId].questions.push({
+                                        content: qSnap.content || qSnap.Content || "",
+                                        imageUrl: qSnap.imageUrl || qSnap.ImageUrl || "",
+                                        audioUrl: qSnap.audioUrl || qSnap.AudioUrl || "",
+                                        explanation: qSnap.explanation || qSnap.Explanation || "",
+                                        options: normalizedOptions,
                                     });
                                 }
-                                newPartsData[partId].questions.push({
-                                    content: qSnap.content || qSnap.Content || "",
-                                    imageUrl: qSnap.imageUrl || qSnap.ImageUrl || "",
-                                    audioUrl: qSnap.audioUrl || qSnap.AudioUrl || "",
-                                    explanation: qSnap.explanation || qSnap.Explanation || "",
-                                    options: normalizedOptions,
-                                });
+                            } catch (err) {
+                                console.error(`Lỗi khi parse testQuestion cho partId ${partId}:`, err, tq);
                             }
-                        }
-                    });
+                        });
+                    } catch (err) {
+                        console.error("Lỗi khi parse part:", err, p);
+                    }
+                });
+                
+                // Log để debug: kiểm tra số lượng câu hỏi đã parse theo từng part
+                console.log("=== TÓM TẮT PARSE ===");
+                const parsedTotal = Object.keys(newPartsData).reduce((sum, partIdStr) => {
+                    const partId = Number(partIdStr);
+                    const part = newPartsData[partId];
+                    const groupCount = (part.groups || []).length;
+                    const groupQuestions = (part.groups || []).reduce((gSum, g) => gSum + (g.questions || []).length, 0);
+                    const singleQuestions = (part.questions || []).length;
+                    const total = groupQuestions + singleQuestions;
+                    
+                    console.log(`Part ${partId}: ${groupCount} groups (${groupQuestions} questions) + ${singleQuestions} single = ${total} total`);
+                    
+                    return sum + total;
+                }, 0);
+                console.log(`Tổng: Đã parse ${parsedTotal} câu hỏi từ ${partsArr.length} parts trong API response`);
+                console.log("====================");
+                
+                // Sau khi parse xong, khởi tạo các parts còn lại (từ loadedParts) với dữ liệu rỗng
+                // Nhưng chỉ khởi tạo nếu part đó chưa có trong newPartsData
+                loadedParts.forEach(p => {
+                    if (!newPartsData[p.partId]) {
+                        newPartsData[p.partId] = { groups: [], questions: [] };
+                    }
                 });
 
                 setPartsData(newPartsData);
@@ -343,15 +406,47 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             }
 
             // Build parts data cho API
-            const partsPayload = parts.map(p => {
-                const partData = partsData[p.partId] || { groups: [], questions: [] };
-                return {
-                    partId: p.partId,
-                    groups: (partData.groups || []).map(g => ({
-                        passage: g.passage || null,
-                        imageUrl: g.imageUrl || null,
-                        audioUrl: g.audioUrl || null,
-                        questions: (g.questions || []).map(q => ({
+            console.log("=== CHUẨN BỊ SUBMIT ===");
+            console.log(`parts array có ${parts.length} parts:`, parts.map(p => p.partId));
+            console.log(`partsData có keys:`, Object.keys(partsData).map(k => Number(k)));
+            
+            // Đảm bảo gửi TẤT CẢ parts có trong partsData (không filter theo parts array)
+            // Vì parts array chỉ chứa parts từ skill, nhưng partsData có thể có thêm parts từ API
+            const partsPayload = Object.keys(partsData)
+                .map(partIdStr => {
+                    const partId = Number(partIdStr);
+                    const partData = partsData[partId];
+                    const groupCount = (partData.groups || []).reduce((sum, g) => sum + (g.questions || []).length, 0);
+                    const questionCount = (partData.questions || []).length;
+                    const totalQuestions = groupCount + questionCount;
+                    
+                    console.log(`Part ${partId}: ${groupCount} questions từ groups + ${questionCount} single = ${totalQuestions} total`);
+                    
+                    // Chỉ gửi part nếu có ít nhất 1 câu hỏi
+                    if (totalQuestions === 0) {
+                        console.warn(`Part ${partId}: Bỏ qua vì rỗng`);
+                        return null;
+                    }
+                    
+                    return {
+                        partId: partId,
+                        groups: (partData.groups || []).map(g => ({
+                            passage: g.passage || null,
+                            imageUrl: g.imageUrl || null,
+                            audioUrl: g.audioUrl || null,
+                            questions: (g.questions || []).map(q => ({
+                                content: q.content || null,
+                                imageUrl: q.imageUrl || null,
+                                audioUrl: q.audioUrl || null,
+                                explanation: q.explanation || null,
+                                options: (q.options || []).map(o => ({
+                                    label: o.label,
+                                    content: o.content || null,
+                                    isCorrect: o.isCorrect || false,
+                                })),
+                            })),
+                        })),
+                        questions: (partData.questions || []).map(q => ({
                             content: q.content || null,
                             imageUrl: q.imageUrl || null,
                             audioUrl: q.audioUrl || null,
@@ -362,20 +457,18 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 isCorrect: o.isCorrect || false,
                             })),
                         })),
-                    })),
-                    questions: (partData.questions || []).map(q => ({
-                        content: q.content || null,
-                        imageUrl: q.imageUrl || null,
-                        audioUrl: q.audioUrl || null,
-                        explanation: q.explanation || null,
-                        options: (q.options || []).map(o => ({
-                            label: o.label,
-                            content: o.content || null,
-                            isCorrect: o.isCorrect || false,
-                        })),
-                    })),
-                };
-            });
+                    };
+                })
+                .filter(p => p !== null); // Loại bỏ các parts null
+
+            // Log tổng hợp payload
+            const payloadTotal = partsPayload.reduce((sum, part) => {
+                const groupQ = (part.groups || []).reduce((gSum, g) => gSum + (g.questions || []).length, 0);
+                const singleQ = (part.questions || []).length;
+                return sum + groupQ + singleQ;
+            }, 0);
+            console.log(`Payload sẽ gửi: ${partsPayload.length} parts, tổng ${payloadTotal} câu hỏi`);
+            console.log("====================");
 
             // Validate cấu trúc TOEIC
             const validation = validateTestStructure(selectedSkill, partsPayload);
