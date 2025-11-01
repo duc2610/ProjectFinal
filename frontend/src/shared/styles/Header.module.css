@@ -1,0 +1,62 @@
+.header {
+  background: #fff !important;
+  padding: 0 16px;
+  height: 64px;
+}
+
+.inner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.logoWrap {
+  display: flex;
+  align-items: center;
+}
+.logo {
+  height: 50px;
+}
+
+.right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  column-gap: 12px;
+}
+
+.navRight {
+  display: flex;
+  align-items: center;
+  column-gap: 24px;
+}
+
+.link {
+  color: #2d2d2d;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.link:hover {
+  color: #ff6f61;
+}
+.active {
+  color: #ff6f61;
+}
+
+.bell {
+  font-size: 20px;
+}
+.avatar {
+  background: #9aa0a6;
+}
+
+.avatar {
+  background: #9aa0a6;
+  cursor: pointer;
+}
+
+.ddItem {
+  display: inline-block;
+  min-width: 120px;
+}
