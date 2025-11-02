@@ -142,3 +142,20 @@ export function createDefaultOptions(partId) {
         isCorrect: false,
     }));
 }
+
+export function requiresImage(partId, skill) {
+    // Parts bắt buộc phải có ảnh
+    const mandatoryImageParts = [1, 8, 12]; // L&R Part 1, Writing Part 1, Speaking Part 2
+    
+    if (mandatoryImageParts.includes(partId)) {
+        return { required: true, show: true };
+    }
+    
+    // Các part L&R khác có thể có ảnh (tùy chọn)
+    if (skill === 3 && partId >= 1 && partId <= 7) {
+        return { required: false, show: true };
+    }
+    
+    // Writing và Speaking parts khác KHÔNG cần ảnh - ẩn hoàn toàn
+    return { required: false, show: false };
+}

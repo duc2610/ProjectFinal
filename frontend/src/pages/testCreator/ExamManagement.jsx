@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Card, Button, Input, Table, Space, Tag, Switch, message, Tooltip, Select, Row, Col, Modal, Upload } from "antd";
-import { PlusOutlined, EditOutlined, EyeOutlined, SearchOutlined, DownloadOutlined, UploadOutlined, FileExcelOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, SearchOutlined, DownloadOutlined, UploadOutlined, FileExcelOutlined } from "@ant-design/icons";
 import { 
     getTests, 
     hideTest, 
@@ -234,11 +234,6 @@ export default function ExamManagement() {
         }
     };
 
-    const openViewExam = (exam) => {
-        setViewingExam(exam);
-        // View sẽ dùng đúng form tương ứng (FromBankTestForm hoặc ManualTestForm)
-        setViewFormOpen(true);
-    };
 
     const openVersionsModal = (exam) => {
         const parentId = exam.parentTestId || exam.id;
@@ -278,13 +273,6 @@ export default function ExamManagement() {
     };
 
     const examColumns = [
-        { 
-            title: "ID", 
-            dataIndex: "id", 
-            key: "id", 
-            width: 50,
-            align: "center",
-        },
         { 
             title: "Loại bài thi", 
             dataIndex: "testType", 
@@ -375,13 +363,6 @@ export default function ExamManagement() {
             align: "center",
             render: (_, rec) => (
                 <Space>
-                    <Tooltip title="Xem chi tiết">
-                        <Button 
-                            type="primary"
-                            icon={<EyeOutlined />} 
-                            onClick={() => openViewExam(rec)}
-                        />
-                    </Tooltip>
                     <Tooltip title="Chỉnh sửa">
                         <Button 
                             icon={<EditOutlined />} 
