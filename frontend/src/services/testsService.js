@@ -198,3 +198,15 @@ export async function importTestFromExcel(file) {
   return res?.data?.data ?? res?.data;
 }
 
+// Get public practice tests (no authentication required)
+export async function getPracticeTests() {
+  const res = await api.get("/api/tests/examinee/list/practice");
+  return res?.data?.data ?? res?.data;
+}
+
+// Get public simulator tests (no authentication required)
+export async function getSimulatorTests() {
+  const res = await api.get("/api/tests/examinee/list/simulator");
+  return res?.data?.data ?? res?.data;
+}
+

@@ -17,7 +17,7 @@ const { Text } = Typography;
 const nav = [
   { to: "/practice-lr", label: "Practice L&R" },
   { to: "/practice-sw", label: "Practice S&W" },
-  { to: "/test", label: "Test" },
+  { to: "/test-list", label: "Test" },
   { to: "/flashcard", label: "Flashcard" },
 ];
 

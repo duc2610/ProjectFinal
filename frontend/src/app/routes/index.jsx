@@ -10,6 +10,8 @@ import { LoadingOutlined } from "@ant-design/icons";
 const Home = lazy(() => import("@pages/public/Home.jsx"));
 const About = lazy(() => import("@pages/public/About.jsx"));
 const PracticeLR = lazy(() => import("@pages/public/PracticeLR.jsx"));
+const PracticeSW = lazy(() => import("@pages/public/PracticeSW.jsx"));
+const TestList = lazy(() => import("@pages/public/TestList.jsx"));
 const Login = lazy(() => import("@pages/auth/Login.jsx"));
 const Register = lazy(() => import("@pages/auth/Register.jsx"));
 const ForgotPassword = lazy(() => import("@pages/auth/ForgotPassword.jsx"));
@@ -73,6 +75,8 @@ export default function RoutesRoot() {
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/practice-lr" element={<PracticeLR />} />
+          <Route path="/practice-sw" element={<PracticeSW />} />
+          <Route path="/test-list" element={<TestList />} />
           {/* chỉ user bình thường mới vào được */}
           <Route element={<PrivateRoute />}>
             <Route path="/profile" element={<Profile />} />
