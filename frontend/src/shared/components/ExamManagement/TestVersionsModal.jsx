@@ -86,17 +86,6 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
             width: 150,
             render: (date) => date ? new Date(date).toLocaleString("vi-VN") : "-"
         },
-        {
-            title: "Thao tác",
-            key: "actions",
-            width: 100,
-            align: "center",
-            render: (_, record) => (
-                <Space>
-                    <a onClick={() => onSelectVersion?.(record.testId)}>Xem</a>
-                </Space>
-            )
-        },
     ];
 
     return (
