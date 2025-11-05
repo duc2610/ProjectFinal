@@ -22,10 +22,12 @@ namespace ToeicGenius.Controllers
 	{
 		private readonly ITestService _testService;
 		private readonly IExcelService _excelService;
-		public TestsController(ITestService testService, IExcelService excelService)
+		private readonly IFileService _fileService;
+		public TestsController(ITestService testService, IExcelService excelService, IFileService fileService)
 		{
 			_testService = testService;
 			_excelService = excelService;
+			_fileService = fileService;
 		}
 
 		#region TEST CREATOR
@@ -92,17 +94,38 @@ namespace ToeicGenius.Controllers
 				return BadRequest(ApiResponse<string>.ErrorResponse("Excel file is required"));
 			}
 
+			if (request.AudioFile == null)
+			{
+				return BadRequest(ApiResponse<string>.ErrorResponse("Audio file is required"));
+			}
+
 			try
 			{
-				// Parse Excel to DTO
+				// Upload audio file to cloud storage
+				var audioUploadResult = await _fileService.UploadFileAsync(request.AudioFile, "audio");
+				if (!audioUploadResult.IsSuccess)
+					return BadRequest(ApiResponse<string>.ErrorResponse(audioUploadResult.ErrorMessage ?? "Failed to upload audio file"));
+
+				// Parse Excel (images auto-uploaded during parsing)
 				var parseResult = await _excelService.ParseExcelToTestAsync(request.ExcelFile);
 				if (!parseResult.IsSuccess)
+				{
+					// Rollback: delete uploaded audio file
+					await _fileService.DeleteFileAsync(audioUploadResult.Data!);
 					return BadRequest(ApiResponse<string>.ErrorResponse(parseResult.ErrorMessage ?? "Failed to parse Excel file"));
+				}
 
-				// Create test from parsed DTO
+				// Set the uploaded audio URL
+				parseResult.Data!.AudioUrl = audioUploadResult.Data!;
+
+				// Create test
 				var createResult = await _testService.CreateManualAsync(parseResult.Data!);
 				if (!createResult.IsSuccess)
+				{
+					// Rollback: delete uploaded audio file
+					await _fileService.DeleteFileAsync(audioUploadResult.Data!);
 					return BadRequest(ApiResponse<string>.ErrorResponse(createResult.ErrorMessage ?? "Failed to create test"));
+				}
 
 				return Ok(ApiResponse<string>.SuccessResponse(createResult.Data!));
 			}
@@ -131,6 +154,73 @@ namespace ToeicGenius.Controllers
 				return File(result.Data!,
 					"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 					fileName);
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, ApiResponse<string>.ErrorResponse($"Internal server error: {ex.Message}"));
+			}
+		}
+
+		// Download Excel template for 4-skills test (L+R+W+S)
+		[HttpGet("download-template-4skills")]
+		[Authorize(Roles = "TestCreator")]
+		public async Task<IActionResult> DownloadExcelTemplate4Skills()
+		{
+			try
+			{
+				var result = await _excelService.GenerateTemplate4SkillsAsync();
+				if (!result.IsSuccess)
+					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Failed to generate 4-skills template"));
+
+				var fileName = $"TOEIC_4Skills_Test_Template_{DateTime.UtcNow:yyyyMMdd}.xlsx";
+
+				// Set Content-Disposition header with both filename and filename* (RFC 5987) to ensure correct file extension
+				Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{fileName}";
+
+				return File(result.Data!,
+					"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+					fileName);
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, ApiResponse<string>.ErrorResponse($"Internal server error: {ex.Message}"));
+			}
+		}
+
+		// Import 4-skills test from Excel with audio file
+		[HttpPost("import-excel-4skills")]
+		[Authorize(Roles = "TestCreator")]
+		public async Task<IActionResult> ImportTest4SkillsFromExcel([FromForm] Excel4SkillsImportDto request)
+		{
+			try
+			{
+				// Upload audio file to cloud storage
+				var audioUploadResult = await _fileService.UploadFileAsync(request.AudioFile, "audio");
+				if (!audioUploadResult.IsSuccess)
+					return BadRequest(ApiResponse<string>.ErrorResponse(audioUploadResult.ErrorMessage ?? "Failed to upload audio file"));
+
+				// Parse Excel to DTO (with all 15 parts, images auto-uploaded)
+				var parseResult = await _excelService.ParseExcelToTest4SkillsAsync(request.ExcelFile);
+				if (!parseResult.IsSuccess)
+				{
+					// Rollback: Delete uploaded audio file
+					await _fileService.DeleteFileAsync(audioUploadResult.Data!);
+					return BadRequest(ApiResponse<string>.ErrorResponse(parseResult.ErrorMessage ?? "Failed to parse 4-skills Excel file"));
+				}
+
+				// Set the uploaded audio URL
+				parseResult.Data!.AudioUrl = audioUploadResult.Data!;
+
+				// Reuse existing CreateManualAsync (no breaking changes!)
+				var createResult = await _testService.CreateManualAsync(parseResult.Data!);
+				if (!createResult.IsSuccess)
+				{
+					// Rollback: Delete uploaded audio file
+					await _fileService.DeleteFileAsync(audioUploadResult.Data!);
+					return BadRequest(ApiResponse<string>.ErrorResponse(createResult.ErrorMessage ?? "Failed to create 4-skills test"));
+				}
+
+				return Ok(ApiResponse<string>.SuccessResponse(createResult.Data!));
 			}
 			catch (Exception ex)
 			{
