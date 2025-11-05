@@ -1076,6 +1076,7 @@ namespace ToeicGenius.Services.Implementations
 				TestSkill.LR => NumberConstants.LRDuration,
 				TestSkill.Speaking => NumberConstants.SpeakingDuration,
 				TestSkill.Writing => NumberConstants.WritingDuration,
+				TestSkill.FourSkills => NumberConstants.FourSkillsDuration,
 				_ => throw new Exception("Invalid test skill")
 			};
 		}
