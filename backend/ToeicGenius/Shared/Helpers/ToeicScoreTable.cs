@@ -65,5 +65,52 @@
 				return score;
 			return 495;
 		}
+
+		/// <summary>
+		/// Converts AI Speaking score (0-100) to TOEIC scale score (0-200)
+		/// Based on official TOEIC Speaking proficiency levels (1-8)
+		/// </summary>
+		public static int ConvertSpeakingScore(double aiScore)
+		{
+			// Clamp score to 0-100 range
+			aiScore = Math.Max(0, Math.Min(100, aiScore));
+
+			// Map 0-100 score to TOEIC Speaking levels (1-8) and scale scores (0-200)
+			return aiScore switch
+			{
+				>= 87.5 => 195,  // Level 8: 190-200 (return midpoint)
+				>= 75.0 => 170,  // Level 7: 160-180
+				>= 62.5 => 140,  // Level 6: 130-150
+				>= 50.0 => 115,  // Level 5: 110-120
+				>= 37.5 => 90,   // Level 4: 80-100
+				>= 25.0 => 65,   // Level 3: 60-70
+				>= 12.5 => 45,   // Level 2: 40-50
+				_ => 15          // Level 1: 0-30
+			};
+		}
+
+		/// <summary>
+		/// Converts AI Writing score (0-100) to TOEIC scale score (0-200)
+		/// Based on official TOEIC Writing proficiency levels (1-9)
+		/// </summary>
+		public static int ConvertWritingScore(double aiScore)
+		{
+			// Clamp score to 0-100 range
+			aiScore = Math.Max(0, Math.Min(100, aiScore));
+
+			// Map 0-100 score to TOEIC Writing levels (1-9) and scale scores (0-200)
+			return aiScore switch
+			{
+				>= 88.88 => 200, // Level 9: 200
+				>= 77.77 => 180, // Level 8: 170-190 (return midpoint)
+				>= 66.66 => 150, // Level 7: 140-160
+				>= 55.55 => 120, // Level 6: 110-130
+				>= 44.44 => 95,  // Level 5: 90-100
+				>= 33.33 => 75,  // Level 4: 70-80
+				>= 22.22 => 55,  // Level 3: 50-60
+				>= 11.11 => 40,  // Level 2: 40
+				_ => 15          // Level 1: 0-30
+			};
+		}
 	}
 }
