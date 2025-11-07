@@ -48,11 +48,6 @@ export const TEST_TYPE = {
     PRACTICE: 2,
 };
 
-/**
- * Load danh sách Parts từ backend theo Skill
- * @param {number} skill - 1: Speaking, 2: Writing, 3: L&R
- * @returns {Promise<Array>} - Danh sách parts
- */
 export async function loadPartsBySkill(skill) {
     try {
         let parts = [];
@@ -73,12 +68,7 @@ export async function loadPartsBySkill(skill) {
     }
 }
 
-/**
- * Validate số câu hỏi theo cấu trúc TOEIC
- * @param {number} skill - 1: Speaking, 2: Writing, 3: L&R
- * @param {Array} parts - Danh sách parts với questions
- * @returns {Object} - { valid, message, errors }
- */
+
 export function validateTestStructure(skill, parts) {
     if (!TOTAL_QUESTIONS_BY_SKILL[skill]) {
         return { valid: false, message: "Skill không hợp lệ", errors: ["Skill không hợp lệ"] };
@@ -121,20 +111,12 @@ export function validateTestStructure(skill, parts) {
     };
 }
 
-/**
- * Kiểm tra xem skill có yêu cầu audio không
- * @param {number} skill
- * @returns {boolean}
- */
+
 export function requiresAudio(skill) {
     return REQUIRES_AUDIO[skill] || false;
 }
 
-/**
- * Kiểm tra xem part có hỗ trợ question groups không
- * @param {number} partId
- * @returns {boolean}
- */
+
 export function supportsQuestionGroups(partId) {
     // Part 3, 4, 6, 7 (L&R) hỗ trợ question groups
     // Part 1, 2, 5 (L&R) chỉ có single questions
@@ -143,22 +125,14 @@ export function supportsQuestionGroups(partId) {
     return partsWithGroups.includes(partId);
 }
 
-/**
- * Lấy số lượng đáp án cho part
- * @param {number} partId
- * @returns {number} - Số lượng options (3 hoặc 4)
- */
+
 export function getOptionCountForPart(partId) {
     // Part 2 (Question-Response) chỉ có 3 đáp án (A, B, C)
     // Các part khác có 4 đáp án (A, B, C, D)
     return partId === 2 ? 3 : 4;
 }
 
-/**
- * Tạo mảng options mặc định cho part
- * @param {number} partId
- * @returns {Array} - Mảng options với label và isCorrect
- */
+
 export function createDefaultOptions(partId) {
     const count = getOptionCountForPart(partId);
     const labels = ['A', 'B', 'C', 'D'];
@@ -167,4 +141,21 @@ export function createDefaultOptions(partId) {
         content: "",
         isCorrect: false,
     }));
+}
+
+export function requiresImage(partId, skill) {
+    // Parts bắt buộc phải có ảnh
+    const mandatoryImageParts = [1, 8, 12]; // L&R Part 1, Writing Part 1, Speaking Part 2
+    
+    if (mandatoryImageParts.includes(partId)) {
+        return { required: true, show: true };
+    }
+    
+    // Các part L&R khác có thể có ảnh (tùy chọn)
+    if (skill === 3 && partId >= 1 && partId <= 7) {
+        return { required: false, show: true };
+    }
+    
+    // Writing và Speaking parts khác KHÔNG cần ảnh - ẩn hoàn toàn
+    return { required: false, show: false };
 }

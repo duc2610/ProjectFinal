@@ -19,6 +19,7 @@ using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
+using ToeicGenius.Shared.Helpers;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -80,6 +81,8 @@ namespace ToeicGenius.Services.Implementations
             var response = new ToeicGenius.Domains.DTOs.Responses.AI.SubmitBulkAssessmentResponseDto();
 
             var perPartResponses = new List<ToeicGenius.Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto>();
+            var rawWritingScores = new List<double>();
+            var rawSpeakingScores = new List<double>();
 
             foreach (var part in request.Parts)
             {
@@ -117,6 +120,15 @@ namespace ToeicGenius.Services.Implementations
                             };
                             aiResponse = await AssessWritingEssayAsync(dto, userId);
                         }
+
+                        // Extract raw score from Python response (0-100)
+                        if (!string.IsNullOrEmpty(aiResponse.PythonApiResponse))
+                        {
+                            var pythonResponse = JsonSerializer.Deserialize<PythonWritingResponse>(
+                                aiResponse.PythonApiResponse, _jsonOptions);
+                            if (pythonResponse != null)
+                                rawWritingScores.Add(pythonResponse.OverallScore);
+                        }
                     }
                     else // Speaking parts
                     {
@@ -135,6 +147,15 @@ namespace ToeicGenius.Services.Implementations
                         };
 
                         aiResponse = await AssessSpeakingFromUrlAsync(part.TestQuestionId, taskType ?? string.Empty, part.AudioFileUrl!, userId);
+
+                        // Extract raw score from Python response (0-100)
+                        if (!string.IsNullOrEmpty(aiResponse.PythonApiResponse))
+                        {
+                            var pythonResponse = JsonSerializer.Deserialize<PythonSpeakingResponse>(
+                                aiResponse.PythonApiResponse, _jsonOptions);
+                            if (pythonResponse != null)
+                                rawSpeakingScores.Add(pythonResponse.OverallScore);
+                        }
                     }
 
                     // Map to PerPartAssessmentFeedbackDto
@@ -164,37 +185,38 @@ namespace ToeicGenius.Services.Implementations
                 }
             }
 
-            // Aggregate scores
-            var writingScores = perPartResponses.Where(p => p.AIScorer?.ToLower().Contains("writing") == true).Select(p => p.Score).ToList();
-            var speakingScores = perPartResponses.Where(p => p.AIScorer?.ToLower().Contains("speaking") == true).Select(p => p.Score).ToList();
+            // Aggregate RAW scores (0-100) before conversion
+            double? writingAvg = rawWritingScores.Any() ? rawWritingScores.Average() : (double?)null;
+            double? speakingAvg = rawSpeakingScores.Any() ? rawSpeakingScores.Average() : (double?)null;
 
-            double? writingAvg = writingScores.Any() ? writingScores.Average() : (double?)null;
-            double? speakingAvg = speakingScores.Any() ? speakingScores.Average() : (double?)null;
+            // Convert averaged RAW scores (0-100) to TOEIC scale scores (0-200) - ONE TIME ONLY
+            int? writingToeicScore = writingAvg.HasValue ? ToeicScoreTable.ConvertWritingScore(writingAvg.Value) : (int?)null;
+            int? speakingToeicScore = speakingAvg.HasValue ? ToeicScoreTable.ConvertSpeakingScore(speakingAvg.Value) : (int?)null;
 
-            response.WritingScore = writingAvg;
-            response.SpeakingScore = speakingAvg;
+            response.WritingScore = writingToeicScore;
+            response.SpeakingScore = speakingToeicScore;
             response.PerPartFeedbacks = perPartResponses;
 
             // Update TestResult
             var skillScores = new List<ToeicGenius.Domains.Entities.UserTestSkillScore>();
-            if (writingAvg.HasValue)
+            if (writingToeicScore.HasValue)
             {
                 skillScores.Add(new ToeicGenius.Domains.Entities.UserTestSkillScore
                 {
                     Skill = "Writing",
                     CorrectCount = 0,
-                    TotalQuestions = writingScores.Count,
-                    Score = (int)Math.Round(writingAvg.Value)
+                    TotalQuestions = rawWritingScores.Count,
+                    Score = writingToeicScore.Value
                 });
             }
-            if (speakingAvg.HasValue)
+            if (speakingToeicScore.HasValue)
             {
                 skillScores.Add(new ToeicGenius.Domains.Entities.UserTestSkillScore
                 {
                     Skill = "Speaking",
                     CorrectCount = 0,
-                    TotalQuestions = speakingScores.Count,
-                    Score = (int)Math.Round(speakingAvg.Value)
+                    TotalQuestions = rawSpeakingScores.Count,
+                    Score = speakingToeicScore.Value
                 });
             }
 
@@ -203,10 +225,10 @@ namespace ToeicGenius.Services.Implementations
             testResult.UpdatedAt = DateTime.UtcNow;
             testResult.Status = "Completed";
 
-            // If Simulator type provided and both skills present, set TotalScore as sum of both
-            if (!string.IsNullOrEmpty(request.TestType) && request.TestType.ToLower().Contains("simulator") && writingAvg.HasValue && speakingAvg.HasValue)
+            // If Simulator type provided and both skills present, set TotalScore as sum of both converted scores
+            if (!string.IsNullOrEmpty(request.TestType) && request.TestType.ToLower().Contains("simulator") && writingToeicScore.HasValue && speakingToeicScore.HasValue)
             {
-                testResult.TotalScore = (decimal)(writingAvg.Value + speakingAvg.Value);
+                testResult.TotalScore = writingToeicScore.Value + speakingToeicScore.Value;
             }
 
             await _uow.SaveChangesAsync();
@@ -312,10 +334,13 @@ namespace ToeicGenius.Services.Implementations
             var jsonResponse = await response.Content.ReadAsStringAsync();
             var pythonResponse = JsonSerializer.Deserialize<PythonSpeakingResponse>(jsonResponse, _jsonOptions);
 
+            // Convert AI score (0-100) to TOEIC scale score (0-200)
+            var toeicScore = ToeicScoreTable.ConvertSpeakingScore(pythonResponse!.OverallScore);
+
             var feedback = new AIFeedback
             {
                 UserAnswerId = userAnswer.UserAnswerId,
-                Score = pythonResponse!.OverallScore,
+                Score = toeicScore,
                 Content = GenerateSpeakingContentSummary(pythonResponse),
                 AIScorer = "speaking",
                 Transcription = pythonResponse.Transcription,
@@ -377,10 +402,13 @@ namespace ToeicGenius.Services.Implementations
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 var pythonResponse = JsonSerializer.Deserialize<PythonWritingResponse>(jsonResponse, _jsonOptions);
 
+                // Convert AI score (0-100) to TOEIC scale score (0-200)
+                var toeicScore = ToeicScoreTable.ConvertWritingScore(pythonResponse!.OverallScore);
+
                 var feedback = new AIFeedback
                 {
                     UserAnswerId = userAnswer.UserAnswerId,
-                    Score = pythonResponse!.OverallScore,
+                    Score = toeicScore,
                     Content = GenerateContentSummary(pythonResponse),
                     AIScorer = "writing",
                     DetailedScoresJson = JsonSerializer.Serialize(pythonResponse.Scores, _jsonOptions),
@@ -447,10 +475,13 @@ namespace ToeicGenius.Services.Implementations
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 var pythonResponse = JsonSerializer.Deserialize<PythonWritingResponse>(jsonResponse, _jsonOptions);
 
+                // Convert AI score (0-100) to TOEIC scale score (0-200)
+                var toeicScore = ToeicScoreTable.ConvertWritingScore(pythonResponse!.OverallScore);
+
                 var feedback = new AIFeedback
                 {
                     UserAnswerId = userAnswer.UserAnswerId,
-                    Score = pythonResponse!.OverallScore,
+                    Score = toeicScore,
                     Content = GenerateContentSummary(pythonResponse),
                     AIScorer = "writing",
                     DetailedScoresJson = JsonSerializer.Serialize(pythonResponse.Scores, _jsonOptions),
@@ -516,10 +547,13 @@ namespace ToeicGenius.Services.Implementations
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 var pythonResponse = JsonSerializer.Deserialize<PythonWritingResponse>(jsonResponse, _jsonOptions);
 
+                // Convert AI score (0-100) to TOEIC scale score (0-200)
+                var toeicScore = ToeicScoreTable.ConvertWritingScore(pythonResponse!.OverallScore);
+
                 var feedback = new AIFeedback
                 {
                     UserAnswerId = userAnswer.UserAnswerId,
-                    Score = pythonResponse!.OverallScore,
+                    Score = toeicScore,
                     Content = GenerateContentSummary(pythonResponse),
                     AIScorer = "writing",
                     DetailedScoresJson = JsonSerializer.Serialize(pythonResponse.Scores, _jsonOptions),
@@ -614,10 +648,13 @@ namespace ToeicGenius.Services.Implementations
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 var pythonResponse = JsonSerializer.Deserialize<PythonSpeakingResponse>(jsonResponse, _jsonOptions);
 
+                // Convert AI score (0-100) to TOEIC scale score (0-200)
+                var toeicScore = ToeicScoreTable.ConvertSpeakingScore(pythonResponse!.OverallScore);
+
                 var feedback = new AIFeedback
                 {
                     UserAnswerId = userAnswer.UserAnswerId,
-                    Score = pythonResponse!.OverallScore,
+                    Score = toeicScore,
                     Content = GenerateSpeakingContentSummary(pythonResponse),
                     AIScorer = "speaking",
                     Transcription = pythonResponse.Transcription,
@@ -866,6 +903,7 @@ namespace ToeicGenius.Services.Implementations
                 Transcription = feedback.Transcription ?? string.Empty,
                 CorrectedText = feedback.CorrectedText ?? string.Empty,
                 AudioDuration = (double?)feedback.AudioDuration,
+                PythonApiResponse = feedback.PythonApiResponse,
                 CreatedAt = feedback.CreatedAt
             };
         }
