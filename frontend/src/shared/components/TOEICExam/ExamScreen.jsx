@@ -50,44 +50,52 @@ export default function ExamScreen() {
     if (i >= 0 && i < questions.length) setCurrentIndex(i);
   };
 
+  // ExamScreen.jsx
   const handleSubmit = async (auto = false) => {
   clearInterval(timerRef.current);
   setShowSubmitModal(true);
 
   try {
-    // LẤY testResultId từ sessionStorage
     const testResultId = rawTestData.testResultId;
-    if (!testResultId) {
-      throw new Error("Không tìm thấy testResultId");
-    }
+    if (!testResultId) throw new Error("Không tìm thấy testResultId");
+
+    // Tính thời gian đã làm
+    const duration = Math.floor((rawTestData.duration * 60 - timeLeft) / 60);
 
     const payload = {
-      userId: "33333333-3333-3333-3333-333333333333", // Dùng GUID thật
+      userId: "33333333-3333-3333-3333-333333333333",
       testId: rawTestData.testId,
-      testResultId: testResultId, // BẮT BUỘC
-      duration: Math.floor((rawTestData.duration * 60 - timeLeft) / 60), // Thời gian đã làm
-      testType: rawTestData.testType, // "Simulator"
+      testResultId,
+      duration: duration > 0 ? duration : 1, // Backend không cho 0
+      testType: "Simulator",
       answers: Object.entries(answers).map(([testQuestionId, chosenOptionLabel]) => {
-        const question = questions.find(q => q.testQuestionId === parseInt(testQuestionId));
+        const q = questions.find(q => q.testQuestionId === parseInt(testQuestionId));
         return {
           testQuestionId: parseInt(testQuestionId),
-          subQuestionIndex: question?.subQuestionIndex || 0,
+          subQuestionIndex: q?.subQuestionIndex || 0,
           chosenOptionLabel,
         };
       }),
     };
 
-    console.log("Final payload:", payload);
-    await submitTest(payload);
+    if (payload.answers.length === 0) {
+      message.warning("Bạn chưa trả lời câu nào!");
+      setShowSubmitModal(false);
+      return;
+    }
+
+    const submitResult = await submitTest(payload);
+
+    // TRUYỀN TOÀN BỘ DỮ LIỆU + CÂU HỎI TỪ SESSION
+    const fullResult = {
+      ...submitResult,
+      questions: questions, // Gửi luôn câu hỏi để hiển thị
+      duration: payload.duration,
+    };
 
     setTimeout(() => {
       setShowSubmitModal(false);
-      navigate("/result", { 
-  state: { 
-    testResultId: rawTestData.testResultId,
-    autoSubmit: auto 
-  } 
-});
+      navigate("/result", { state: { resultData: fullResult, autoSubmit: auto } });
     }, 900);
   } catch (error) {
     message.error("Nộp bài thất bại: " + (error.response?.data?.message || error.message));

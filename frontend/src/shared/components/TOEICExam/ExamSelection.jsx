@@ -5,7 +5,7 @@ import { startTest } from "../../../services/testExamService";
 import { useNavigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
-const TEST_ID = 8; // Dùng testId=6 như bạn cung cấp
+const TEST_ID = 9; // Dùng testId=6 như bạn cung cấp
 
 export default function ExamSelection() {
   const [testData, setTestData] = useState(null);

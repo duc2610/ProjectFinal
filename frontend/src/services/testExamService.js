@@ -11,20 +11,19 @@ export async function startTest(testId, isSelectTime = false) {
   }
 }
 
+// services/testExamService.js
 export async function submitTest(payload) {
-  // SỬA: Dùng /L&R (không có &)
-  const url = `/api/tests/submit/L&R`;
+  const url = `/api/tests/submit/L&R`; // Đảm bảo backend có route này
   try {
-    console.log("Submitting payload:", payload); // Debug
+    console.log("Submitting payload:", payload);
     const res = await api.post(url, payload);
     console.log("Submit success:", res.data);
-    return res?.data?.data ?? res?.data;
+    return res?.data?.data ?? res?.data; // Trả về data
   } catch (error) {
     console.error("Submit failed:", error.response?.data || error);
     throw error;
   }
 }
-
 export async function getTestResultDetail(testResultId) {
   const url = `/api/tests/result/${testResultId}`;
   try {
