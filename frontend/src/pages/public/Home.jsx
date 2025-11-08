@@ -48,7 +48,7 @@ export default function Home() {
       icon: <FileTextOutlined />,
       title: "Full TOEIC Test",
       description: "Làm bài thi TOEIC đầy đủ 4 kỹ năng với chấm điểm tự động",
-      link: "/test",
+      link: "/test-list",
       color: "#8b5cf6",
     },
     {
@@ -98,7 +98,7 @@ export default function Home() {
             </Button>
             <Button
               size="large"
-              onClick={() => navigate("/test")}
+              onClick={() => navigate("/test-list")}
               className={styles.secondaryButton}
             >
               Làm bài test

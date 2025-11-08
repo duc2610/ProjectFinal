@@ -38,6 +38,31 @@ export default function ResultScreen() {
   const [detailQuestions, setDetailQuestions] = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
+  const [testId, setTestId] = useState(null);
+
+  // Hàm xử lý làm lại bài thi - quay về ExamSelection
+  const handleRetakeTest = () => {
+    // Lấy testId từ resultData hoặc từ sessionStorage
+    let currentTestId = testId;
+    
+    if (!currentTestId) {
+      // Thử lấy từ sessionStorage
+      try {
+        const savedTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+        currentTestId = savedTestData.testId;
+      } catch (e) {
+        console.error("Error reading testId from sessionStorage:", e);
+      }
+    }
+    
+    if (currentTestId) {
+      navigate(`/toeic-exam?testId=${currentTestId}`);
+    } else {
+      // Nếu không có testId, quay về danh sách test
+      message.warning("Không tìm thấy thông tin bài test. Vui lòng chọn lại từ danh sách.");
+      navigate("/test-list");
+    }
+  };
 
   // === LOAD DETAIL TỪ API ===
   const loadDetailFromAPI = useCallback(async (testResultId) => {
@@ -71,11 +96,26 @@ export default function ResultScreen() {
 
     if (!resultData) {
       message.error("Không có dữ liệu kết quả.");
-      navigate("/toeic-exam");
+      navigate("/test-list");
       return;
     }
 
     setResult(resultData);
+    
+    // Lấy testId từ resultData hoặc từ sessionStorage
+    if (resultData?.testId) {
+      setTestId(resultData.testId);
+    } else {
+      // Thử lấy từ sessionStorage
+      try {
+        const savedTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+        if (savedTestData.testId) {
+          setTestId(savedTestData.testId);
+        }
+      } catch (e) {
+        console.error("Error reading testId from sessionStorage:", e);
+      }
+    }
     
     // Tự động load detail từ API khi có testResultId (BẮT BUỘC)
     if (resultData?.testResultId) {
@@ -369,7 +409,7 @@ export default function ResultScreen() {
             <Title level={3} style={{ color: "#fff", margin: 0 }}>
               Kết quả bài thi TOEIC
             </Title>
-            <Button onClick={() => navigate("/toeic-exam")} ghost>
+            <Button onClick={handleRetakeTest} ghost>
               Làm lại bài thi
             </Button>
           </div>
@@ -386,7 +426,7 @@ export default function ResultScreen() {
             </Text>
             <br />
             <br />
-            <Button type="primary" size="large" onClick={() => navigate("/toeic-exam")}>
+            <Button type="primary" size="large" onClick={handleRetakeTest}>
               Quay lại làm bài
             </Button>
           </div>
@@ -469,7 +509,7 @@ export default function ResultScreen() {
           <Title level={3} style={{ color: "#fff", margin: 0 }}>
             TOEIC Test Results
           </Title>
-          <Button onClick={() => navigate("/toeic-exam")} ghost>
+          <Button onClick={handleRetakeTest} ghost>
             Làm lại bài thi
           </Button>
         </div>

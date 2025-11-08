@@ -32,7 +32,7 @@ export default function ExamScreen() {
   useEffect(() => {
     if (!rawTestData.testResultId || questions.length === 0) {
       message.error("Không có dữ liệu bài thi");
-      navigate("/toeic-exam");
+      navigate("/test-list");
       return;
     }
 
@@ -229,6 +229,7 @@ export default function ExamScreen() {
         ...(lrResult || {}),
         ...(swResult || {}),
         testResultId: finalTestResultId, // Đảm bảo có testResultId để lấy chi tiết sau
+        testId: rawTestData.testId, // Lưu testId để có thể làm lại bài thi
         questions: questions,
         duration: duration > 0 ? duration : 1,
       };
