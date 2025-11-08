@@ -1,0 +1,75 @@
+.flashcard-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.flashcard-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.flashcard-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  border-color: #ff6b9d !important;
+}
+
+.flashcard-card:hover::before {
+  left: 100%;
+}
+
+.flashcard-card:hover .flashcard-title {
+  color: #ff6b9d;
+  transition: color 0.3s ease;
+}
+
+.flashcard-card:hover .flashcard-edit-btn {
+  color: #ff6b9d !important;
+  transform: rotate(15deg) scale(1.1);
+}
+
+.flashcard-title {
+  transition: color 0.3s ease;
+}
+
+.flashcard-edit-btn {
+  transition: all 0.3s ease;
+}
+
+.flashcard-description {
+  transition: color 0.3s ease;
+}
+
+.flashcard-card:hover .flashcard-description {
+  color: #333;
+}
+
+.flashcard-tag {
+  transition: all 0.3s ease;
+}
+
+.flashcard-card:hover .flashcard-tag {
+  transform: scale(1.05);
+}
+
+.flashcard-card-count {
+  transition: all 0.3s ease;
+}
+
+.flashcard-card:hover .flashcard-card-count {
+  font-weight: 600;
+  color: #ff6b9d;
+}
+

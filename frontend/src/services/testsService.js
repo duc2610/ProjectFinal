@@ -210,3 +210,9 @@ export async function getSimulatorTests() {
   return res?.data?.data ?? res?.data;
 }
 
+// Get test history for current user
+export async function getTestHistory() {
+  const res = await api.get("/api/tests/history");
+  return res?.data?.data ?? res?.data;
+}
+
