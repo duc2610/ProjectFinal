@@ -15,7 +15,12 @@ import {
   Row,
   Col,
 } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
+import { 
+  SearchOutlined, 
+  EditOutlined, 
+  DeleteOutlined, 
+  UndoOutlined 
+} from "@ant-design/icons";
 
 import SingleQuestionModal from "@shared/components/QuestionBank/SingleQuestionModal.jsx";
 import QuestionGroupModal from "@shared/components/QuestionBank/QuestionGroupModal.jsx";
@@ -328,7 +333,7 @@ export default function QuestionBankManagement() {
             },
             {
               title: "Actions",
-              width: 280,
+              width: 120,
               render: (_, record) => {
                 const isDeleted =
                   String(record?.statusText).toLowerCase() === "inactive" ||
@@ -337,13 +342,14 @@ export default function QuestionBankManagement() {
                 return (
                   <Space>
                     {!showDeleted && (
-                      <Button
-                        size="small"
-                        type="link"
-                        onClick={() => openEditRecord(record)}
-                      >
-                        Edit
-                      </Button>
+                      <Tooltip title="Chỉnh sửa">
+                        <Button
+                          type="text"
+                          icon={<EditOutlined />}
+                          onClick={() => openEditRecord(record)}
+                          style={{ color: '#1890ff' }}
+                        />
+                      </Tooltip>
                     )}
 
                     {!showDeleted ? (
@@ -366,9 +372,13 @@ export default function QuestionBankManagement() {
                           }
                         }}
                       >
-                        <Button size="small" danger type="link">
-                          Delete
-                        </Button>
+                        <Tooltip title="Xoá">
+                          <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                          />
+                        </Tooltip>
                       </Popconfirm>
                     ) : (
                       <Popconfirm
@@ -390,9 +400,13 @@ export default function QuestionBankManagement() {
                           }
                         }}
                       >
-                        <Button size="small" type="link">
-                          Restore
-                        </Button>
+                        <Tooltip title="Khôi phục">
+                          <Button
+                            type="text"
+                            icon={<UndoOutlined />}
+                            style={{ color: '#52c41a' }}
+                          />
+                        </Tooltip>
                       </Popconfirm>
                     )}
                   </Space>

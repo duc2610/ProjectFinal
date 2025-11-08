@@ -6,6 +6,18 @@ export async function getTests(params = {}) {
   return res?.data ?? res;
 }
 
+export async function getPracticeTests(testResultId = null) {
+  const params = testResultId ? { testResultId } : {};
+  const res = await api.get("/api/tests/examinee/list/practice", { params });
+  return res?.data?.data ?? res?.data ?? res;
+}
+
+export async function getSimulatorTests(testResultId = null) {
+  const params = testResultId ? { testResultId } : {};
+  const res = await api.get("/api/tests/examinee/list/simulator", { params });
+  return res?.data?.data ?? res?.data ?? res;
+}
+
 export async function getTestById(id) {
   const res = await api.get(`/api/tests/${id}`);
   return res?.data?.data ?? res?.data;
@@ -149,6 +161,7 @@ export const TEST_SKILL = {
   SPEAKING: 1,
   WRITING: 2,
   LR: 3,
+  FOUR_SKILLS: 4,
 };
 
 export const TEST_STATUS = {
@@ -166,6 +179,7 @@ export const TEST_SKILL_LABELS = {
   1: "Speaking",
   2: "Writing",
   3: "Listening & Reading",
+  4: "Four Skills",
 };
 
 export const TEST_STATUS_LABELS = {
