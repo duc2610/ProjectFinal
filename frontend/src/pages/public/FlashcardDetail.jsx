@@ -13,7 +13,7 @@ import {
   CheckOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
-import "./FlashcardDetail.css";
+import "@shared/styles/FlashcardDetail.css";
 
 export default function FlashcardDetail() {
   const { setId } = useParams();
@@ -118,14 +118,7 @@ export default function FlashcardDetail() {
     <div className="quizlet-container">
       {/* Header */}
       <div className="quizlet-header">
-        <Button
-          type="text"
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate("/flashcard")}
-          className="quizlet-back-button"
-        >
-          Quay lại
-        </Button>
+       
         {flashcardSet && (
           <div className="quizlet-title-section">
             <h1 className="quizlet-title">{flashcardSet.title}</h1>
@@ -137,8 +130,8 @@ export default function FlashcardDetail() {
       </div>
 
 
-      {/* Study Mode Buttons */}
-      <div className="quizlet-mode-buttons">
+      {/* All Buttons in One Row */}
+      <div className="quizlet-all-buttons">
         <Button
           className={`quizlet-mode-btn ${studyMode === "flashcard" ? "active" : ""}`}
           onClick={() => {
@@ -156,10 +149,6 @@ export default function FlashcardDetail() {
         >
           <CheckOutlined /> Học
         </Button>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="quizlet-action-buttons">
         <Button
           type="default"
           icon={<PlusOutlined />}

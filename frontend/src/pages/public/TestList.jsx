@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Tag, Row, Col, Empty, Spin, Space, Typography, Divider, message } from "antd";
+import { Card, Button, Tag, Row, Col, Empty, Spin, Space, Typography, Divider, message, Select } from "antd";
 import { 
     PlayCircleOutlined, 
     ClockCircleOutlined, 
@@ -10,11 +10,14 @@ import { getSimulatorTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_
 import styles from "@shared/styles/PracticeLR.module.css";
 
 const { Title, Paragraph } = Typography;
+const { Option } = Select;
 
 export default function TestList() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [tests, setTests] = useState([]);
+    const [filterSkill, setFilterSkill] = useState("all");
+    const [allTests, setAllTests] = useState([]);
 
     useEffect(() => {
         fetchTests();
@@ -27,7 +30,7 @@ export default function TestList() {
             const testsData = response?.data || (Array.isArray(response) ? response : []);
             
             if (Array.isArray(testsData) && testsData.length > 0) {
-                const filtered = testsData
+                const processed = testsData
                     .filter(test => {
                         const isSimulator = test.testType === "Simulator" || 
                                           test.testType === TEST_TYPE.SIMULATOR || 
@@ -46,7 +49,9 @@ export default function TestList() {
                         testSkill: test.testSkill === "Speaking" ? "Speaking" :
                                   test.testSkill === "Writing" ? "Writing" :
                                   test.testSkill === "LR" ? "Listening & Reading" :
+                                  test.testSkill === "FourSkills" || test.testSkill === 4 ? "Four Skills" :
                                   (TEST_SKILL_LABELS[test.testSkill] || "Unknown"),
+                        testSkillValue: test.testSkill, // Lưu giá trị gốc để filter
                         duration: test.duration || 0,
                         questionQuantity: test.questionQuantity || 0,
                         status: test.status,
@@ -54,18 +59,84 @@ export default function TestList() {
                         description: test.description || "Bài thi mô phỏng TOEIC"
                     }));
                 
-                setTests(filtered);
+                setAllTests(processed);
+                applyFilter(processed, filterSkill);
             } else {
+                setAllTests([]);
                 setTests([]);
             }
         } catch (error) {
             console.error("Error fetching simulator tests:", error);
             message.error("Không thể tải danh sách bài test. Vui lòng thử lại sau.");
+            setAllTests([]);
             setTests([]);
         } finally {
             setLoading(false);
         }
     };
+
+    const applyFilter = (testsList, skill) => {
+        if (skill === "all") {
+            setTests(testsList);
+            return;
+        }
+        
+        const skillValue = skill === "lr" ? TEST_SKILL.LR :
+                         skill === "speaking" ? TEST_SKILL.SPEAKING :
+                         skill === "writing" ? TEST_SKILL.WRITING :
+                         skill === "fourSkills" ? TEST_SKILL.FOUR_SKILLS : null;
+        
+        if (skillValue === null) {
+            setTests(testsList);
+            return;
+        }
+        
+        const filtered = testsList.filter(test => {
+            // Chuyển đổi cả hai về số để so sánh
+            const testSkillNum = Number(test.testSkillValue);
+            const skillNum = Number(skillValue);
+            
+            // So sánh số
+            if (testSkillNum === skillNum) {
+                return true;
+            }
+            
+            // So sánh string (nếu có)
+            if (test.testSkillValue === skillValue || test.testSkillValue === skillNum) {
+                return true;
+            }
+            
+            // So sánh với string từ backend (nếu backend trả về string)
+            if (skill === "lr" && (test.testSkillValue === 3 || test.testSkill === "LR" || test.testSkillValue === "LR")) {
+                return true;
+            }
+            if (skill === "speaking" && (test.testSkillValue === 1 || test.testSkill === "Speaking" || test.testSkillValue === "Speaking")) {
+                return true;
+            }
+            if (skill === "writing" && (test.testSkillValue === 2 || test.testSkill === "Writing" || test.testSkillValue === "Writing")) {
+                return true;
+            }
+            if (skill === "fourSkills" && (test.testSkillValue === 4 || test.testSkill === "FourSkills" || test.testSkill === "Four Skills" || test.testSkillValue === "FourSkills" || test.testSkillValue === "Four Skills")) {
+                return true;
+            }
+            
+            return false;
+        });
+        setTests(filtered);
+    };
+
+    const handleFilterChange = (skill) => {
+        setFilterSkill(skill);
+        if (allTests.length > 0) {
+            applyFilter(allTests, skill);
+        }
+    };
+
+    useEffect(() => {
+        if (allTests.length > 0 && filterSkill) {
+            applyFilter(allTests, filterSkill);
+        }
+    }, [filterSkill, allTests]);
 
     const handleStartTest = (testId) => {
         navigate(`/toeic-exam?testId=${testId}`);
@@ -80,6 +151,9 @@ export default function TestList() {
             case "Listening & Reading":
             case "LR":
                 return "purple";
+            case "Four Skills":
+            case "FourSkills":
+                return "blue";
             default: 
                 return "blue";
         }
@@ -94,6 +168,9 @@ export default function TestList() {
                 return "Speaking";
             case "Writing":
                 return "Writing";
+            case "Four Skills":
+            case "FourSkills":
+                return "Four Skills";
             default: 
                 return skill;
         }
@@ -112,7 +189,21 @@ export default function TestList() {
                     </p>
                 </div>
 
-            
+                {/* Filter Section */}
+                <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end' }}>
+                    <Select
+                        value={filterSkill}
+                        onChange={handleFilterChange}
+                        style={{ width: 200 }}
+                        placeholder="Lọc theo kỹ năng"
+                    >
+                        <Option value="all">Tất cả</Option>
+                        <Option value="lr">Listening & Reading</Option>
+                        <Option value="speaking">Speaking</Option>
+                        <Option value="writing">Writing</Option>
+                        <Option value="fourSkills">Four Skills</Option>
+                    </Select>
+                </div>
 
                 {/* Tests Grid */}
                 {loading ? (

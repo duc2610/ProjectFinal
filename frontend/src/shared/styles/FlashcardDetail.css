@@ -74,6 +74,16 @@
   flex-wrap: wrap;
 }
 
+/* All Buttons in One Row */
+.quizlet-all-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 32px;
+  justify-content: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .quizlet-mode-btn {
   border-radius: 8px;
   height: 40px;

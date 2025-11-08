@@ -10,7 +10,7 @@ import {
   RedoOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
-import "./FlashcardDetail.css";
+import "@shared/styles/FlashcardDetail.css";
 
 export default function FlashcardLearn() {
   const { setId } = useParams();

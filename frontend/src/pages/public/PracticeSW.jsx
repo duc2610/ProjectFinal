@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Tag, Row, Col, Empty, Spin, Space, Collapse, Typography, Divider, message } from "antd";
+import { Card, Button, Tag, Row, Col, Empty, Spin, Space, Typography, Divider, message } from "antd";
 import { 
     PlayCircleOutlined, 
     ClockCircleOutlined, 
     FileTextOutlined,
-    BulbOutlined,
-    CheckCircleOutlined,
     AudioOutlined,
-    EditOutlined,
-    BookOutlined,
-    RocketOutlined
+    EditOutlined
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { getPracticeTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_LABELS } from "@services/testsService";
 import styles from "@shared/styles/PracticeSW.module.css";
 
-const { Panel } = Collapse;
 const { Title, Text, Paragraph } = Typography;
 
 export default function PracticeSW() {
@@ -233,122 +228,6 @@ export default function PracticeSW() {
                     </p>
                 </div>
 
-                {/* Study Tips Section */}
-                <Card
-                    className={styles.studyTipsCard}
-                    title={
-                        <Space>
-                            <BulbOutlined className={styles.studyTipsTitleIcon} />
-                            <Title level={4} style={{ margin: 0 }}>
-                                Cách ôn tập hiệu quả
-                            </Title>
-                        </Space>
-                    }
-                >
-                    <Row gutter={[24, 24]}>
-                        <Col xs={24} lg={12}>
-                            <Card
-                                size="small"
-                                className={`${styles.skillCard} ${styles.skillCardSpeaking}`}
-                            >
-                                <Space align="start" style={{ width: "100%" }}>
-                                    <AudioOutlined className={`${styles.skillIcon} ${styles.skillIconSpeaking}`} />
-                                    <div className={styles.skillContent}>
-                                        <Title level={5} className={`${styles.skillTitle} ${styles.skillTitleSpeaking}`}>
-                                            Kỹ năng Speaking
-                                        </Title>
-                                        <ul className={styles.skillList}>
-                                            <li>Phát âm rõ ràng, chuẩn xác từng từ</li>
-                                            <li>Nói với tốc độ vừa phải, không quá nhanh</li>
-                                            <li>Sử dụng ngữ điệu tự nhiên khi nói</li>
-                                            <li>Luyện tập các chủ đề thường gặp (business, daily life, travel...)</li>
-                                            <li>Ghi âm và nghe lại để tự đánh giá phát âm</li>
-                                        </ul>
-                                    </div>
-                                </Space>
-                            </Card>
-                        </Col>
-                        <Col xs={24} lg={12}>
-                            <Card
-                                size="small"
-                                className={`${styles.skillCard} ${styles.skillCardWriting}`}
-                            >
-                                <Space align="start" style={{ width: "100%" }}>
-                                    <EditOutlined className={`${styles.skillIcon} ${styles.skillIconWriting}`} />
-                                    <div className={styles.skillContent}>
-                                        <Title level={5} className={`${styles.skillTitle} ${styles.skillTitleWriting}`}>
-                                            Kỹ năng Writing
-                                        </Title>
-                                        <ul className={styles.skillList}>
-                                            <li>Sử dụng cấu trúc ngữ pháp đúng và đa dạng</li>
-                                            <li>Viết câu hoàn chỉnh, logic và mạch lạc</li>
-                                            <li>Mở rộng vốn từ vựng để viết tự nhiên hơn</li>
-                                            <li>Kiểm tra chính tả và dấu câu cẩn thận</li>
-                                            <li>Luyện viết theo các dạng đề thường xuất hiện</li>
-                                        </ul>
-                                    </div>
-                                </Space>
-                            </Card>
-                        </Col>
-                    </Row>
-
-                    <Divider className={styles.collapseDivider} />
-
-                    <Collapse
-                        defaultActiveKey={['1']}
-                        className={styles.collapseContainer}
-                        items={[
-                            {
-                                key: '1',
-                                label: (
-                                    <Space>
-                                        <RocketOutlined className={`${styles.collapseIcon} ${styles.collapseIconRocket}`} />
-                                        <Text strong>Lộ trình ôn tập đề xuất</Text>
-                                    </Space>
-                                ),
-                                children: (
-                                    <div>
-                                        <Paragraph>
-                                            <CheckCircleOutlined className={styles.checkIcon} />
-                                            <strong>Tuần 1-2:</strong> Làm quen với format bài thi và các dạng câu hỏi cơ bản
-                                        </Paragraph>
-                                        <Paragraph>
-                                            <CheckCircleOutlined className={styles.checkIcon} />
-                                            <strong>Tuần 3-4:</strong> Tập trung vào các phần yếu, làm nhiều bài tập theo từng Part
-                                        </Paragraph>
-                                        <Paragraph>
-                                            <CheckCircleOutlined className={styles.checkIcon} />
-                                            <strong>Tuần 5-6:</strong> Luyện tập full test, quản lý thời gian và làm bài dưới áp lực
-                                        </Paragraph>
-                                        <Paragraph>
-                                            <CheckCircleOutlined className={styles.checkIcon} />
-                                            <strong>Tuần 7-8:</strong> Xem lại các lỗi đã mắc, củng cố kiến thức và chuẩn bị thi
-                                        </Paragraph>
-                                    </div>
-                                )
-                            },
-                            {
-                                key: '2',
-                                label: (
-                                    <Space>
-                                        <BookOutlined className={`${styles.collapseIcon} ${styles.collapseIconBook}`} />
-                                        <Text strong>Tips tăng điểm số</Text>
-                                    </Space>
-                                ),
-                                children: (
-                                    <ul className={styles.tipsList}>
-                                        <li><strong>Phân bổ thời gian hợp lý:</strong> Dành đều thời gian cho Speaking và Writing</li>
-                                        <li><strong>Luyện tập thường xuyên:</strong> Nói và viết mỗi ngày để tăng phản xạ</li>
-                                        <li><strong>Xem lại bài thường xuyên:</strong> Học từ lỗi sai để không lặp lại</li>
-                                        <li><strong>Mở rộng vốn từ vựng:</strong> Học từ mới mỗi ngày theo chủ đề</li>
-                                        <li><strong>Tự đánh giá và cải thiện:</strong> Ghi âm, viết lại và so sánh với đáp án mẫu</li>
-                                    </ul>
-                                )
-                            }
-                        ]}
-                    />
-                </Card>
-
                 {/* Speaking Tests Section */}
                 <div className={styles.testsHeaderSection}>
                     <Divider className={styles.testsHeaderDivider}>
@@ -382,6 +261,157 @@ export default function PracticeSW() {
                 </div>
 
                 {renderTestCards(writingTests)}
+
+                {/* Test Structure Section */}
+                <div className={styles.testStructureSection}>
+                    <Divider className={styles.structureDivider}>
+                        <Space>
+                            <FileTextOutlined className={styles.structureIcon} />
+                            <Title level={3} className={styles.structureTitle}>
+                                Cấu trúc đề thi TOEIC Speaking & Writing
+                            </Title>
+                        </Space>
+                    </Divider>
+                    <Paragraph className={styles.structureDescription}>
+                        Tìm hiểu về cấu trúc và format của bài thi TOEIC Speaking & Writing để chuẩn bị tốt nhất cho kỳ thi của bạn
+                    </Paragraph>
+
+                    <Row gutter={[24, 24]}>
+                        {/* Speaking Section */}
+                        <Col xs={24} lg={12}>
+                            <Card
+                                className={`${styles.structureCard} ${styles.structureCardSpeaking}`}
+                                title={
+                                    <Space>
+                                        <AudioOutlined className={styles.structureCardIcon} />
+                                        <Title level={4} style={{ margin: 0, color: "#ff4d4f" }}>
+                                            Speaking (Nói)
+                                        </Title>
+                                    </Space>
+                                }
+                            >
+                                <div className={styles.structureInfo}>
+                                    <Text strong className={styles.structureInfoText}>
+                                        Tổng cộng: 11 câu hỏi | Thời gian: ~20 phút
+                                    </Text>
+                                </div>
+                                <Divider style={{ margin: "16px 0" }} />
+                                <div className={styles.partList}>
+                                    <div className={styles.partItem}>
+                                        <Tag color="red" className={styles.partTag}>Part 1</Tag>
+                                        <div className={styles.partContent}>
+                                            <Text strong>Read a text aloud (Đọc to một đoạn văn)</Text>
+                                            <Text type="secondary" className={styles.partDetail}>2 câu hỏi</Text>
+                                        </div>
+                                    </div>
+                                    <div className={styles.partItem}>
+                                        <Tag color="red" className={styles.partTag}>Part 2</Tag>
+                                        <div className={styles.partContent}>
+                                            <Text strong>Describe a picture (Mô tả hình ảnh)</Text>
+                                            <Text type="secondary" className={styles.partDetail}>1 câu hỏi</Text>
+                                        </div>
+                                    </div>
+                                    <div className={styles.partItem}>
+                                        <Tag color="red" className={styles.partTag}>Part 3</Tag>
+                                        <div className={styles.partContent}>
+                                            <Text strong>Respond to questions (Trả lời câu hỏi)</Text>
+                                            <Text type="secondary" className={styles.partDetail}>3 câu hỏi</Text>
+                                        </div>
+                                    </div>
+                                    <div className={styles.partItem}>
+                                        <Tag color="red" className={styles.partTag}>Part 4</Tag>
+                                        <div className={styles.partContent}>
+                                            <Text strong>Respond to questions using information provided (Trả lời câu hỏi dựa trên thông tin cho sẵn)</Text>
+                                            <Text type="secondary" className={styles.partDetail}>3 câu hỏi</Text>
+                                        </div>
+                                    </div>
+                                    <div className={styles.partItem}>
+                                        <Tag color="red" className={styles.partTag}>Part 5</Tag>
+                                        <div className={styles.partContent}>
+                                            <Text strong>Propose a solution (Đề xuất giải pháp)</Text>
+                                            <Text type="secondary" className={styles.partDetail}>1 câu hỏi</Text>
+                                        </div>
+                                    </div>
+                                    <div className={styles.partItem}>
+                                        <Tag color="red" className={styles.partTag}>Part 6</Tag>
+                                        <div className={styles.partContent}>
+                                            <Text strong>Express an opinion (Bày tỏ quan điểm)</Text>
+                                            <Text type="secondary" className={styles.partDetail}>1 câu hỏi</Text>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+                        </Col>
+
+                        {/* Writing Section */}
+                        <Col xs={24} lg={12}>
+                            <Card
+                                className={`${styles.structureCard} ${styles.structureCardWriting}`}
+                                title={
+                                    <Space>
+                                        <EditOutlined className={styles.structureCardIcon} />
+                                        <Title level={4} style={{ margin: 0, color: "#1890ff" }}>
+                                            Writing (Viết)
+                                        </Title>
+                                    </Space>
+                                }
+                            >
+                                <div className={styles.structureInfo}>
+                                    <Text strong className={styles.structureInfoText}>
+                                        Tổng cộng: 8 câu hỏi | Thời gian: ~60 phút
+                                    </Text>
+                                </div>
+                                <Divider style={{ margin: "16px 0" }} />
+                                <div className={styles.partList}>
+                                    <div className={styles.partItem}>
+                                        <Tag color="blue" className={styles.partTag}>Part 1</Tag>
+                                        <div className={styles.partContent}>
+                                            <Text strong>Write a sentence based on a picture (Viết câu dựa trên hình ảnh)</Text>
+                                            <Text type="secondary" className={styles.partDetail}>5 câu hỏi</Text>
+                                        </div>
+                                    </div>
+                                    <div className={styles.partItem}>
+                                        <Tag color="blue" className={styles.partTag}>Part 2</Tag>
+                                        <div className={styles.partContent}>
+                                            <Text strong>Respond to a written request (Trả lời yêu cầu bằng văn bản)</Text>
+                                            <Text type="secondary" className={styles.partDetail}>2 câu hỏi</Text>
+                                        </div>
+                                    </div>
+                                    <div className={styles.partItem}>
+                                        <Tag color="blue" className={styles.partTag}>Part 3</Tag>
+                                        <div className={styles.partContent}>
+                                            <Text strong>Write an opinion essay (Viết bài luận bày tỏ quan điểm)</Text>
+                                            <Text type="secondary" className={styles.partDetail}>1 câu hỏi</Text>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+                        </Col>
+                    </Row>
+
+                    <Card className={styles.totalInfoCard}>
+                        <Row gutter={[24, 16]} align="middle">
+                            <Col xs={24} sm={8}>
+                                <div className={styles.totalInfoItem}>
+                                    <Title level={2} className={styles.totalInfoNumber}>19</Title>
+                                    <Text className={styles.totalInfoLabel}>Tổng số câu hỏi</Text>
+                                </div>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <div className={styles.totalInfoItem}>
+                                    <Title level={2} className={styles.totalInfoNumber}>80</Title>
+                                    <Text className={styles.totalInfoLabel}>Phút làm bài</Text>
+                                </div>
+                            </Col>
+                            <Col xs={24} sm={8}>
+                                <div className={styles.totalInfoItem}>
+                                    <Title level={2} className={styles.totalInfoNumber}>400</Title>
+                                    <Text className={styles.totalInfoLabel}>Điểm tối đa</Text>
+                                </div>
+                            </Col>
+                        </Row>
+                    </Card>
+                </div>
             </div>
         </div>
     );
