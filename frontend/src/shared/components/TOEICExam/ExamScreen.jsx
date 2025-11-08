@@ -44,7 +44,9 @@ export default function ExamScreen() {
   }, [rawTestData, questions, navigate]);
 
   const onAnswer = (testQuestionId, value) => {
-    setAnswers((prev) => ({ ...prev, [testQuestionId]: value }));
+    // Đảm bảo testQuestionId luôn là số để tránh type mismatch
+    const id = parseInt(testQuestionId);
+    setAnswers((prev) => ({ ...prev, [id]: value }));
   };
 
   const goToQuestionByIndex = (i) => {
@@ -116,11 +118,13 @@ export default function ExamScreen() {
           const partType = getPartType(q.partId);
           if (partType && answerValue instanceof Blob) {
             try {
-              // Upload audio file
-              const audioFile = new File([answerValue], `speaking_${testQuestionId}.webm`, {
+              // Upload audio file - đảm bảo mỗi câu hỏi có file riêng
+              const audioFile = new File([answerValue], `speaking_${testQuestionId}_${q.globalIndex || testQuestionId}.webm`, {
                 type: "audio/webm",
               });
+              console.log(`Uploading audio for question ${testQuestionId} (globalIndex: ${q.globalIndex})`);
               const audioUrl = await uploadFile(audioFile, "audio");
+              console.log(`Uploaded audio for question ${testQuestionId}: ${audioUrl}`);
               
               swAnswers.push({
                 testQuestionId: parseInt(testQuestionId),
@@ -139,6 +143,15 @@ export default function ExamScreen() {
                 audioFileUrl: null,
               });
             }
+          } else if (partType) {
+            // Nếu không phải Blob, có thể là string URL hoặc null
+            console.warn(`Question ${testQuestionId} answer is not a Blob:`, typeof answerValue, answerValue);
+            swAnswers.push({
+              testQuestionId: parseInt(testQuestionId),
+              partType: partType,
+              answerText: null,
+              audioFileUrl: typeof answerValue === "string" && answerValue.startsWith("http") ? answerValue : null,
+            });
           }
         }
       }

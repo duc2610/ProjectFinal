@@ -67,28 +67,48 @@ export default function QuestionCard({
     // Lưu globalAudioUrl hiện tại để so sánh lần sau
     previousGlobalAudioUrlRef.current = globalAudioUrl;
 
-    // Load lại answer đã lưu nếu có
-    const savedAnswer = answers[question.testQuestionId];
+    // Cleanup URL cũ trước khi load answer mới
+    if (previousUrl && previousUrl.startsWith("blob:")) {
+      URL.revokeObjectURL(previousUrl);
+    }
+
+    // Load lại answer đã lưu nếu có - đảm bảo mỗi câu hỏi có audio riêng
+    // Đảm bảo testQuestionId luôn là số để tránh type mismatch
+    const testQuestionId = parseInt(question.testQuestionId);
+    const savedAnswer = answers[testQuestionId] || answers[question.testQuestionId];
+    console.log(`Loading answer for question ${testQuestionId} (globalIndex: ${question.globalIndex})`, {
+      testQuestionId: testQuestionId,
+      originalTestQuestionId: question.testQuestionId,
+      globalIndex: question.globalIndex,
+      hasSavedAnswer: !!savedAnswer,
+      answerType: savedAnswer ? typeof savedAnswer : 'null',
+      isBlob: savedAnswer instanceof Blob,
+      isString: typeof savedAnswer === "string",
+      allAnswerKeys: Object.keys(answers)
+    });
     if (isSpeakingPart && savedAnswer) {
       if (savedAnswer instanceof Blob) {
         // Nếu là Blob, tạo URL để hiển thị
         const url = URL.createObjectURL(savedAnswer);
         setRecordedAudioUrl(url);
+        console.log(`Created blob URL for question ${testQuestionId}`);
       } else if (typeof savedAnswer === "string" && savedAnswer.startsWith("http")) {
         // Nếu là URL (đã upload), dùng trực tiếp
         setRecordedAudioUrl(savedAnswer);
+        console.log(`Using existing URL for question ${testQuestionId}: ${savedAnswer}`);
       }
     } else {
       setRecordedAudioUrl(null);
+      if (isSpeakingPart) {
+        console.log(`No saved answer for question ${testQuestionId}`);
+      }
     }
 
-    // Cleanup URL cũ khi chuyển câu hỏi hoặc unmount
+    // Cleanup URL khi unmount
     return () => {
-      if (previousUrl && previousUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(previousUrl);
-      }
+      // Không cleanup ở đây vì đã cleanup ở trên
     };
-  }, [question.testQuestionId, answers, isSpeakingPart, globalAudioUrl, isListeningPart, hasGlobalAudio]);
+  }, [question.testQuestionId, question.globalIndex, answers, isSpeakingPart, globalAudioUrl, isListeningPart, hasGlobalAudio]);
 
   useEffect(() => {
     if (!audioRef.current || !hasGlobalAudio) return;
@@ -129,6 +149,19 @@ export default function QuestionCard({
   // === GHI ÂM CHO SPEAKING ===
   const handleStartRecording = async () => {
     try {
+      // Cleanup URL cũ trước khi ghi âm lại
+      if (recordedAudioUrl && recordedAudioUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(recordedAudioUrl);
+      }
+      setRecordedAudioUrl(null);
+      
+      // Dừng audio đang phát nếu có
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setIsPlaying(false);
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
@@ -148,8 +181,17 @@ export default function QuestionCard({
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
         const url = URL.createObjectURL(audioBlob);
         setRecordedAudioUrl(url);
-        // Lưu audio vào answers
-        onAnswer(question.testQuestionId, audioBlob);
+        // Lưu audio vào answers với testQuestionId cụ thể để đảm bảo mỗi câu có audio riêng
+        // Đảm bảo testQuestionId luôn là số để tránh type mismatch
+        const testQuestionId = parseInt(question.testQuestionId);
+        console.log(`Saving audio for question ${testQuestionId} (globalIndex: ${question.globalIndex})`, {
+          testQuestionId: testQuestionId,
+          originalTestQuestionId: question.testQuestionId,
+          globalIndex: question.globalIndex,
+          blobSize: audioBlob.size,
+          blobType: audioBlob.type
+        });
+        onAnswer(testQuestionId, audioBlob);
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -332,11 +374,15 @@ export default function QuestionCard({
               rows={8}
               placeholder="Nhập câu trả lời của bạn..."
               value={
-                typeof answers[question.testQuestionId] === "string"
-                  ? answers[question.testQuestionId]
-                  : ""
+                (() => {
+                  const id = parseInt(question.testQuestionId);
+                  return typeof answers[id] === "string" ? answers[id] : "";
+                })()
               }
-              onChange={(e) => onAnswer(question.testQuestionId, e.target.value)}
+              onChange={(e) => {
+                const id = parseInt(question.testQuestionId);
+                onAnswer(id, e.target.value);
+              }}
               style={{ 
                 fontSize: 14,
                 borderRadius: "8px",
@@ -470,8 +516,14 @@ export default function QuestionCard({
           </Text>
           <div>
             <Radio.Group
-              value={answers[question.testQuestionId]}
-              onChange={(e) => onAnswer(question.testQuestionId, e.target.value)}
+              value={(() => {
+                const id = parseInt(question.testQuestionId);
+                return answers[id];
+              })()}
+              onChange={(e) => {
+                const id = parseInt(question.testQuestionId);
+                onAnswer(id, e.target.value);
+              }}
               style={{ width: "100%" }}
             >
               {question.options?.map((opt) => (
