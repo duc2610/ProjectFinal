@@ -305,7 +305,6 @@ const AccountManagement = () => {
       title: "Ngày tạo",
       dataIndex: "createdAt",
       key: "createdAt",
-      defaultSortOrder: "descend",
       sorter: (a, b) => {
         const dateA = a.createdAt ? dayjs(a.createdAt) : null;
         const dateB = b.createdAt ? dayjs(b.createdAt) : null;

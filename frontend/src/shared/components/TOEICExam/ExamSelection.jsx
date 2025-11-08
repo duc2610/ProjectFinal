@@ -5,7 +5,7 @@ import { startTest } from "../../../services/testExamService";
 import { useNavigate } from "react-router-dom";
 
 const { Title, Text } = Typography;
-const TEST_ID = 7; // Dùng testId=6 như bạn cung cấp
+const TEST_ID = 9; // Dùng testId=6 như bạn cung cấp
 
 export default function ExamSelection() {
   const [testData, setTestData] = useState(null);
@@ -95,6 +95,7 @@ export default function ExamSelection() {
               subQuestionIndex: idx,
               partId: part.partId,
               partName: part.partName,
+              partDescription: part.description,
               globalIndex: globalIndex++,
               type: "group",
               question: qs.content,
@@ -113,6 +114,7 @@ export default function ExamSelection() {
             subQuestionIndex: 0,
             partId: part.partId,
             partName: part.partName,
+            partDescription: part.description,
             globalIndex: globalIndex++,
             type: "single",
             question: qs.content,

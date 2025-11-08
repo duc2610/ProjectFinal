@@ -6,15 +6,18 @@ export default function QuestionNavigator({ questions, currentIndex, answers, go
 
   questions.forEach((q, idx) => {
     const partName = q.partName || `Part ${q.partId}`;
-    if (!groups[partName]) groups[partName] = [];
-    groups[partName].push({ q, idx });
+    const partKey = q.partDescription 
+      ? `${partName} - ${q.partDescription}` 
+      : partName;
+    if (!groups[partKey]) groups[partKey] = [];
+    groups[partKey].push({ q, idx });
   });
 
   return (
     <div className={styles.sideInner}>
-      {Object.entries(groups).map(([partName, items]) => (
-        <div key={partName} className={styles.partGroup}>
-          <div className={styles.partGroupTitle}>{partName}</div>
+      {Object.entries(groups).map(([partKey, items]) => (
+        <div key={partKey} className={styles.partGroup}>
+          <div className={styles.partGroupTitle}>{partKey}</div>
           <div className={styles.numbersGrid}>
             {items.map(({ q, idx }) => {
               const isAnswered = answers[q.testQuestionId] !== undefined;
