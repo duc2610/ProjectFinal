@@ -87,6 +87,11 @@ export default function RoutesRoot() {
           <Route element={<PrivateRoute />}>
             <Route path="/profile" element={<Profile />} />
           </Route>
+          {/* Chỉ Examinee mới vào được */}
+          <Route element={<RoleRoute allow={[ROLES.Examinee]} />}>
+            <Route path="/toeic-exam" element={<TOEICExam />} />
+            <Route path="/result" element={<TestResults />} />
+          </Route>
         </Route>
 
         {/* Role-based routes */}
@@ -114,9 +119,10 @@ export default function RoutesRoot() {
           </Route>
         </Route>
 
-        <Route path="/toeic-exam" element={<TOEICExam />} />
-        <Route path="/exam" element={<ExamScreen />} />
-        <Route path="/result" element={<TestResults />} />
+        {/* ExamScreen không dùng MainLayout, có layout riêng, nhưng cần guard Examinee */}
+        <Route element={<RoleRoute allow={[ROLES.Examinee]} />}>
+          <Route path="/exam" element={<ExamScreen />} />
+        </Route>
 
         <Route path="*" element={<NotFound />} />
       </Routes>

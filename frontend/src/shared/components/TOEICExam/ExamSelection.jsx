@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { Card, Button, Select, Typography, Checkbox, message, Spin } from "antd";
+import { ArrowLeftOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import { startTest } from "../../../services/testExamService";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 
 const { Title, Text } = Typography;
 
 export default function ExamSelection() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const testIdFromUrl = searchParams.get("testId");
   
@@ -17,6 +19,13 @@ export default function ExamSelection() {
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [isSelectTime, setIsSelectTime] = useState(true);
   const [loading, setLoading] = useState(false);
+
+  // Hàm xử lý quay lại - quay về trang trước hoặc test-list
+  const handleGoBack = () => {
+    // Nếu có state.from thì quay về đó, nếu không thì quay về test-list
+    const from = location.state?.from || "/test-list";
+    navigate(from);
+  };
 
   useEffect(() => {
     // Kiểm tra testId từ URL
@@ -188,6 +197,16 @@ export default function ExamSelection() {
 
   return (
     <div className={styles.selectionContainer}>
+      <div style={{ marginBottom: 16 }}>
+        <Button 
+          icon={<ArrowLeftOutlined />} 
+          onClick={handleGoBack}
+          type="text"
+          style={{ padding: 0 }}
+        >
+          Quay lại
+        </Button>
+      </div>
       <Card title={<Title level={4}>{isSimulator ? "TOEIC Simulator" : "TOEIC Practice"} - {isSimulator ? "Bài thi mô phỏng" : "Chọn Phần Thi"}</Title>}>
         <Spin spinning={loading}>
           {isSimulator ? (

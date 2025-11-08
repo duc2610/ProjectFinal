@@ -5,7 +5,7 @@ import {
     ClockCircleOutlined, 
     FileTextOutlined
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getSimulatorTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_LABELS } from "@services/testsService";
 import styles from "@shared/styles/PracticeLR.module.css";
 
@@ -14,6 +14,7 @@ const { Option } = Select;
 
 export default function TestList() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(true);
     const [tests, setTests] = useState([]);
     const [filterSkill, setFilterSkill] = useState("all");
@@ -139,7 +140,7 @@ export default function TestList() {
     }, [filterSkill, allTests]);
 
     const handleStartTest = (testId) => {
-        navigate(`/toeic-exam?testId=${testId}`);
+        navigate(`/toeic-exam?testId=${testId}`, { state: { from: location.pathname } });
     };
 
     const getSkillColor = (skill) => {

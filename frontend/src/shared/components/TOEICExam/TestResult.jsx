@@ -17,6 +17,7 @@ import {
   ReadOutlined,
   CheckCircleTwoTone,
   EditOutlined,
+  ArrowLeftOutlined,
 } from "@ant-design/icons";
 import { getTestResultDetailLR } from "../../../services/testExamService";
 import styles from "../../styles/Result.module.css";
@@ -39,6 +40,11 @@ export default function ResultScreen() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
   const [testId, setTestId] = useState(null);
+
+  // Hàm xử lý quay lại - quay về trang chủ hoặc test-list
+  const handleGoBack = () => {
+    navigate("/test-list");
+  };
 
   // Hàm xử lý làm lại bài thi - quay về ExamSelection
   const handleRetakeTest = () => {
@@ -406,9 +412,19 @@ export default function ResultScreen() {
       <div className={styles.resultPage}>
         <div className={styles.mainContent}>
           <div className={styles.header}>
-            <Title level={3} style={{ color: "#fff", margin: 0 }}>
-              Kết quả bài thi TOEIC
-            </Title>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <Button 
+                icon={<ArrowLeftOutlined />} 
+                onClick={handleGoBack}
+                type="text"
+                style={{ color: "#fff", padding: 0 }}
+              >
+                Quay lại
+              </Button>
+              <Title level={3} style={{ color: "#fff", margin: 0 }}>
+                Kết quả bài thi TOEIC
+              </Title>
+            </div>
             <Button onClick={handleRetakeTest} ghost>
               Làm lại bài thi
             </Button>
@@ -506,9 +522,19 @@ export default function ResultScreen() {
       {/* MAIN CONTENT */}
       <div className={styles.mainContent}>
         <div className={styles.header}>
-          <Title level={3} style={{ color: "#fff", margin: 0 }}>
-            TOEIC Test Results
-          </Title>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <Button 
+              icon={<ArrowLeftOutlined />} 
+              onClick={handleGoBack}
+              type="text"
+              style={{ color: "#fff", padding: 0 }}
+            >
+              Quay lại
+            </Button>
+            <Title level={3} style={{ color: "#fff", margin: 0 }}>
+              TOEIC Test Results
+            </Title>
+          </div>
           <Button onClick={handleRetakeTest} ghost>
             Làm lại bài thi
           </Button>

@@ -7,7 +7,7 @@ import {
     AudioOutlined,
     ReadOutlined
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getPracticeTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_LABELS } from "@services/testsService";
 import styles from "@shared/styles/PracticeLR.module.css";
 
@@ -15,6 +15,7 @@ const { Title, Text, Paragraph } = Typography;
 
 export default function PracticeLR() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(true);
     const [tests, setTests] = useState([]);
 
@@ -79,7 +80,7 @@ export default function PracticeLR() {
 
     const handleStartTest = (testId) => {
         // Navigate to test selection/start page
-        navigate(`/toeic-exam?testId=${testId}`);
+        navigate(`/toeic-exam?testId=${testId}`, { state: { from: location.pathname } });
     };
 
     const getSkillColor = (skill) => {

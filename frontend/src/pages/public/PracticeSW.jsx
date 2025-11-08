@@ -7,7 +7,7 @@ import {
     AudioOutlined,
     EditOutlined
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getPracticeTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_LABELS } from "@services/testsService";
 import styles from "@shared/styles/PracticeSW.module.css";
 
@@ -15,6 +15,7 @@ const { Title, Text, Paragraph } = Typography;
 
 export default function PracticeSW() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(true);
     const [speakingTests, setSpeakingTests] = useState([]);
     const [writingTests, setWritingTests] = useState([]);
@@ -101,7 +102,7 @@ export default function PracticeSW() {
     };
 
     const handleStartTest = (testId) => {
-        navigate(`/toeic-exam?testId=${testId}`);
+        navigate(`/toeic-exam?testId=${testId}`, { state: { from: location.pathname } });
     };
 
     const getSkillColor = (skill) => {
