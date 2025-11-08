@@ -42,6 +42,7 @@ namespace ToeicGenius.Configurations
 			services.AddScoped<ITestService, TestService>();
             services.AddScoped<IAssessmentService, AssessmentService>();
 			services.AddScoped<IExcelService, ExcelService>();
+		services.AddScoped<IFlashcardService, FlashcardService>();
         }
 	}
 }

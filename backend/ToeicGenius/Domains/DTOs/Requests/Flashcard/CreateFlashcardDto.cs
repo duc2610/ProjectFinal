@@ -1,15 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace ToeicGenius.Domains.Entities
+namespace ToeicGenius.Domains.DTOs.Requests.Flashcard
 {
-	public class Flashcard
+	public class CreateFlashcardDto
 	{
-		[Key]
-		public int CardId { get; set; }
-
 		[Required]
 		public int SetId { get; set; }
-		public FlashcardSet FlashcardSet { get; set; } = null!;
 
 		[Required]
 		[MaxLength(500)]
@@ -25,18 +21,10 @@ namespace ToeicGenius.Domains.Entities
 		[MaxLength(50)]
 		public string? WordType { get; set; } // N, V, ADJ, ADV, etc.
 
-		public string? Examples { get; set; } // JSON array of example sentences (max 10)
+		public List<string>? Examples { get; set; } // Ví dụ (tối đa 10 câu)
 
 		public string? Notes { get; set; } // Ghi chú
 
 		public string? AudioUrl { get; set; } // Audio pronunciation
-
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-		public DateTime? UpdatedAt { get; set; }
-
-		public ICollection<FlashcardProgress> Progresses { get; set; } = new List<FlashcardProgress>();
 	}
 }
-
-
-
