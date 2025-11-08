@@ -180,7 +180,7 @@ export const TEST_STATUS_COLORS = {
   1: "success",
 };
 
-// Download Excel template
+// Download Excel template for L&R test
 export async function downloadTemplate() {
   const res = await api.get("/api/tests/download-template", {
     responseType: "blob",
@@ -188,31 +188,33 @@ export async function downloadTemplate() {
   return res.data;
 }
 
-// Import test from Excel file
-export async function importTestFromExcel(file) {
+// Download Excel template for 4-skills test (L+R+W+S)
+export async function downloadTemplate4Skills() {
+  const res = await api.get("/api/tests/download-template-4skills", {
+    responseType: "blob",
+  });
+  return res.data;
+}
+
+// Import test from Excel file (L&R)
+export async function importTestFromExcel(excelFile, audioFile) {
   const formData = new FormData();
-  formData.append("ExcelFile", file);
+  formData.append("ExcelFile", excelFile);
+  formData.append("AudioFile", audioFile);
   
   // apiClient will automatically handle FormData and remove Content-Type header
   const res = await api.post("/api/tests/import-excel", formData);
   return res?.data?.data ?? res?.data;
 }
 
-// Get public practice tests (no authentication required)
-export async function getPracticeTests() {
-  const res = await api.get("/api/tests/examinee/list/practice");
-  return res?.data?.data ?? res?.data;
-}
-
-// Get public simulator tests (no authentication required)
-export async function getSimulatorTests() {
-  const res = await api.get("/api/tests/examinee/list/simulator");
-  return res?.data?.data ?? res?.data;
-}
-
-// Get test history for current user
-export async function getTestHistory() {
-  const res = await api.get("/api/tests/history");
+// Import 4-skills test from Excel file
+export async function importTest4SkillsFromExcel(excelFile, audioFile) {
+  const formData = new FormData();
+  formData.append("ExcelFile", excelFile);
+  formData.append("AudioFile", audioFile);
+  
+  // apiClient will automatically handle FormData and remove Content-Type header
+  const res = await api.post("/api/tests/import-excel-4skills", formData);
   return res?.data?.data ?? res?.data;
 }
 

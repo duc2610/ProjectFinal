@@ -10,6 +10,13 @@ const { TextArea } = Input;
 const { Option } = Select;
 const { Panel } = Collapse;
 
+// Helper function để kiểm tra partId có phải là Writing hoặc Speaking part không
+const isWritingOrSpeakingPart = (partId) => {
+    // Writing parts: 8, 9, 10
+    // Speaking parts: 11, 12, 13, 14, 15
+    return (partId >= 8 && partId <= 10) || (partId >= 11 && partId <= 15);
+};
+
 export default function ManualTestForm({ open, onClose, onSuccess, editingId = null, readOnly = false }) {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
@@ -24,6 +31,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         if (typeof val === "number") return val;
         const s = String(val).toLowerCase();
         if (s === "3" || s.includes("lr") || s.includes("listening")) return TEST_SKILL.LR;
+        if (s === "4" || s.includes("four") || s.includes("4skills") || s.includes("4-skills")) return TEST_SKILL.FOUR_SKILLS;
         if (s === "1" || s.includes("speaking")) return TEST_SKILL.SPEAKING;
         if (s === "2" || s.includes("writing")) return TEST_SKILL.WRITING;
         const n = Number(val);
@@ -112,11 +120,10 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                         imageUrl: gSnap.imageUrl || gSnap.ImageUrl || "",
                                         audioUrl: gSnap.audioUrl || gSnap.AudioUrl || "",
                                         questions: questionSnapshots.map((q, qIdx) => {
-                                            // Writing và Speaking không có options
-                                            const isWritingOrSpeaking = skillVal === TEST_SKILL.WRITING || skillVal === TEST_SKILL.SPEAKING;
+                                            // Writing và Speaking parts không có options (partId 8-15)
                                             let normalizedOptions = [];
                                             
-                                            if (!isWritingOrSpeaking) {
+                                            if (!isWritingOrSpeakingPart(partId)) {
                                                 const loadedOptions = (q.options || q.Options || []).map(o => ({
                                                     label: o.label || o.Label || "",
                                                     content: o.content || o.Content || "",
@@ -152,11 +159,10 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                         return;
                                     }
                                     console.log(`Part ${partId}, Single Question ${tqIndex}: đã parse`);
-                                    // Writing và Speaking không có options
-                                    const isWritingOrSpeaking = skillVal === TEST_SKILL.WRITING || skillVal === TEST_SKILL.SPEAKING;
+                                    // Writing và Speaking parts không có options (partId 8-15)
                                     let normalizedOptions = [];
                                     
-                                    if (!isWritingOrSpeaking) {
+                                    if (!isWritingOrSpeakingPart(partId)) {
                                         const loadedOptions = (qSnap.options || qSnap.Options || []).map(o => ({
                                             label: o.label || o.Label || "",
                                             content: o.content || o.Content || "",
@@ -255,9 +261,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addQuestion = (partId) => {
-        // Writing và Speaking không có options
-        const isWritingOrSpeaking = selectedSkill === TEST_SKILL.WRITING || selectedSkill === TEST_SKILL.SPEAKING;
-        const defaultOptions = isWritingOrSpeaking ? [] : createDefaultOptions(partId);
+        // Writing và Speaking parts không có options (partId 8-15)
+        const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => ({
             ...prev,
             [partId]: {
@@ -277,9 +282,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addGroup = (partId) => {
-        // Writing và Speaking không có options
-        const isWritingOrSpeaking = selectedSkill === TEST_SKILL.WRITING || selectedSkill === TEST_SKILL.SPEAKING;
-        const defaultOptions = isWritingOrSpeaking ? [] : createDefaultOptions(partId);
+        // Writing và Speaking parts không có options (partId 8-15)
+        const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => ({
             ...prev,
             [partId]: {
@@ -380,9 +384,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addQuestionToGroup = (partId, groupIndex) => {
-        // Writing và Speaking không có options
-        const isWritingOrSpeaking = selectedSkill === TEST_SKILL.WRITING || selectedSkill === TEST_SKILL.SPEAKING;
-        const defaultOptions = isWritingOrSpeaking ? [] : createDefaultOptions(partId);
+        // Writing và Speaking parts không có options (partId 8-15)
+        const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => {
             const newData = { ...prev };
             const groups = [...(newData[partId]?.groups || [])];
@@ -425,13 +428,14 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     // Validate toàn bộ parts data trước khi submit
     const validatePartsData = () => {
         const errors = [];
-        const isWritingOrSpeaking = selectedSkill === TEST_SKILL.WRITING || selectedSkill === TEST_SKILL.SPEAKING;
 
         // Validate từng part
         Object.keys(partsData).forEach(partIdStr => {
             const partId = Number(partIdStr);
             const partData = partsData[partId];
             const imageConfig = requiresImage(partId, selectedSkill);
+            // Sử dụng partId để kiểm tra thay vì skill
+            const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
 
             // Validate questions đơn
             (partData.questions || []).forEach((q, qIdx) => {
@@ -547,8 +551,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 return;
             }
 
-            const isWritingOrSpeaking = selectedSkill === TEST_SKILL.WRITING || selectedSkill === TEST_SKILL.SPEAKING;
-
             // Validate tất cả inputs
             const validationErrors = validatePartsData();
             if (validationErrors.length > 0) {
@@ -611,7 +613,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                             audioUrl: trimOrNull(g.audioUrl),
                             questions: (g.questions || []).map(q => {
                                 // Writing và Speaking không có options
-                                const isWritingOrSpeaking = selectedSkill === TEST_SKILL.WRITING || selectedSkill === TEST_SKILL.SPEAKING;
+                                // Sử dụng partId để kiểm tra thay vì skill
+            const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
                                 const optionsPayload = isWritingOrSpeaking ? [] : (q.options || []).map(o => ({
                                     label: o.label,
                                     content: trimOrNull(o.content),
@@ -629,7 +632,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                         })),
                         questions: (partData.questions || []).map(q => {
                             // Writing và Speaking không có options
-                            const isWritingOrSpeaking = selectedSkill === TEST_SKILL.WRITING || selectedSkill === TEST_SKILL.SPEAKING;
+                            // Sử dụng partId để kiểm tra thay vì skill
+            const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
                             const optionsPayload = isWritingOrSpeaking ? [] : (q.options || []).map(o => ({
                                 label: o.label,
                                 content: trimOrNull(o.content),
@@ -783,6 +787,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 disabled={readOnly || !!editingId}
                             >
                                 <Option value={TEST_SKILL.LR}>Listening & Reading</Option>
+                                <Option value={TEST_SKILL.FOUR_SKILLS}>Four Skills (L+R+W+S)</Option>
                                 <Option value={TEST_SKILL.SPEAKING}>Speaking</Option>
                                 <Option value={TEST_SKILL.WRITING}>Writing</Option>
                             </Select>
@@ -1039,8 +1044,8 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
     const imageConfig = requiresImage(partId, skill);
     const requireImage = imageConfig.required;
     const showImage = imageConfig.show;
-    // Writing và Speaking không có options
-    const isWritingOrSpeaking = skill === TEST_SKILL.WRITING || skill === TEST_SKILL.SPEAKING;
+    // Writing và Speaking parts không có options (partId 8-15)
+    const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
     
     // Helper để validate string
     const isValidString = (value) => {
