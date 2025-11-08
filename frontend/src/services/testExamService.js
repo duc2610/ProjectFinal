@@ -48,3 +48,17 @@ export async function getTestResultDetailLR(testResultId) {
     throw error;
   }
 }
+
+// Submit Speaking & Writing với API assessment/bulk
+export async function submitAssessmentBulk(payload) {
+  const url = `/api/assessment/bulk`;
+  try {
+    console.log("Submitting assessment bulk:", payload);
+    const res = await api.post(url, payload);
+    console.log("Assessment bulk success:", res.data);
+    return res?.data?.data ?? res?.data;
+  } catch (error) {
+    console.error("Assessment bulk failed:", error.response?.data || error);
+    throw error;
+  }
+}
