@@ -19,6 +19,7 @@ export default function QuestionCard({
   const audioRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const previousGlobalAudioUrlRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -38,19 +39,33 @@ export default function QuestionCard({
   useEffect(() => {
     let previousUrl = recordedAudioUrl;
 
-    setIsPlaying(false);
-    setCurrentTime(0);
+    // Kiểm tra xem có phải chuyển câu trong cùng phần nghe không
+    // Nếu previousGlobalAudioUrlRef.current là null, đó là lần đầu tiên, nên không phải cùng audio
+    const isSameAudio = previousGlobalAudioUrlRef.current !== null && previousGlobalAudioUrlRef.current === globalAudioUrl;
+    const isAudioCurrentlyPlaying = audioRef.current && !audioRef.current.paused && !audioRef.current.ended;
+    const shouldKeepAudioPlaying = isListeningPart && hasGlobalAudio && isAudioCurrentlyPlaying && isSameAudio;
+
+    // Chỉ reset trạng thái playing nếu không phải giữ audio phát
+    if (!shouldKeepAudioPlaying) {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    }
+
     setImageError(false);
     setIsRecording(false);
     setRecordingTime(0);
     audioChunksRef.current = [];
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-    }
+    
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
+
+    // Lưu globalAudioUrl hiện tại để so sánh lần sau
+    previousGlobalAudioUrlRef.current = globalAudioUrl;
 
     // Load lại answer đã lưu nếu có
     const savedAnswer = answers[question.testQuestionId];
@@ -73,7 +88,7 @@ export default function QuestionCard({
         URL.revokeObjectURL(previousUrl);
       }
     };
-  }, [question.testQuestionId, answers, isSpeakingPart]);
+  }, [question.testQuestionId, answers, isSpeakingPart, globalAudioUrl, isListeningPart, hasGlobalAudio]);
 
   useEffect(() => {
     if (!audioRef.current || !hasGlobalAudio) return;
@@ -98,12 +113,11 @@ export default function QuestionCard({
 
   const toggleAudio = () => {
     if (!audioRef.current || audioError) return;
-    if (isPlaying) {
-      audioRef.current.pause();
-    } else {
+    // Khi làm bài thi, chỉ cho phép phát audio, không cho phép dừng
+    if (!isPlaying) {
       audioRef.current.play().catch(() => setAudioError(true));
+      setIsPlaying(true);
     }
-    setIsPlaying(!isPlaying);
   };
 
   const formatTime = (sec) => {
@@ -214,6 +228,7 @@ export default function QuestionCard({
                     size="large" 
                     onClick={toggleAudio} 
                     type={isPlaying ? "primary" : "default"}
+                    disabled={isPlaying}
                     style={{
                       borderRadius: "8px",
                       height: "40px",
@@ -222,7 +237,7 @@ export default function QuestionCard({
                       boxShadow: isPlaying ? "0 4px 12px rgba(102, 126, 234, 0.3)" : "none"
                     }}
                   >
-                    {isPlaying ? "⏸ Tạm dừng" : "▶ Nghe"}
+                    {isPlaying ? "Đang phát..." : "Nghe"}
                   </Button>
                   <div style={{ flex: 1 }}>
                     <Progress
@@ -379,11 +394,11 @@ export default function QuestionCard({
                     fontWeight: 600
                   }}
                 >
-                  ⏹ Dừng ghi âm
+                  Dừng ghi âm
                 </Button>
                 <div style={{ flex: 1 }}>
                   <Text type="danger" strong style={{ fontSize: "16px", display: "block" }}>
-                    🔴 Đang ghi âm...
+                    Đang ghi âm...
                   </Text>
                   <Text type="danger" style={{ fontSize: "14px", fontWeight: 600 }}>
                     {formatTime(recordingTime)}
@@ -426,7 +441,7 @@ export default function QuestionCard({
                       fontWeight: 600
                     }}
                   >
-                    🔄 Ghi âm lại
+                    Ghi âm lại
                   </Button>
                 </div>
                 <audio
@@ -442,7 +457,7 @@ export default function QuestionCard({
                   alignItems: "center",
                   gap: "8px"
                 }}>
-                  ✅ Đã ghi âm thành công
+                  Đã ghi âm thành công
                 </Text>
               </div>
             )}

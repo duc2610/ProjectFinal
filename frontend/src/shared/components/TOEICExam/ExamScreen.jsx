@@ -145,6 +145,8 @@ export default function ExamScreen() {
 
       // Submit L&R nếu có
       let lrResult = null;
+      let finalTestResultId = testResultId; // Dùng testResultId ban đầu làm mặc định
+      
       if (lrAnswers.length > 0) {
         const lrPayload = {
           userId: "33333333-3333-3333-3333-333333333333",
@@ -155,18 +157,30 @@ export default function ExamScreen() {
           answers: lrAnswers,
         };
         lrResult = await submitTest(lrPayload);
+        // Lấy testResultId từ response nếu có (có thể backend trả về testResultId mới)
+        if (lrResult?.testResultId) {
+          finalTestResultId = lrResult.testResultId;
+        } else if (lrResult?.data?.testResultId) {
+          finalTestResultId = lrResult.data.testResultId;
+        }
       }
 
-      // Submit S&W nếu có
+      // Submit S&W nếu có (dùng cùng testResultId)
       let swResult = null;
       if (swAnswers.length > 0) {
         const swPayload = {
-          testResultId,
+          testResultId: finalTestResultId, // Dùng testResultId từ L&R hoặc ban đầu
           testType: testTypeLower,
           duration: duration > 0 ? duration : 1,
           parts: swAnswers,
         };
         swResult = await submitAssessmentBulk(swPayload);
+        // Cập nhật testResultId từ S&W response nếu có
+        if (swResult?.testResultId) {
+          finalTestResultId = swResult.testResultId;
+        } else if (swResult?.data?.testResultId) {
+          finalTestResultId = swResult.data.testResultId;
+        }
       }
 
       // Kiểm tra nếu không có câu nào được trả lời
@@ -180,6 +194,7 @@ export default function ExamScreen() {
       const fullResult = {
         ...(lrResult || {}),
         ...(swResult || {}),
+        testResultId: finalTestResultId, // Đảm bảo có testResultId để lấy chi tiết sau
         questions: questions,
         duration: duration > 0 ? duration : 1,
       };

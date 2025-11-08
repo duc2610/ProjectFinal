@@ -77,9 +77,11 @@ export default function ResultScreen() {
 
     setResult(resultData);
     
-    // Tự động load detail từ API khi có testResultId
+    // Tự động load detail từ API khi có testResultId (BẮT BUỘC)
     if (resultData?.testResultId) {
       loadDetailFromAPI(resultData.testResultId);
+    } else {
+      message.error("Không tìm thấy testResultId để lấy chi tiết câu hỏi.");
     }
   }, [resultData, autoSubmit, navigate, loadDetailFromAPI]);
 
@@ -153,44 +155,14 @@ export default function ResultScreen() {
 
   // === XỬ LÝ CÂU HỎI ===
   const questionRowsBySection = useMemo(() => {
-    // Ưu tiên dữ liệu từ API detail
+    // CHỈ sử dụng dữ liệu từ API detail, không lấy từ state
     if (detailData) {
       return processQuestionsFromDetail(detailData);
     }
 
-    // Fallback về dữ liệu từ submit
-    if (!result?.questions) return { listening: [], reading: [], all: [] };
-
-    const rows = { listening: [], reading: [], all: [] };
-    const answersMap = (result.answers || []).reduce((map, a) => {
-      map[a.testQuestionId] = a.chosenOptionLabel;
-      return map;
-    }, {});
-
-    result.questions.forEach((q, idx) => {
-      const userAnswer = answersMap[q.testQuestionId] || "";
-      const correctAnswer = q.options?.find((o) => o.isCorrect)?.key || "";
-      const isCorrect = userAnswer === correctAnswer;
-
-      const row = {
-        key: q.testQuestionId,
-        index: q.globalIndex || idx + 1,
-        partId: q.partId,
-        partTitle: q.partName || `Part ${q.partId}`,
-        question: q.question || "",
-        passage: q.passage || null,
-        userAnswer,
-        correctAnswer,
-        isCorrect,
-      };
-
-      rows.all.push(row);
-      if (q.partId >= 1 && q.partId <= 4) rows.listening.push(row);
-      if (q.partId >= 5 && q.partId <= 7) rows.reading.push(row);
-    });
-
-    return rows;
-  }, [result, detailData]);
+    // Nếu chưa có detailData, trả về empty để đợi load từ API
+    return { listening: [], reading: [], all: [] };
+  }, [detailData]);
 
   // === TÍNH ĐIỂM READING VỚI TỐI THIỂU 5 ĐIỂM ===
   const getReadingScore = useMemo(() => {
@@ -229,28 +201,45 @@ export default function ResultScreen() {
   }, [selectedSection, result, getReadingScore]);
 
   // === KIỂM TRA CÓ TRẢ LỜI KHÔNG ===
-  const hasAnswered = result && (result.correctCount > 0 || result.incorrectCount > 0);
+  // CHỈ kiểm tra từ detailData (API), không dùng state
+  const hasAnswered = useMemo(() => {
+    if (!detailData) return false;
+    // Kiểm tra xem có câu hỏi nào có userAnswer không
+    return detailData.parts?.some(part => 
+      part.testQuestions?.some(tq => {
+        if (tq.questionSnapshotDto) {
+          return tq.questionSnapshotDto.userAnswer !== null && tq.questionSnapshotDto.userAnswer !== undefined;
+        }
+        if (tq.questionGroupSnapshotDto) {
+          return tq.questionGroupSnapshotDto.questionSnapshots?.some(qs => 
+            qs.userAnswer !== null && qs.userAnswer !== undefined
+          );
+        }
+        return false;
+      })
+    ) || false;
+  }, [detailData]);
 
   // === SIDEBAR SECTIONS ===
   const sections = result
     ? [
         {
           key: "overall",
-          title: "Overall Score",
+          title: "Tổng điểm",
           score: result.totalScore,
           max: 990,
           icon: <CheckCircleTwoTone twoToneColor="#52c41a" />,
         },
         {
           key: "listening",
-          title: "Listening",
+          title: "Nghe",
           score: result.listeningScore,
           max: 495,
           icon: <SoundOutlined />,
         },
         {
           key: "reading",
-          title: "Reading",
+          title: "Đọc",
           score: getReadingScore,
           max: 495,
           icon: <ReadOutlined />,
@@ -260,9 +249,9 @@ export default function ResultScreen() {
 
   // === TABLE COLUMNS ===
   const columns = [
-    { title: "No.", dataIndex: "index", width: 80, align: "center" },
+    { title: "STT", dataIndex: "index", width: 80, align: "center" },
     {
-      title: "Question",
+      title: "Câu hỏi",
       dataIndex: "question",
       render: (text, row) => (
         <div>
@@ -276,7 +265,7 @@ export default function ResultScreen() {
       ),
     },
     {
-      title: "Your answer",
+      title: "Đáp án của bạn",
       dataIndex: "userAnswer",
       width: 160,
       render: (v, row) => (
@@ -285,17 +274,17 @@ export default function ResultScreen() {
         </Text>
       ),
     },
-    { title: "Correct", dataIndex: "correctAnswer", width: 140 },
+    { title: "Đáp án đúng", dataIndex: "correctAnswer", width: 140 },
     {
-      title: "Result",
+      title: "Kết quả",
       dataIndex: "isCorrect",
       width: 120,
       render: (val) => (
-        <Tag color={val ? "success" : "error"}>{val ? "Correct" : "Wrong"}</Tag>
+        <Tag color={val ? "success" : "error"}>{val ? "Đúng" : "Sai"}</Tag>
       ),
     },
     {
-      title: "Action",
+      title: "Thao tác",
       width: 160,
       render: (_, row) => (
         <div style={{ display: "flex", gap: 8 }}>
@@ -306,7 +295,7 @@ export default function ResultScreen() {
               setDetailModalVisible(true);
             }}
           >
-            View
+            Xem
           </Button>
           <Button
             size="small"
@@ -316,7 +305,7 @@ export default function ResultScreen() {
               setReportModalVisible(true);
             }}
           >
-            Report
+            Báo cáo
           </Button>
         </div>
       ),
@@ -359,6 +348,18 @@ export default function ResultScreen() {
     );
   }
 
+  // === ĐANG LOAD DETAIL TỪ API ===
+  if (loadingDetail || !detailData) {
+    return (
+      <div style={{ textAlign: "center", padding: 100 }}>
+        <Spin size="large" />
+        <div style={{ marginTop: 16 }}>
+          <Text>Đang tải chi tiết câu hỏi từ API...</Text>
+        </div>
+      </div>
+    );
+  }
+
   // === CHƯA TRẢ LỜI GÌ ===
   if (!hasAnswered) {
     return (
@@ -366,7 +367,7 @@ export default function ResultScreen() {
         <div className={styles.mainContent}>
           <div className={styles.header}>
             <Title level={3} style={{ color: "#fff", margin: 0 }}>
-              TOEIC Test Results
+              Kết quả bài thi TOEIC
             </Title>
             <Button onClick={() => navigate("/toeic-exam")} ghost>
               Làm lại bài thi
@@ -399,7 +400,7 @@ export default function ResultScreen() {
     <div className={styles.resultPage}>
       {/* SIDEBAR */}
       <div className={styles.sidebar}>
-        <Title level={4}>Test Sections</Title>
+        <Title level={4}>Các phần thi</Title>
         {sections.map((s) => (
           <Card
             key={s.key}
@@ -423,7 +424,7 @@ export default function ResultScreen() {
                 </Text>
                 <br />
                 <Text type="secondary">
-                  {s.score}/{s.max} points
+                  {s.score}/{s.max} điểm
                 </Text>
               </div>
               <Button
@@ -441,23 +442,23 @@ export default function ResultScreen() {
         ))}
 
         <div className={styles.infoBox}>
-          <Title level={5}>Test Information</Title>
-          <Text>Date: {new Date().toLocaleDateString()}</Text>
+          <Title level={5}>Thông tin bài thi</Title>
+          <Text>Ngày: {new Date().toLocaleDateString("vi-VN")}</Text>
           <br />
-          <Text>Duration: {result.duration || 0} phút</Text>
+          <Text>Thời gian: {result.duration || 0} phút</Text>
           <br />
-          <Text>Type: TOEIC Simulator</Text>
+          <Text>Loại: TOEIC Simulator</Text>
         </div>
 
         <div className={styles.performanceBox}>
-          <Title level={5}>Performance Level</Title>
+          <Title level={5}>Mức độ</Title>
           <CheckCircleTwoTone twoToneColor="#52c41a" />
           <Text style={{ marginLeft: 8 }}>
             {result.totalScore >= 785
-              ? "Advanced"
+              ? "Nâng cao"
               : result.totalScore >= 600
-              ? "Intermediate"
-              : "Beginner"}
+              ? "Trung bình"
+              : "Cơ bản"}
           </Text>
         </div>
       </div>
@@ -476,7 +477,7 @@ export default function ResultScreen() {
         <div className={styles.content}>
           <Title level={4} style={{ color: "#003a8c" }}>
             {selectedSection === "overall"
-              ? "Overall Results"
+              ? "Kết quả tổng quan"
               : sections.find((s) => s.key === selectedSection)?.title}
           </Title>
 
@@ -487,14 +488,14 @@ export default function ResultScreen() {
               </Title>
               <Text strong>
                 {selectedSection === "overall"
-                  ? "Overall Score"
-                  : selectedSection.charAt(0).toUpperCase() +
-                    selectedSection.slice(1) +
-                    " Score"}
+                  ? "Tổng điểm"
+                  : selectedSection === "listening"
+                  ? "Điểm nghe"
+                  : "Điểm đọc"}
               </Text>
               <br />
               <Text type="secondary">
-                Out of {selectedSection === "overall" ? 990 : 495} points
+                Trên tổng {selectedSection === "overall" ? 990 : 495} điểm
               </Text>
               {/* ĐÃ XÓA: AI Evaluation */}
             </div>
@@ -518,10 +519,10 @@ export default function ResultScreen() {
             {selectedSection === "overall" && (
               <div style={{ marginTop: 12, fontSize: 16 }}>
                 <p>
-                  <strong>Listening:</strong> {result.listeningScore} / 495
+                  <strong>Nghe:</strong> {result.listeningScore} / 495
                 </p>
                 <p>
-                  <strong>Reading:</strong> {getReadingScore} / 495
+                  <strong>Đọc:</strong> {getReadingScore} / 495
                 </p>
                 <div style={{ marginTop: 16 }}>
                   <Button
@@ -540,7 +541,7 @@ export default function ResultScreen() {
 
       {/* MODAL CHI TIẾT */}
       <Modal
-        title="Chi tiết câu hỏi"
+        title="Chi tiết câu hỏi và đáp án"
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
         footer={null}
@@ -574,7 +575,8 @@ export default function ResultScreen() {
           setReportQuestion(null);
           setReportText("");
         }}
-        okText="Gửi"
+        okText="Gửi báo cáo"
+        cancelText="Hủy"
       >
         <p>
           <strong>Câu hỏi:</strong> {reportQuestion?.question}
@@ -583,7 +585,7 @@ export default function ResultScreen() {
           rows={4}
           value={reportText}
           onChange={(e) => setReportText(e.target.value)}
-          placeholder="Mô tả lỗi hoặc góp ý..."
+          placeholder="Mô tả lỗi hoặc góp ý về câu hỏi này..."
         />
       </Modal>
     </div>
