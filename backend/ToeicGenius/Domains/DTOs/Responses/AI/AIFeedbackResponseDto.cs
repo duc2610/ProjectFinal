@@ -17,6 +17,7 @@
         public string Transcription { get; set; }
         public string CorrectedText { get; set; }
         public double? AudioDuration { get; set; }
+        public string? PythonApiResponse { get; set; } // Raw JSON response from Python API
 
         public DateTime CreatedAt { get; set; }
     }

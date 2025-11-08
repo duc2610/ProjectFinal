@@ -33,14 +33,19 @@ namespace ToeicGenius.Services.Implementations
                 if (!string.IsNullOrEmpty(_cloudFrontDomain) && fileUrl.Contains(_cloudFrontDomain))
                 {
                     // CloudFront URL: https://d123abc.cloudfront.net/toeic-audio/abc.mp3
-                    var uri = new Uri(fileUrl);
-                    key = uri.AbsolutePath.TrimStart('/');
+                    // Parse manually to preserve original filename (with spaces if any)
+                    var domainWithProtocol = "https://" + _cloudFrontDomain;
+                    key = fileUrl.Replace(domainWithProtocol + "/", "");
+                    // URL decode to get actual filename stored on S3
+                    key = Uri.UnescapeDataString(key);
                 }
                 else if (fileUrl.Contains(".s3"))
                 {
                     // S3 URL: https://bucket.s3.amazonaws.com/toeic-audio/abc.mp3
-                    var uri = new Uri(fileUrl);
+                    var uri = new Uri(fileUrl.Replace(" ", "%20"));
                     key = uri.AbsolutePath.TrimStart('/');
+                    // URL decode to get actual filename stored on S3
+                    key = Uri.UnescapeDataString(key);
                 }
                 else
                 {

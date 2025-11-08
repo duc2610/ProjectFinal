@@ -14,6 +14,7 @@
 		public const int LRDuration = 120;
 		public const int SpeakingDuration = 20;
 		public const int WritingDuration = 60;
+		public const int FourSkillsDuration = 200; 
 
 		// Quantity question of each part - Simulator test
 		// Listening
