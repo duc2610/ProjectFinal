@@ -23,6 +23,11 @@ export async function getTestById(id) {
   return res?.data?.data ?? res?.data;
 }
 
+export async function getTestHistory() {
+  const res = await api.get("/api/tests/history");
+  return res?.data?.data ?? res?.data ?? [];
+}
+
 
 export async function createTestFromBank(data) {
   const payload = {

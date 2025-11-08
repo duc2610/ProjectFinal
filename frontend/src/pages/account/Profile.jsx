@@ -86,23 +86,23 @@ export function PersonalTab({ user }) {
   return (
     <>
       <div className={styles.tabPane}>
-        <h2 className={styles.title}>Profile Information</h2>
+        <h2 className={styles.title}>Thông tin cá nhân</h2>
 
-        <Row gutter={24} justify="center">
-          <Col xs={24} md={14} lg={14}>
+        <Row gutter={32} justify="center">
+          <Col xs={24} sm={20} md={18} lg={16} xl={14}>
             <Form layout="vertical" className={styles.form}>
-              <Form.Item label="Full Name">
+              <Form.Item label="Họ và tên">
                 <Input value={user?.fullName || ""} readOnly />
               </Form.Item>
-              <Form.Item label="Email Address">
+              <Form.Item label="Email">
                 <Input value={user?.email || ""} readOnly />
               </Form.Item>
 
               <Button block className={styles.primaryBtn} onClick={showModal}>
-                Change Password
+                Đổi mật khẩu
               </Button>
               <Button block className={styles.ghostBtn} type="default">
-                Update Profile
+                Cập nhật thông tin
               </Button>
             </Form>
           </Col>
@@ -337,7 +337,7 @@ export function TestHistoryTab() {
     <div className={styles.tabPane}>
       <h2 className={styles.title}>Lịch sử luyện thi</h2>
       <Row gutter={24} justify="center">
-        <Col xs={24} md={22} lg={20}>
+        <Col xs={24} sm={24} md={24} lg={24} xl={24}>
           {history.length === 0 && !loading ? (
             <Empty
               description="Chưa có lịch sử thi nào"
@@ -355,7 +355,7 @@ export function TestHistoryTab() {
                 showTotal: (total) => `Tổng ${total} bài thi`,
                 pageSizeOptions: ["10", "20", "50"],
               }}
-              scroll={{ x: 1000 }}
+              scroll={{ x: 1200 }}
             />
           )}
         </Col>
