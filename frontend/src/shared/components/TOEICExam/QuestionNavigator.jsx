@@ -20,17 +20,23 @@ export default function QuestionNavigator({ questions, currentIndex, answers, go
           <div className={styles.partGroupTitle}>{partKey}</div>
           <div className={styles.numbersGrid}>
             {items.map(({ q, idx }) => {
-              const isAnswered = answers[q.testQuestionId] !== undefined;
+              // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
+              const answerKey = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
+                ? `${q.testQuestionId}_${q.subQuestionIndex}`
+                : q.testQuestionId;
+              const isAnswered = answers[answerKey] !== undefined;
               const isActive = idx === currentIndex;
 
               return (
                 <button
-                  key={q.testQuestionId}
+                  key={q.testQuestionId + (q.subQuestionIndex !== undefined ? `_${q.subQuestionIndex}` : '')}
                   onClick={() => goToQuestionByIndex(idx)}
-                  className={`${styles.numBtn} ${isActive ? styles.activeNum : ""}`}
+                  className={`${styles.numBtn} ${isActive ? styles.activeNum : ""} ${isAnswered ? styles.answeredNum : ""}`}
                   style={{
                     backgroundColor: isAnswered ? "#52c41a" : isActive ? "#1677ff" : "#f0f0f0",
                     color: isAnswered || isActive ? "#fff" : "#000",
+                    fontWeight: isAnswered ? 600 : 400,
+                    border: isAnswered ? "2px solid #389e0d" : isActive ? "2px solid #0958d9" : "1px solid #d9d9d9",
                   }}
                 >
                   {q.globalIndex}
