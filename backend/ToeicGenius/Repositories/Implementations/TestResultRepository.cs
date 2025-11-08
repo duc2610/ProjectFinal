@@ -182,7 +182,8 @@ namespace ToeicGenius.Repositories.Implementations
 			var resultDto = new GeneralLRResultDto
 			{
 				TotalScore = (int?)testResult?.TotalScore,
-				Duration = testResult?.Duration ?? 0
+				Duration = testResult?.Duration ?? 0,
+				TestResultId = testResultId
 			};
 
 			// Gán thông tin từng skill
