@@ -20,7 +20,14 @@ export default function ExamScreen() {
   const [timeLeft, setTimeLeft] = useState((rawTestData.duration || 120) * 60);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const timerRef = useRef(null);
+  const isSubmittingRef = useRef(false);
+
+  // Sync ref với state
+  useEffect(() => {
+    isSubmittingRef.current = isSubmitting;
+  }, [isSubmitting]);
 
   useEffect(() => {
     if (!rawTestData.testResultId || questions.length === 0) {
@@ -33,7 +40,10 @@ export default function ExamScreen() {
       setTimeLeft((t) => {
         if (t <= 1) {
           clearInterval(timerRef.current);
-          handleSubmit(true);
+          // Chỉ auto submit nếu chưa đang submit
+          if (!isSubmittingRef.current) {
+            handleSubmit(true);
+          }
           return 0;
         }
         return t - 1;
@@ -44,9 +54,7 @@ export default function ExamScreen() {
   }, [rawTestData, questions, navigate]);
 
   const onAnswer = (testQuestionId, value) => {
-    // Đảm bảo testQuestionId luôn là số để tránh type mismatch
-    const id = parseInt(testQuestionId);
-    setAnswers((prev) => ({ ...prev, [id]: value }));
+    setAnswers((prev) => ({ ...prev, [testQuestionId]: value }));
   };
 
   const goToQuestionByIndex = (i) => {
@@ -70,6 +78,13 @@ export default function ExamScreen() {
 
   // ExamScreen.jsx
   const handleSubmit = async (auto = false) => {
+    // Prevent multiple submissions
+    if (isSubmitting) {
+      console.log("Submit already in progress, ignoring duplicate call");
+      return;
+    }
+
+    setIsSubmitting(true);
     clearInterval(timerRef.current);
     setShowSubmitModal(true);
 
@@ -87,8 +102,25 @@ export default function ExamScreen() {
       const swAnswers = [];
 
       // Xử lý từng answer
-      for (const [testQuestionId, answerValue] of Object.entries(answers)) {
-        const q = questions.find((q) => q.testQuestionId === parseInt(testQuestionId));
+      for (const [answerKey, answerValue] of Object.entries(answers)) {
+        // Parse answerKey: có thể là "testQuestionId" hoặc "testQuestionId_subQuestionIndex"
+        let testQuestionId, subQuestionIndex;
+        if (answerKey.includes('_')) {
+          // Group question: key format là "testQuestionId_subQuestionIndex"
+          const parts = answerKey.split('_');
+          testQuestionId = parseInt(parts[0]);
+          subQuestionIndex = parseInt(parts[1]);
+        } else {
+          // Single question: key là testQuestionId
+          testQuestionId = parseInt(answerKey);
+          subQuestionIndex = 0;
+        }
+
+        // Tìm question tương ứng
+        const q = questions.find((q) => 
+          q.testQuestionId === testQuestionId && 
+          (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === 0 && !q.subQuestionIndex))
+        );
         if (!q) continue;
 
         const isWritingPart = q.partId >= 8 && q.partId <= 10;
@@ -96,10 +128,10 @@ export default function ExamScreen() {
         const isLrPart = q.partId >= 1 && q.partId <= 7;
 
         if (isLrPart) {
-          // L&R: gửi như cũ
+          // L&R: gửi với testQuestionId và subQuestionIndex
           lrAnswers.push({
-            testQuestionId: parseInt(testQuestionId),
-            subQuestionIndex: q.subQuestionIndex || 0,
+            testQuestionId: testQuestionId,
+            subQuestionIndex: subQuestionIndex,
             chosenOptionLabel: answerValue || "",
           });
         } else if (isWritingPart) {
@@ -107,7 +139,7 @@ export default function ExamScreen() {
           const partType = getPartType(q.partId);
           if (partType && typeof answerValue === "string" && answerValue.trim() !== "") {
             swAnswers.push({
-              testQuestionId: parseInt(testQuestionId),
+              testQuestionId: testQuestionId,
               partType: partType,
               answerText: answerValue,
               audioFileUrl: null,
@@ -118,16 +150,14 @@ export default function ExamScreen() {
           const partType = getPartType(q.partId);
           if (partType && answerValue instanceof Blob) {
             try {
-              // Upload audio file - đảm bảo mỗi câu hỏi có file riêng
-              const audioFile = new File([answerValue], `speaking_${testQuestionId}_${q.globalIndex || testQuestionId}.webm`, {
+              // Upload audio file
+              const audioFile = new File([answerValue], `speaking_${testQuestionId}_${subQuestionIndex}.webm`, {
                 type: "audio/webm",
               });
-              console.log(`Uploading audio for question ${testQuestionId} (globalIndex: ${q.globalIndex})`);
               const audioUrl = await uploadFile(audioFile, "audio");
-              console.log(`Uploaded audio for question ${testQuestionId}: ${audioUrl}`);
               
               swAnswers.push({
-                testQuestionId: parseInt(testQuestionId),
+                testQuestionId: testQuestionId,
                 partType: partType,
                 answerText: null,
                 audioFileUrl: audioUrl,
@@ -137,21 +167,12 @@ export default function ExamScreen() {
               message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}`);
               // Vẫn thêm vào nhưng với audioFileUrl null
               swAnswers.push({
-                testQuestionId: parseInt(testQuestionId),
+                testQuestionId: testQuestionId,
                 partType: partType,
                 answerText: null,
                 audioFileUrl: null,
               });
             }
-          } else if (partType) {
-            // Nếu không phải Blob, có thể là string URL hoặc null
-            console.warn(`Question ${testQuestionId} answer is not a Blob:`, typeof answerValue, answerValue);
-            swAnswers.push({
-              testQuestionId: parseInt(testQuestionId),
-              partType: partType,
-              answerText: null,
-              audioFileUrl: typeof answerValue === "string" && answerValue.startsWith("http") ? answerValue : null,
-            });
           }
         }
       }
@@ -219,6 +240,7 @@ export default function ExamScreen() {
     } catch (error) {
       message.error("Nộp bài thất bại: " + (error.response?.data?.message || error.message));
       setShowSubmitModal(false);
+      setIsSubmitting(false); // Reset flag on error
     }
   };
 
@@ -249,6 +271,8 @@ export default function ExamScreen() {
           <div className={styles.headerRight}>
             <Button 
               onClick={() => handleSubmit(false)}
+              disabled={isSubmitting}
+              loading={isSubmitting}
               style={{
                 borderRadius: "8px",
                 height: "36px",
@@ -308,6 +332,7 @@ export default function ExamScreen() {
               onAnswer={onAnswer}
               goToQuestionByIndex={goToQuestionByIndex}
               handleSubmit={() => handleSubmit(false)}
+              isSubmitting={isSubmitting}
               globalAudioUrl={rawTestData.globalAudioUrl}
             />
           </div>
