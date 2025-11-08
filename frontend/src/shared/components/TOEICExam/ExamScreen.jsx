@@ -4,7 +4,8 @@ import { MenuOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import QuestionNavigator from "./QuestionNavigator";
 import QuestionCard from "./QuestionCard";
-import { submitTest } from "../../../services/testExamService";
+import { submitTest, submitAssessmentBulk } from "../../../services/testExamService";
+import { uploadFile } from "../../../services/filesService";
 import { useNavigate } from "react-router-dom";
 
 const { Header, Content } = Layout;
@@ -43,57 +44,183 @@ export default function ExamScreen() {
   }, [rawTestData, questions, navigate]);
 
   const onAnswer = (testQuestionId, value) => {
-    setAnswers((prev) => ({ ...prev, [testQuestionId]: value }));
+    // Đảm bảo testQuestionId luôn là số để tránh type mismatch
+    const id = parseInt(testQuestionId);
+    setAnswers((prev) => ({ ...prev, [id]: value }));
   };
 
   const goToQuestionByIndex = (i) => {
     if (i >= 0 && i < questions.length) setCurrentIndex(i);
   };
 
-  const handleSubmit = async (auto = false) => {
-  clearInterval(timerRef.current);
-  setShowSubmitModal(true);
-
-  try {
-    // LẤY testResultId từ sessionStorage
-    const testResultId = rawTestData.testResultId;
-    if (!testResultId) {
-      throw new Error("Không tìm thấy testResultId");
-    }
-
-    const payload = {
-      userId: "33333333-3333-3333-3333-333333333333", // Dùng GUID thật
-      testId: rawTestData.testId,
-      testResultId: testResultId, // BẮT BUỘC
-      duration: Math.floor((rawTestData.duration * 60 - timeLeft) / 60), // Thời gian đã làm
-      testType: rawTestData.testType, // "Simulator"
-      answers: Object.entries(answers).map(([testQuestionId, chosenOptionLabel]) => {
-        const question = questions.find(q => q.testQuestionId === parseInt(testQuestionId));
-        return {
-          testQuestionId: parseInt(testQuestionId),
-          subQuestionIndex: question?.subQuestionIndex || 0,
-          chosenOptionLabel,
-        };
-      }),
+  // Map partId sang partType cho S&W
+  const getPartType = (partId) => {
+    const partTypeMap = {
+      8: "writing_sentence",      // W-Part 1
+      9: "writing_email",          // W-Part 2
+      10: "writing_essay",         // W-Part 3
+      11: "speaking_read_aloud",   // S-Part 1
+      12: "speaking_describe_picture", // S-Part 2
+      13: "speaking_respond_questions", // S-Part 3
+      14: "speaking_respond_questions_info", // S-Part 4
+      15: "speaking_express_opinion", // S-Part 5
     };
+    return partTypeMap[partId] || null;
+  };
 
-    console.log("Final payload:", payload);
-    await submitTest(payload);
+  // ExamScreen.jsx
+  const handleSubmit = async (auto = false) => {
+    clearInterval(timerRef.current);
+    setShowSubmitModal(true);
 
-    setTimeout(() => {
+    try {
+      const testResultId = rawTestData.testResultId;
+      if (!testResultId) throw new Error("Không tìm thấy testResultId");
+
+      // Tính thời gian đã làm
+      const duration = Math.floor((rawTestData.duration * 60 - timeLeft) / 60);
+      const testType = rawTestData.testType || "Simulator";
+      const testTypeLower = testType.toLowerCase() === "simulator" ? "simulator" : "practice";
+
+      // Tách answers thành L&R và S&W
+      const lrAnswers = [];
+      const swAnswers = [];
+
+      // Xử lý từng answer
+      for (const [testQuestionId, answerValue] of Object.entries(answers)) {
+        const q = questions.find((q) => q.testQuestionId === parseInt(testQuestionId));
+        if (!q) continue;
+
+        const isWritingPart = q.partId >= 8 && q.partId <= 10;
+        const isSpeakingPart = q.partId >= 11 && q.partId <= 15;
+        const isLrPart = q.partId >= 1 && q.partId <= 7;
+
+        if (isLrPart) {
+          // L&R: gửi như cũ
+          lrAnswers.push({
+            testQuestionId: parseInt(testQuestionId),
+            subQuestionIndex: q.subQuestionIndex || 0,
+            chosenOptionLabel: answerValue || "",
+          });
+        } else if (isWritingPart) {
+          // Writing: gửi text
+          const partType = getPartType(q.partId);
+          if (partType && typeof answerValue === "string" && answerValue.trim() !== "") {
+            swAnswers.push({
+              testQuestionId: parseInt(testQuestionId),
+              partType: partType,
+              answerText: answerValue,
+              audioFileUrl: null,
+            });
+          }
+        } else if (isSpeakingPart) {
+          // Speaking: upload audio trước, sau đó gửi URL
+          const partType = getPartType(q.partId);
+          if (partType && answerValue instanceof Blob) {
+            try {
+              // Upload audio file - đảm bảo mỗi câu hỏi có file riêng
+              const audioFile = new File([answerValue], `speaking_${testQuestionId}_${q.globalIndex || testQuestionId}.webm`, {
+                type: "audio/webm",
+              });
+              console.log(`Uploading audio for question ${testQuestionId} (globalIndex: ${q.globalIndex})`);
+              const audioUrl = await uploadFile(audioFile, "audio");
+              console.log(`Uploaded audio for question ${testQuestionId}: ${audioUrl}`);
+              
+              swAnswers.push({
+                testQuestionId: parseInt(testQuestionId),
+                partType: partType,
+                answerText: null,
+                audioFileUrl: audioUrl,
+              });
+            } catch (error) {
+              console.error(`Error uploading audio for question ${testQuestionId}:`, error);
+              message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}`);
+              // Vẫn thêm vào nhưng với audioFileUrl null
+              swAnswers.push({
+                testQuestionId: parseInt(testQuestionId),
+                partType: partType,
+                answerText: null,
+                audioFileUrl: null,
+              });
+            }
+          } else if (partType) {
+            // Nếu không phải Blob, có thể là string URL hoặc null
+            console.warn(`Question ${testQuestionId} answer is not a Blob:`, typeof answerValue, answerValue);
+            swAnswers.push({
+              testQuestionId: parseInt(testQuestionId),
+              partType: partType,
+              answerText: null,
+              audioFileUrl: typeof answerValue === "string" && answerValue.startsWith("http") ? answerValue : null,
+            });
+          }
+        }
+      }
+
+      // Submit L&R nếu có
+      let lrResult = null;
+      let finalTestResultId = testResultId; // Dùng testResultId ban đầu làm mặc định
+      
+      if (lrAnswers.length > 0) {
+        const lrPayload = {
+          userId: "33333333-3333-3333-3333-333333333333",
+          testId: rawTestData.testId,
+          testResultId,
+          duration: duration > 0 ? duration : 1,
+          testType: testType,
+          answers: lrAnswers,
+        };
+        lrResult = await submitTest(lrPayload);
+        // Lấy testResultId từ response nếu có (có thể backend trả về testResultId mới)
+        if (lrResult?.testResultId) {
+          finalTestResultId = lrResult.testResultId;
+        } else if (lrResult?.data?.testResultId) {
+          finalTestResultId = lrResult.data.testResultId;
+        }
+      }
+
+      // Submit S&W nếu có (dùng cùng testResultId)
+      let swResult = null;
+      if (swAnswers.length > 0) {
+        const swPayload = {
+          testResultId: finalTestResultId, // Dùng testResultId từ L&R hoặc ban đầu
+          testType: testTypeLower,
+          duration: duration > 0 ? duration : 1,
+          parts: swAnswers,
+        };
+        swResult = await submitAssessmentBulk(swPayload);
+        // Cập nhật testResultId từ S&W response nếu có
+        if (swResult?.testResultId) {
+          finalTestResultId = swResult.testResultId;
+        } else if (swResult?.data?.testResultId) {
+          finalTestResultId = swResult.data.testResultId;
+        }
+      }
+
+      // Kiểm tra nếu không có câu nào được trả lời
+      if (lrAnswers.length === 0 && swAnswers.length === 0) {
+        message.warning("Bạn chưa trả lời câu nào!");
+        setShowSubmitModal(false);
+        return;
+      }
+
+      // Merge kết quả: ưu tiên L&R result vì nó có đầy đủ thông tin
+      const fullResult = {
+        ...(lrResult || {}),
+        ...(swResult || {}),
+        testResultId: finalTestResultId, // Đảm bảo có testResultId để lấy chi tiết sau
+        questions: questions,
+        duration: duration > 0 ? duration : 1,
+      };
+
+      setTimeout(() => {
+        setShowSubmitModal(false);
+        navigate("/result", { state: { resultData: fullResult, autoSubmit: auto } });
+      }, 900);
+    } catch (error) {
+      message.error("Nộp bài thất bại: " + (error.response?.data?.message || error.message));
       setShowSubmitModal(false);
-      navigate("/result", { 
-  state: { 
-    testResultId: rawTestData.testResultId,
-    autoSubmit: auto 
-  } 
-});
-    }, 900);
-  } catch (error) {
-    message.error("Nộp bài thất bại: " + (error.response?.data?.message || error.message));
-    setShowSubmitModal(false);
-  }
-};
+    }
+  };
 
   const formatTime = (s) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
   const answeredCount = Object.keys(answers).length;
@@ -120,9 +247,40 @@ export default function ExamScreen() {
             <Text style={{ color: "#fff", marginLeft: 12 }}>TOEIC - {rawTestData.title}</Text>
           </div>
           <div className={styles.headerRight}>
-            <Button onClick={() => handleSubmit(false)}>Nộp bài</Button>
-            <Button style={{ marginLeft: 8 }} type="dashed">{formatTime(timeLeft)}</Button>
-            <Text style={{ color: "#fff", marginLeft: 12 }}>
+            <Button 
+              onClick={() => handleSubmit(false)}
+              style={{
+                borderRadius: "8px",
+                height: "36px",
+                fontWeight: 600,
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)"
+              }}
+            >
+              Nộp bài
+            </Button>
+            <Button 
+              style={{ 
+                marginLeft: 8,
+                borderRadius: "8px",
+                height: "36px",
+                fontWeight: 600,
+                background: "rgba(255, 255, 255, 0.2)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                color: "#fff"
+              }} 
+              type="dashed"
+            >
+              {formatTime(timeLeft)}
+            </Button>
+            <Text style={{ 
+              color: "#fff", 
+              marginLeft: 12,
+              fontSize: "14px",
+              fontWeight: 600,
+              background: "rgba(255, 255, 255, 0.2)",
+              padding: "6px 12px",
+              borderRadius: "8px"
+            }}>
               {answeredCount}/{totalCount} câu
             </Text>
           </div>
