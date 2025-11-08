@@ -5,6 +5,7 @@ import styles from "../../styles/Exam.module.css";
 import QuestionNavigator from "./QuestionNavigator";
 import QuestionCard from "./QuestionCard";
 import { submitTest } from "../../../services/testExamService";
+import { uploadFile } from "../../../services/filesService";
 import { useNavigate } from "react-router-dom";
 
 const { Header, Content } = Layout;
@@ -52,56 +53,98 @@ export default function ExamScreen() {
 
   // ExamScreen.jsx
   const handleSubmit = async (auto = false) => {
-  clearInterval(timerRef.current);
-  setShowSubmitModal(true);
+    clearInterval(timerRef.current);
+    setShowSubmitModal(true);
 
-  try {
-    const testResultId = rawTestData.testResultId;
-    if (!testResultId) throw new Error("Không tìm thấy testResultId");
+    try {
+      const testResultId = rawTestData.testResultId;
+      if (!testResultId) throw new Error("Không tìm thấy testResultId");
 
-    // Tính thời gian đã làm
-    const duration = Math.floor((rawTestData.duration * 60 - timeLeft) / 60);
+      // Tính thời gian đã làm
+      const duration = Math.floor((rawTestData.duration * 60 - timeLeft) / 60);
 
-    const payload = {
-      userId: "33333333-3333-3333-3333-333333333333",
-      testId: rawTestData.testId,
-      testResultId,
-      duration: duration > 0 ? duration : 1, // Backend không cho 0
-      testType: "Simulator",
-      answers: Object.entries(answers).map(([testQuestionId, chosenOptionLabel]) => {
-        const q = questions.find(q => q.testQuestionId === parseInt(testQuestionId));
-        return {
-          testQuestionId: parseInt(testQuestionId),
-          subQuestionIndex: q?.subQuestionIndex || 0,
-          chosenOptionLabel,
-        };
-      }),
-    };
+      // Xử lý answers: upload audio files cho speaking, giữ text cho writing
+      const processedAnswers = await Promise.all(
+        Object.entries(answers).map(async ([testQuestionId, answerValue]) => {
+          const q = questions.find((q) => q.testQuestionId === parseInt(testQuestionId));
+          const isWritingPart = q?.partId >= 8 && q?.partId <= 10;
+          const isSpeakingPart = q?.partId >= 11 && q?.partId <= 15;
 
-    if (payload.answers.length === 0) {
-      message.warning("Bạn chưa trả lời câu nào!");
+          // Nếu là speaking và answerValue là Blob, upload file
+          if (isSpeakingPart && answerValue instanceof Blob) {
+            try {
+              // Tạo File từ Blob để upload
+              const audioFile = new File([answerValue], `speaking_${testQuestionId}.webm`, {
+                type: "audio/webm",
+              });
+              const audioUrl = await uploadFile(audioFile, "audio");
+              return {
+                testQuestionId: parseInt(testQuestionId),
+                subQuestionIndex: q?.subQuestionIndex || 0,
+                chosenOptionLabel: audioUrl, // Gửi URL audio cho speaking
+              };
+            } catch (error) {
+              console.error(`Error uploading audio for question ${testQuestionId}:`, error);
+              message.warning(`Không thể upload audio cho câu ${q?.globalIndex || testQuestionId}`);
+              return {
+                testQuestionId: parseInt(testQuestionId),
+                subQuestionIndex: q?.subQuestionIndex || 0,
+                chosenOptionLabel: "", // Gửi rỗng nếu upload thất bại
+              };
+            }
+          }
+
+          // Nếu là writing, gửi text
+          if (isWritingPart && typeof answerValue === "string") {
+            return {
+              testQuestionId: parseInt(testQuestionId),
+              subQuestionIndex: q?.subQuestionIndex || 0,
+              chosenOptionLabel: answerValue, // Gửi text cho writing
+            };
+          }
+
+          // Nếu là L&R (multiple choice), gửi chosenOptionLabel như bình thường
+          return {
+            testQuestionId: parseInt(testQuestionId),
+            subQuestionIndex: q?.subQuestionIndex || 0,
+            chosenOptionLabel: answerValue || "",
+          };
+        })
+      );
+
+      const payload = {
+        userId: "33333333-3333-3333-3333-333333333333",
+        testId: rawTestData.testId,
+        testResultId,
+        duration: duration > 0 ? duration : 1, // Backend không cho 0
+        testType: "Simulator",
+        answers: processedAnswers,
+      };
+
+      if (payload.answers.length === 0) {
+        message.warning("Bạn chưa trả lời câu nào!");
+        setShowSubmitModal(false);
+        return;
+      }
+
+      const submitResult = await submitTest(payload);
+
+      // TRUYỀN TOÀN BỘ DỮ LIỆU + CÂU HỎI TỪ SESSION
+      const fullResult = {
+        ...submitResult,
+        questions: questions, // Gửi luôn câu hỏi để hiển thị
+        duration: payload.duration,
+      };
+
+      setTimeout(() => {
+        setShowSubmitModal(false);
+        navigate("/result", { state: { resultData: fullResult, autoSubmit: auto } });
+      }, 900);
+    } catch (error) {
+      message.error("Nộp bài thất bại: " + (error.response?.data?.message || error.message));
       setShowSubmitModal(false);
-      return;
     }
-
-    const submitResult = await submitTest(payload);
-
-    // TRUYỀN TOÀN BỘ DỮ LIỆU + CÂU HỎI TỪ SESSION
-    const fullResult = {
-      ...submitResult,
-      questions: questions, // Gửi luôn câu hỏi để hiển thị
-      duration: payload.duration,
-    };
-
-    setTimeout(() => {
-      setShowSubmitModal(false);
-      navigate("/result", { state: { resultData: fullResult, autoSubmit: auto } });
-    }, 900);
-  } catch (error) {
-    message.error("Nộp bài thất bại: " + (error.response?.data?.message || error.message));
-    setShowSubmitModal(false);
-  }
-};
+  };
 
   const formatTime = (s) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
   const answeredCount = Object.keys(answers).length;

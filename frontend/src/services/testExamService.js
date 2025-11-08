@@ -35,3 +35,16 @@ export async function getTestResultDetail(testResultId) {
     throw error;
   }
 }
+
+// Lấy chi tiết kết quả Listening & Reading
+export async function getTestResultDetailLR(testResultId) {
+  const url = `/api/tests/result/listening-reading/detail/${testResultId}`;
+  try {
+    const res = await api.get(url);
+    // Backend trả: { statusCode: 200, data: { ... } }
+    return res?.data?.data ?? res?.data;
+  } catch (error) {
+    console.error(`Error fetching LR result detail ${testResultId}:`, error.response?.data || error);
+    throw error;
+  }
+}

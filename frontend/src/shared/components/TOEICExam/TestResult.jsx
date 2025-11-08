@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Card,
   Button,
@@ -18,6 +18,7 @@ import {
   CheckCircleTwoTone,
   EditOutlined,
 } from "@ant-design/icons";
+import { getTestResultDetailLR } from "../../../services/testExamService";
 import styles from "../../styles/Result.module.css";
 
 const { Title, Text } = Typography;
@@ -35,6 +36,32 @@ export default function ResultScreen() {
   const [reportText, setReportText] = useState("");
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [detailQuestions, setDetailQuestions] = useState([]);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [detailData, setDetailData] = useState(null);
+
+  // === LOAD DETAIL TỪ API ===
+  const loadDetailFromAPI = useCallback(async (testResultId) => {
+    if (!testResultId) {
+      return;
+    }
+
+    // Kiểm tra xem đã load chưa (dựa vào testResultId trong detailData)
+    if (detailData && detailData.testResultId === testResultId) {
+      return;
+    }
+
+    setLoadingDetail(true);
+    try {
+      const data = await getTestResultDetailLR(testResultId);
+      setDetailData(data);
+      // Không hiển thị message success khi auto load
+    } catch (error) {
+      console.error("Error loading detail:", error);
+      message.error("Không thể tải chi tiết câu hỏi: " + (error.response?.data?.message || error.message));
+    } finally {
+      setLoadingDetail(false);
+    }
+  }, [detailData]);
 
   // === XỬ LÝ DỮ LIỆU TỪ SUBMIT ===
   useEffect(() => {
@@ -49,33 +76,89 @@ export default function ResultScreen() {
     }
 
     setResult(resultData);
-  }, [resultData, autoSubmit, navigate]);
+    
+    // Tự động load detail từ API khi có testResultId
+    if (resultData?.testResultId) {
+      loadDetailFromAPI(resultData.testResultId);
+    }
+  }, [resultData, autoSubmit, navigate, loadDetailFromAPI]);
 
-  // === ANIMATION ĐIỂM SỐ ===
-  useEffect(() => {
-    if (!result) return;
+  // === XỬ LÝ CÂU HỎI TỪ API DETAIL ===
+  const processQuestionsFromDetail = (detailData) => {
+    if (!detailData?.parts) return { listening: [], reading: [], all: [] };
 
-    const target =
-      selectedSection === "overall"
-        ? result.totalScore
-        : result[selectedSection === "listening" ? "listeningScore" : "readingScore"] || 0;
+    const rows = { listening: [], reading: [], all: [] };
+    let globalIndex = 1;
 
-    let curr = 0;
-    const step = Math.max(1, Math.floor(target / 40));
-    const id = setInterval(() => {
-      curr += step;
-      if (curr >= target) {
-        setDisplayScore(target);
-        clearInterval(id);
-      } else {
-        setDisplayScore(curr);
-      }
-    }, 20);
-    return () => clearInterval(id);
-  }, [selectedSection, result]);
+    detailData.parts.forEach((part) => {
+      part.testQuestions?.forEach((tq) => {
+        // Xử lý single question
+        if (!tq.isGroup && tq.questionSnapshotDto) {
+          const qs = tq.questionSnapshotDto;
+          const userAnswer = qs.userAnswer || "";
+          const correctAnswer = qs.options?.find((o) => o.isCorrect)?.label || "";
+          const isCorrect = qs.isCorrect !== null ? qs.isCorrect : userAnswer === correctAnswer;
+
+          const row = {
+            key: tq.testQuestionId,
+            index: globalIndex++,
+            partId: qs.partId || part.partId,
+            partTitle: part.partName || `Part ${qs.partId || part.partId}`,
+            question: qs.content || "",
+            passage: null,
+            userAnswer,
+            correctAnswer,
+            isCorrect,
+            imageUrl: qs.imageUrl,
+            explanation: qs.explanation,
+          };
+
+          rows.all.push(row);
+          if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
+          if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
+        }
+
+        // Xử lý group question
+        if (tq.isGroup && tq.questionGroupSnapshotDto) {
+          const group = tq.questionGroupSnapshotDto;
+          group.questionSnapshots?.forEach((qs, idx) => {
+            const userAnswer = qs.userAnswer || "";
+            const correctAnswer = qs.options?.find((o) => o.isCorrect)?.label || "";
+            const isCorrect = qs.isCorrect !== null ? qs.isCorrect : userAnswer === correctAnswer;
+
+            const row = {
+              key: `${tq.testQuestionId}_${idx}`,
+              index: globalIndex++,
+              partId: qs.partId || part.partId,
+              partTitle: part.partName || `Part ${qs.partId || part.partId}`,
+              question: qs.content || "",
+              passage: group.passage || null,
+              userAnswer,
+              correctAnswer,
+              isCorrect,
+              imageUrl: qs.imageUrl || group.imageUrl,
+              explanation: qs.explanation,
+            };
+
+            rows.all.push(row);
+            if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
+            if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
+          });
+        }
+      });
+    });
+
+    return rows;
+  };
 
   // === XỬ LÝ CÂU HỎI ===
   const questionRowsBySection = useMemo(() => {
+    // Ưu tiên dữ liệu từ API detail
+    if (detailData) {
+      return processQuestionsFromDetail(detailData);
+    }
+
+    // Fallback về dữ liệu từ submit
     if (!result?.questions) return { listening: [], reading: [], all: [] };
 
     const rows = { listening: [], reading: [], all: [] };
@@ -86,7 +169,7 @@ export default function ResultScreen() {
 
     result.questions.forEach((q, idx) => {
       const userAnswer = answersMap[q.testQuestionId] || "";
-      const correctAnswer = q.options?.find(o => o.isCorrect)?.key || "";
+      const correctAnswer = q.options?.find((o) => o.isCorrect)?.key || "";
       const isCorrect = userAnswer === correctAnswer;
 
       const row = {
@@ -107,7 +190,43 @@ export default function ResultScreen() {
     });
 
     return rows;
-  }, [result]);
+  }, [result, detailData]);
+
+  // === TÍNH ĐIỂM READING VỚI TỐI THIỂU 5 ĐIỂM ===
+  const getReadingScore = useMemo(() => {
+    if (!result) return 0;
+    const readingScore = result.readingScore || 0;
+    // Nếu không chọn đáp án nào ở phần reading, vẫn được 5 điểm
+    const hasReadingAnswers = questionRowsBySection.reading.some(
+      (row) => row.userAnswer && row.userAnswer.trim() !== ""
+    );
+    return hasReadingAnswers ? readingScore : Math.max(5, readingScore);
+  }, [result, questionRowsBySection]);
+
+  // === ANIMATION ĐIỂM SỐ ===
+  useEffect(() => {
+    if (!result) return;
+
+    const target =
+      selectedSection === "overall"
+        ? result.totalScore
+        : selectedSection === "listening"
+        ? result.listeningScore || 0
+        : getReadingScore;
+
+    let curr = 0;
+    const step = Math.max(1, Math.floor(target / 40));
+    const id = setInterval(() => {
+      curr += step;
+      if (curr >= target) {
+        setDisplayScore(target);
+        clearInterval(id);
+      } else {
+        setDisplayScore(curr);
+      }
+    }, 20);
+    return () => clearInterval(id);
+  }, [selectedSection, result, getReadingScore]);
 
   // === KIỂM TRA CÓ TRẢ LỜI KHÔNG ===
   const hasAnswered = result && (result.correctCount > 0 || result.incorrectCount > 0);
@@ -132,7 +251,7 @@ export default function ResultScreen() {
         {
           key: "reading",
           title: "Reading",
-          score: result.readingScore,
+          score: getReadingScore,
           max: 495,
           icon: <ReadOutlined />,
         },
@@ -204,7 +323,13 @@ export default function ResultScreen() {
     },
   ];
 
-  const openDetailForSection = (key) => {
+
+  const openDetailForSection = async (key) => {
+    // Đảm bảo detail đã được load
+    if (!detailData && result?.testResultId) {
+      await loadDetailFromAPI(result.testResultId);
+    }
+
     const data =
       key === "overall"
         ? questionRowsBySection.all
@@ -396,10 +521,14 @@ export default function ResultScreen() {
                   <strong>Listening:</strong> {result.listeningScore} / 495
                 </p>
                 <p>
-                  <strong>Reading:</strong> {result.readingScore} / 495
+                  <strong>Reading:</strong> {getReadingScore} / 495
                 </p>
                 <div style={{ marginTop: 16 }}>
-                  <Button onClick={() => openDetailForSection("overall")} type="primary">
+                  <Button
+                    onClick={() => openDetailForSection("overall")}
+                    type="primary"
+                    loading={loadingDetail}
+                  >
                     Xem tất cả câu hỏi
                   </Button>
                 </div>
@@ -415,14 +544,24 @@ export default function ResultScreen() {
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
         footer={null}
-        width={1000}
+        width={1200}
       >
-        <Table
-          columns={columns}
-          dataSource={detailQuestions}
-          rowKey="key"
-          pagination={{ pageSize: 8 }}
-        />
+        {loadingDetail ? (
+          <div style={{ textAlign: "center", padding: 40 }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 16 }}>
+              <Text>Đang tải chi tiết câu hỏi...</Text>
+            </div>
+          </div>
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={detailQuestions}
+            rowKey="key"
+            pagination={{ pageSize: 10 }}
+            scroll={{ x: 1000 }}
+          />
+        )}
       </Modal>
 
       {/* MODAL BÁO CÁO */}
