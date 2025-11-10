@@ -15,7 +15,7 @@ export const PART_QUESTION_COUNT = {
     10: 1,  // W-Part 3 - Write an opinion essay
     // Speaking (Skill = 1)
     11: 2,  // S-Part 1 - Read a text aloud
-    12: 1,  // S-Part 2 - Describe a picture
+    12: 2,  // S-Part 2 - Describe a picture
     13: 3,  // S-Part 3 - Respond to questions
     14: 3,  // S-Part 4 - Respond to questions using information provided
     15: 1,  // S-Part 5 - Express an opinion
@@ -23,9 +23,10 @@ export const PART_QUESTION_COUNT = {
 
 // Tổng số câu hỏi theo skill
 export const TOTAL_QUESTIONS_BY_SKILL = {
-    1: 11,   // Speaking
+    1: 11,   // Speaking (2+2+3+3+1 = 11)
     2: 8,    // Writing
     3: 200,  // L&R
+    4: 219,  // FourSkills (L+R+W+S: 200+8+11 = 219)
 };
 
 // Yêu cầu audio theo skill
@@ -33,6 +34,7 @@ export const REQUIRES_AUDIO = {
     1: false, // Speaking - không yêu cầu audio
     2: false, // Writing - không yêu cầu audio
     3: true,  // L&R - YÊU CẦU audio tổng
+    4: true,  // FourSkills - YÊU CẦU audio tổng
 };
 
 // Enum TestSkill (phải khớp với backend)
@@ -40,6 +42,7 @@ export const TEST_SKILL = {
     SPEAKING: 1,
     WRITING: 2,
     LR: 3,
+    FOUR_SKILLS: 4, // L+R+W+S (219 questions total)
 };
 
 // Enum TestType (phải khớp với backend)
@@ -56,6 +59,18 @@ export async function loadPartsBySkill(skill) {
             const listeningParts = await getPartsBySkill(3); // Listening = 3
             const readingParts = await getPartsBySkill(4); // Reading = 4
             parts = [...(listeningParts || []), ...(readingParts || [])];
+        } else if (skill === TEST_SKILL.FOUR_SKILLS) {
+            // FourSkills bao gồm tất cả 15 parts: L&R (7 parts) + Writing (3 parts) + Speaking (5 parts)
+            const listeningParts = await getPartsBySkill(3); // Listening = 3
+            const readingParts = await getPartsBySkill(4); // Reading = 4
+            const writingParts = await getPartsBySkill(2); // Writing = 2
+            const speakingParts = await getPartsBySkill(1); // Speaking = 1
+            parts = [
+                ...(listeningParts || []), 
+                ...(readingParts || []), 
+                ...(writingParts || []), 
+                ...(speakingParts || [])
+            ];
         } else if (skill === TEST_SKILL.SPEAKING) {
             parts = await getPartsBySkill(1); // Speaking = 1
         } else if (skill === TEST_SKILL.WRITING) {
@@ -141,4 +156,21 @@ export function createDefaultOptions(partId) {
         content: "",
         isCorrect: false,
     }));
+}
+
+export function requiresImage(partId, skill) {
+    // Parts bắt buộc phải có ảnh
+    const mandatoryImageParts = [1, 8, 12]; // L&R Part 1, Writing Part 1, Speaking Part 2
+    
+    if (mandatoryImageParts.includes(partId)) {
+        return { required: true, show: true };
+    }
+    
+    // Các part L&R khác có thể có ảnh (tùy chọn)
+    if (skill === 3 && partId >= 1 && partId <= 7) {
+        return { required: false, show: true };
+    }
+    
+    // Writing và Speaking parts khác KHÔNG cần ảnh - ẩn hoàn toàn
+    return { required: false, show: false };
 }

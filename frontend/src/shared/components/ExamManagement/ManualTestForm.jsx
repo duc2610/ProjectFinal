@@ -3,12 +3,19 @@ import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Collaps
 import { PlusOutlined, DeleteOutlined, CheckCircleOutlined, UploadOutlined, PictureOutlined } from "@ant-design/icons";
 import { createTestManual, getTestById, updateTestManual } from "@services/testsService";
 import { uploadFile } from "@services/filesService";
-import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL, PART_QUESTION_COUNT, validateTestStructure, requiresAudio, supportsQuestionGroups, createDefaultOptions } from "@shared/constants/toeicStructure";
+import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL, PART_QUESTION_COUNT, validateTestStructure, requiresAudio, supportsQuestionGroups, createDefaultOptions, requiresImage } from "@shared/constants/toeicStructure";
 import { TEST_TYPE } from "@shared/constants/toeicStructure";
 
 const { TextArea } = Input;
 const { Option } = Select;
 const { Panel } = Collapse;
+
+// Helper function để kiểm tra partId có phải là Writing hoặc Speaking part không
+const isWritingOrSpeakingPart = (partId) => {
+    // Writing parts: 8, 9, 10
+    // Speaking parts: 11, 12, 13, 14, 15
+    return (partId >= 8 && partId <= 10) || (partId >= 11 && partId <= 15);
+};
 
 export default function ManualTestForm({ open, onClose, onSuccess, editingId = null, readOnly = false }) {
     const [form] = Form.useForm();
@@ -24,6 +31,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         if (typeof val === "number") return val;
         const s = String(val).toLowerCase();
         if (s === "3" || s.includes("lr") || s.includes("listening")) return TEST_SKILL.LR;
+        if (s === "4" || s.includes("four") || s.includes("4skills") || s.includes("4-skills")) return TEST_SKILL.FOUR_SKILLS;
         if (s === "1" || s.includes("speaking")) return TEST_SKILL.SPEAKING;
         if (s === "2" || s.includes("writing")) return TEST_SKILL.WRITING;
         const n = Number(val);
@@ -112,23 +120,29 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                         imageUrl: gSnap.imageUrl || gSnap.ImageUrl || "",
                                         audioUrl: gSnap.audioUrl || gSnap.AudioUrl || "",
                                         questions: questionSnapshots.map((q, qIdx) => {
-                                            const loadedOptions = (q.options || q.Options || []).map(o => ({
-                                                label: o.label || o.Label || "",
-                                                content: o.content || o.Content || "",
-                                                isCorrect: o.isCorrect || o.IsCorrect || false,
-                                            }));
-                                            // Đảm bảo số lượng options đúng với part (Part 2 = 3, các part khác = 4)
-                                            const expectedCount = createDefaultOptions(partId).length;
-                                            const normalizedOptions = loadedOptions.slice(0, expectedCount);
-                                            // Nếu thiếu, bổ sung options rỗng
-                                            while (normalizedOptions.length < expectedCount) {
-                                                const labels = ['A', 'B', 'C', 'D'];
-                                                normalizedOptions.push({
-                                                    label: labels[normalizedOptions.length],
-                                                    content: "",
-                                                    isCorrect: false,
-                                                });
+                                            // Writing và Speaking parts không có options (partId 8-15)
+                                            let normalizedOptions = [];
+                                            
+                                            if (!isWritingOrSpeakingPart(partId)) {
+                                                const loadedOptions = (q.options || q.Options || []).map(o => ({
+                                                    label: o.label || o.Label || "",
+                                                    content: o.content || o.Content || "",
+                                                    isCorrect: o.isCorrect || o.IsCorrect || false,
+                                                }));
+                                                // Đảm bảo số lượng options đúng với part (Part 2 = 3, các part khác = 4)
+                                                const expectedCount = createDefaultOptions(partId).length;
+                                                normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                                // Nếu thiếu, bổ sung options rỗng
+                                                while (normalizedOptions.length < expectedCount) {
+                                                    const labels = ['A', 'B', 'C', 'D'];
+                                                    normalizedOptions.push({
+                                                        label: labels[normalizedOptions.length],
+                                                        content: "",
+                                                        isCorrect: false,
+                                                    });
+                                                }
                                             }
+                                            
                                             return {
                                                 content: q.content || q.Content || "",
                                                 imageUrl: q.imageUrl || q.ImageUrl || "",
@@ -145,23 +159,29 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                         return;
                                     }
                                     console.log(`Part ${partId}, Single Question ${tqIndex}: đã parse`);
-                                    const loadedOptions = (qSnap.options || qSnap.Options || []).map(o => ({
-                                        label: o.label || o.Label || "",
-                                        content: o.content || o.Content || "",
-                                        isCorrect: o.isCorrect || o.IsCorrect || false,
-                                    }));
-                                    // Đảm bảo số lượng options đúng với part (Part 2 = 3, các part khác = 4)
-                                    const expectedCount = createDefaultOptions(partId).length;
-                                    const normalizedOptions = loadedOptions.slice(0, expectedCount);
-                                    // Nếu thiếu, bổ sung options rỗng
-                                    while (normalizedOptions.length < expectedCount) {
-                                        const labels = ['A', 'B', 'C', 'D'];
-                                        normalizedOptions.push({
-                                            label: labels[normalizedOptions.length],
-                                            content: "",
-                                            isCorrect: false,
-                                        });
+                                    // Writing và Speaking parts không có options (partId 8-15)
+                                    let normalizedOptions = [];
+                                    
+                                    if (!isWritingOrSpeakingPart(partId)) {
+                                        const loadedOptions = (qSnap.options || qSnap.Options || []).map(o => ({
+                                            label: o.label || o.Label || "",
+                                            content: o.content || o.Content || "",
+                                            isCorrect: o.isCorrect || o.IsCorrect || false,
+                                        }));
+                                        // Đảm bảo số lượng options đúng với part (Part 2 = 3, các part khác = 4)
+                                        const expectedCount = createDefaultOptions(partId).length;
+                                        normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                        // Nếu thiếu, bổ sung options rỗng
+                                        while (normalizedOptions.length < expectedCount) {
+                                            const labels = ['A', 'B', 'C', 'D'];
+                                            normalizedOptions.push({
+                                                label: labels[normalizedOptions.length],
+                                                content: "",
+                                                isCorrect: false,
+                                            });
+                                        }
                                     }
+                                    
                                     newPartsData[partId].questions.push({
                                         content: qSnap.content || qSnap.Content || "",
                                         imageUrl: qSnap.imageUrl || qSnap.ImageUrl || "",
@@ -241,7 +261,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addQuestion = (partId) => {
-        const defaultOptions = createDefaultOptions(partId);
+        // Writing và Speaking parts không có options (partId 8-15)
+        const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => ({
             ...prev,
             [partId]: {
@@ -261,7 +282,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addGroup = (partId) => {
-        const defaultOptions = createDefaultOptions(partId);
+        // Writing và Speaking parts không có options (partId 8-15)
+        const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => ({
             ...prev,
             [partId]: {
@@ -362,7 +384,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addQuestionToGroup = (partId, groupIndex) => {
-        const defaultOptions = createDefaultOptions(partId);
+        // Writing và Speaking parts không có options (partId 8-15)
+        const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => {
             const newData = { ...prev };
             const groups = [...(newData[partId]?.groups || [])];
@@ -396,12 +419,159 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         }, 0);
     };
 
+    // Helper function để kiểm tra string không rỗng và không chỉ có space
+    const isValidString = (value) => {
+        if (!value || typeof value !== "string") return false;
+        return value.trim().length > 0;
+    };
+
+    // Validate toàn bộ parts data trước khi submit
+    const validatePartsData = () => {
+        const errors = [];
+
+        // Validate từng part
+        Object.keys(partsData).forEach(partIdStr => {
+            const partId = Number(partIdStr);
+            const partData = partsData[partId];
+            const imageConfig = requiresImage(partId, selectedSkill);
+            // Sử dụng partId để kiểm tra thay vì skill
+            const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+
+            // Validate questions đơn
+            (partData.questions || []).forEach((q, qIdx) => {
+                // Content bắt buộc
+                if (!isValidString(q.content)) {
+                    errors.push(`Part ${partId}, Câu hỏi ${qIdx + 1}: Nội dung câu hỏi không được để trống!`);
+                }
+
+                // Image bắt buộc cho các part cần ảnh
+                if (imageConfig.required && !isValidString(q.imageUrl)) {
+                    errors.push(`Part ${partId}, Câu hỏi ${qIdx + 1}: Image URL là bắt buộc!`);
+                }
+
+                // Image nếu có thì phải hợp lệ (không chỉ space)
+                if (q.imageUrl && !isValidString(q.imageUrl)) {
+                    errors.push(`Part ${partId}, Câu hỏi ${qIdx + 1}: Image URL không hợp lệ!`);
+                }
+
+                // Options validation cho L&R
+                if (!isWritingOrSpeaking && (q.options || []).length > 0) {
+                    const validOptions = (q.options || []).filter(opt => isValidString(opt.content));
+                    if (validOptions.length === 0) {
+                        errors.push(`Part ${partId}, Câu hỏi ${qIdx + 1}: Phải có ít nhất 1 đáp án!`);
+                    }
+
+                    // Kiểm tra có đáp án đúng không
+                    const hasCorrectAnswer = (q.options || []).some(opt => opt.isCorrect && isValidString(opt.content));
+                    if (!hasCorrectAnswer) {
+                        errors.push(`Part ${partId}, Câu hỏi ${qIdx + 1}: Phải chọn ít nhất 1 đáp án đúng!`);
+                    }
+
+                    // Kiểm tra tất cả options phải có nội dung (không được trống hoặc chỉ space)
+                    (q.options || []).forEach((opt, optIdx) => {
+                        if (!isValidString(opt.content)) {
+                            errors.push(`Part ${partId}, Câu hỏi ${qIdx + 1}, Đáp án ${opt.label}: Không được để trống!`);
+                        }
+                    });
+                }
+
+                // Explanation nếu có thì phải hợp lệ
+                if (q.explanation && !isValidString(q.explanation)) {
+                    errors.push(`Part ${partId}, Câu hỏi ${qIdx + 1}: Giải thích không hợp lệ!`);
+                }
+            });
+
+            // Validate groups
+            (partData.groups || []).forEach((g, gIdx) => {
+                // Passage nếu có thì phải hợp lệ
+                if (g.passage && !isValidString(g.passage)) {
+                    errors.push(`Part ${partId}, Nhóm ${gIdx + 1}: Passage không hợp lệ!`);
+                }
+
+                // Image nếu có thì phải hợp lệ
+                if (g.imageUrl && !isValidString(g.imageUrl)) {
+                    errors.push(`Part ${partId}, Nhóm ${gIdx + 1}: Image URL không hợp lệ!`);
+                }
+
+                // Validate questions trong group
+                (g.questions || []).forEach((q, qIdx) => {
+                    // Content bắt buộc
+                    if (!isValidString(q.content)) {
+                        errors.push(`Part ${partId}, Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Nội dung câu hỏi không được để trống!`);
+                    }
+
+                    // Image bắt buộc cho các part cần ảnh
+                    if (imageConfig.required && !isValidString(q.imageUrl)) {
+                        errors.push(`Part ${partId}, Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Image URL là bắt buộc!`);
+                    }
+
+                    // Image nếu có thì phải hợp lệ
+                    if (q.imageUrl && !isValidString(q.imageUrl)) {
+                        errors.push(`Part ${partId}, Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Image URL không hợp lệ!`);
+                    }
+
+                    // Options validation cho L&R
+                    if (!isWritingOrSpeaking && (q.options || []).length > 0) {
+                        const validOptions = (q.options || []).filter(opt => isValidString(opt.content));
+                        if (validOptions.length === 0) {
+                            errors.push(`Part ${partId}, Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Phải có ít nhất 1 đáp án!`);
+                        }
+
+                        // Kiểm tra có đáp án đúng không
+                        const hasCorrectAnswer = (q.options || []).some(opt => opt.isCorrect && isValidString(opt.content));
+                        if (!hasCorrectAnswer) {
+                            errors.push(`Part ${partId}, Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Phải chọn ít nhất 1 đáp án đúng!`);
+                        }
+
+                        // Kiểm tra tất cả options phải có nội dung
+                        (q.options || []).forEach((opt, optIdx) => {
+                            if (!isValidString(opt.content)) {
+                                errors.push(`Part ${partId}, Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}, Đáp án ${opt.label}: Không được để trống!`);
+                            }
+                        });
+                    }
+
+                    // Explanation nếu có thì phải hợp lệ
+                    if (q.explanation && !isValidString(q.explanation)) {
+                        errors.push(`Part ${partId}, Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Giải thích không hợp lệ!`);
+                    }
+                });
+            });
+        });
+
+        return errors;
+    };
+
     const handleSubmit = async () => {
         try {
             const values = await form.validateFields();
 
             if (!selectedSkill) {
                 message.warning("Vui lòng chọn kỹ năng!");
+                return;
+            }
+
+            // Validate tất cả inputs
+            const validationErrors = validatePartsData();
+            if (validationErrors.length > 0) {
+                message.error({
+                    content: (
+                        <div>
+                            <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Có lỗi trong dữ liệu:</div>
+                            <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                {validationErrors.slice(0, 5).map((err, idx) => (
+                                    <li key={idx} style={{ marginBottom: 4 }}>{err}</li>
+                                ))}
+                            </ul>
+                            {validationErrors.length > 5 && (
+                                <div style={{ marginTop: 8, color: '#999' }}>
+                                    ... và {validationErrors.length - 5} lỗi khác
+                                </div>
+                            )}
+                        </div>
+                    ),
+                    duration: 5,
+                });
                 return;
             }
 
@@ -428,35 +598,56 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                         return null;
                     }
                     
+                    // Helper để trim string hoặc return null
+                    const trimOrNull = (str) => {
+                        if (!str || typeof str !== "string") return null;
+                        const trimmed = str.trim();
+                        return trimmed.length > 0 ? trimmed : null;
+                    };
+
                     return {
                         partId: partId,
                         groups: (partData.groups || []).map(g => ({
-                            passage: g.passage || null,
-                            imageUrl: g.imageUrl || null,
-                            audioUrl: g.audioUrl || null,
-                            questions: (g.questions || []).map(q => ({
-                                content: q.content || null,
-                                imageUrl: q.imageUrl || null,
-                                audioUrl: q.audioUrl || null,
-                                explanation: q.explanation || null,
-                                options: (q.options || []).map(o => ({
+                            passage: trimOrNull(g.passage),
+                            imageUrl: trimOrNull(g.imageUrl),
+                            audioUrl: trimOrNull(g.audioUrl),
+                            questions: (g.questions || []).map(q => {
+                                // Writing và Speaking không có options
+                                // Sử dụng partId để kiểm tra thay vì skill
+            const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+                                const optionsPayload = isWritingOrSpeaking ? [] : (q.options || []).map(o => ({
                                     label: o.label,
-                                    content: o.content || null,
+                                    content: trimOrNull(o.content),
                                     isCorrect: o.isCorrect || false,
-                                })),
-                            })),
+                                }));
+                                
+                                return {
+                                    content: trimOrNull(q.content),
+                                    imageUrl: trimOrNull(q.imageUrl),
+                                    audioUrl: trimOrNull(q.audioUrl),
+                                    explanation: trimOrNull(q.explanation),
+                                    options: optionsPayload,
+                                };
+                            }),
                         })),
-                        questions: (partData.questions || []).map(q => ({
-                            content: q.content || null,
-                            imageUrl: q.imageUrl || null,
-                            audioUrl: q.audioUrl || null,
-                            explanation: q.explanation || null,
-                            options: (q.options || []).map(o => ({
+                        questions: (partData.questions || []).map(q => {
+                            // Writing và Speaking không có options
+                            // Sử dụng partId để kiểm tra thay vì skill
+            const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+                            const optionsPayload = isWritingOrSpeaking ? [] : (q.options || []).map(o => ({
                                 label: o.label,
-                                content: o.content || null,
+                                content: trimOrNull(o.content),
                                 isCorrect: o.isCorrect || false,
-                            })),
-                        })),
+                            }));
+                            
+                            return {
+                                content: trimOrNull(q.content),
+                                imageUrl: trimOrNull(q.imageUrl),
+                                audioUrl: trimOrNull(q.audioUrl),
+                                explanation: trimOrNull(q.explanation),
+                                options: optionsPayload,
+                            };
+                        }),
                     };
                 })
                 .filter(p => p !== null); // Loại bỏ các parts null
@@ -483,32 +674,44 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 return;
             }
 
-            // Kiểm tra image bắt buộc cho Part 1
-            const part1Data = partsPayload.find(p => p.partId === 1);
-            if (part1Data) {
-                // Kiểm tra questions đơn trong Part 1
-                const part1Questions = part1Data.questions || [];
-                const part1MissingImage = part1Questions.some(q => !q.imageUrl || q.imageUrl.trim() === "");
-                
-                // Kiểm tra questions trong groups của Part 1
-                const part1Groups = part1Data.groups || [];
-                const part1GroupMissingImage = part1Groups.some(g => {
-                    const questions = g.questions || [];
-                    return questions.some(q => !q.imageUrl || q.imageUrl.trim() === "");
-                });
+            // Kiểm tra image bắt buộc cho các parts cần ảnh: Part 1 (L&R), Part 8 (Writing Part 1), Part 12 (Speaking Part 2)
+            const mandatoryImageParts = [1, 8, 12];
+            const partNames = { 1: "Part 1 (Photographs)", 8: "Writing Part 1", 12: "Speaking Part 2" };
+            
+            for (const partId of mandatoryImageParts) {
+                const partData = partsPayload.find(p => p.partId === partId);
+                if (partData) {
+                    // Kiểm tra questions đơn
+                    const questions = partData.questions || [];
+                    const missingImage = questions.some(q => !q.imageUrl || q.imageUrl.trim() === "");
+                    
+                    // Kiểm tra questions trong groups
+                    const groups = partData.groups || [];
+                    const groupMissingImage = groups.some(g => {
+                        const groupQuestions = g.questions || [];
+                        return groupQuestions.some(q => !q.imageUrl || q.imageUrl.trim() === "");
+                    });
 
-                if (part1MissingImage || part1GroupMissingImage) {
-                    message.warning("Part 1 (Photographs) yêu cầu Image URL cho tất cả câu hỏi!");
-                    return;
+                    if (missingImage || groupMissingImage) {
+                        message.warning(`${partNames[partId]} yêu cầu Image URL cho tất cả câu hỏi!`);
+                        return;
+                    }
                 }
             }
 
+            // Helper để trim string hoặc return null
+            const trimOrNull = (str) => {
+                if (!str || typeof str !== "string") return null;
+                const trimmed = str.trim();
+                return trimmed.length > 0 ? trimmed : null;
+            };
+
             const payload = {
-                title: values.title,
+                title: (values.title || "").trim(),
                 testSkill: selectedSkill,
                 testType: TEST_TYPE.SIMULATOR,
-                description: values.description || null,
-                audioUrl: audioUrl || null,
+                description: trimOrNull(values.description),
+                audioUrl: trimOrNull(audioUrl),
                 parts: partsPayload,
             };
 
@@ -584,6 +787,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 disabled={readOnly || !!editingId}
                             >
                                 <Option value={TEST_SKILL.LR}>Listening & Reading</Option>
+                                <Option value={TEST_SKILL.FOUR_SKILLS}>Four Skills (L+R+W+S)</Option>
                                 <Option value={TEST_SKILL.SPEAKING}>Speaking</Option>
                                 <Option value={TEST_SKILL.WRITING}>Writing</Option>
                             </Select>
@@ -757,6 +961,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                             question={q}
                                                             partId={part.partId}
                                                             questionIndex={qIdx}
+                                                            skill={selectedSkill}
                                                             onUpdate={(field, value) => updateQuestion(part.partId, qIdx, field, value)}
                                                             onUpdateOption={(optionIndex, field, value) => updateOption(part.partId, qIdx, optionIndex, field, value)}
                                                             readOnly={readOnly}
@@ -799,6 +1004,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                                 group={group}
                                                                 partId={part.partId}
                                                                 groupIndex={gIdx}
+                                                                skill={selectedSkill}
                                                                 onUpdate={(field, value) => updateGroup(part.partId, gIdx, field, value)}
                                                                 onUpdateQuestion={(questionIndex, field, value) => updateGroupQuestion(part.partId, gIdx, questionIndex, field, value)}
                                                                 onUpdateOption={(questionIndex, optionIndex, field, value) => updateOption(part.partId, questionIndex, optionIndex, field, value, true, gIdx)}
@@ -833,184 +1039,269 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
 }
 
 // Component để edit một câu hỏi
-function QuestionEditor({ question, partId, questionIndex, onUpdate, onUpdateOption, readOnly }) {
-    // Part 1 (L-Part 1: Photographs) bắt buộc phải có ảnh
-    const requireImage = partId === 1;
+function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUpdateOption, readOnly }) {
+    // Kiểm tra part nào cần ảnh
+    const imageConfig = requiresImage(partId, skill);
+    const requireImage = imageConfig.required;
+    const showImage = imageConfig.show;
+    // Writing và Speaking parts không có options (partId 8-15)
+    const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+    
+    // Helper để validate string
+    const isValidString = (value) => {
+        if (!value || typeof value !== "string") return false;
+        return value.trim().length > 0;
+    };
+
+    // Validate các fields
+    const contentError = !isValidString(question.content) ? "Nội dung câu hỏi không được để trống!" : "";
+    const imageError = showImage && requireImage && !isValidString(question.imageUrl) 
+        ? "Image URL là bắt buộc!" 
+        : showImage && question.imageUrl && !isValidString(question.imageUrl)
+        ? "Image URL không hợp lệ!"
+        : "";
+    const explanationError = question.explanation && !isValidString(question.explanation) 
+        ? "Giải thích không hợp lệ!" 
+        : "";
     
     return (
         <Space direction="vertical" style={{ width: "100%" }} size="middle">
-            <Form.Item label="Nội dung câu hỏi">
+            <Form.Item 
+                label="Nội dung câu hỏi" 
+                required
+                validateStatus={contentError ? "error" : ""}
+                help={contentError}
+            >
                 <TextArea
                     value={question.content || ""}
                     onChange={(e) => onUpdate("content", e.target.value)}
                     rows={3}
                     disabled={readOnly}
+                    status={contentError ? "error" : ""}
                 />
             </Form.Item>
 
-            <Form.Item 
-                label={requireImage ? "Image (Bắt buộc)" : "Image"}
-                required={requireImage}
-            >
-                <Space direction="vertical" style={{ width: "100%" }} size="small">
-                    <Input
-                        value={question.imageUrl || ""}
-                        onChange={(e) => onUpdate("imageUrl", e.target.value)}
-                        placeholder={requireImage ? "URL hình ảnh (bắt buộc)" : "URL hình ảnh (nếu có)"}
-                        disabled={readOnly}
-                    />
-                    {!readOnly && (
-                        <Upload
-                            customRequest={async ({ file, onSuccess, onError }) => {
-                                try {
-                                    const url = await uploadFile(file, "image");
-                                    onUpdate("imageUrl", url);
-                                    onSuccess(url);
-                                    message.success("Upload ảnh thành công");
-                                } catch (error) {
-                                    console.error("Upload error:", error);
-                                    onError(error);
-                                    message.error("Upload ảnh thất bại: " + (error.message || "Unknown error"));
-                                }
-                            }}
-                            showUploadList={false}
-                            accept="image/*"
-                        >
-                            <Button icon={<PictureOutlined />} size="small">
-                                Upload ảnh
-                            </Button>
-                        </Upload>
-                    )}
-                    {question.imageUrl && (
-                        <div style={{ marginTop: 8 }}>
-                            <img
-                                src={question.imageUrl}
-                                alt="preview"
-                                style={{
-                                    maxWidth: "100%",
-                                    maxHeight: 200,
-                                    objectFit: "contain",
-                                    border: "1px solid #f0f0f0",
-                                    borderRadius: 6,
-                                    padding: 6,
-                                    background: "#fff",
+            {showImage && (
+                <Form.Item 
+                    label={requireImage ? "Image (Bắt buộc)" : "Image"}
+                    required={requireImage}
+                    validateStatus={imageError ? "error" : ""}
+                    help={imageError}
+                >
+                    <Space direction="vertical" style={{ width: "100%" }} size="small">
+                        <Input
+                            value={question.imageUrl || ""}
+                            onChange={(e) => onUpdate("imageUrl", e.target.value)}
+                            placeholder={requireImage ? "URL hình ảnh (bắt buộc)" : "URL hình ảnh (nếu có)"}
+                            disabled={readOnly}
+                            status={imageError ? "error" : ""}
+                        />
+                        {!readOnly && (
+                            <Upload
+                                customRequest={async ({ file, onSuccess, onError }) => {
+                                    try {
+                                        const url = await uploadFile(file, "image");
+                                        onUpdate("imageUrl", url);
+                                        onSuccess(url);
+                                        message.success("Upload ảnh thành công");
+                                    } catch (error) {
+                                        console.error("Upload error:", error);
+                                        onError(error);
+                                        message.error("Upload ảnh thất bại: " + (error.message || "Unknown error"));
+                                    }
                                 }}
-                            />
-                        </div>
-                    )}
-                </Space>
-            </Form.Item>
+                                showUploadList={false}
+                                accept="image/*"
+                            >
+                                <Button icon={<PictureOutlined />} size="small">
+                                    Upload ảnh
+                                </Button>
+                            </Upload>
+                        )}
+                        {question.imageUrl && (
+                            <div style={{ marginTop: 8 }}>
+                                <img
+                                    src={question.imageUrl}
+                                    alt="preview"
+                                    style={{
+                                        maxWidth: "100%",
+                                        maxHeight: 200,
+                                        objectFit: "contain",
+                                        border: "1px solid #f0f0f0",
+                                        borderRadius: 6,
+                                        padding: 6,
+                                        background: "#fff",
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </Space>
+                </Form.Item>
+            )}
 
 
-            <Form.Item label="Giải thích">
+            <Form.Item 
+                label="Giải thích"
+                validateStatus={explanationError ? "error" : ""}
+                help={explanationError}
+            >
                 <TextArea
                     value={question.explanation || ""}
                     onChange={(e) => onUpdate("explanation", e.target.value)}
                     rows={2}
                     disabled={readOnly}
+                    status={explanationError ? "error" : ""}
                 />
             </Form.Item>
 
-            <Form.Item label="Đáp án">
-                <Space direction="vertical" style={{ width: "100%" }}>
-                    {(question.options || []).map((option, oIdx) => (
-                        <Row key={oIdx} gutter={8} align="middle">
-                            <Col span={2}>
-                                <Tag>{option.label}</Tag>
-                            </Col>
-                            <Col span={18}>
-                                <Input
-                                    value={option.content || ""}
-                                    onChange={(e) => onUpdateOption(oIdx, "content", e.target.value)}
-                                    placeholder={`Nhập đáp án ${option.label}`}
-                                    disabled={readOnly}
-                                />
-                            </Col>
-                            <Col span={4}>
-                                <Button
-                                    type={option.isCorrect ? "primary" : "default"}
-                                    onClick={() => {
-                                        // Reset tất cả về false, rồi set cái này thành true
-                                        (question.options || []).forEach((_, idx) => {
-                                            onUpdateOption(idx, "isCorrect", idx === oIdx);
-                                        });
-                                    }}
-                                    disabled={readOnly}
-                                >
-                                    {option.isCorrect ? "Đúng" : "Chọn"}
-                                </Button>
-                            </Col>
-                        </Row>
-                    ))}
-                </Space>
-            </Form.Item>
+            {!isWritingOrSpeaking && (
+                <Form.Item 
+                    label="Đáp án"
+                    required
+                >
+                    <Space direction="vertical" style={{ width: "100%" }}>
+                        {(question.options || []).map((option, oIdx) => {
+                            const optionError = !isValidString(option.content) ? "Đáp án không được để trống!" : "";
+                            
+                            return (
+                                <div key={oIdx}>
+                                    <Row gutter={8} align="middle">
+                                        <Col span={2}>
+                                            <Tag>{option.label}</Tag>
+                                        </Col>
+                                        <Col span={18}>
+                                            <Input
+                                                value={option.content || ""}
+                                                onChange={(e) => onUpdateOption(oIdx, "content", e.target.value)}
+                                                placeholder={`Nhập đáp án ${option.label}`}
+                                                disabled={readOnly}
+                                                status={optionError ? "error" : ""}
+                                            />
+                                        </Col>
+                                        <Col span={4}>
+                                            <Button
+                                                type={option.isCorrect ? "primary" : "default"}
+                                                onClick={() => {
+                                                    // Reset tất cả về false, rồi set cái này thành true
+                                                    (question.options || []).forEach((_, idx) => {
+                                                        onUpdateOption(idx, "isCorrect", idx === oIdx);
+                                                    });
+                                                }}
+                                                disabled={readOnly}
+                                            >
+                                                {option.isCorrect ? "Đúng" : "Chọn"}
+                                            </Button>
+                                        </Col>
+                                    </Row>
+                                    {optionError && (
+                                        <div style={{ color: "#ff4d4f", fontSize: "12px", marginTop: "4px", marginLeft: "40px" }}>
+                                            {optionError}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                        {(() => {
+                            const hasCorrectAnswer = (question.options || []).some(opt => opt.isCorrect && isValidString(opt.content));
+                            return !hasCorrectAnswer && (question.options || []).length > 0 ? (
+                                <div style={{ color: "#ff4d4f", fontSize: "12px", marginTop: "4px" }}>
+                                    Phải chọn ít nhất 1 đáp án đúng!
+                                </div>
+                            ) : null;
+                        })()}
+                    </Space>
+                </Form.Item>
+            )}
         </Space>
     );
 }
 
 // Component để edit một nhóm câu hỏi
-function GroupEditor({ group, partId, groupIndex, onUpdate, onUpdateQuestion, onUpdateOption, onAddQuestion, onDeleteQuestion, readOnly }) {
+function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuestion, onUpdateOption, onAddQuestion, onDeleteQuestion, readOnly }) {
+    // Helper để validate string
+    const isValidString = (value) => {
+        if (!value || typeof value !== "string") return false;
+        return value.trim().length > 0;
+    };
+
+    // Validate group fields
+    const passageError = group.passage && !isValidString(group.passage) ? "Passage không hợp lệ!" : "";
+    const imageError = group.imageUrl && !isValidString(group.imageUrl) ? "Image URL không hợp lệ!" : "";
+    
     return (
         <Space direction="vertical" style={{ width: "100%" }} size="middle">
-            <Form.Item label="Passage/Đoạn văn">
+            <Form.Item 
+                label="Passage/Đoạn văn"
+                validateStatus={passageError ? "error" : ""}
+                help={passageError}
+            >
                 <TextArea
                     value={group.passage || ""}
                     onChange={(e) => onUpdate("passage", e.target.value)}
                     rows={6}
                     placeholder="Nhập passage/đoạn văn cho nhóm câu hỏi"
                     disabled={readOnly}
+                    status={passageError ? "error" : ""}
                 />
             </Form.Item>
 
-            <Form.Item label="Image">
-                <Space direction="vertical" style={{ width: "100%" }} size="small">
-                    <Input
-                        value={group.imageUrl || ""}
-                        onChange={(e) => onUpdate("imageUrl", e.target.value)}
-                        placeholder="URL hình ảnh cho nhóm (nếu có)"
-                        disabled={readOnly}
-                    />
-                    {!readOnly && (
-                        <Upload
-                            customRequest={async ({ file, onSuccess, onError }) => {
-                                try {
-                                    const url = await uploadFile(file, "image");
-                                    onUpdate("imageUrl", url);
-                                    onSuccess(url);
-                                    message.success("Upload ảnh thành công");
-                                } catch (error) {
-                                    console.error("Upload error:", error);
-                                    onError(error);
-                                    message.error("Upload ảnh thất bại: " + (error.message || "Unknown error"));
-                                }
-                            }}
-                            showUploadList={false}
-                            accept="image/*"
-                        >
-                            <Button icon={<PictureOutlined />} size="small">
-                                Upload ảnh
-                            </Button>
-                        </Upload>
-                    )}
-                    {group.imageUrl && (
-                        <div style={{ marginTop: 8 }}>
-                            <img
-                                src={group.imageUrl}
-                                alt="preview"
-                                style={{
-                                    maxWidth: "100%",
-                                    maxHeight: 200,
-                                    objectFit: "contain",
-                                    border: "1px solid #f0f0f0",
-                                    borderRadius: 6,
-                                    padding: 6,
-                                    background: "#fff",
+            {/* Image cho group - chỉ hiển thị cho L&R parts có thể có ảnh */}
+            {skill === TEST_SKILL.LR && (
+                <Form.Item 
+                    label="Image"
+                    validateStatus={imageError ? "error" : ""}
+                    help={imageError}
+                >
+                    <Space direction="vertical" style={{ width: "100%" }} size="small">
+                        <Input
+                            value={group.imageUrl || ""}
+                            onChange={(e) => onUpdate("imageUrl", e.target.value)}
+                            placeholder="URL hình ảnh cho nhóm (nếu có)"
+                            disabled={readOnly}
+                            status={imageError ? "error" : ""}
+                        />
+                        {!readOnly && (
+                            <Upload
+                                customRequest={async ({ file, onSuccess, onError }) => {
+                                    try {
+                                        const url = await uploadFile(file, "image");
+                                        onUpdate("imageUrl", url);
+                                        onSuccess(url);
+                                        message.success("Upload ảnh thành công");
+                                    } catch (error) {
+                                        console.error("Upload error:", error);
+                                        onError(error);
+                                        message.error("Upload ảnh thất bại: " + (error.message || "Unknown error"));
+                                    }
                                 }}
-                            />
-                        </div>
-                    )}
-                </Space>
-            </Form.Item>
+                                showUploadList={false}
+                                accept="image/*"
+                            >
+                                <Button icon={<PictureOutlined />} size="small">
+                                    Upload ảnh
+                                </Button>
+                            </Upload>
+                        )}
+                        {group.imageUrl && (
+                            <div style={{ marginTop: 8 }}>
+                                <img
+                                    src={group.imageUrl}
+                                    alt="preview"
+                                    style={{
+                                        maxWidth: "100%",
+                                        maxHeight: 200,
+                                        objectFit: "contain",
+                                        border: "1px solid #f0f0f0",
+                                        borderRadius: 6,
+                                        padding: 6,
+                                        background: "#fff",
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </Space>
+                </Form.Item>
+            )}
 
 
             <Form.Item
@@ -1047,6 +1338,7 @@ function GroupEditor({ group, partId, groupIndex, onUpdate, onUpdateQuestion, on
                                 question={q}
                                 partId={partId}
                                 questionIndex={qIdx}
+                                skill={skill}
                                 onUpdate={(field, value) => onUpdateQuestion(qIdx, field, value)}
                                 onUpdateOption={(optionIndex, field, value) => onUpdateOption(qIdx, optionIndex, field, value)}
                                 readOnly={readOnly}

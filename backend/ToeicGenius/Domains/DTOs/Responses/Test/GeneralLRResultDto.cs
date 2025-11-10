@@ -2,6 +2,7 @@
 {
 	public class GeneralLRResultDto
 	{
+		public int TestResultId { get; set; }
 		public int TotalQuestions { get; set; }
 		public int CorrectCount { get; set; }
 		public int IncorrectCount { get; set; }

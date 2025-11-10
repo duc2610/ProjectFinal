@@ -1,0 +1,37 @@
+.container {
+    min-height: 100vh;
+    padding: 40px 20px;
+    background: #f5f5f5;
+}
+
+.contentWrapper {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.headerSection {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.headerTitle {
+    font-size: 32px;
+    font-weight: bold;
+    color: #262626;
+    margin: 0;
+}
+
+.loadingContainer {
+    text-align: center;
+    padding: 60px 0;
+}
+
+.emptyCard {
+    border-radius: 12px;
+}
+
+.startButton {
+    border-radius: 6px;
+}
+

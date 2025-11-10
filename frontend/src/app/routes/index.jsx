@@ -9,6 +9,12 @@ import { LoadingOutlined } from "@ant-design/icons";
 
 const Home = lazy(() => import("@pages/public/Home.jsx"));
 const About = lazy(() => import("@pages/public/About.jsx"));
+const PracticeLR = lazy(() => import("@pages/public/PracticeLR.jsx"));
+const PracticeSW = lazy(() => import("@pages/public/PracticeSW.jsx"));
+const TestList = lazy(() => import("@pages/public/TestList.jsx"));
+const Flashcard = lazy(() => import("@pages/public/Flashcard.jsx"));
+const FlashcardDetail = lazy(() => import("@pages/public/FlashcardDetail.jsx"));
+const FlashcardLearn = lazy(() => import("@pages/public/FlashcardLearn.jsx"));
 const Login = lazy(() => import("@pages/auth/Login.jsx"));
 const Register = lazy(() => import("@pages/auth/Register.jsx"));
 const ForgotPassword = lazy(() => import("@pages/auth/ForgotPassword.jsx"));
@@ -71,9 +77,20 @@ export default function RoutesRoot() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
+          <Route path="/practice-lr" element={<PracticeLR />} />
+          <Route path="/practice-sw" element={<PracticeSW />} />
+          <Route path="/test-list" element={<TestList />} />
+          <Route path="/flashcard" element={<Flashcard />} />
+          <Route path="/flashcard/:setId" element={<FlashcardDetail />} />
+          <Route path="/flashcard/:setId/learn" element={<FlashcardLearn />} />
           {/* chỉ user bình thường mới vào được */}
           <Route element={<PrivateRoute />}>
             <Route path="/profile" element={<Profile />} />
+          </Route>
+          {/* Chỉ Examinee mới vào được */}
+          <Route element={<RoleRoute allow={[ROLES.Examinee]} />}>
+            <Route path="/toeic-exam" element={<TOEICExam />} />
+            <Route path="/result" element={<TestResults />} />
           </Route>
         </Route>
 
@@ -102,9 +119,10 @@ export default function RoutesRoot() {
           </Route>
         </Route>
 
-        <Route path="/toeic-exam" element={<TOEICExam />} />
-        <Route path="/exam" element={<ExamScreen />} />
-        <Route path="/result" element={<TestResults />} />
+        {/* ExamScreen không dùng MainLayout, có layout riêng, nhưng cần guard Examinee */}
+        <Route element={<RoleRoute allow={[ROLES.Examinee]} />}>
+          <Route path="/exam" element={<ExamScreen />} />
+        </Route>
 
         <Route path="*" element={<NotFound />} />
       </Routes>

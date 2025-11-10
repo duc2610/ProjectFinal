@@ -6,9 +6,26 @@ export async function getTests(params = {}) {
   return res?.data ?? res;
 }
 
+export async function getPracticeTests(testResultId = null) {
+  const params = testResultId ? { testResultId } : {};
+  const res = await api.get("/api/tests/examinee/list/practice", { params });
+  return res?.data?.data ?? res?.data ?? res;
+}
+
+export async function getSimulatorTests(testResultId = null) {
+  const params = testResultId ? { testResultId } : {};
+  const res = await api.get("/api/tests/examinee/list/simulator", { params });
+  return res?.data?.data ?? res?.data ?? res;
+}
+
 export async function getTestById(id) {
   const res = await api.get(`/api/tests/${id}`);
   return res?.data?.data ?? res?.data;
+}
+
+export async function getTestHistory() {
+  const res = await api.get("/api/tests/history");
+  return res?.data?.data ?? res?.data ?? [];
 }
 
 
@@ -149,6 +166,7 @@ export const TEST_SKILL = {
   SPEAKING: 1,
   WRITING: 2,
   LR: 3,
+  FOUR_SKILLS: 4,
 };
 
 export const TEST_STATUS = {
@@ -166,6 +184,7 @@ export const TEST_SKILL_LABELS = {
   1: "Speaking",
   2: "Writing",
   3: "Listening & Reading",
+  4: "Four Skills",
 };
 
 export const TEST_STATUS_LABELS = {
@@ -180,7 +199,7 @@ export const TEST_STATUS_COLORS = {
   1: "success",
 };
 
-// Download Excel template
+// Download Excel template for L&R test
 export async function downloadTemplate() {
   const res = await api.get("/api/tests/download-template", {
     responseType: "blob",
@@ -188,13 +207,33 @@ export async function downloadTemplate() {
   return res.data;
 }
 
-// Import test from Excel file
-export async function importTestFromExcel(file) {
+// Download Excel template for 4-skills test (L+R+W+S)
+export async function downloadTemplate4Skills() {
+  const res = await api.get("/api/tests/download-template-4skills", {
+    responseType: "blob",
+  });
+  return res.data;
+}
+
+// Import test from Excel file (L&R)
+export async function importTestFromExcel(excelFile, audioFile) {
   const formData = new FormData();
-  formData.append("ExcelFile", file);
+  formData.append("ExcelFile", excelFile);
+  formData.append("AudioFile", audioFile);
   
   // apiClient will automatically handle FormData and remove Content-Type header
   const res = await api.post("/api/tests/import-excel", formData);
+  return res?.data?.data ?? res?.data;
+}
+
+// Import 4-skills test from Excel file
+export async function importTest4SkillsFromExcel(excelFile, audioFile) {
+  const formData = new FormData();
+  formData.append("ExcelFile", excelFile);
+  formData.append("AudioFile", audioFile);
+  
+  // apiClient will automatically handle FormData and remove Content-Type header
+  const res = await api.post("/api/tests/import-excel-4skills", formData);
   return res?.data?.data ?? res?.data;
 }
 
