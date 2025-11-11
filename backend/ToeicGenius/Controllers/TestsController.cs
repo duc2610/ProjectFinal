@@ -276,7 +276,7 @@ namespace ToeicGenius.Controllers
 			var request = new UpdateTestStatusDto
 			{
 				TestId = id,
-				Status = Domains.Enums.CommonStatus.Inactive
+				Status = Domains.Enums.TestStatus.Hide
 			};
 			var result = await _testService.UpdateStatusAsync(request);
 			if (!result.IsSuccess)
@@ -291,7 +291,7 @@ namespace ToeicGenius.Controllers
 			var request = new UpdateTestStatusDto
 			{
 				TestId = id,
-				Status = Domains.Enums.CommonStatus.Active
+				Status = Domains.Enums.TestStatus.Published
 			};
 			var result = await _testService.UpdateStatusAsync(request);
 			if (!result.IsSuccess)
@@ -307,6 +307,67 @@ namespace ToeicGenius.Controllers
 			if (!result.IsSuccess)
 				return NotFound(result.ErrorMessage);
 			return Ok(result);
+		}
+
+		// Nghiệp vụ mới của CREATE TEST MANUAL
+		/// <summary>
+		/// Tạo test draft (rỗng)
+		/// </summary>
+		[HttpPost("draft")]
+		[Authorize(Roles = "TestCreator")]
+		public async Task<IActionResult> CreateDraft([FromBody] CreateTestManualDraftDto dto)
+		{
+			// Get user id from token
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+			var result = await _testService.CreateDraftManualAsync(userId,dto);
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
+		}
+
+		/// <summary>
+		/// Lưu hoặc cập nhật 1 part của test
+		/// </summary>
+		[HttpPost("{testId}/parts/{partId}")]
+		[Authorize(Roles = "TestCreator")]
+		public async Task<IActionResult> SavePart(int testId, int partId, [FromBody] PartDto dto)
+		{
+			// Get user id from token
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+			var result = await _testService.SavePartManualAsync(userId,testId, partId, dto);
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
+		}
+
+		/// <summary>
+		/// Hoàn tất test (validate và đánh dấu completed)
+		/// </summary>
+		[HttpPatch("{testId}/finalize")]
+		[Authorize(Roles = "TestCreator")]
+		public async Task<IActionResult> FinalizeTest(int testId)
+		{
+			// Get user id from token
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+			var result = await _testService.FinalizeTestAsync(userId,testId);
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 		#endregion
 
@@ -340,7 +401,7 @@ namespace ToeicGenius.Controllers
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
 				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
 
-			var result = await _testService.SubmitLRTestAsync(userId,request);
+			var result = await _testService.SubmitLRTestAsync(userId, request);
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
 			return Ok(ApiResponse<GeneralLRResultDto>.SuccessResponse(result.Data!));

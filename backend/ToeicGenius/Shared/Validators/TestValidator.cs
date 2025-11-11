@@ -1,4 +1,10 @@
-﻿using ToeicGenius.Domains.DTOs.Requests.Exam;
+﻿using Newtonsoft.Json;
+using System.Text.RegularExpressions;
+using ToeicGenius.Domains.DTOs.Common;
+using ToeicGenius.Domains.DTOs.Requests.Exam;
+using ToeicGenius.Domains.DTOs.Responses.Question;
+using ToeicGenius.Domains.DTOs.Responses.Test;
+using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Shared.Validators
@@ -42,6 +48,5 @@ namespace ToeicGenius.Shared.Validators
 
 
 		}
-
 	}
 }

@@ -128,7 +128,7 @@ namespace ToeicGenius.Repositories.Persistence
 				.HasOne(t => t.CreatedBy)
 				.WithMany()
 				.HasForeignKey(q => q.CreatedById)
-				.OnDelete(DeleteBehavior.SetNull);
+				.OnDelete(DeleteBehavior.Restrict);
 
 			modelBuilder.Entity<TestQuestion>()
 				.HasOne(t => t.Part)

@@ -10,6 +10,6 @@ namespace ToeicGenius.Domains.DTOs.Requests.Test
 		public int TestId { get; set; }
 
 		[Required]
-		public CommonStatus Status { get; set; } 
+		public TestStatus Status { get; set; } 
 	}
 }
