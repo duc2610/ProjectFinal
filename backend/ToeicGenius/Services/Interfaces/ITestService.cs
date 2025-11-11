@@ -20,6 +20,9 @@ namespace ToeicGenius.Services.Interfaces
 		Task<Result<string>> UpdateTestFromBankAsync(int id, UpdateTestFromBank dto);
 		Task<Test> CloneTestAsync(int sourceTestId);
 		Task<Result<List<TestVersionDto>>> GetVersionsByParentIdAsync(int parentTestId);
+		Task<Result<string>> CreateDraftManualAsync(Guid userId, CreateTestManualDraftDto dto);
+		Task<Result<string>> SavePartManualAsync(Guid userId, int testId, int partId, PartDto dto);
+		Task<Result<string>> FinalizeTestAsync(Guid userId, int testId);
 		#endregion
 
 		#region Examinee
