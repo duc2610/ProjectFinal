@@ -75,7 +75,13 @@ namespace ToeicGenius.Repositories.Persistence
 			modelBuilder.Entity<FlashcardProgress>()
 				.HasOne(fp => fp.Flashcard)
 				.WithMany(f => f.Progresses)
-				.HasForeignKey(fp => fp.FlashcardId);
+				.HasForeignKey(fp => fp.CardId);
+
+			modelBuilder.Entity<FlashcardProgress>()
+				.HasOne(fp => fp.User)
+				.WithMany()
+				.HasForeignKey(fp => fp.UserId)
+				.OnDelete(DeleteBehavior.Restrict);
 
 			// Question bank
 			modelBuilder.Entity<Question>()
