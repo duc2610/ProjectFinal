@@ -105,7 +105,7 @@ class GeminiAnalyzer:
             genai.configure(api_key=api_key)
 
             self.text_model = genai.GenerativeModel(
-                'gemini-2.0-flash-exp',
+                'gemini-2.5-flash',
                 generation_config={
                     "temperature": 0,
                     "response_mime_type": "application/json"
@@ -113,7 +113,7 @@ class GeminiAnalyzer:
             )
 
             self.vision_model = genai.GenerativeModel(
-                'gemini-2.0-flash-exp',
+                'gemini-2.5-flash',
                 generation_config={"temperature": 0}
             )
 
