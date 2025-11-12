@@ -1,0 +1,23 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/backend/.vs/backend/CopilotIndices/17.12.38.29086/CodeChunks.db
+/backend/.vs/backend/CopilotIndices/17.12.38.29086/CodeChunks.db-shm
+/backend/.vs/backend/CopilotIndices/17.12.38.29086/CodeChunks.db-wal
+/backend/.vs/backend/CopilotIndices/17.12.38.29086/SemanticSymbols.db
+/backend/.vs/backend/CopilotIndices/17.12.38.29086/SemanticSymbols.db-shm
+/backend/.vs/backend/CopilotIndices/17.12.38.29086/SemanticSymbols.db-wal
+/backend/.vs/backend/FileContentIndex/ca3cce05-60fc-453b-aa81-7bc2c30f7f63.vsidx
+/backend/.vs/ProjectSettings.json
+/backend/.vs/slnx.sqlite
+/.gitignore
+/backend/.env
+/backend/.vs/backend/FileContentIndex/282fd60e-d917-4413-862f-833540e0402a.vsidx
+/backend/.vs/backend/v17/.wsuo
+/backend/.vs/backend/v17/DocumentLayout.backup.json
+/backend/.vs/backend/v17/DocumentLayout.json
+/backend/.vs/VSWorkspaceState.json
+/backend/.claude/settings.local.json
+/backend/nul
+/backend/python-service/python-services/writing-assessment/nul

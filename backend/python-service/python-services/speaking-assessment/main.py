@@ -174,10 +174,10 @@ class TOEICSpeakingAssessmentUltimate:
         try:
             genai.configure(api_key=self.GEMINI_API_KEY)
             self.gemini_text_model = genai.GenerativeModel(
-                'gemini-2.0-flash-exp',
+                'gemini-2.5-flash',
                 generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
             )
-            self.gemini_vision_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            self.gemini_vision_model = genai.GenerativeModel('gemini-2.5-flash')
             logger.info("✅ Gemini AI initialized")
         except Exception as e:
             logger.error(f"❌ Gemini failed: {e}")
