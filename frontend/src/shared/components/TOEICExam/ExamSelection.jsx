@@ -127,6 +127,7 @@ export default function ExamSelection() {
       JSON.stringify({
         ...testData,
         testId: testId, // Lưu testId để dùng khi submit
+        testResultId: testData.testResultId, // QUAN TRỌNG: Lưu testResultId từ startTest response
         questions: selectedQuestions,
         duration: finalDuration,
         selectedPartIds,

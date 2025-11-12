@@ -1,8 +1,10 @@
+https://localhost:7100/api/tests/start?Id=8&IsSelectTime=true
+
 {
     "statusCode": 200,
     "message": "Success",
     "data": {
-        "testResultId": 109,
+        "testResultId": 1171,
         "testId": 8,
         "title": "TOEIC Full Simulator Test 1",
         "testSkill": "LR",
@@ -10,13 +12,11 @@
         "audioUrl": "https://daksgci46xjpr.cloudfront.net/toeic-audio/d1716bcd-f5bb-454b-b364-76ef03c75f36_test.mp3",
         "duration": 120,
         "quantityQuestion": 100,
-        "correctCount": 0,
-        "totalScore": 10,
         "parts": [
             {
                 "partId": 1,
                 "partName": "L-Part 1",
-                "description": null,
+                "description": "Photographs",
                 "testQuestions": [
                     {
                         "testQuestionId": 611,
@@ -50,8 +50,8 @@
                                     "isCorrect": false
                                 }
                             ],
-                            "userAnswer": "D",
-                            "isCorrect": false
+                            "userAnswer": null,
+                            "isCorrect": null
                         },
                         "questionGroupSnapshotDto": null
                     },
@@ -245,7 +245,7 @@
             {
                 "partId": 2,
                 "partName": "L-Part 2",
-                "description": null,
+                "description": "Question-Response",
                 "testQuestions": [
                     {
                         "testQuestionId": 617,
@@ -1052,7 +1052,7 @@
             {
                 "partId": 3,
                 "partName": "L-Part 3",
-                "description": null,
+                "description": "Conversations",
                 "testQuestions": [
                     {
                         "testQuestionId": 642,
@@ -1267,7 +1267,7 @@
             {
                 "partId": 4,
                 "partName": "L-Part 4",
-                "description": null,
+                "description": "Talks",
                 "testQuestions": [
                     {
                         "testQuestionId": 655,
@@ -1434,7 +1434,7 @@
             {
                 "partId": 5,
                 "partName": "R-Part 5",
-                "description": null,
+                "description": "Incomplete Sentences",
                 "testQuestions": [
                     {
                         "testQuestionId": 665,
@@ -2551,7 +2551,7 @@
             {
                 "partId": 6,
                 "partName": "R-Part 6",
-                "description": null,
+                "description": "Text Completion",
                 "testQuestions": [
                     {
                         "testQuestionId": 695,
@@ -2622,7 +2622,7 @@
             {
                 "partId": 7,
                 "partName": "R-Part 7",
-                "description": null,
+                "description": "Reading Comprehension",
                 "testQuestions": [
                     {
                         "testQuestionId": 699,
@@ -2818,7 +2818,9 @@
                     }
                 ]
             }
-        ]
+        ],
+        "createdAt": "2025-11-01T08:00:28.6099467",
+        "updatedAt": "2025-11-13T00:34:32.4453607"
     },
     "success": true
 }

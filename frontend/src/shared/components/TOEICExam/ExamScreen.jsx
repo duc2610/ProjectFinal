@@ -179,42 +179,38 @@ export default function ExamScreen() {
 
       // Submit L&R nếu có
       let lrResult = null;
-      let finalTestResultId = testResultId; // Dùng testResultId ban đầu làm mặc định
+      // QUAN TRỌNG: Luôn dùng testResultId ban đầu từ startTest, không tạo mới
+      // Backend phải update bản ghi hiện tại thay vì tạo mới
+      const finalTestResultId = testResultId;
       
       if (lrAnswers.length > 0) {
         const lrPayload = {
           userId: "33333333-3333-3333-3333-333333333333",
           testId: rawTestData.testId,
-          testResultId,
+          testResultId: finalTestResultId, // Dùng testResultId ban đầu
           duration: duration > 0 ? duration : 1,
           testType: testType,
           answers: lrAnswers,
         };
+        console.log("Submitting L&R with testResultId:", finalTestResultId);
         lrResult = await submitTest(lrPayload);
-        // Lấy testResultId từ response nếu có (có thể backend trả về testResultId mới)
-        if (lrResult?.testResultId) {
-          finalTestResultId = lrResult.testResultId;
-        } else if (lrResult?.data?.testResultId) {
-          finalTestResultId = lrResult.data.testResultId;
-        }
+        // KHÔNG cập nhật testResultId từ response - luôn dùng testResultId ban đầu
+        console.log("L&R submit response:", lrResult);
       }
 
-      // Submit S&W nếu có (dùng cùng testResultId)
+      // Submit S&W nếu có (dùng CÙNG testResultId ban đầu)
       let swResult = null;
       if (swAnswers.length > 0) {
         const swPayload = {
-          testResultId: finalTestResultId, // Dùng testResultId từ L&R hoặc ban đầu
+          testResultId: finalTestResultId, // Dùng CÙNG testResultId ban đầu
           testType: testTypeLower,
           duration: duration > 0 ? duration : 1,
           parts: swAnswers,
         };
+        console.log("Submitting S&W with testResultId:", finalTestResultId);
         swResult = await submitAssessmentBulk(swPayload);
-        // Cập nhật testResultId từ S&W response nếu có
-        if (swResult?.testResultId) {
-          finalTestResultId = swResult.testResultId;
-        } else if (swResult?.data?.testResultId) {
-          finalTestResultId = swResult.data.testResultId;
-        }
+        // KHÔNG cập nhật testResultId từ response - luôn dùng testResultId ban đầu
+        console.log("S&W submit response:", swResult);
       }
 
       // Kiểm tra nếu không có câu nào được trả lời
