@@ -8,7 +8,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Test
 		public TestType? TestType { get; set; }
 		public TestSkill? TestSkill { get; set; }
 		public string? KeyWord { get; set; }
-		public CommonStatus? Status { get; set; }
+		public TestStatus? Status { get; set; }
 		public string? SortOrder { get; set; } 
 		[Required]
 		public int page { get; set; }

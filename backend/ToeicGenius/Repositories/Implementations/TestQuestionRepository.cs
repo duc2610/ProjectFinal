@@ -20,5 +20,12 @@ namespace ToeicGenius.Repositories.Implementations
 		{
 			_context.TestQuestions.RemoveRange(entities);
 		}
+
+		public async Task<List<TestQuestion>> GetByTestAndPartAsync(int testId, int partId)
+		{
+			return await _context.TestQuestions
+				.Where(q => q.TestId == testId && q.PartId == partId)
+				.ToListAsync();
+		}
 	}
 }

@@ -119,7 +119,7 @@ namespace ToeicGenius.Repositories.Implementations
 		public async Task<List<TestListResponseDto>> GetTestByType(TestType testType)
 		{
 			var result = await _context.Tests
-							.Where(t => t.TestType == testType && t.Status == CommonStatus.Active)
+							.Where(t => t.TestType == testType && t.Status == TestStatus.Published)
 							.Select(t => new TestListResponseDto
 							{
 								Id = t.TestId,

@@ -22,6 +22,14 @@ namespace ToeicGenius.Domains.DTOs.Requests.Exam
 		[Required]
 		public List<PartDto> Parts { get; set; } = new();
 	}
+	public class CreateTestManualDraftDto
+	{
+		public string Title { get; set; }
+		public string? Description { get; set; }
+		public string? AudioUrl { get; set; }
+		public TestSkill TestSkill { get; set; }
+		public Guid? CreatedById { get; set; }
+	}
 	public class PartDto
 	{
 		[Required] public int PartId { get; set; }
