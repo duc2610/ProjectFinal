@@ -35,6 +35,9 @@ export default function ExamScreen() {
   const timerRef = useRef(null);
   const isSubmittingRef = useRef(false);
   const startTimestampRef = useRef(safeStartTimestamp);
+  const warningTimeoutRef = useRef(null);
+  const originalPushStateRef = useRef(null);
+  const originalReplaceStateRef = useRef(null);
 
   // Sync ref với state
   useEffect(() => {
@@ -55,6 +58,96 @@ export default function ExamScreen() {
         window.removeEventListener("popstate", handlePopState);
       };
     }
+
+    // === CHẶN TẮT TAB/TRÌNH DUYỆT ===
+    const handleBeforeUnload = (e) => {
+      if (isSubmittingRef.current) return; // Nếu đang submit thì cho phép
+      
+      // Hiển thị alert mặc định của browser với nội dung tiếng Việt
+      e.preventDefault();
+      e.returnValue = "Bạn đang làm bài thi. Nếu bạn rời khỏi trang này, bài thi sẽ được nộp tự động. Bạn có chắc chắn muốn rời khỏi trang không?";
+      
+      return e.returnValue; // Chrome, Safari
+    };
+
+    // === CHẶN THAY ĐỔI URL ===
+    originalPushStateRef.current = window.history.pushState;
+    originalReplaceStateRef.current = window.history.replaceState;
+    
+    window.history.pushState = function(...args) {
+      if (!isSubmittingRef.current && args[2] && window.location.pathname !== args[2].split('?')[0]) {
+        // Hiển thị alert khi cố thay đổi URL
+        const confirmMessage = "Bạn đang làm bài thi. Nếu bạn thay đổi URL, bài thi sẽ được nộp tự động. Bạn có chắc chắn muốn tiếp tục không?";
+        if (window.confirm(confirmMessage)) {
+          // Nếu đồng ý, nộp bài
+          handleSubmit(false);
+          return;
+        }
+        // Nếu không đồng ý, giữ nguyên URL
+        return;
+      }
+      return originalPushStateRef.current.apply(window.history, args);
+    };
+    
+    window.history.replaceState = function(...args) {
+      if (!isSubmittingRef.current && args[2] && window.location.pathname !== args[2].split('?')[0]) {
+        // Hiển thị alert khi cố thay đổi URL
+        const confirmMessage = "Bạn đang làm bài thi. Nếu bạn thay đổi URL, bài thi sẽ được nộp tự động. Bạn có chắc chắn muốn tiếp tục không?";
+        if (window.confirm(confirmMessage)) {
+          // Nếu đồng ý, nộp bài
+          handleSubmit(false);
+          return;
+        }
+        // Nếu không đồng ý, giữ nguyên URL
+        return;
+      }
+      return originalReplaceStateRef.current.apply(window.history, args);
+    };
+
+    const handleHashChange = () => {
+      if (isSubmittingRef.current) return;
+      const confirmMessage = "Bạn đang làm bài thi. Nếu bạn thay đổi URL, bài thi sẽ được nộp tự động. Bạn có chắc chắn muốn tiếp tục không?";
+      if (window.confirm(confirmMessage)) {
+        // Nếu đồng ý, nộp bài
+        handleSubmit(false);
+      } else {
+        // Nếu không đồng ý, giữ nguyên URL
+        window.history.pushState(null, "", window.location.href);
+      }
+    };
+
+    // Đăng ký event listeners
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("hashchange", handleHashChange);
+
+    // Chặn các phím tắt nguy hiểm
+    const handleKeyDown = (e) => {
+      // Chặn Ctrl+W, Ctrl+T, Alt+F4, F5, Ctrl+R
+      if (
+        (e.ctrlKey && (e.key === "w" || e.key === "W" || e.key === "t" || e.key === "T" || e.key === "r" || e.key === "R")) ||
+        (e.altKey && e.key === "F4") ||
+        e.key === "F5"
+      ) {
+        if (isSubmittingRef.current) return;
+        e.preventDefault();
+        
+        // Hiển thị alert khi nhấn phím tắt nguy hiểm
+        const confirmMessage = "Bạn đang làm bài thi. Hành động này sẽ khiến bài thi được nộp tự động. Bạn có chắc chắn muốn tiếp tục không?";
+        if (window.confirm(confirmMessage)) {
+          // Nếu đồng ý, nộp bài
+          handleSubmit(false);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    // Chặn right-click menu (tùy chọn, có thể bỏ nếu không cần)
+    const handleContextMenu = (e) => {
+      // Không chặn hoàn toàn, chỉ cảnh báo
+      // e.preventDefault(); // Bỏ comment nếu muốn chặn hoàn toàn
+    };
+    document.addEventListener("contextmenu", handleContextMenu);
 
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -101,6 +194,21 @@ export default function ExamScreen() {
         clearInterval(timerRef.current);
       }
       window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("hashchange", handleHashChange);
+      window.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("contextmenu", handleContextMenu);
+      
+      // Khôi phục lại history methods
+      if (originalPushStateRef.current) {
+        window.history.pushState = originalPushStateRef.current;
+      }
+      if (originalReplaceStateRef.current) {
+        window.history.replaceState = originalReplaceStateRef.current;
+      }
+      if (warningTimeoutRef.current) {
+        clearTimeout(warningTimeoutRef.current);
+      }
     };
   }, [
     rawTestData.testResultId,
