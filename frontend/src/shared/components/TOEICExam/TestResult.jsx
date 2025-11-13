@@ -52,6 +52,8 @@ export default function ResultScreen() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
   const [testId, setTestId] = useState(null);
+  const [questionDetailModalVisible, setQuestionDetailModalVisible] = useState(false);
+  const [selectedQuestionDetail, setSelectedQuestionDetail] = useState(null);
 
   // Hàm xử lý quay lại - quay về trang chủ hoặc test-list
   const handleGoBack = () => {
@@ -176,26 +178,31 @@ export default function ResultScreen() {
         if (!tq.isGroup && tq.questionSnapshotDto) {
           const qs = tq.questionSnapshotDto;
           const userAnswer = qs.userAnswer || "";
-          const correctAnswer = qs.options?.find((o) => o.isCorrect)?.label || "";
-          const isCorrect = qs.isCorrect !== null ? qs.isCorrect : userAnswer === correctAnswer;
+          
+          // CHỈ thêm vào danh sách nếu có userAnswer (đã trả lời)
+          if (userAnswer !== null && userAnswer !== undefined && userAnswer.trim() !== "") {
+            const correctAnswer = qs.options?.find((o) => o.isCorrect)?.label || "";
+            const isCorrect = qs.isCorrect !== null ? qs.isCorrect : userAnswer === correctAnswer;
 
-          const row = {
-            key: tq.testQuestionId,
-            index: globalIndex++,
-            partId: qs.partId || part.partId,
-            partTitle: part.partName || `Part ${qs.partId || part.partId}`,
-            question: qs.content || "",
-            passage: null,
-            userAnswer,
-            correctAnswer,
-            isCorrect,
-            imageUrl: qs.imageUrl,
-            explanation: qs.explanation,
-          };
+            const row = {
+              key: tq.testQuestionId,
+              index: globalIndex++,
+              partId: qs.partId || part.partId,
+              partTitle: part.partName || `Part ${qs.partId || part.partId}`,
+              question: qs.content || "",
+              passage: null,
+              userAnswer,
+              correctAnswer,
+              isCorrect,
+              imageUrl: qs.imageUrl,
+              explanation: qs.explanation,
+              options: qs.options || [], // Lưu tất cả các options để hiển thị
+            };
 
-          rows.all.push(row);
-          if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
-          if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
+            rows.all.push(row);
+            if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
+            if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
+          }
         }
 
         // Xử lý group question
@@ -203,26 +210,31 @@ export default function ResultScreen() {
           const group = tq.questionGroupSnapshotDto;
           group.questionSnapshots?.forEach((qs, idx) => {
             const userAnswer = qs.userAnswer || "";
-            const correctAnswer = qs.options?.find((o) => o.isCorrect)?.label || "";
-            const isCorrect = qs.isCorrect !== null ? qs.isCorrect : userAnswer === correctAnswer;
+            
+            // CHỈ thêm vào danh sách nếu có userAnswer (đã trả lời)
+            if (userAnswer !== null && userAnswer !== undefined && userAnswer.trim() !== "") {
+              const correctAnswer = qs.options?.find((o) => o.isCorrect)?.label || "";
+              const isCorrect = qs.isCorrect !== null ? qs.isCorrect : userAnswer === correctAnswer;
 
-            const row = {
-              key: `${tq.testQuestionId}_${idx}`,
-              index: globalIndex++,
-              partId: qs.partId || part.partId,
-              partTitle: part.partName || `Part ${qs.partId || part.partId}`,
-              question: qs.content || "",
-              passage: group.passage || null,
-              userAnswer,
-              correctAnswer,
-              isCorrect,
-              imageUrl: qs.imageUrl || group.imageUrl,
-              explanation: qs.explanation,
-            };
+              const row = {
+                key: `${tq.testQuestionId}_${idx}`,
+                index: globalIndex++,
+                partId: qs.partId || part.partId,
+                partTitle: part.partName || `Part ${qs.partId || part.partId}`,
+                question: qs.content || "",
+                passage: group.passage || null,
+                userAnswer,
+                correctAnswer,
+                isCorrect,
+                imageUrl: qs.imageUrl || group.imageUrl,
+                explanation: qs.explanation,
+                options: qs.options || [], // Lưu tất cả các options để hiển thị
+              };
 
-            rows.all.push(row);
-            if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
-            if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
+              rows.all.push(row);
+              if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
+              if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
+            }
           });
         }
       });
@@ -369,8 +381,8 @@ export default function ResultScreen() {
           <Button
             size="small"
             onClick={() => {
-              setDetailQuestions([row]);
-              setDetailModalVisible(true);
+              setSelectedQuestionDetail(row);
+              setQuestionDetailModalVisible(true);
             }}
           >
             Xem
@@ -673,6 +685,163 @@ export default function ResultScreen() {
           onChange={(e) => setReportText(e.target.value)}
           placeholder="Mô tả lỗi hoặc góp ý về câu hỏi này..."
         />
+      </Modal>
+
+      {/* MODAL CHI TIẾT CÂU HỎI */}
+      <Modal
+        title={`Chi tiết câu hỏi ${selectedQuestionDetail?.index || ""}`}
+        open={questionDetailModalVisible}
+        onCancel={() => {
+          setQuestionDetailModalVisible(false);
+          setSelectedQuestionDetail(null);
+        }}
+        footer={[
+          <Button key="close" onClick={() => {
+            setQuestionDetailModalVisible(false);
+            setSelectedQuestionDetail(null);
+          }}>
+            Đóng
+          </Button>
+        ]}
+        width={800}
+      >
+        {selectedQuestionDetail && (
+          <div>
+            {/* Passage (nếu có) */}
+            {selectedQuestionDetail.passage && (
+              <div style={{ 
+                marginBottom: 16, 
+                padding: 12, 
+                backgroundColor: "#f5f5f5", 
+                borderRadius: 4,
+                fontStyle: "italic",
+                color: "#666"
+              }}>
+                <Text strong>Đoạn văn:</Text>
+                <div style={{ marginTop: 8 }}>{selectedQuestionDetail.passage}</div>
+              </div>
+            )}
+
+            {/* Câu hỏi */}
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ fontSize: 16 }}>Câu hỏi:</Text>
+              <div style={{ marginTop: 8, fontSize: 15 }}>{selectedQuestionDetail.question}</div>
+            </div>
+
+            {/* Hình ảnh (nếu có) */}
+            {selectedQuestionDetail.imageUrl && (
+              <div style={{ marginBottom: 16, textAlign: "center" }}>
+                <img 
+                  src={selectedQuestionDetail.imageUrl} 
+                  alt="Question" 
+                  style={{ maxWidth: "100%", maxHeight: 300, borderRadius: 4 }}
+                />
+              </div>
+            )}
+
+            {/* Tất cả các đáp án */}
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ fontSize: 16, marginBottom: 12, display: "block" }}>
+                Các đáp án:
+              </Text>
+              {selectedQuestionDetail.options && selectedQuestionDetail.options.length > 0 ? (
+                selectedQuestionDetail.options.map((option, idx) => {
+                  const isCorrect = option.isCorrect;
+                  const isUserAnswer = option.label === selectedQuestionDetail.userAnswer;
+                  let bgColor = "#fff";
+                  let borderColor = "#d9d9d9";
+                  let textColor = "#000";
+
+                  if (isCorrect) {
+                    bgColor = "#f6ffed";
+                    borderColor = "#52c41a";
+                    textColor = "#52c41a";
+                  } else if (isUserAnswer && !isCorrect) {
+                    bgColor = "#fff1f0";
+                    borderColor = "#f5222d";
+                    textColor = "#f5222d";
+                  }
+
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        marginBottom: 8,
+                        padding: 12,
+                        backgroundColor: bgColor,
+                        border: `2px solid ${borderColor}`,
+                        borderRadius: 4,
+                        color: textColor,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <Text strong style={{ fontSize: 16, color: textColor }}>
+                          {option.label}.
+                        </Text>
+                        <Text style={{ flex: 1, color: textColor }}>{option.content}</Text>
+                        {isCorrect && (
+                          <Tag color="success" style={{ margin: 0 }}>Đáp án đúng</Tag>
+                        )}
+                        {isUserAnswer && !isCorrect && (
+                          <Tag color="error" style={{ margin: 0 }}>Bạn đã chọn</Tag>
+                        )}
+                        {isUserAnswer && isCorrect && (
+                          <Tag color="success" style={{ margin: 0 }}>Bạn đã chọn (Đúng)</Tag>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <Text type="secondary">Không có đáp án</Text>
+              )}
+            </div>
+
+            {/* Giải thích */}
+            {selectedQuestionDetail.explanation && (
+              <div style={{ 
+                marginTop: 16, 
+                padding: 12, 
+                backgroundColor: "#e6f7ff", 
+                borderRadius: 4,
+                borderLeft: "4px solid #1890ff"
+              }}>
+                <Text strong style={{ display: "block", marginBottom: 8 }}>
+                  Giải thích:
+                </Text>
+                <Text>{selectedQuestionDetail.explanation}</Text>
+              </div>
+            )}
+
+            {/* Kết quả */}
+            <div style={{ 
+              marginTop: 16, 
+              padding: 12, 
+              backgroundColor: selectedQuestionDetail.isCorrect ? "#f6ffed" : "#fff1f0",
+              borderRadius: 4,
+              textAlign: "center"
+            }}>
+              <Text strong style={{ fontSize: 16 }}>
+                Kết quả:{" "}
+                <Tag color={selectedQuestionDetail.isCorrect ? "success" : "error"} style={{ fontSize: 14 }}>
+                  {selectedQuestionDetail.isCorrect ? "Đúng" : "Sai"}
+                </Tag>
+              </Text>
+              <div style={{ marginTop: 8 }}>
+                <Text>Đáp án của bạn: </Text>
+                <Text strong style={{ color: selectedQuestionDetail.isCorrect ? "#52c41a" : "#f5222d" }}>
+                  {selectedQuestionDetail.userAnswer || "—"}
+                </Text>
+              </div>
+              <div>
+                <Text>Đáp án đúng: </Text>
+                <Text strong style={{ color: "#52c41a" }}>
+                  {selectedQuestionDetail.correctAnswer}
+                </Text>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
