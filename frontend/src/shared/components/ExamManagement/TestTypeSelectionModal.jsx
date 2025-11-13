@@ -25,7 +25,7 @@ export default function TestTypeSelectionModal({ open, onClose, onSelect }) {
                         }}
                     >
                         <EditOutlined style={{ fontSize: 48, color: "#1890ff", marginBottom: 16 }} />
-                        <Title level={4}>Simulator Test</Title>
+                        <Title level={4}>Bài Thi Mô Phỏng</Title>
                         <Title level={5} type="secondary">(Tạo thủ công)</Title>
                         <Paragraph>
                             Tự tạo đề thi hoàn chỉnh với cấu trúc TOEIC chuẩn.
@@ -50,7 +50,7 @@ export default function TestTypeSelectionModal({ open, onClose, onSelect }) {
                         }}
                     >
                         <DatabaseOutlined style={{ fontSize: 48, color: "#52c41a", marginBottom: 16 }} />
-                        <Title level={4}>Practice Test</Title>
+                        <Title level={4}>Bài Thi Luyện Tập</Title>
                         <Title level={5} type="secondary">(Tạo từ ngân hàng)</Title>
                         <Paragraph>
                             Tạo đề thi luyện tập từ ngân hàng câu hỏi có sẵn.

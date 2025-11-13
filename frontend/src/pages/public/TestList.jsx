@@ -37,11 +37,12 @@ export default function TestList() {
                                           test.testType === TEST_TYPE.SIMULATOR || 
                                           test.testType === 1;
                         
-                        const isActive = test.status === "Active" || 
-                                       test.status === 1 || 
-                                       test.status === "1";
+                        // Check status: Published = 3 (theo backend enum)
+                        const isPublished = test.status === "Published" || 
+                                          test.status === 3 || 
+                                          test.status === "3";
                         
-                        return isSimulator && isActive && test.testSkill !== 0;
+                        return isSimulator && isPublished && test.testSkill !== 0;
                     })
                     .map(test => ({
                         id: test.id,
@@ -68,9 +69,14 @@ export default function TestList() {
             }
         } catch (error) {
             console.error("Error fetching simulator tests:", error);
-            message.error("Không thể tải danh sách bài test. Vui lòng thử lại sau.");
-            setAllTests([]);
-            setTests([]);
+            if (error.response?.status === 404) {
+                setAllTests([]);
+                setTests([]);
+            } else {
+                message.error("Không thể tải danh sách bài test. Vui lòng thử lại sau.");
+                setAllTests([]);
+                setTests([]);
+            }
         } finally {
             setLoading(false);
         }
@@ -93,21 +99,17 @@ export default function TestList() {
         }
         
         const filtered = testsList.filter(test => {
-            // Chuyển đổi cả hai về số để so sánh
             const testSkillNum = Number(test.testSkillValue);
             const skillNum = Number(skillValue);
-            
-            // So sánh số
+
             if (testSkillNum === skillNum) {
                 return true;
             }
             
-            // So sánh string (nếu có)
             if (test.testSkillValue === skillValue || test.testSkillValue === skillNum) {
                 return true;
             }
             
-            // So sánh với string từ backend (nếu backend trả về string)
             if (skill === "lr" && (test.testSkillValue === 3 || test.testSkill === "LR" || test.testSkillValue === "LR")) {
                 return true;
             }
@@ -190,7 +192,6 @@ export default function TestList() {
                     </p>
                 </div>
 
-                {/* Filter Section */}
                 <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end' }}>
                     <Select
                         value={filterSkill}
