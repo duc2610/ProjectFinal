@@ -108,8 +108,8 @@ export default function PracticeSW() {
         }
     };
 
-    const handleStartTest = (testId) => {
-        navigate(`/toeic-exam?testId=${testId}`, { state: { from: location.pathname } });
+    const handleStartTest = (test) => {
+        navigate(`/toeic-exam?testId=${test.id}`, { state: { from: location.pathname, testMeta: test } });
     };
 
     const getSkillColor = (skill) => {
@@ -172,7 +172,8 @@ export default function PracticeSW() {
                                     type="primary"
                                     icon={<PlayCircleOutlined />}
                                     size="middle"
-                                    onClick={() => handleStartTest(test.id)}
+                                    onClick={() => handleStartTest(test)}
+                                    onClick={() => handleStartTest(test)}
                                     className={styles.testStartButton}
                                 >
                                     Bắt đầu làm bài

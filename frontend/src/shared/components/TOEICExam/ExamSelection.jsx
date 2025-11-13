@@ -1,301 +1,316 @@
-import React, { useState, useEffect } from "react";
-import { Card, Button, Select, Typography, Checkbox, message, Spin } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Modal, Typography, Checkbox, Spin, message, Alert } from "antd";
 import styles from "../../styles/Exam.module.css";
 import { startTest } from "../../../services/testExamService";
+import { getTestById } from "../../../services/testsService";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 
 const { Title, Text } = Typography;
+
+const normalizeTestType = (value) => {
+  if (typeof value === "string") {
+    const lower = value.toLowerCase();
+    if (lower.includes("practice") || lower.includes("luyện")) return "Practice";
+    return "Simulator";
+  }
+  if (value === 2) return "Practice";
+  return "Simulator";
+};
+
+const normalizeTestSkill = (value) => {
+  if (typeof value === "string") {
+    return value;
+  }
+  const mapping = {
+    1: "Speaking",
+    2: "Writing",
+    3: "Listening & Reading",
+    4: "Four Skills",
+  };
+  return mapping[value] || "Unknown";
+};
+
+const normalizeNumber = (value) => {
+  if (value === undefined || value === null) return 0;
+  const num = Number(value);
+  return Number.isNaN(num) ? 0 : num;
+};
+
+const buildQuestions = (parts = []) => {
+  const questions = [];
+  let globalIndex = 1;
+
+  parts.forEach((part) => {
+    part?.testQuestions?.forEach((tq) => {
+      if (tq.isGroup && tq.questionGroupSnapshotDto) {
+        const group = tq.questionGroupSnapshotDto;
+        group.questionSnapshots?.forEach((qs, idx) => {
+          questions.push({
+            testQuestionId: tq.testQuestionId,
+            subQuestionIndex: idx,
+            partId: part.partId,
+            partName: part.partName,
+            partDescription: part.description,
+            globalIndex: globalIndex++,
+            type: "group",
+            question: qs.content,
+            passage: group.passage,
+            imageUrl: qs.imageUrl,
+            audioUrl: qs.audioUrl,
+            options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+            correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+            userAnswer: qs.userAnswer,
+          });
+        });
+      } else if (!tq.isGroup && tq.questionSnapshotDto) {
+        const qs = tq.questionSnapshotDto;
+        questions.push({
+          testQuestionId: tq.testQuestionId,
+          subQuestionIndex: 0,
+          partId: part.partId,
+          partName: part.partName,
+          partDescription: part.description,
+          globalIndex: globalIndex++,
+          type: "single",
+          question: qs.content,
+          imageUrl: qs.imageUrl,
+          audioUrl: qs.audioUrl,
+          options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+          correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+          userAnswer: qs.userAnswer,
+        });
+      }
+    });
+  });
+
+  return questions;
+};
 
 export default function ExamSelection() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const testIdFromUrl = searchParams.get("testId");
-  
-  const [testData, setTestData] = useState(null);
-  const [parts, setParts] = useState([]);
-  const [selectedPartIds, setSelectedPartIds] = useState([]);
-  const [durationMinutes, setDurationMinutes] = useState(60);
-  const [isSelectTime, setIsSelectTime] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const testIdParam = searchParams.get("testId");
 
-  // Hàm xử lý quay lại - quay về trang trước hoặc test-list
-  const handleGoBack = () => {
-    // Nếu có state.from thì quay về đó, nếu không thì quay về test-list
-    const from = location.state?.from || "/test-list";
-    navigate(from);
-  };
+  const [modalVisible, setModalVisible] = useState(true);
+  const [testInfo, setTestInfo] = useState(location.state?.testMeta || null);
+  const [metaLoading, setMetaLoading] = useState(!location.state?.testMeta);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [practiceCountdown, setPracticeCountdown] = useState(false);
+  const initializedPracticeRef = useRef(false);
+
+  const testType = useMemo(
+    () => normalizeTestType(testInfo?.testType),
+    [testInfo]
+  );
+  const isPractice = testType === "Practice";
+  const isSimulator = testType === "Simulator";
 
   useEffect(() => {
-    // Kiểm tra testId từ URL
-    if (!testIdFromUrl) {
-      message.error("Không tìm thấy bài test. Vui lòng chọn lại từ trang chủ.");
-      navigate("/test-list");
-      return;
-    }
-    fetchTestData();
-  }, [testIdFromUrl, navigate]);
-
-  const fetchTestData = async () => {
-    if (!testIdFromUrl) return;
-    
-    setLoading(true);
-    try {
-      const testId = parseInt(testIdFromUrl);
-      if (isNaN(testId)) {
-        message.error("ID bài test không hợp lệ.");
-        navigate("/test-list");
-        return;
-      }
-      
-      const data = await startTest(testId, true);
-      if (!data) {
-        message.error("Không thể tải dữ liệu bài thi.");
-        navigate("/test-list");
-        return;
-      }
-      
-      setTestData(data);
-
-      const partList = data.parts.map((p) => ({
-        partId: p.partId,
-        partName: p.partName,
-        description: p.description,
-        questionCount: p.testQuestions.reduce((sum, tq) => {
-          return tq.isGroup
-            ? sum + tq.questionGroupSnapshotDto.questionSnapshots.length
-            : sum + 1;
-        }, 0),
-      }));
-
-      setParts(partList);
-      
-      // Kiểm tra testType: nếu là Simulator thì tự động chọn tất cả phần và không cho chọn thời gian
-      const testType = data.testType || "Simulator";
-      const isSimulator = testType.toLowerCase() === "simulator";
-      
-      if (isSimulator) {
-        // Simulator: chọn tất cả phần, không cho chọn thời gian
-        setSelectedPartIds(partList.map((p) => p.partId));
-        setIsSelectTime(false); // Không cho chọn thời gian
-      } else {
-        // Practice: cho phép chọn phần và thời gian
-        setSelectedPartIds(partList.map((p) => p.partId));
-      }
-    } catch (error) {
-      message.error("Không thể tải đề thi");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const togglePart = (partId) => {
-    // Không cho phép toggle nếu là Simulator
-    const testType = testData?.testType || "Simulator";
-    const isSimulator = testType.toLowerCase() === "simulator";
-    if (isSimulator) {
-      return; // Không làm gì nếu là Simulator
-    }
-    
-    setSelectedPartIds((prev) =>
-      prev.includes(partId) ? prev.filter((id) => id !== partId) : [...prev, partId]
-    );
-  };
-
-  const selectAll = () => {
-    setSelectedPartIds(parts.map((p) => p.partId));
-  };
-
-  const startExam = () => {
-    if (selectedPartIds.length === 0) {
-      message.warning("Vui lòng chọn ít nhất một phần");
+    if (!testIdParam) {
+      message.error("Không tìm thấy bài test. Vui lòng chọn lại.");
+      navigate(location.state?.from || "/test-list");
       return;
     }
 
-    const selectedQuestions = flattenQuestions(testData.parts, selectedPartIds);
-    // Nếu là Simulator, luôn dùng thời gian mặc định từ testData
-    const testType = testData.testType || "Simulator";
-    const isSimulator = testType.toLowerCase() === "simulator";
-    const finalDuration = (isSimulator || !isSelectTime) ? testData.duration : durationMinutes;
+    const testId = Number(testIdParam);
+    if (Number.isNaN(testId)) {
+      message.error("ID bài test không hợp lệ.");
+      navigate(location.state?.from || "/test-list");
+      return;
+    }
 
-    // Lưu testId để có thể dùng lại sau này
-    const testId = parseInt(testIdFromUrl);
-    
-    sessionStorage.setItem(
-      "toeic_testData",
-      JSON.stringify({
-        ...testData,
-        testId: testId, // Lưu testId để dùng khi submit
-        testResultId: testData.testResultId, // QUAN TRỌNG: Lưu testResultId từ startTest response
-        questions: selectedQuestions,
-        duration: finalDuration,
-        selectedPartIds,
-        testType: testType, // Lưu testType để dùng sau
-        globalAudioUrl: testData.audioUrl, // Âm thanh tổng
-      })
-    );
+    if (testInfo) {
+      return;
+    }
 
-    navigate("/exam");
-  };
-
-  const flattenQuestions = (parts, selectedIds) => {
-    const questions = [];
-    let globalIndex = 1;
-
-    parts.forEach((part) => {
-      if (!selectedIds.includes(part.partId)) return;
-
-      part.testQuestions.forEach((tq) => {
-        if (tq.isGroup && tq.questionGroupSnapshotDto) {
-          const group = tq.questionGroupSnapshotDto;
-          group.questionSnapshots.forEach((qs, idx) => {
-            questions.push({
-              testQuestionId: tq.testQuestionId,
-              subQuestionIndex: idx,
-              partId: part.partId,
-              partName: part.partName,
-              partDescription: part.description,
-              globalIndex: globalIndex++,
-              type: "group",
-              question: qs.content,
-              passage: group.passage,
-              imageUrl: qs.imageUrl,
-              audioUrl: qs.audioUrl,
-              options: qs.options.map((o) => ({ key: o.label, text: o.content })),
-              correctAnswer: qs.options.find((o) => o.isCorrect)?.label,
-              userAnswer: qs.userAnswer,
-            });
-          });
-        } else if (!tq.isGroup && tq.questionSnapshotDto) {
-          const qs = tq.questionSnapshotDto;
-          questions.push({
-            testQuestionId: tq.testQuestionId,
-            subQuestionIndex: 0,
-            partId: part.partId,
-            partName: part.partName,
-            partDescription: part.description,
-            globalIndex: globalIndex++,
-            type: "single",
-            question: qs.content,
-            imageUrl: qs.imageUrl,
-            audioUrl: qs.audioUrl,
-            options: qs.options.map((o) => ({ key: o.label, text: o.content })),
-            correctAnswer: qs.options.find((o) => o.isCorrect)?.label,
-            userAnswer: qs.userAnswer,
-          });
+    const fetchMeta = async () => {
+      setMetaLoading(true);
+      try {
+        const data = await getTestById(testId);
+        if (!data) {
+          message.error("Không thể tải thông tin bài test.");
+          navigate(location.state?.from || "/test-list");
+          return;
         }
-      });
-    });
+        setTestInfo({
+          id: data.id ?? testId,
+          title: data.title || data.Title || "TOEIC Test",
+          testType: data.testType ?? data.TestType ?? "Simulator",
+          testSkill: data.testSkill ?? data.TestSkill ?? undefined,
+          duration: data.duration ?? data.Duration ?? 0,
+          questionQuantity:
+            data.questionQuantity ?? data.quantityQuestion ?? data.QuestionQuantity ?? 0,
+        });
+      } catch (error) {
+        console.error("Error fetching test info:", error);
+        message.error("Không thể tải thông tin bài test.");
+        navigate(location.state?.from || "/test-list");
+      } finally {
+        setMetaLoading(false);
+      }
+    };
 
-    return questions;
+    fetchMeta();
+  }, [testIdParam, navigate, location.state, testInfo]);
+
+  useEffect(() => {
+    if (testInfo && isPractice && !initializedPracticeRef.current) {
+      setPracticeCountdown(false);
+      initializedPracticeRef.current = true;
+    }
+  }, [testInfo, isPractice]);
+
+  const handleCancel = () => {
+    setModalVisible(false);
+    navigate(location.state?.from || "/test-list");
   };
 
-  // Kiểm tra testType để xác định có cho phép chọn phần và thời gian không
-  const testType = testData?.testType || "Simulator";
-  const isSimulator = testType.toLowerCase() === "simulator";
-  const isPractice = testType.toLowerCase() === "practice";
+  const handleConfirm = async () => {
+    if (!testIdParam) return;
+    const testId = Number(testIdParam);
+    if (Number.isNaN(testId)) return;
+
+    if (metaLoading || confirmLoading) return;
+
+    const finalSelectTime = isSimulator ? true : !!practiceCountdown;
+
+    setConfirmLoading(true);
+    try {
+      const data = await startTest(testId, finalSelectTime);
+      if (!data) {
+        message.error("Không thể bắt đầu bài thi. Vui lòng thử lại.");
+        return;
+      }
+
+      const questions = buildQuestions(data.parts || []);
+      const payload = {
+        ...data,
+        testId,
+        testResultId: data.testResultId,
+        testType: normalizeTestType(data.testType || testInfo?.testType),
+        testSkill: data.testSkill || testInfo?.testSkill,
+        duration: data.duration ?? testInfo?.duration ?? 0,
+        questionQuantity:
+          data.quantityQuestion ?? data.questionQuantity ?? testInfo?.questionQuantity ?? 0,
+        questions,
+        isSelectTime: finalSelectTime,
+        timerMode: finalSelectTime ? "countdown" : "countup",
+        startedAt: Date.now(),
+        globalAudioUrl: data.audioUrl || null,
+      };
+
+      sessionStorage.setItem("toeic_testData", JSON.stringify(payload));
+      navigate("/exam");
+    } catch (error) {
+      console.error("Error starting test:", error);
+      message.error(error.response?.data?.message || "Không thể bắt đầu bài thi. Vui lòng thử lại.");
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
 
   return (
     <div className={styles.selectionContainer}>
-      <div style={{ marginBottom: 16 }}>
-        <Button 
-          icon={<ArrowLeftOutlined />} 
-          onClick={handleGoBack}
-          type="text"
-          style={{ padding: 0 }}
-        >
-          Quay lại
-        </Button>
-      </div>
-      <Card title={<Title level={4}>{isSimulator ? "TOEIC Simulator" : "TOEIC Practice"} - {isSimulator ? "Bài thi mô phỏng" : "Chọn Phần Thi"}</Title>}>
-        <Spin spinning={loading}>
-          {isSimulator ? (
-            <>
-              <Title level={5}>Bài thi mô phỏng - Tất cả các phần sẽ được làm</Title>
-              <Text type="secondary" style={{ display: "block", marginBottom: 16 }}>
-                Ở chế độ Simulator, bạn sẽ làm tất cả các phần thi với thời gian mặc định.
-              </Text>
-            </>
-          ) : (
-            <Title level={5}>Chọn các phần bạn muốn luyện</Title>
-          )}
-
-          {isPractice && (
+      <Modal
+        title={
+          <div>
+            <Title level={4} style={{ marginBottom: 4 }}>
+              {testInfo?.title || "Bài thi TOEIC"}
+            </Title>
+            <Text type="secondary">
+              {isSimulator ? "Mô phỏng theo đề thi thật" : "Bài luyện tập"}
+            </Text>
+          </div>
+        }
+        open={modalVisible}
+        onOk={handleConfirm}
+        onCancel={handleCancel}
+        okText="Bắt đầu làm bài"
+        cancelText="Hủy"
+        confirmLoading={confirmLoading}
+        maskClosable={false}
+        closable={!confirmLoading}
+        destroyOnClose
+        width={640}
+      >
+        {metaLoading && !testInfo ? (
+          <div style={{ textAlign: "center", padding: 32 }}>
+            <Spin size="large" />
+            <div style={{ marginTop: 12 }}>
+              <Text>Đang tải thông tin bài thi...</Text>
+            </div>
+          </div>
+        ) : (
+          <div>
             <div style={{ marginBottom: 16 }}>
-              <Button type="link" onClick={selectAll} size="small">
-                Chọn tất cả
-              </Button>
-            </div>
-          )}
-
-          <div className={styles.partsGrid}>
-            {parts.map((part) => (
-              <div
-                key={part.partId}
-                className={styles.partCard}
-                style={{
-                  border: selectedPartIds.includes(part.partId)
-                    ? "2px solid #1890ff"
-                    : "1px solid #d9d9d9",
-                  opacity: isSimulator ? 1 : 1,
-                }}
-              >
-                <div>
-                  <Text strong>{part.partName}</Text>
-                  <div className={styles.partDesc}>{part.description}</div>
-                  <div className={styles.partSmall}>{part.questionCount} câu</div>
-                </div>
-                <Checkbox
-                  checked={selectedPartIds.includes(part.partId)}
-                  onChange={() => togglePart(part.partId)}
-                  disabled={isSimulator} // Disable checkbox nếu là Simulator
-                />
-              </div>
-            ))}
-          </div>
-
-          {isPractice && (
-            <div style={{ marginTop: 24 }}>
-              <Checkbox checked={isSelectTime} onChange={(e) => setIsSelectTime(e.target.checked)}>
-                Chọn thời gian tự do
-              </Checkbox>
-              {isSelectTime && (
-                <Select
-                  value={durationMinutes}
-                  onChange={setDurationMinutes}
-                  style={{ width: 120, marginLeft: 12 }}
-                >
-                  {[15, 30, 45, 60, 90, 120].map((m) => (
-                    <Select.Option key={m} value={m}>
-                      {m} phút
-                    </Select.Option>
-                  ))}
-                </Select>
-              )}
-            </div>
-          )}
-
-          {isSimulator && testData && (
-            <div style={{ marginTop: 24 }}>
-              <Text type="secondary">
-                Thời gian làm bài: <Text strong>{testData.duration || 120} phút</Text>
+              <Text strong style={{ display: "block", marginBottom: 4 }}>
+                Thông tin bài thi
               </Text>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <Text>
+                  <strong>Loại bài thi:</strong> {isSimulator ? "Simulator" : "Practice"}
+                </Text>
+                {testInfo?.testSkill && (
+                  <Text>
+                    <strong>Kỹ năng:</strong> {normalizeTestSkill(testInfo.testSkill)}
+                  </Text>
+                )}
+                <Text>
+                  <strong>Thời lượng đề:</strong>{" "}
+                  {normalizeNumber(testInfo?.duration) > 0
+                    ? `${normalizeNumber(testInfo?.duration)} phút`
+                    : "Không giới hạn"}
+                </Text>
+                <Text>
+                  <strong>Số lượng câu hỏi:</strong>{" "}
+                  {normalizeNumber(testInfo?.questionQuantity) || "Không rõ"}
+                </Text>
+              </div>
             </div>
-          )}
 
-          <div style={{ textAlign: "center", marginTop: 24 }}>
-            <Button
-              type="primary"
-              size="large"
-              onClick={startExam}
-              disabled={selectedPartIds.length === 0 || loading}
-            >
-              Bắt đầu làm bài
-            </Button>
+            {isSimulator ? (
+              <Alert
+                type="info"
+                showIcon
+                message="Chế độ Simulator"
+                description="Bài thi sẽ tự động đếm ngược theo thời lượng chuẩn của đề và tự nộp khi hết giờ."
+                style={{ marginBottom: 16 }}
+              />
+            ) : (
+              <Alert
+                type="info"
+                showIcon
+                message="Chế độ Practice"
+                description="Bạn có thể luyện tập với chế độ đếm ngược theo thời gian đề (nếu bật) hoặc luyện tự do đếm thời gian lên từ 00:00."
+                style={{ marginBottom: 16 }}
+              />
+            )}
+
+            {isPractice && (
+              <div style={{ marginBottom: 12 }}>
+                <Checkbox
+                  checked={practiceCountdown}
+                  onChange={(e) => setPracticeCountdown(e.target.checked)}
+                  disabled={confirmLoading}
+                >
+                  Bật đếm ngược theo thời gian của đề
+                </Checkbox>
+                <Text type="secondary" style={{ display: "block", marginTop: 4 }}>
+                  Nếu không chọn, thời gian sẽ đếm lên từ 00:00 và bạn có thể nộp bài bất cứ lúc nào.
+                </Text>
+              </div>
+            )}
+
+            <Alert
+              type="warning"
+              showIcon
+              message="Lưu ý"
+              description="Ngay sau khi xác nhận, đề thi sẽ bắt đầu và thời gian làm bài được ghi nhận."
+            />
           </div>
-        </Spin>
-      </Card>
+        )}
+      </Modal>
     </div>
   );
 }

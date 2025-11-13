@@ -83,9 +83,9 @@ export default function PracticeLR() {
         }
     };
 
-    const handleStartTest = (testId) => {
-        // Navigate to test selection/start page
-        navigate(`/toeic-exam?testId=${testId}`, { state: { from: location.pathname } });
+    const handleStartTest = (test) => {
+        // Navigate to confirmation modal/start page with metadata
+        navigate(`/toeic-exam?testId=${test.id}`, { state: { from: location.pathname, testMeta: test } });
     };
 
     const getSkillColor = (skill) => {
@@ -166,7 +166,7 @@ export default function PracticeLR() {
                                             type="primary"
                                             icon={<PlayCircleOutlined />}
                                             size="middle"
-                                            onClick={() => handleStartTest(test.id)}
+                                          onClick={() => handleStartTest(test)}
                                             className={styles.testStartButton}
                                         >
                                             Bắt đầu làm bài

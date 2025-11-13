@@ -17,12 +17,24 @@ export default function ExamScreen() {
   const [questions] = useState(rawTestData.questions || []);
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [timeLeft, setTimeLeft] = useState((rawTestData.duration || 120) * 60);
+  const normalizedDurationMinutes = Number(rawTestData.duration) || 0;
+  const totalDurationSeconds = Math.max(0, Math.floor(normalizedDurationMinutes * 60));
+  const isSelectTime =
+    rawTestData.isSelectTime !== undefined ? !!rawTestData.isSelectTime : true;
+  const startTimestampValue = rawTestData.startedAt ? Number(rawTestData.startedAt) : Date.now();
+  const safeStartTimestamp = Number.isFinite(startTimestampValue) ? startTimestampValue : Date.now();
+  const initialElapsedSeconds =
+    !isSelectTime
+      ? Math.max(0, Math.floor((Date.now() - safeStartTimestamp) / 1000))
+      : 0;
+  const [timeLeft, setTimeLeft] = useState(isSelectTime ? totalDurationSeconds : totalDurationSeconds);
+  const [timeElapsed, setTimeElapsed] = useState(initialElapsedSeconds);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const timerRef = useRef(null);
   const isSubmittingRef = useRef(false);
+  const startTimestampRef = useRef(safeStartTimestamp);
 
   // Sync ref với state
   useEffect(() => {
@@ -30,7 +42,6 @@ export default function ExamScreen() {
   }, [isSubmitting]);
 
   useEffect(() => {
-    // Chặn nút back của trình duyệt khi đang trong bài thi
     const handlePopState = () => {
       history.go(1);
     };
@@ -40,32 +51,64 @@ export default function ExamScreen() {
     if (!rawTestData.testResultId || questions.length === 0) {
       message.error("Không có dữ liệu bài thi");
       navigate("/test-list");
-      return;
+      return () => {
+        window.removeEventListener("popstate", handlePopState);
+      };
     }
 
-    timerRef.current = setInterval(() => {
-      setTimeLeft((t) => {
-        if (t <= 1) {
-          clearInterval(timerRef.current);
-          // Chỉ auto submit nếu chưa đang submit
-          if (!isSubmittingRef.current) {
-            handleSubmit(true);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+
+    if (isSelectTime) {
+      const elapsedSinceStart = Math.max(
+        0,
+        Math.floor((Date.now() - startTimestampRef.current) / 1000)
+      );
+      const startingLeft =
+        totalDurationSeconds > 0
+          ? Math.max(0, totalDurationSeconds - elapsedSinceStart)
+          : 0;
+      setTimeLeft(startingLeft);
+
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current);
+            return 0;
           }
-          return 0;
-        }
-        return t - 1;
-      });
-    }, 1000);
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      const elapsedSinceStart = Math.max(
+        0,
+        Math.floor((Date.now() - startTimestampRef.current) / 1000)
+      );
+      setTimeElapsed(elapsedSinceStart);
 
-    return () => clearInterval(timerRef.current);
-  }, [rawTestData, questions, navigate]);
+      timerRef.current = setInterval(() => {
+        const elapsedSeconds = Math.max(
+          0,
+          Math.floor((Date.now() - startTimestampRef.current) / 1000)
+        );
+        setTimeElapsed(elapsedSeconds);
+      }, 1000);
+    }
 
-  useEffect(() => {
-    // Cleanup chặn back khi rời màn
     return () => {
-      window.removeEventListener("popstate", () => {});
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      window.removeEventListener("popstate", handlePopState);
     };
-  }, []);
+  }, [
+    rawTestData.testResultId,
+    questions.length,
+    navigate,
+    isSelectTime,
+    totalDurationSeconds,
+  ]);
 
   const onAnswer = (testQuestionId, value) => {
     setAnswers((prev) => ({ ...prev, [testQuestionId]: value }));
@@ -106,8 +149,15 @@ export default function ExamScreen() {
       const testResultId = rawTestData.testResultId;
       if (!testResultId) throw new Error("Không tìm thấy testResultId");
 
-      // Tính thời gian đã làm
-      const duration = Math.floor((rawTestData.duration * 60 - timeLeft) / 60);
+      const now = Date.now();
+      let elapsedSeconds = Math.max(
+        0,
+        Math.floor((now - startTimestampRef.current) / 1000)
+      );
+      if (isSelectTime && totalDurationSeconds > 0) {
+        elapsedSeconds = Math.min(elapsedSeconds, totalDurationSeconds);
+      }
+      const durationMinutes = Math.max(1, Math.ceil(elapsedSeconds / 60));
       const testType = rawTestData.testType || "Simulator";
       const testTypeLower = testType.toLowerCase() === "simulator" ? "simulator" : "practice";
 
@@ -201,7 +251,7 @@ export default function ExamScreen() {
           userId: "33333333-3333-3333-3333-333333333333",
           testId: rawTestData.testId,
           testResultId: finalTestResultId, // Dùng testResultId ban đầu
-          duration: duration > 0 ? duration : 1,
+          duration: durationMinutes,
           testType: testType,
           answers: lrAnswers,
         };
@@ -229,7 +279,7 @@ export default function ExamScreen() {
         const swPayload = {
           testResultId: finalTestResultId, // Dùng CÙNG testResultId ban đầu
           testType: testTypeLower,
-          duration: duration > 0 ? duration : 1,
+          duration: durationMinutes,
           parts: swAnswers,
         };
         console.log("Submitting S&W with testResultId:", finalTestResultId);
@@ -252,7 +302,9 @@ export default function ExamScreen() {
         testResultId: finalTestResultId, // DÙNG ID do server trả để lấy chi tiết
         testId: rawTestData.testId, // Lưu testId để có thể làm lại bài thi
         questions: questions,
-        duration: duration > 0 ? duration : 1,
+        duration: durationMinutes,
+        testType,
+        isSelectTime,
       };
 
       setTimeout(() => {
@@ -266,7 +318,19 @@ export default function ExamScreen() {
     }
   };
 
-  const formatTime = (s) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+  useEffect(() => {
+    if (isSelectTime && timeLeft === 0 && !isSubmittingRef.current) {
+      handleSubmit(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSelectTime, timeLeft]);
+
+  const formatTime = (value) => {
+    const safeSeconds = Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
+    const minutes = Math.floor(safeSeconds / 60);
+    const seconds = safeSeconds % 60;
+    return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
   const answeredCount = Object.keys(answers).length;
   const totalCount = questions.length;
 
@@ -288,7 +352,9 @@ export default function ExamScreen() {
               icon={<MenuOutlined style={{ color: "#fff", fontSize: 20 }} />}
               onClick={() => setIsNavVisible(!isNavVisible)}
             />
-            <Text style={{ color: "#fff", marginLeft: 12 }}>TOEIC - {rawTestData.title}</Text>
+            <Text style={{ color: "#fff", marginLeft: 12 }}>
+              TOEIC - {rawTestData.title || "Bài thi"}
+            </Text>
           </div>
           <div className={styles.headerRight}>
             <Button 
@@ -316,7 +382,7 @@ export default function ExamScreen() {
               }} 
               type="dashed"
             >
-              {formatTime(timeLeft)}
+              {formatTime(isSelectTime ? timeLeft : timeElapsed)}
             </Button>
             <Text style={{ 
               color: "#fff", 
