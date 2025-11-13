@@ -10,6 +10,8 @@ import {
   message,
   Progress,
   Spin,
+  Checkbox,
+  Alert,
 } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -21,10 +23,90 @@ import {
   FileTextOutlined,
   CustomerServiceOutlined,
 } from "@ant-design/icons";
-import { getTestResultDetailLR } from "../../../services/testExamService";
+import { getTestResultDetailLR, startTest } from "../../../services/testExamService";
 import styles from "../../styles/Result.module.css";
 
 const { Title, Text } = Typography;
+
+// Helper functions từ ExamSelection
+const normalizeTestType = (value) => {
+  if (typeof value === "string") {
+    const lower = value.toLowerCase();
+    if (lower.includes("practice") || lower.includes("luyện")) return "Practice";
+    return "Simulator";
+  }
+  if (value === 2) return "Practice";
+  return "Simulator";
+};
+
+const normalizeTestSkill = (value) => {
+  if (typeof value === "string") {
+    return value;
+  }
+  const mapping = {
+    1: "Speaking",
+    2: "Writing",
+    3: "Listening & Reading",
+    4: "Four Skills",
+  };
+  return mapping[value] || "Unknown";
+};
+
+const normalizeNumber = (value) => {
+  if (value === undefined || value === null) return 0;
+  const num = Number(value);
+  return Number.isNaN(num) ? 0 : num;
+};
+
+const buildQuestions = (parts = []) => {
+  const questions = [];
+  let globalIndex = 1;
+
+  parts.forEach((part) => {
+    part?.testQuestions?.forEach((tq) => {
+      if (tq.isGroup && tq.questionGroupSnapshotDto) {
+        const group = tq.questionGroupSnapshotDto;
+        group.questionSnapshots?.forEach((qs, idx) => {
+          questions.push({
+            testQuestionId: tq.testQuestionId,
+            subQuestionIndex: idx,
+            partId: part.partId,
+            partName: part.partName,
+            partDescription: part.description,
+            globalIndex: globalIndex++,
+            type: "group",
+            question: qs.content,
+            passage: group.passage,
+            imageUrl: qs.imageUrl,
+            audioUrl: qs.audioUrl,
+            options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+            correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+            userAnswer: qs.userAnswer,
+          });
+        });
+      } else if (!tq.isGroup && tq.questionSnapshotDto) {
+        const qs = tq.questionSnapshotDto;
+        questions.push({
+          testQuestionId: tq.testQuestionId,
+          subQuestionIndex: 0,
+          partId: part.partId,
+          partName: part.partName,
+          partDescription: part.description,
+          globalIndex: globalIndex++,
+          type: "single",
+          question: qs.content,
+          imageUrl: qs.imageUrl,
+          audioUrl: qs.audioUrl,
+          options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+          correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+          userAnswer: qs.userAnswer,
+        });
+      }
+    });
+  });
+
+  return questions;
+};
 
 export default function ResultScreen() {
   const { state } = useLocation();
@@ -58,13 +140,17 @@ export default function ResultScreen() {
   const [selectedQuestionDetail, setSelectedQuestionDetail] = useState(null);
   const [swDetailModalVisible, setSwDetailModalVisible] = useState(false);
   const [selectedSwFeedback, setSelectedSwFeedback] = useState(null);
+  const [retakeModalVisible, setRetakeModalVisible] = useState(false);
+  const [retakeConfirmLoading, setRetakeConfirmLoading] = useState(false);
+  const [retakeTestInfo, setRetakeTestInfo] = useState(null);
+  const [practiceCountdown, setPracticeCountdown] = useState(true);
 
   // Hàm xử lý quay lại - quay về trang chủ hoặc test-list
   const handleGoBack = () => {
     navigate("/test-list");
   };
 
-  // Hàm xử lý làm lại bài thi - quay về ExamSelection
+  // Hàm xử lý làm lại bài thi - hiển thị modal confirm
   const handleRetakeTest = () => {
     // Lấy testId từ resultData hoặc từ sessionStorage
     let currentTestId = testId;
@@ -79,13 +165,141 @@ export default function ResultScreen() {
       }
     }
     
-    if (currentTestId) {
-      navigate(`/toeic-exam?testId=${currentTestId}`);
-    } else {
-      // Nếu không có testId, quay về danh sách test
+    if (!currentTestId) {
       message.warning("Không tìm thấy thông tin bài test. Vui lòng chọn lại từ danh sách.");
       navigate("/test-list");
+      return;
     }
+
+    // Lấy thông tin test từ result hoặc sessionStorage (không cần gọi API)
+    let testInfo = null;
+    try {
+      const savedTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+      if (savedTestData.testId) {
+        testInfo = {
+          testId: savedTestData.testId,
+          title: savedTestData.title || result?.testTitle,
+          testType: savedTestData.testType || result?.testType,
+          testSkill: savedTestData.testSkill || result?.testSkill,
+          duration: savedTestData.duration || result?.duration,
+          questionQuantity: savedTestData.questionQuantity || result?.questionQuantity,
+        };
+      }
+    } catch (e) {
+      console.error("Error reading test data from sessionStorage:", e);
+    }
+
+    // Nếu không có từ sessionStorage, dùng từ result
+    if (!testInfo && result) {
+      testInfo = {
+        testId: currentTestId,
+        title: result.testTitle,
+        testType: result.testType,
+        testSkill: result.testSkill,
+        duration: result.duration,
+        questionQuantity: result.questionQuantity,
+      };
+    }
+
+    setRetakeTestInfo(testInfo);
+    
+    // Nếu là practice, mặc định bật countdown
+    const isPractice = normalizeTestType(testInfo?.testType || result?.testType) === "Practice";
+    setPracticeCountdown(isPractice ? true : false);
+    
+    setRetakeModalVisible(true);
+  };
+
+  // Hàm xử lý confirm làm lại bài thi - gọi API startTest để tạo bài thi mới
+  const handleRetakeConfirm = async () => {
+    if (retakeConfirmLoading) return;
+
+    // Lấy testId từ retakeTestInfo hoặc result hoặc state testId
+    let currentTestId = retakeTestInfo?.testId || result?.testId || testId;
+    
+    // Nếu vẫn không có, thử lấy từ sessionStorage
+    if (!currentTestId) {
+      try {
+        const savedTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+        currentTestId = savedTestData.testId;
+      } catch (e) {
+        console.error("Error reading testId from sessionStorage:", e);
+      }
+    }
+
+    if (!currentTestId) {
+      message.error("Không tìm thấy testId. Vui lòng thử lại.");
+      return;
+    }
+
+    const testIdNum = Number(currentTestId);
+    if (Number.isNaN(testIdNum)) {
+      message.error("TestId không hợp lệ.");
+      return;
+    }
+
+    const isSimulator = normalizeTestType(retakeTestInfo?.testType || result?.testType) === "Simulator";
+    const finalSelectTime = isSimulator ? true : !!practiceCountdown;
+
+    setRetakeConfirmLoading(true);
+    try {
+      // Gọi API startTest để tạo bài thi MỚI với cùng testId
+      const data = await startTest(testIdNum, finalSelectTime);
+      if (!data) {
+        message.error("Không thể bắt đầu bài thi. Vui lòng thử lại.");
+        return;
+      }
+
+      // Kiểm tra xem có parts không
+      if (!data.parts || !Array.isArray(data.parts) || data.parts.length === 0) {
+        message.error("Không có câu hỏi trong bài thi. Vui lòng thử lại.");
+        console.error("API response không có parts:", data);
+        return;
+      }
+
+      // Build questions từ response với đầy đủ thông tin
+      const questions = buildQuestions(data.parts);
+      
+      // Kiểm tra xem có questions không
+      if (!questions || questions.length === 0) {
+        message.error("Không thể tạo danh sách câu hỏi. Vui lòng thử lại.");
+        console.error("Không build được questions từ parts:", data.parts);
+        return;
+      }
+      
+      // Tạo payload cho bài thi mới
+      const payload = {
+        ...data,
+        testId: testIdNum, // ID của bài test (giữ nguyên)
+        testResultId: data.testResultId, // ID của bài thi mới (từ API trả về)
+        testType: normalizeTestType(data.testType || retakeTestInfo?.testType || result?.testType),
+        testSkill: data.testSkill || retakeTestInfo?.testSkill || result?.testSkill,
+        duration: data.duration ?? retakeTestInfo?.duration ?? result?.duration ?? 0,
+        questionQuantity: data.quantityQuestion ?? data.questionQuantity ?? retakeTestInfo?.questionQuantity ?? result?.questionQuantity ?? 0,
+        questions,
+        isSelectTime: finalSelectTime,
+        timerMode: finalSelectTime ? "countdown" : "countup",
+        startedAt: Date.now(),
+        globalAudioUrl: data.audioUrl || null,
+      };
+
+      // Lưu vào sessionStorage và navigate đến màn hình làm bài
+      sessionStorage.setItem("toeic_testData", JSON.stringify(payload));
+      setRetakeModalVisible(false);
+      navigate("/exam");
+    } catch (error) {
+      console.error("Error starting test:", error);
+      message.error(error.response?.data?.message || "Không thể bắt đầu bài thi. Vui lòng thử lại.");
+    } finally {
+      setRetakeConfirmLoading(false);
+    }
+  };
+
+  // Hàm hủy modal làm lại bài thi
+  const handleRetakeCancel = () => {
+    setRetakeModalVisible(false);
+    setRetakeTestInfo(null);
+    setPracticeCountdown(true);
   };
 
   // === LOAD DETAIL TỪ API ===
@@ -1492,6 +1706,99 @@ export default function ResultScreen() {
             )}
           </div>
         )}
+      </Modal>
+
+      {/* MODAL CONFIRM LÀM LẠI BÀI THI */}
+      <Modal
+        title={
+          <div>
+            <Title level={4} style={{ marginBottom: 4 }}>
+              {retakeTestInfo?.title || result?.testTitle || "Bài thi TOEIC"}
+            </Title>
+            <Text type="secondary">
+              {normalizeTestType(retakeTestInfo?.testType || result?.testType) === "Simulator"
+                ? "Mô phỏng theo đề thi thật"
+                : "Bài luyện tập"}
+            </Text>
+          </div>
+        }
+        open={retakeModalVisible}
+        onOk={handleRetakeConfirm}
+        onCancel={handleRetakeCancel}
+        okText="Bắt đầu làm bài"
+        cancelText="Hủy"
+        confirmLoading={retakeConfirmLoading}
+        maskClosable={false}
+        closable={!retakeConfirmLoading}
+        width={640}
+      >
+        <div>
+          <div style={{ marginBottom: 16 }}>
+            <Text strong style={{ display: "block", marginBottom: 4 }}>
+              Thông tin bài thi
+            </Text>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <Text>
+                <strong>Loại bài thi:</strong>{" "}
+                {normalizeTestType(retakeTestInfo?.testType || result?.testType)}
+              </Text>
+              {retakeTestInfo?.testSkill && (
+                <Text>
+                  <strong>Kỹ năng:</strong> {normalizeTestSkill(retakeTestInfo.testSkill)}
+                </Text>
+              )}
+              <Text>
+                <strong>Thời lượng đề:</strong>{" "}
+                {normalizeNumber(retakeTestInfo?.duration || result?.duration) > 0
+                  ? `${normalizeNumber(retakeTestInfo?.duration || result?.duration)} phút`
+                  : "Không giới hạn"}
+              </Text>
+              <Text>
+                <strong>Số lượng câu hỏi:</strong>{" "}
+                {normalizeNumber(retakeTestInfo?.questionQuantity || result?.questionQuantity) || "Không rõ"}
+              </Text>
+            </div>
+          </div>
+
+          {normalizeTestType(retakeTestInfo?.testType || result?.testType) === "Simulator" ? (
+            <Alert
+              type="info"
+              showIcon
+              message="Chế độ Simulator"
+              description="Bài thi sẽ tự động đếm ngược theo thời lượng chuẩn của đề và tự nộp khi hết giờ."
+              style={{ marginBottom: 16 }}
+            />
+          ) : (
+            <>
+              <Alert
+                type="info"
+                showIcon
+                message="Chế độ Practice"
+                description="Bạn có thể luyện tập với chế độ đếm ngược theo thời gian đề (nếu bật) hoặc luyện tự do đếm thời gian lên từ 00:00."
+                style={{ marginBottom: 16 }}
+              />
+              <div style={{ marginBottom: 12 }}>
+                <Checkbox
+                  checked={practiceCountdown}
+                  onChange={(e) => setPracticeCountdown(e.target.checked)}
+                  disabled={retakeConfirmLoading}
+                >
+                  Bật đếm ngược theo thời gian của đề
+                </Checkbox>
+                <Text type="secondary" style={{ display: "block", marginTop: 4 }}>
+                  Nếu không chọn, thời gian sẽ đếm lên từ 00:00 và bạn có thể nộp bài bất cứ lúc nào.
+                </Text>
+              </div>
+            </>
+          )}
+
+          <Alert
+            type="warning"
+            showIcon
+            message="Lưu ý"
+            description="Ngay sau khi xác nhận, đề thi sẽ bắt đầu và thời gian làm bài được ghi nhận."
+          />
+        </div>
       </Modal>
     </div>
   );
