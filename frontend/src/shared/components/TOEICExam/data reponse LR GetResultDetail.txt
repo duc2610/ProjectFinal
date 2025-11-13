@@ -1,13 +1,12 @@
-https://localhost:7100/api/tests/start?Id=2&IsSelectTime=true
+https://localhost:7100/api/tests/result/listening-reading/detail/1195
 
-data response
+ data response
 
-
-{
+ {
     "statusCode": 200,
     "message": "Success",
     "data": {
-        "testResultId": 1196,
+        "testResultId": 1195,
         "testId": 2,
         "title": "TOEIC Full Simulator Test 1",
         "testSkill": "LR",
@@ -15,11 +14,13 @@ data response
         "audioUrl": "https://example.com/audio",
         "duration": 120,
         "quantityQuestion": 200,
+        "correctCount": 1,
+        "totalScore": 10,
         "parts": [
             {
                 "partId": 1,
                 "partName": "L-Part 1",
-                "description": "Photographs",
+                "description": null,
                 "testQuestions": [
                     {
                         "testQuestionId": 8,
@@ -53,8 +54,8 @@ data response
                                     "isCorrect": false
                                 }
                             ],
-                            "userAnswer": null,
-                            "isCorrect": null
+                            "userAnswer": "A",
+                            "isCorrect": true
                         },
                         "questionGroupSnapshotDto": null
                     },
@@ -248,7 +249,7 @@ data response
             {
                 "partId": 2,
                 "partName": "L-Part 2",
-                "description": "Question-Response",
+                "description": null,
                 "testQuestions": [
                     {
                         "testQuestionId": 14,
@@ -1055,7 +1056,7 @@ data response
             {
                 "partId": 3,
                 "partName": "L-Part 3",
-                "description": "Conversations",
+                "description": null,
                 "testQuestions": [
                     {
                         "testQuestionId": 39,
@@ -2492,7 +2493,7 @@ data response
             {
                 "partId": 4,
                 "partName": "L-Part 4",
-                "description": "Talks",
+                "description": null,
                 "testQuestions": [
                     {
                         "testQuestionId": 52,
@@ -3599,7 +3600,7 @@ data response
             {
                 "partId": 5,
                 "partName": "R-Part 5",
-                "description": "Incomplete Sentences",
+                "description": null,
                 "testQuestions": [
                     {
                         "testQuestionId": 62,
@@ -4716,7 +4717,7 @@ data response
             {
                 "partId": 6,
                 "partName": "R-Part 6",
-                "description": "Text Completion",
+                "description": null,
                 "testQuestions": [
                     {
                         "testQuestionId": 92,
@@ -5291,7 +5292,7 @@ data response
             {
                 "partId": 7,
                 "partName": "R-Part 7",
-                "description": "Reading Comprehension",
+                "description": null,
                 "testQuestions": [
                     {
                         "testQuestionId": 96,
@@ -7191,9 +7192,7 @@ data response
                     }
                 ]
             }
-        ],
-        "createdAt": "2025-10-31T12:06:58.6919856",
-        "updatedAt": "2025-11-13T14:42:18.7412683"
+        ]
     },
     "success": true
 }

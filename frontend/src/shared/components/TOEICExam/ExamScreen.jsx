@@ -30,6 +30,13 @@ export default function ExamScreen() {
   }, [isSubmitting]);
 
   useEffect(() => {
+    // Chặn nút back của trình duyệt khi đang trong bài thi
+    const handlePopState = () => {
+      history.go(1);
+    };
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePopState);
+
     if (!rawTestData.testResultId || questions.length === 0) {
       message.error("Không có dữ liệu bài thi");
       navigate("/test-list");
@@ -52,6 +59,13 @@ export default function ExamScreen() {
 
     return () => clearInterval(timerRef.current);
   }, [rawTestData, questions, navigate]);
+
+  useEffect(() => {
+    // Cleanup chặn back khi rời màn
+    return () => {
+      window.removeEventListener("popstate", () => {});
+    };
+  }, []);
 
   const onAnswer = (testQuestionId, value) => {
     setAnswers((prev) => ({ ...prev, [testQuestionId]: value }));
@@ -179,9 +193,8 @@ export default function ExamScreen() {
 
       // Submit L&R nếu có
       let lrResult = null;
-      // QUAN TRỌNG: Luôn dùng testResultId ban đầu từ startTest, không tạo mới
-      // Backend phải update bản ghi hiện tại thay vì tạo mới
-      const finalTestResultId = testResultId;
+      // Luôn ưu tiên testResultId do server trả về sau submit (trong trường hợp backend tạo bản ghi mới)
+      let finalTestResultId = testResultId;
       
       if (lrAnswers.length > 0) {
         const lrPayload = {
@@ -194,8 +207,20 @@ export default function ExamScreen() {
         };
         console.log("Submitting L&R with testResultId:", finalTestResultId);
         lrResult = await submitTest(lrPayload);
-        // KHÔNG cập nhật testResultId từ response - luôn dùng testResultId ban đầu
         console.log("L&R submit response:", lrResult);
+
+        // Nếu backend trả về testResultId mới (ví dụ: 1202), dùng ID đó cho bước lấy chi tiết
+        if (lrResult && lrResult.testResultId) {
+          finalTestResultId = lrResult.testResultId;
+          try {
+            // Đồng bộ lại testResultId trong toeic_testData để các màn sau dùng đúng ID
+            const saved = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+            saved.testResultId = finalTestResultId;
+            sessionStorage.setItem("toeic_testData", JSON.stringify(saved));
+          } catch (e) {
+            console.error("Error syncing testResultId to sessionStorage:", e);
+          }
+        }
       }
 
       // Submit S&W nếu có (dùng CÙNG testResultId ban đầu)
@@ -224,7 +249,7 @@ export default function ExamScreen() {
       const fullResult = {
         ...(lrResult || {}),
         ...(swResult || {}),
-        testResultId: finalTestResultId, // Đảm bảo có testResultId để lấy chi tiết sau
+        testResultId: finalTestResultId, // DÙNG ID do server trả để lấy chi tiết
         testId: rawTestData.testId, // Lưu testId để có thể làm lại bài thi
         questions: questions,
         duration: duration > 0 ? duration : 1,

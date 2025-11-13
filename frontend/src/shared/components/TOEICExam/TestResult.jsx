@@ -29,6 +29,18 @@ export default function ResultScreen() {
   const navigate = useNavigate();
   const { resultData, autoSubmit } = state || {};
 
+  // Chặn back ở màn hình kết quả
+  useEffect(() => {
+    const handlePopState = () => {
+      history.go(1);
+    };
+    window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, []);
+
   const [result, setResult] = useState(null);
   const [selectedSection, setSelectedSection] = useState("overall");
   const [displayScore, setDisplayScore] = useState(0);
@@ -100,13 +112,33 @@ export default function ResultScreen() {
       message.info("Hết thời gian! Bài thi đã được nộp tự động.");
     }
 
+    // Nếu không có resultData từ router state, thử lấy từ sessionStorage (fallback khi refresh trang)
     if (!resultData) {
+      try {
+        const savedResultData = JSON.parse(sessionStorage.getItem("toeic_resultData") || "null");
+        if (savedResultData) {
+          setResult(savedResultData);
+          if (savedResultData?.testId) setTestId(savedResultData.testId);
+          if (savedResultData?.testResultId) {
+            loadDetailFromAPI(savedResultData.testResultId);
+          }
+          return;
+        }
+      } catch (e) {
+        console.error("Error reading resultData from sessionStorage:", e);
+      }
       message.error("Không có dữ liệu kết quả.");
       navigate("/test-list");
       return;
     }
 
     setResult(resultData);
+    // Lưu lại resultData để hỗ trợ refresh trang kết quả
+    try {
+      sessionStorage.setItem("toeic_resultData", JSON.stringify(resultData));
+    } catch (e) {
+      console.error("Error saving resultData to sessionStorage:", e);
+    }
     
     // Lấy testId từ resultData hoặc từ sessionStorage
     if (resultData?.testId) {
@@ -389,18 +421,6 @@ export default function ResultScreen() {
         <Spin size="large" />
         <div style={{ marginTop: 16 }}>
           <Text>Đang xử lý kết quả...</Text>
-        </div>
-      </div>
-    );
-  }
-
-  // === ĐANG LOAD DETAIL TỪ API ===
-  if (loadingDetail || !detailData) {
-    return (
-      <div style={{ textAlign: "center", padding: 100 }}>
-        <Spin size="large" />
-        <div style={{ marginTop: 16 }}>
-          <Text>Đang tải chi tiết câu hỏi từ API...</Text>
         </div>
       </div>
     );
