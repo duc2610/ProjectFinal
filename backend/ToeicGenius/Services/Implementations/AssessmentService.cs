@@ -226,11 +226,8 @@ namespace ToeicGenius.Services.Implementations
             testResult.UpdatedAt = DateTime.UtcNow;
             testResult.Status = TestResultStatus.Graded;
 
-            // If Simulator type provided and both skills present, set TotalScore as sum of both converted scores
-            if (!string.IsNullOrEmpty(request.TestType) && request.TestType.ToLower().Contains("simulator") && writingToeicScore.HasValue && speakingToeicScore.HasValue)
-            {
-                testResult.TotalScore = writingToeicScore.Value + speakingToeicScore.Value;
-            }
+            // Calculate TotalScore as sum of all skill scores (Writing + Speaking)
+            testResult.TotalScore = skillScores.Sum(s => s.Score);
 
             await _uow.SaveChangesAsync();
 
