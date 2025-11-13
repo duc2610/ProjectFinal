@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Input, Table, Space, Tag, message, Tooltip, Select, Row, Col, Modal, Upload } from "antd";
+import { Card, Button, Input, Table, Space, Tag, message, Tooltip, Select, Row, Col, Modal, Upload, Switch } from "antd";
 import { PlusOutlined, EditOutlined, SearchOutlined, DownloadOutlined, UploadOutlined, FileExcelOutlined, SettingOutlined } from "@ant-design/icons";
 import { 
     getTests, 
@@ -47,6 +47,119 @@ export default function ExamManagement() {
     const [selectedTest, setSelectedTest] = useState(null);
     const [selectedStatus, setSelectedStatus] = useState(null);
     const [finalizing, setFinalizing] = useState(false);
+    const [switchLoadingId, setSwitchLoadingId] = useState(null);
+
+    const normalizeCreationStatusValue = (value) => {
+        if (value === undefined || value === null) return undefined;
+        const str = String(value).toLowerCase();
+        if (str === "completed" || str === "2") return "Completed";
+        if (str === "inprogress" || str === "in_progress" || str === "1") return "InProgress";
+        if (str === "draft" || str === "0") return "Draft";
+        return undefined;
+    };
+
+    const normalizeVisibilityStatusValue = (value) => {
+        if (value === undefined || value === null) return undefined;
+        const str = String(value).toLowerCase();
+        if (str === "published" || str === "1" || str === "active") return "Published";
+        if (str === "hidden" || str === "hide" || str === "-1" || str === "0" || str === "inactive") {
+            return "Hidden";
+        }
+        return undefined;
+    };
+
+    const normalizeLegacyStatusValue = (value) => {
+        if (value === undefined || value === null) return undefined;
+        const str = String(value).toLowerCase();
+        if (str === "published" || str === "3" || str === "active") return "Published";
+        if (str === "hidden" || str === "hide" || str === "-1" || str === "inactive") return "Hidden";
+        if (str === "completed" || str === "2") return "Completed";
+        if (str === "inprogress" || str === "in_progress" || str === "1") return "InProgress";
+        if (str === "draft" || str === "0") return "Draft";
+        return undefined;
+    };
+
+    const deriveStatusKey = (exam) => {
+        if (!exam) return "Draft";
+        const statusValue = normalizeLegacyStatusValue(exam?.status ?? exam?.Status);
+        if (statusValue) return statusValue;
+
+        const visibility = normalizeVisibilityStatusValue(exam?.visibilityStatus ?? exam?.VisibilityStatus);
+        if (visibility === "Published") return "Published";
+        if (visibility === "Hidden") return "Hidden";
+
+        const creation = normalizeCreationStatusValue(exam?.creationStatus ?? exam?.CreationStatus);
+        if (creation) return creation;
+
+        return "Draft";
+    };
+
+    const deriveVisibilitySelectValue = (exam) => {
+        if (!exam) return null;
+        const visibility = normalizeVisibilityStatusValue(exam?.visibilityStatus ?? exam?.VisibilityStatus);
+        if (visibility === "Published") return "Published";
+        if (visibility === "Hidden") return "Hidden";
+
+        const statusKey = deriveStatusKey(exam);
+        if (statusKey === "Published") return "Published";
+        if (statusKey === "Hidden") return "Hidden";
+        return null;
+    };
+
+    const creationStatusLabels = {
+        Draft: "Bản nháp",
+        InProgress: "Đang tiến hành",
+        Completed: "Hoàn thành",
+    };
+
+    const visibilityStatusLabels = {
+        Hidden: "Đã ẩn",
+        Published: "Đã công khai",
+    };
+
+    const creationStatusColors = {
+        Draft: "warning",
+        InProgress: "processing",
+        Completed: "success",
+    };
+
+    const visibilityStatusColors = {
+        Hidden: "default",
+        Published: "success",
+    };
+
+    const handleVisibilityToggle = async (exam, checked) => {
+        if (!exam) return;
+
+        const examId = exam.id ?? exam.Id ?? exam.testId ?? exam.TestId;
+        if (examId === undefined || examId === null) return;
+
+        const creationStatus = normalizeCreationStatusValue(exam.creationStatus ?? exam.CreationStatus);
+
+        if (checked && creationStatus !== "Completed") {
+            message.warning("Chỉ những bài thi đã hoàn tất mới có thể công khai.");
+            return;
+        }
+
+        setSwitchLoadingId(examId);
+
+        try {
+            if (checked) {
+                await publishTest(examId);
+                message.success("Đã công khai bài thi.");
+            } else {
+                await hideTest(examId);
+                message.success("Đã ẩn bài thi.");
+            }
+            fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType);
+        } catch (error) {
+            console.error("Toggle visibility error:", error);
+            const errorMsg = error?.response?.data?.message || error?.message || "Lỗi khi cập nhật trạng thái hiển thị";
+            message.error(errorMsg);
+        } finally {
+            setSwitchLoadingId(null);
+        }
+    };
 
     const fetchExams = async (page = 1, pageSize = 10, search = "", skill = "all", testType = "all") => {
         setLoading(true);
@@ -309,22 +422,7 @@ export default function ExamManagement() {
 
     const openStatusModal = (exam) => {
         setSelectedTest(exam);
-        // Normalize status để set giá trị ban đầu
-        let normalizedStatus = exam.status;
-        if (typeof exam.status === 'number') {
-            const statusMap = {
-                0: "Draft",
-                1: "InProgress",
-                2: "Completed",
-                3: "Published",
-            };
-            if (exam.status === -1) {
-                normalizedStatus = "Hide";
-            } else {
-                normalizedStatus = statusMap[exam.status] || exam.status;
-            }
-        }
-        setSelectedStatus(normalizedStatus);
+        setSelectedStatus(deriveVisibilitySelectValue(exam));
         setStatusModalOpen(true);
     };
 
@@ -335,15 +433,15 @@ export default function ExamManagement() {
         }
 
         try {
-            // Chỉ hỗ trợ Published và Hide vì backend chỉ có 2 endpoint này
+            // Chỉ hỗ trợ Published và Hidden vì backend chỉ có 2 endpoint này
             if (selectedStatus === "Published") {
                 await publishTest(selectedTest.id);
                 message.success("Đã cập nhật trạng thái thành Published");
-            } else if (selectedStatus === "Hide") {
+            } else if (selectedStatus === "Hidden") {
                 await hideTest(selectedTest.id);
-                message.success("Đã cập nhật trạng thái thành Hide");
+                message.success("Đã cập nhật trạng thái thành Hidden");
             } else {
-                message.warning("Chỉ có thể chuyển sang trạng thái Published hoặc Hide");
+                message.warning("Chỉ có thể chuyển sang trạng thái Published hoặc Hidden");
                 return;
             }
             
@@ -452,33 +550,38 @@ export default function ExamManagement() {
             align: "center",
             render: (version) => version ? `v${version}` : "v1"
         },
+        {
+            title: "Trạng thái tạo bài",
+            key: "creationStatus",
+            width: 170,
+            align: "center",
+            render: (_, rec) => {
+                const creationStatus = normalizeCreationStatusValue(rec.creationStatus ?? rec.CreationStatus);
+                if (!creationStatus) {
+                    return <Tag color="default">Không xác định</Tag>;
+                }
+                return (
+                    <Tag color={creationStatusColors[creationStatus] || "default"}>
+                        {creationStatusLabels[creationStatus] || creationStatus}
+                    </Tag>
+                );
+            },
+        },
         { 
             title: "Trạng thái", 
             key: "status", 
             width: 160,
             align: "center",
             render: (_, rec) => {
-                // Normalize status: có thể là số hoặc string
-                let normalizedStatus = rec.status;
-                if (typeof rec.status === 'number') {
-                    const statusMap = {
-                        0: "Draft",
-                        1: "InProgress",
-                        2: "Completed",
-                        3: "Published",
-                        [-1]: "Hide"
-                    };
-                    normalizedStatus = statusMap[rec.status] || rec.status;
-                }
-                
+                const normalizedStatus = deriveStatusKey(rec);
                 const statusColorMap = {
                     "Published": "success",
                     "Active": "success", // Alias cho Published
                     "Completed": "success",
                     "InProgress": "processing",
                     "Draft": "warning",
-                    "Hide": "default",
-                    "Inactive": "default" // Alias cho Hide
+                    "Hidden": "default",
+                    "Inactive": "default" // Alias cho Hidden
                 };
                 const statusLabelMap = {
                     "Published": "Đã công khai",
@@ -486,7 +589,7 @@ export default function ExamManagement() {
                     "Completed": "Hoàn thành",
                     "InProgress": "Đang tiến hành",
                     "Draft": "Bản nháp",
-                    "Hide": "Đã ẩn",
+                    "Hidden": "Đã ẩn",
                     "Inactive": "Đã ẩn"
                 };
                 
@@ -499,6 +602,28 @@ export default function ExamManagement() {
                     </Tag>
                 );
             } 
+        },
+        {
+            title: "Hiển thị",
+            key: "visibilitySwitch",
+            width: 140,
+            align: "center",
+            render: (_, rec) => {
+                const creationStatus = normalizeCreationStatusValue(rec.creationStatus ?? rec.CreationStatus);
+                const isCompleted = creationStatus === "Completed";
+                const isPublished = deriveStatusKey(rec) === "Published";
+                const examId = rec.id ?? rec.Id ?? rec.testId ?? rec.TestId;
+                return (
+                    <Switch
+                        checked={isPublished}
+                        checkedChildren="Hiện"
+                        unCheckedChildren="Ẩn"
+                        loading={switchLoadingId === examId}
+                        disabled={!isCompleted && !isPublished}
+                        onChange={(checked) => handleVisibilityToggle(rec, checked)}
+                    />
+                );
+            },
         },
         {
             title: "Thao tác", 
@@ -894,21 +1019,60 @@ export default function ExamManagement() {
                         </div>
                         <div>
                             <p style={{ marginBottom: 8, fontWeight: 500 }}>Trạng thái hiện tại:</p>
-                            <Tag color={
-                                selectedTest.status === 3 || selectedTest.status === "Published" ? "success" :
-                                selectedTest.status === -1 || selectedTest.status === "Hide" ? "default" :
-                                selectedTest.status === 2 || selectedTest.status === "Completed" ? "success" :
-                                selectedTest.status === 1 || selectedTest.status === "InProgress" ? "processing" :
-                                "warning"
-                            }>
-                                {typeof selectedTest.status === 'number' ? 
-                                    (selectedTest.status === 3 ? "Published" :
-                                     selectedTest.status === -1 ? "Hide" :
-                                     selectedTest.status === 2 ? "Completed" :
-                                     selectedTest.status === 1 ? "InProgress" : "Draft") :
-                                    selectedTest.status
+                            {(() => {
+                                const currentStatus = deriveStatusKey(selectedTest);
+                                const statusColorMap = {
+                                    "Published": "success",
+                                    "Active": "success",
+                                    "Completed": "success",
+                                    "InProgress": "processing",
+                                    "Draft": "warning",
+                                    "Hidden": "default",
+                                    "Inactive": "default"
+                                };
+                                const statusLabelMap = {
+                                    "Published": "Đã công khai",
+                                    "Active": "Đang hoạt động",
+                                    "Completed": "Hoàn thành",
+                                    "InProgress": "Đang tiến hành",
+                                    "Draft": "Bản nháp",
+                                    "Hidden": "Đã ẩn",
+                                    "Inactive": "Đã ẩn"
+                                };
+                                return (
+                                    <Tag color={statusColorMap[currentStatus] || "default"}>
+                                        {statusLabelMap[currentStatus] || currentStatus}
+                                    </Tag>
+                                );
+                            })()}
+                        </div>
+                        <div>
+                            <p style={{ marginBottom: 8, fontWeight: 500 }}>Trạng thái tạo bài:</p>
+                            {(() => {
+                                const creationStatus = normalizeCreationStatusValue(selectedTest.creationStatus ?? selectedTest.CreationStatus);
+                                if (!creationStatus) {
+                                    return <Tag color="default">Không xác định</Tag>;
                                 }
-                            </Tag>
+                                return (
+                                    <Tag color={creationStatusColors[creationStatus] || "default"}>
+                                        {creationStatusLabels[creationStatus] || creationStatus}
+                                    </Tag>
+                                );
+                            })()}
+                        </div>
+                        <div>
+                            <p style={{ marginBottom: 8, fontWeight: 500 }}>Trạng thái hiển thị:</p>
+                            {(() => {
+                                const visibilityStatus = normalizeVisibilityStatusValue(selectedTest.visibilityStatus ?? selectedTest.VisibilityStatus);
+                                if (!visibilityStatus) {
+                                    return <Tag color="default">Không xác định</Tag>;
+                                }
+                                return (
+                                    <Tag color={visibilityStatusColors[visibilityStatus] || "default"}>
+                                        {visibilityStatusLabels[visibilityStatus] || visibilityStatus}
+                                    </Tag>
+                                );
+                            })()}
                         </div>
                         <div>
                             <p style={{ marginBottom: 8, fontWeight: 500 }}>Chọn trạng thái mới:</p>
@@ -919,10 +1083,10 @@ export default function ExamManagement() {
                                 placeholder="Chọn trạng thái"
                             >
                                 <Select.Option value="Published">Published - Đã công khai</Select.Option>
-                                <Select.Option value="Hide">Hide - Đã ẩn</Select.Option>
+                                <Select.Option value="Hidden">Hidden - Đã ẩn</Select.Option>
                             </Select>
                             <p style={{ marginTop: 8, fontSize: 12, color: "#999" }}>
-                                Lưu ý: Chỉ có thể chuyển sang trạng thái Published hoặc Hide
+                                Lưu ý: Chỉ có thể chuyển sang trạng thái Published hoặc Hidden
                             </p>
                         </div>
                     </Space>

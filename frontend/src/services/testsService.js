@@ -1,31 +1,172 @@
 import { api } from "./apiClient";
 
+const buildLookup = (entries) => {
+  const map = new Map();
+  entries.forEach(([key, value]) => {
+    map.set(String(key).toLowerCase(), value);
+  });
+  return map;
+};
+
+const CREATION_STATUS_LOOKUP = buildLookup([
+  ["draft", "Draft"],
+  ["inprogress", "InProgress"],
+  ["in_progress", "InProgress"],
+  ["completed", "Completed"],
+  ["0", "Draft"],
+  ["1", "InProgress"],
+  ["2", "Completed"],
+]);
+
+const VISIBILITY_STATUS_LOOKUP = buildLookup([
+  ["hidden", "Hidden"],
+  ["hide", "Hidden"],
+  ["inactive", "Hidden"],
+  ["published", "Published"],
+  ["active", "Published"],
+  ["0", "Hidden"],
+  ["-1", "Hidden"],
+  ["1", "Published"],
+]);
+
+const LEGACY_STATUS_LOOKUP = buildLookup([
+  ["-1", "Hidden"],
+  ["hidden", "Hidden"],
+  ["hide", "Hidden"],
+  ["inactive", "Hidden"],
+  ["0", "Draft"],
+  ["draft", "Draft"],
+  ["1", "InProgress"],
+  ["inprogress", "InProgress"],
+  ["in_progress", "InProgress"],
+  ["2", "Completed"],
+  ["completed", "Completed"],
+  ["3", "Published"],
+  ["published", "Published"],
+  ["active", "Published"],
+]);
+
+const normalizeEnumValue = (value, lookup) => {
+  if (value === undefined || value === null) return undefined;
+  const key = String(value).toLowerCase();
+  return lookup.get(key) ?? (typeof value === "string" ? value : undefined);
+};
+
+const deriveLegacyStatus = (creationStatus, visibilityStatus, statusValue) => {
+  const normalizedStatus = normalizeEnumValue(statusValue, LEGACY_STATUS_LOOKUP);
+  if (normalizedStatus) return normalizedStatus;
+
+  if (visibilityStatus === "Published") return "Published";
+  if (visibilityStatus === "Hidden") return "Hidden";
+
+  if (creationStatus === "Completed") return "Completed";
+  if (creationStatus === "InProgress") return "InProgress";
+  if (creationStatus === "Draft") return "Draft";
+
+  return undefined;
+};
+
+const normalizeTestRecord = (record) => {
+  if (!record || typeof record !== "object") return record;
+
+  const creationRaw = record.creationStatus ?? record.CreationStatus;
+  const visibilityRaw = record.visibilityStatus ?? record.VisibilityStatus;
+
+  const creationStatus = normalizeEnumValue(creationRaw, CREATION_STATUS_LOOKUP);
+  const visibilityStatus = normalizeEnumValue(visibilityRaw, VISIBILITY_STATUS_LOOKUP);
+  const legacyStatus = deriveLegacyStatus(creationStatus, visibilityStatus, record.status ?? record.Status);
+
+  const normalized = { ...record };
+
+  if (creationStatus) normalized.creationStatus = creationStatus;
+  if (visibilityStatus) normalized.visibilityStatus = visibilityStatus;
+  if (legacyStatus) {
+    normalized.status = legacyStatus;
+  } else if (!normalized.status) {
+    normalized.status = "Draft";
+  }
+
+  return normalized;
+};
+
+const normalizeCollection = (data) => {
+  if (!data) return data;
+
+  if (Array.isArray(data)) {
+    return data.map(normalizeTestRecord);
+  }
+
+  if (typeof data === "object") {
+    let updated = false;
+    const normalized = { ...data };
+    const collectionKeys = [
+      "dataPaginated",
+      "DataPaginated",
+      "items",
+      "Items",
+      "results",
+      "Results",
+      "tests",
+      "Tests",
+      "list",
+      "List",
+      "data",
+      "Data",
+    ];
+
+    collectionKeys.forEach((key) => {
+      if (Array.isArray(normalized[key])) {
+        normalized[key] = normalized[key].map(normalizeTestRecord);
+        updated = true;
+      }
+    });
+
+    return updated ? normalized : data;
+  }
+
+  return data;
+};
+
 export async function getTests(params = {}) {
   const res = await api.get("/api/tests", { params });
-  // Backend returns: { statusCode, message, data: { dataPaginated, ... }, success }
-  return res?.data ?? res;
+  const raw = res?.data ?? res;
+  if (raw && typeof raw === "object") {
+    const dataKey = raw.data !== undefined ? "data" : raw.Data !== undefined ? "Data" : null;
+    if (dataKey) {
+      const normalizedData = normalizeCollection(raw[dataKey]);
+      if (normalizedData !== raw[dataKey]) {
+        return { ...raw, [dataKey]: normalizedData };
+      }
+      return raw;
+    }
+  }
+  return normalizeCollection(raw);
 }
 
 export async function getPracticeTests(testResultId = null) {
   const params = testResultId ? { testResultId } : {};
   const res = await api.get("/api/tests/examinee/list/practice", { params });
-  return res?.data?.data ?? res?.data ?? res;
+  const raw = res?.data?.data ?? res?.data ?? res;
+  return normalizeCollection(raw);
 }
 
 export async function getSimulatorTests(testResultId = null) {
   const params = testResultId ? { testResultId } : {};
   const res = await api.get("/api/tests/examinee/list/simulator", { params });
-  return res?.data?.data ?? res?.data ?? res;
+  const raw = res?.data?.data ?? res?.data ?? res;
+  return normalizeCollection(raw);
 }
 
 export async function getTestById(id) {
   const res = await api.get(`/api/tests/${id}`);
-  return res?.data?.data ?? res?.data;
+  const raw = res?.data?.data ?? res?.data;
+  return normalizeTestRecord(raw);
 }
 
 export async function getTestHistory() {
   const res = await api.get("/api/tests/history");
-  return res?.data?.data ?? res?.data ?? [];
+  const raw = res?.data?.data ?? res?.data ?? [];
+  return normalizeCollection(raw);
 }
 
 
@@ -154,7 +295,8 @@ export async function publishTest(id) {
 
 export async function getTestVersions(parentTestId) {
   const res = await api.get(`/api/tests/versions/${parentTestId}`);
-  return res?.data?.data ?? res?.data;
+  const raw = res?.data?.data ?? res?.data ?? res;
+  return normalizeCollection(raw);
 }
 
 export const TEST_TYPE = {
@@ -170,7 +312,7 @@ export const TEST_SKILL = {
 };
 
 export const TEST_STATUS = {
-  HIDE: -1,
+  HIDDEN: -1,
   DRAFT: 0,
   INPROGRESS: 1,
   COMPLETED: 2,
@@ -190,7 +332,7 @@ export const TEST_SKILL_LABELS = {
 };
 
 export const TEST_STATUS_LABELS = {
-  "-1": "Hide",
+  "-1": "Hidden",
   0: "Draft",
   1: "InProgress",
   2: "Completed",

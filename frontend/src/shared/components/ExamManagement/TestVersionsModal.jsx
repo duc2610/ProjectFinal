@@ -38,6 +38,59 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
         "Inactive": "Đã ẩn"
     };
 
+    const normalizeCreationStatusValue = (value) => {
+        if (value === undefined || value === null) return undefined;
+        const str = String(value).toLowerCase();
+        if (str === "completed" || str === "2") return "Completed";
+        if (str === "inprogress" || str === "in_progress" || str === "1") return "InProgress";
+        if (str === "draft" || str === "0") return "Draft";
+        return undefined;
+    };
+
+    const normalizeVisibilityStatusValue = (value) => {
+        if (value === undefined || value === null) return undefined;
+        const str = String(value).toLowerCase();
+        if (str === "published" || str === "1" || str === "active") return "Published";
+        if (str === "hidden" || str === "hide" || str === "-1" || str === "0" || str === "inactive") {
+            return "Hidden";
+        }
+        return undefined;
+    };
+
+    const normalizeLegacyStatusValue = (value) => {
+        if (value === undefined || value === null) return undefined;
+        const str = String(value).toLowerCase();
+        if (str === "published" || str === "3" || str === "active") return "Published";
+        if (str === "hidden" || str === "hide" || str === "-1" || str === "inactive") return "Hidden";
+        if (str === "completed" || str === "2") return "Completed";
+        if (str === "inprogress" || str === "in_progress" || str === "1") return "InProgress";
+        if (str === "draft" || str === "0") return "Draft";
+        return undefined;
+    };
+
+    const deriveVersionStatus = (record) => {
+        if (!record) return "Draft";
+        const legacyStatus = normalizeLegacyStatusValue(record.status ?? record.Status);
+        if (legacyStatus === "Published") return "Active";
+        if (legacyStatus === "Hidden") {
+            const creation = normalizeCreationStatusValue(record.creationStatus ?? record.CreationStatus);
+            return creation === "Completed" ? "Inactive" : "Draft";
+        }
+        if (legacyStatus === "Completed") return "Inactive";
+
+        const visibility = normalizeVisibilityStatusValue(record.visibilityStatus ?? record.VisibilityStatus);
+        if (visibility === "Published") return "Active";
+        if (visibility === "Hidden") {
+            const creation = normalizeCreationStatusValue(record.creationStatus ?? record.CreationStatus);
+            return creation === "Completed" ? "Inactive" : "Draft";
+        }
+
+        const creation = normalizeCreationStatusValue(record.creationStatus ?? record.CreationStatus);
+        if (creation === "Completed") return "Inactive";
+
+        return "Draft";
+    };
+
     const columns = [
         {
             title: "Version",
@@ -62,15 +115,17 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
         },
         {
             title: "Trạng thái",
-            dataIndex: "status",
             key: "status",
             width: 120,
             align: "center",
-            render: (status) => (
-                <Tag color={statusColorMap[status] || "default"}>
-                    {statusLabelMap[status] || status}
-                </Tag>
-            )
+            render: (_, record) => {
+                const status = deriveVersionStatus(record);
+                return (
+                    <Tag color={statusColorMap[status] || "default"}>
+                        {statusLabelMap[status] || status}
+                    </Tag>
+                );
+            }
         },
         {
             title: "Ngày tạo",
