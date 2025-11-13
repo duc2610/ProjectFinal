@@ -371,6 +371,9 @@ namespace ToeicGenius.Services.Implementations
 				return Result<string>.Failure($"Error: {ex.Message}");
 			}
 		}
+		
+		// Create for each part 
+		// Create draft test
 		public async Task<Result<string>> CreateDraftManualAsync(Guid userId, CreateTestManualDraftDto dto)
 		{
 			try
@@ -400,6 +403,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
+		// Save each part
 		public async Task<Result<string>> SavePartManualAsync(Guid userId, int testId, int partId, PartDto dto)
 		{
 			await _uow.BeginTransactionAsync();
@@ -540,6 +544,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
+		// Finalize when create full of a test
 		public async Task<Result<string>> FinalizeTestAsync(Guid userId, int testId)
 		{
 			var test = await _uow.Tests.GetByIdAsync(testId);
@@ -962,6 +967,7 @@ namespace ToeicGenius.Services.Implementations
 		#endregion
 
 		#region Do Test - Examinee
+		// Get test data for examinee
 		public async Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request, Guid userId)
 		{
 			// Check test existed
@@ -989,20 +995,35 @@ namespace ToeicGenius.Services.Implementations
 				UpdatedAt = test.UpdatedAt
 			};
 
-			// Create a TestResult record for this user session and return id to client
-			var userTest = new TestResult
+			// Reuse active test session if available to avoid duplicates
+			var existingTestResult = await _uow.TestResults.GetActiveTestByUserAndTestAsync(userId, test.TestId);
+			TestResult userTest;
+			if (existingTestResult != null)
 			{
-				UserId = userId,
-				TestId = test.TestId,
-				Status = "InProgress",
-				Duration = 0,
-				TotalScore = 0,
-				TestType = test.TestType,
-				CreatedAt = DateTime.UtcNow
-			};
+				userTest = existingTestResult;
+				if (userTest.Status != TestResultStatus.InProgress)
+				{
+					userTest.Status = TestResultStatus.InProgress;
+					userTest.UpdatedAt = DateTime.UtcNow;
+					await _uow.SaveChangesAsync();
+				}
+			}
+			else
+			{
+				userTest = new TestResult
+				{
+					UserId = userId,
+					TestId = test.TestId,
+					Status = TestResultStatus.InProgress,
+					Duration = 0,
+					TotalScore = 0,
+					TestType = test.TestType,
+					CreatedAt = DateTime.UtcNow
+				};
 
-			await _uow.TestResults.AddAsync(userTest);
-			await _uow.SaveChangesAsync();
+				await _uow.TestResults.AddAsync(userTest);
+				await _uow.SaveChangesAsync();
+			}
 
 			result.TestResultId = userTest.TestResultId;
 
@@ -1080,22 +1101,42 @@ namespace ToeicGenius.Services.Implementations
 
 			bool isSimulator = request.TestType == TestType.Simulator;
 
-			var newTestResult = new TestResult
+			TestResult? testResult = null;
+			if (request.TestResultId.HasValue)
 			{
-				UserId = userId,
-				TestId = request.TestId,
-				Duration = request.Duration,
-				TestType = request.TestType,
-				Status = "Success",
-				CreatedAt = DateTime.UtcNow
-			};
+				testResult = await _uow.TestResults.GetByIdAsync(request.TestResultId.Value);
+				
+				if (testResult == null)
+					return Result<GeneralLRResultDto>.Failure("Test session not found.");
+				if (testResult.UserId != userId || testResult.TestId != request.TestId)
+					return Result<GeneralLRResultDto>.Failure("Test session does not match the submitted data.");
+				if (testResult.Status == TestResultStatus.Graded)
+					return Result<GeneralLRResultDto>.Failure("This test session has already been submitted.");
+			}
+
+			if (testResult == null)
+			{
+				testResult = new TestResult
+				{
+					UserId = userId,
+					TestId = request.TestId,
+					CreatedAt = DateTime.UtcNow
+				};
+
+				await _uow.TestResults.AddAsync(testResult);
+			}
+
+			testResult.Duration = request.Duration;
+			testResult.TestType = request.TestType;
+			testResult.Status = TestResultStatus.Graded;
+			testResult.UpdatedAt = DateTime.UtcNow;
 
 			// Lấy map Part -> Skill
 			var partIds = testQuestions.Select(q => q.PartId).Distinct().ToList();
 			var partSkillMap = await _uow.Parts.GetSkillMapByIdsAsync(partIds);
 
 			// 1️.Xử lý & chấm bài
-			var (userAnswers, stats) = ProcessUserAnswers(request, testQuestions, partSkillMap, isSimulator, newTestResult);
+			var (userAnswers, stats) = ProcessUserAnswers(request, testQuestions, partSkillMap, isSimulator, testResult);
 
 			// 2.Tính kết quả cuối cùng
 			var result = isSimulator
@@ -1103,19 +1144,18 @@ namespace ToeicGenius.Services.Implementations
 				: CalculatePracticeResult(stats, request.Duration);
 
 			// 3. Set thông tin cho test result
-			newTestResult.SkillScores = BuildSkillScores(result, isSimulator);
-			newTestResult.TotalQuestions = totalQuestion;
-			newTestResult.CorrectCount = result.CorrectCount;
-			newTestResult.IncorrectCount = result.IncorrectCount;
-			newTestResult.SkipCount = result.SkipCount;
-			newTestResult.TotalScore = (decimal)(isSimulator ? result.TotalScore : 0);
+			testResult.SkillScores = BuildSkillScores(result, isSimulator);
+			testResult.TotalQuestions = totalQuestion;
+			testResult.CorrectCount = result.CorrectCount;
+			testResult.IncorrectCount = result.IncorrectCount;
+			testResult.SkipCount = result.SkipCount;
+			testResult.TotalScore = (decimal)(isSimulator ? result.TotalScore : 0);
 
 			// 4.Lưu vào DB
-			await _uow.TestResults.AddAsync(newTestResult);
 			await _uow.UserAnswers.AddRangeAsync(userAnswers);
 			await _uow.SaveChangesAsync();
 
-			var resultDetail = await _uow.TestResults.GetTestResultLRAsync(newTestResult.TestResultId);
+			var resultDetail = await _uow.TestResults.GetTestResultLRAsync(testResult.TestResultId);
 
 			return Result<GeneralLRResultDto>.Success(resultDetail);
 		}
@@ -1363,7 +1403,7 @@ namespace ToeicGenius.Services.Implementations
 			return quantity;
 		}
 		// Support function for SubmitLR TestAsync
-		private (List<UserAnswer> UserAnswers, TestStats Stats) ProcessUserAnswers(SubmitLRTestRequestDto request, List<TestQuestion> testQuestions, Dictionary<int, QuestionSkill> partSkillMap, bool isSimulator, TestResult newTestResult)
+		private (List<UserAnswer> UserAnswers, TestStats Stats) ProcessUserAnswers(SubmitLRTestRequestDto request, List<TestQuestion> testQuestions, Dictionary<int, QuestionSkill> partSkillMap, bool isSimulator, TestResult testResult)
 		{
 			int listeningCorrect = 0, readingCorrect = 0;
 			int listeningTotal = 0, readingTotal = 0;
@@ -1413,7 +1453,7 @@ namespace ToeicGenius.Services.Implementations
 						}
 
 						userAnswers.Add(CreateUserAnswer(
-							newTestResult,
+							testResult,
 							tq.TestQuestionId,
 							null,
 							userAnswerDto.ChosenOptionLabel,
@@ -1449,7 +1489,7 @@ namespace ToeicGenius.Services.Implementations
 							}
 
 							userAnswers.Add(CreateUserAnswer(
-								newTestResult,
+								testResult,
 								tq.TestQuestionId,
 								i,
 								userAnswerDto.ChosenOptionLabel,

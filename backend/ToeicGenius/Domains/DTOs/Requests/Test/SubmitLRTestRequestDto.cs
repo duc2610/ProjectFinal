@@ -5,6 +5,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Test
 	public class SubmitLRTestRequestDto
 	{
 		public int TestId { get; set; }
+		public int? TestResultId { get; set; }
 		public int Duration { get; set; }
 		public TestType TestType { get; set; }
 		public List<UserLRAnswerDto> Answers { get; set; } = new();
