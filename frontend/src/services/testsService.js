@@ -170,12 +170,11 @@ export const TEST_SKILL = {
 };
 
 export const TEST_STATUS = {
-  INACTIVE: -1,
+  HIDE: -1,
   DRAFT: 0,
   INPROGRESS: 1,
   COMPLETED: 2,
-  ACTIVE: 3,
-  PUBLISHED: 4,
+  PUBLISHED: 3,
 };
 
 export const TEST_TYPE_LABELS = {
@@ -191,12 +190,11 @@ export const TEST_SKILL_LABELS = {
 };
 
 export const TEST_STATUS_LABELS = {
-  "-1": "Inactive",
+  "-1": "Hide",
   0: "Draft",
-  1: "In Progress",
+  1: "InProgress",
   2: "Completed",
-  3: "Active",
-  4: "Published",
+  3: "Published",
 };
 
 export const TEST_STATUS_COLORS = {
@@ -205,7 +203,6 @@ export const TEST_STATUS_COLORS = {
   1: "processing",
   2: "success",
   3: "success",
-  4: "success",
 };
 
 // Download Excel template for L&R test

@@ -46,12 +46,12 @@ export default function PracticeLR() {
                                      test.testSkill === 3) &&
                                      test.testSkill !== 0;
                         
-                        // Check status: có thể là "Active" (string) hoặc 1 (number)
-                        const isActive = test.status === "Active" || 
-                                       test.status === 1 || 
-                                       test.status === "1";
+                        // Check status: Published = 3 (theo backend enum)
+                        const isPublished = test.status === "Published" || 
+                                          test.status === 3 || 
+                                          test.status === "3";
                         
-                        return isPractice && isLR && isActive;
+                        return isPractice && isLR && isPublished;
                     })
                     .map(test => ({
                         id: test.id,
@@ -71,8 +71,13 @@ export default function PracticeLR() {
             }
         } catch (error) {
             console.error("Error fetching practice tests:", error);
-            message.error("Không thể tải danh sách bài test. Vui lòng thử lại sau.");
-            setTests([]);
+            // Nếu là lỗi 404, chỉ set data rỗng, không hiển thị thông báo lỗi
+            if (error.response?.status === 404) {
+                setTests([]);
+            } else {
+                message.error("Không thể tải danh sách bài test. Vui lòng thử lại sau.");
+                setTests([]);
+            }
         } finally {
             setLoading(false);
         }

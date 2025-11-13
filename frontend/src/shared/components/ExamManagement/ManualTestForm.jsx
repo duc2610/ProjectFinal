@@ -771,13 +771,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 || error.message 
                 || "Unknown error";
             message.error(`Lỗi khi lưu Part ${partId}: ${errorMessage}`);
-            // Giữ validation để người dùng thấy lỗi
         } finally {
             setSavingPartId(null);
         }
     };
 
-    // Hàm tạo draft test (gọi khi click "Tạo bài thi")
     const handleSubmit = async () => {
         try {
             const values = await form.validateFields();
@@ -786,8 +784,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 message.warning("Vui lòng chọn kỹ năng!");
                 return;
             }
-
-            // Nếu đã có testId, không làm gì (chỉ tạo draft một lần)
             if (currentTestId) {
                 message.info("Bài thi đã được tạo. Bạn có thể thêm câu hỏi và lưu từng part.");
                 return;
@@ -805,28 +801,22 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             
             const response = await createTestDraft(draftPayload);
             
-            // Extract testId from response - có thể là số, object với id property, hoặc string
             let testId = response;
             if (typeof response === 'object' && response !== null) {
                 testId = response.id || response.testId || response.Id || response.TestId;
             }
             
-            // Xử lý trường hợp testId là string có format "TestId: 5023" hoặc tương tự
             if (typeof testId === 'string') {
-                // Tìm số trong string (ví dụ: "TestId: 5023" -> "5023")
                 const numberMatch = testId.match(/\d+/);
                 if (numberMatch) {
                     testId = Number(numberMatch[0]);
                 } else if (!/^\d+$/.test(testId)) {
-                    // Nếu không phải là string số thuần, throw error
                     throw new Error(`Không thể extract ID từ response: ${testId}`);
                 } else {
-                    // Nếu là string số thuần, convert sang number
                     testId = Number(testId);
                 }
             }
-            
-            // Đảm bảo testId là số hợp lệ
+
             if (!testId || typeof testId !== 'number' || isNaN(testId)) {
                 throw new Error(`ID bài thi không hợp lệ: ${JSON.stringify(response)}`);
             }
