@@ -172,7 +172,10 @@ export const TEST_SKILL = {
 export const TEST_STATUS = {
   INACTIVE: -1,
   DRAFT: 0,
-  ACTIVE: 1,
+  INPROGRESS: 1,
+  COMPLETED: 2,
+  ACTIVE: 3,
+  PUBLISHED: 4,
 };
 
 export const TEST_TYPE_LABELS = {
@@ -190,13 +193,19 @@ export const TEST_SKILL_LABELS = {
 export const TEST_STATUS_LABELS = {
   "-1": "Inactive",
   0: "Draft",
-  1: "Active",
+  1: "In Progress",
+  2: "Completed",
+  3: "Active",
+  4: "Published",
 };
 
 export const TEST_STATUS_COLORS = {
   "-1": "default",
   0: "warning",
-  1: "success",
+  1: "processing",
+  2: "success",
+  3: "success",
+  4: "success",
 };
 
 // Download Excel template for L&R test
@@ -235,5 +244,97 @@ export async function importTest4SkillsFromExcel(excelFile, audioFile) {
   // apiClient will automatically handle FormData and remove Content-Type header
   const res = await api.post("/api/tests/import-excel-4skills", formData);
   return res?.data?.data ?? res?.data;
+}
+
+// Create draft test (empty test with Draft status)
+export async function createTestDraft(data) {
+  const payload = {
+    Title: data.title,
+    Description: data.description || null,
+    AudioUrl: data.audioUrl || null,
+    TestSkill: data.testSkill,
+  };
+  const res = await api.post("/api/tests/draft", payload);
+  return res?.data?.data ?? res?.data;
+}
+
+// Save or update a part of a test
+export async function saveTestPart(testId, partId, partData) {
+  let normalizedTestId = testId;
+  if (typeof testId === 'object' && testId !== null) {
+    normalizedTestId = testId.id || testId.testId || testId.Id || testId.TestId;
+  }
+  
+  if (typeof normalizedTestId === 'string') {
+
+    const numberMatch = normalizedTestId.match(/\d+/);
+    if (numberMatch) {
+      normalizedTestId = Number(numberMatch[0]);
+    } else if (!/^\d+$/.test(normalizedTestId)) {
+      throw new Error(`Invalid testId format: ${JSON.stringify(testId)}`);
+    } else {
+      // Nếu là string số thuần, convert sang number
+      normalizedTestId = Number(normalizedTestId);
+    }
+  }
+  
+  // Đảm bảo testId là số hợp lệ
+  if (!normalizedTestId || typeof normalizedTestId !== 'number' || isNaN(normalizedTestId)) {
+    throw new Error(`Invalid testId: ${JSON.stringify(testId)}`);
+  }
+  
+  // Convert to string để đảm bảo URL đúng format
+  normalizedTestId = String(normalizedTestId);
+  
+  // Validate partId
+  if (!partId || (typeof partId !== 'number' && typeof partId !== 'string')) {
+    throw new Error(`Invalid partId: ${JSON.stringify(partId)}`);
+  }
+  const normalizedPartId = String(partId);
+  
+  // Transform to PascalCase for backend
+  const payload = {
+    PartId: partId,
+    Groups: (partData.groups || []).map(group => ({
+      Passage: group.passage || null,
+      ImageUrl: group.imageUrl || null,
+      Questions: (group.questions || []).map(q => ({
+        Content: q.content || null,
+        ImageUrl: q.imageUrl || null,
+        Options: (q.options || []).map(opt => ({
+          Label: opt.label,
+          Content: opt.content || null,
+          IsCorrect: opt.isCorrect || false,
+        })),
+        Explanation: q.explanation || null,
+      })),
+    })),
+    Questions: (partData.questions || []).map(q => ({
+      Content: q.content || null,
+      ImageUrl: q.imageUrl || null,
+      Options: (q.options || []).map(opt => ({
+        Label: opt.label,
+        Content: opt.content || null,
+        IsCorrect: opt.isCorrect || false,
+      })),
+      Explanation: q.explanation || null,
+    })),
+  };
+  
+  const url = `/api/tests/${normalizedTestId}/parts/${normalizedPartId}`;
+  const res = await api.post(url, payload);
+  return res?.data?.data ?? res?.data;
+}
+
+// Finalize test (validate and mark as Completed)
+export async function finalizeTest(testId) {
+  const res = await api.patch(`/api/tests/${testId}/finalize`);
+  return res?.data?.data ?? res?.data;
+}
+
+// Get list of saved parts for a test (optional API)
+export async function getTestParts(testId) {
+  const res = await api.get(`/api/tests/${testId}/parts`);
+  return res?.data?.data ?? res?.data ?? [];
 }
 

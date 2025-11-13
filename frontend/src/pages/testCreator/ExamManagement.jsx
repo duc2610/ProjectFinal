@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Input, Table, Space, Tag, Switch, message, Tooltip, Select, Row, Col, Modal, Upload } from "antd";
-import { PlusOutlined, EditOutlined, SearchOutlined, DownloadOutlined, UploadOutlined, FileExcelOutlined } from "@ant-design/icons";
+import { Card, Button, Input, Table, Space, Tag, message, Tooltip, Select, Row, Col, Modal, Upload } from "antd";
+import { PlusOutlined, EditOutlined, SearchOutlined, DownloadOutlined, UploadOutlined, FileExcelOutlined, SettingOutlined } from "@ant-design/icons";
 import { 
     getTests, 
-    hideTest, 
+    hideTest,
     publishTest,
+    finalizeTest,
     downloadTemplate,
     downloadTemplate4Skills,
     importTestFromExcel,
@@ -42,6 +43,10 @@ export default function ExamManagement() {
     const [fileList, setFileList] = useState([]);
     const [audioFileList, setAudioFileList] = useState([]);
     const [importTestType, setImportTestType] = useState(null); // 'lr' or '4skills'
+    const [statusModalOpen, setStatusModalOpen] = useState(false);
+    const [selectedTest, setSelectedTest] = useState(null);
+    const [selectedStatus, setSelectedStatus] = useState(null);
+    const [finalizing, setFinalizing] = useState(false);
 
     const fetchExams = async (page = 1, pageSize = 10, search = "", skill = "all", testType = "all") => {
         setLoading(true);
@@ -60,7 +65,6 @@ export default function ExamManagement() {
                 const { dataPaginated, currentPage, pageSize: size, totalCount } = response.data;
                 let allExams = dataPaginated || [];
                 
-                // Filter theo testType nếu được chọn
                 if (testType !== "all") {
                     allExams = allExams.filter(exam => exam.testType === testType);
                 }
@@ -181,7 +185,7 @@ export default function ExamManagement() {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-            message.success(`Đã tải template ${is4Skills ? '4-skills' : 'L&R'} thành công`);
+            message.success(`Đã tải template ${is4Skills ? '4 kỹ năng' : 'Nghe & Đọc'} thành công`);
             setDownloadTemplateModalOpen(false);
         } catch (error) {
             console.error("Download template error:", error);
@@ -241,7 +245,7 @@ export default function ExamManagement() {
             } else {
                 await importTestFromExcel(excelFile, audioFile);
             }
-            message.success(`Import bài thi ${importTestType === '4skills' ? '4-skills' : 'L&R'} thành công`);
+            message.success(`Nhập bài thi ${importTestType === '4skills' ? '4 kỹ năng' : 'Nghe & Đọc'} thành công`);
             setImportModalOpen(false);
             setFileList([]);
             setAudioFileList([]);
@@ -299,29 +303,87 @@ export default function ExamManagement() {
     };
 
     const handleTestCreated = () => {
-        // Sau khi tạo/cập nhật bài thi thành công, reload danh sách
-        // Reset về trang 1 để đảm bảo hiển thị version mới nhất
-        setPagination({ ...pagination, current: 1 });
-        fetchExams(1, pagination.pageSize, searchExam, filterSkill, filterTestType);
+
+        fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType);
     };
 
-    // toggle test status (Active/Inactive)
-    const toggleTestStatus = async (testId, currentStatus) => {
-        try {
-            // If currently active, hide it. Otherwise, publish it
-            if (currentStatus === "Active") {
-                await hideTest(testId);
-                message.success("Đã ẩn bài thi");
+    const openStatusModal = (exam) => {
+        setSelectedTest(exam);
+        // Normalize status để set giá trị ban đầu
+        let normalizedStatus = exam.status;
+        if (typeof exam.status === 'number') {
+            const statusMap = {
+                0: "Draft",
+                1: "InProgress",
+                2: "Completed",
+                3: "Published",
+            };
+            if (exam.status === -1) {
+                normalizedStatus = "Hide";
             } else {
-                await publishTest(testId);
-                message.success("Đã công khai bài thi");
+                normalizedStatus = statusMap[exam.status] || exam.status;
             }
+        }
+        setSelectedStatus(normalizedStatus);
+        setStatusModalOpen(true);
+    };
+
+    const handleUpdateStatus = async () => {
+        if (!selectedTest || !selectedStatus) {
+            message.warning("Vui lòng chọn trạng thái");
+            return;
+        }
+
+        try {
+            // Chỉ hỗ trợ Published và Hide vì backend chỉ có 2 endpoint này
+            if (selectedStatus === "Published") {
+                await publishTest(selectedTest.id);
+                message.success("Đã cập nhật trạng thái thành Published");
+            } else if (selectedStatus === "Hide") {
+                await hideTest(selectedTest.id);
+                message.success("Đã cập nhật trạng thái thành Hide");
+            } else {
+                message.warning("Chỉ có thể chuyển sang trạng thái Published hoặc Hide");
+                return;
+            }
+            
+            setStatusModalOpen(false);
+            setSelectedTest(null);
+            setSelectedStatus(null);
             fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType);
         } catch (error) {
-            console.error("Toggle status error:", error);
-            message.error("Lỗi khi cập nhật trạng thái");
+            console.error("Update status error:", error);
+            const errorMsg = error?.response?.data?.message || error?.message || "Lỗi khi cập nhật trạng thái";
+            message.error(errorMsg);
         }
     };
+
+    const handleFinalize = async () => {
+        if (!selectedTest) {
+            message.warning("Chưa có bài thi để hoàn tất!");
+            return;
+        }
+
+        try {
+            setFinalizing(true);
+            await finalizeTest(selectedTest.id);
+            message.success("Đã hoàn tất bài thi thành công!");
+            setStatusModalOpen(false);
+            setSelectedTest(null);
+            setSelectedStatus(null);
+            fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType);
+        } catch (error) {
+            console.error("Error finalizing test:", error);
+            const errorMessage = error.response?.data?.message 
+                || error.response?.data?.data 
+                || error.message 
+                || "Unknown error";
+            message.error("Lỗi khi hoàn tất bài thi: " + errorMessage);
+        } finally {
+            setFinalizing(false);
+        }
+    };
+
 
     const examColumns = [
         { 
@@ -345,14 +407,16 @@ export default function ExamManagement() {
                 
                 if (skill === "LR") {
                     color = "purple";
-                    label = "Listening & Reading";
+                    label = "Nghe & Đọc";
                 } else if (skill === "FourSkills" || skill === "Four Skills") {
                     color = "blue";
-                    label = "Four Skills";
+                    label = "4 Kỹ Năng";
                 } else if (skill === "Speaking") {
                     color = "green";
+                    label = "Nói";
                 } else if (skill === "Writing") {
                     color = "cyan";
+                    label = "Viết";
                 }
                 
                 return <Tag color={color}>{label}</Tag>;
@@ -394,28 +458,45 @@ export default function ExamManagement() {
             width: 160,
             align: "center",
             render: (_, rec) => {
+                // Normalize status: có thể là số hoặc string
+                let normalizedStatus = rec.status;
+                if (typeof rec.status === 'number') {
+                    const statusMap = {
+                        0: "Draft",
+                        1: "InProgress",
+                        2: "Completed",
+                        3: "Published",
+                        [-1]: "Hide"
+                    };
+                    normalizedStatus = statusMap[rec.status] || rec.status;
+                }
+                
                 const statusColorMap = {
-                    "Active": "success",
+                    "Published": "success",
+                    "Active": "success", // Alias cho Published
+                    "Completed": "success",
+                    "InProgress": "processing",
                     "Draft": "warning",
-                    "Inactive": "default"
+                    "Hide": "default",
+                    "Inactive": "default" // Alias cho Hide
                 };
                 const statusLabelMap = {
+                    "Published": "Đã công khai",
                     "Active": "Đang hoạt động",
+                    "Completed": "Hoàn thành",
+                    "InProgress": "Đang tiến hành",
                     "Draft": "Bản nháp",
+                    "Hide": "Đã ẩn",
                     "Inactive": "Đã ẩn"
                 };
+                
+                const statusColor = statusColorMap[normalizedStatus] || "default";
+                const statusLabel = statusLabelMap[normalizedStatus] || normalizedStatus;
+                
                 return (
-                    <Space>
-                        <Tag color={statusColorMap[rec.status] || "default"}>
-                            {statusLabelMap[rec.status] || rec.status}
-                        </Tag>
-                        <Switch 
-                            checked={rec.status === "Active"} 
-                            onChange={() => toggleTestStatus(rec.id, rec.status)}
-                            checkedChildren="Active"
-                            unCheckedChildren="Hidden"
-                        />
-                    </Space>
+                    <Tag color={statusColor}>
+                        {statusLabel}
+                    </Tag>
                 );
             } 
         },
@@ -437,6 +518,12 @@ export default function ExamManagement() {
                         <Button 
                             icon={<HistoryOutlined />} 
                             onClick={() => openVersionsModal(rec)}
+                        />
+                    </Tooltip>
+                    <Tooltip title="Chỉnh sửa trạng thái">
+                        <Button 
+                            icon={<SettingOutlined />} 
+                            onClick={() => openStatusModal(rec)}
                         />
                     </Tooltip>
                 </Space>
@@ -469,10 +556,10 @@ export default function ExamManagement() {
                                 placeholder="Chọn kỹ năng"
                             >
                                 <Select.Option value="all">Tất cả kỹ năng</Select.Option>
-                                <Select.Option value={3}>Listening & Reading</Select.Option>
-                                <Select.Option value={4}>Four Skills</Select.Option>
-                                <Select.Option value={1}>Speaking</Select.Option>
-                                <Select.Option value={2}>Writing</Select.Option>
+                                <Select.Option value={3}>Nghe & Đọc</Select.Option>
+                                <Select.Option value={4}>4 Kỹ Năng</Select.Option>
+                                <Select.Option value={1}>Nói</Select.Option>
+                                <Select.Option value={2}>Viết</Select.Option>
                             </Select>
                             <Select
                                 value={filterTestType}
@@ -481,8 +568,8 @@ export default function ExamManagement() {
                                 placeholder="Chọn loại bài thi"
                             >
                                 <Select.Option value="all">Tất cả loại</Select.Option>
-                                <Select.Option value="Practice">Practice</Select.Option>
-                                <Select.Option value="Simulator">Simulator</Select.Option>
+                                <Select.Option value="Practice">Luyện tập</Select.Option>
+                                <Select.Option value="Simulator">Mô phỏng</Select.Option>
                             </Select>
                         </Space>
                     </Col>
@@ -492,13 +579,13 @@ export default function ExamManagement() {
                                 icon={<DownloadOutlined />} 
                                 onClick={() => setDownloadTemplateModalOpen(true)}
                             >
-                                Download Template
+                                Tải Template
                             </Button>
                             <Button 
                                 icon={<UploadOutlined />} 
                                 onClick={() => setImportModalOpen(true)}
                             >
-                                Import Excel
+                                Nhập Excel
                             </Button>
                             <Button type="primary" icon={<PlusOutlined />} onClick={openCreateExam}>
                                 Tạo bài thi mới
@@ -596,9 +683,9 @@ export default function ExamManagement() {
                             style={{ height: 60, fontSize: 15 }}
                         >
                             <div style={{ textAlign: "left" }}>
-                                <div style={{ fontWeight: 500 }}>Template L&R</div>
+                                <div style={{ fontWeight: 500 }}>Template Nghe & Đọc</div>
                                 <div style={{ fontSize: 12, color: "#999", fontWeight: "normal" }}>
-                                    Listening & Reading Test
+                                    Bài thi Nghe & Đọc
                                 </div>
                             </div>
                         </Button>
@@ -611,9 +698,9 @@ export default function ExamManagement() {
                             style={{ height: 60, fontSize: 15 }}
                         >
                             <div style={{ textAlign: "left" }}>
-                                <div style={{ fontWeight: 500 }}>Template 4-Skills</div>
+                                <div style={{ fontWeight: 500 }}>Template 4 Kỹ Năng</div>
                                 <div style={{ fontSize: 12, color: "#999", fontWeight: "normal" }}>
-                                    Listening + Reading + Writing + Speaking
+                                    Nghe + Đọc + Viết + Nói
                                 </div>
                             </div>
                         </Button>
@@ -627,7 +714,7 @@ export default function ExamManagement() {
                 open={importModalOpen}
                 onOk={handleImportExcel}
                 onCancel={handleImportModalClose}
-                okText="Import"
+                okText="Nhập"
                 cancelText="Hủy"
                 confirmLoading={uploading}
                 okButtonProps={{ 
@@ -652,9 +739,9 @@ export default function ExamManagement() {
                                     style={{ height: 60, fontSize: 15 }}
                                 >
                                     <div style={{ textAlign: "left" }}>
-                                        <div style={{ fontWeight: 500 }}>Bài thi L&R</div>
+                                        <div style={{ fontWeight: 500 }}>Bài thi Nghe & Đọc</div>
                                         <div style={{ fontSize: 12, color: "#999", fontWeight: "normal" }}>
-                                            Listening & Reading Test
+                                            Bài thi Nghe & Đọc
                                         </div>
                                     </div>
                                 </Button>
@@ -667,9 +754,9 @@ export default function ExamManagement() {
                                     style={{ height: 60, fontSize: 15 }}
                                 >
                                     <div style={{ textAlign: "left" }}>
-                                        <div style={{ fontWeight: 500 }}>Bài thi 4-Skills</div>
+                                        <div style={{ fontWeight: 500 }}>Bài thi 4 Kỹ Năng</div>
                                         <div style={{ fontSize: 12, color: "#999", fontWeight: "normal" }}>
-                                            Listening + Reading + Writing + Speaking
+                                            Nghe + Đọc + Viết + Nói
                                         </div>
                                     </div>
                                 </Button>
@@ -698,7 +785,7 @@ export default function ExamManagement() {
                             </div>
                             <div style={{ marginBottom: 8 }}>
                                 <Tag color={importTestType === '4skills' ? 'blue' : 'green'}>
-                                    {importTestType === '4skills' ? '4-Skills Test' : 'L&R Test'}
+                                    {importTestType === '4skills' ? 'Bài thi 4 Kỹ Năng' : 'Bài thi Nghe & Đọc'}
                                 </Tag>
                             </div>
                             <p style={{ marginBottom: 8, fontSize: 12, color: "#999" }}>
@@ -757,6 +844,89 @@ export default function ExamManagement() {
                         </div>
                     )}
                 </Space>
+            </Modal>
+
+            {/* Modal Chỉnh sửa trạng thái */}
+            <Modal
+                title="Chỉnh sửa trạng thái bài thi"
+                open={statusModalOpen}
+                onCancel={() => {
+                    setStatusModalOpen(false);
+                    setSelectedTest(null);
+                    setSelectedStatus(null);
+                }}
+                footer={[
+                    <Button 
+                        key="finalize"
+                        type="primary"
+                        danger
+                        onClick={handleFinalize}
+                        loading={finalizing}
+                        style={{ marginRight: 'auto' }}
+                    >
+                        Hoàn tất bài thi
+                    </Button>,
+                    <Button 
+                        key="cancel"
+                        onClick={() => {
+                            setStatusModalOpen(false);
+                            setSelectedTest(null);
+                            setSelectedStatus(null);
+                        }}
+                    >
+                        Hủy
+                    </Button>,
+                    <Button 
+                        key="update"
+                        type="primary"
+                        onClick={handleUpdateStatus}
+                    >
+                        Cập nhật
+                    </Button>
+                ]}
+                width={500}
+            >
+                {selectedTest && (
+                    <Space direction="vertical" style={{ width: "100%" }} size="large">
+                        <div>
+                            <p style={{ marginBottom: 8, fontWeight: 500 }}>Bài thi:</p>
+                            <p style={{ margin: 0, color: "#666" }}>{selectedTest.title}</p>
+                        </div>
+                        <div>
+                            <p style={{ marginBottom: 8, fontWeight: 500 }}>Trạng thái hiện tại:</p>
+                            <Tag color={
+                                selectedTest.status === 3 || selectedTest.status === "Published" ? "success" :
+                                selectedTest.status === -1 || selectedTest.status === "Hide" ? "default" :
+                                selectedTest.status === 2 || selectedTest.status === "Completed" ? "success" :
+                                selectedTest.status === 1 || selectedTest.status === "InProgress" ? "processing" :
+                                "warning"
+                            }>
+                                {typeof selectedTest.status === 'number' ? 
+                                    (selectedTest.status === 3 ? "Published" :
+                                     selectedTest.status === -1 ? "Hide" :
+                                     selectedTest.status === 2 ? "Completed" :
+                                     selectedTest.status === 1 ? "InProgress" : "Draft") :
+                                    selectedTest.status
+                                }
+                            </Tag>
+                        </div>
+                        <div>
+                            <p style={{ marginBottom: 8, fontWeight: 500 }}>Chọn trạng thái mới:</p>
+                            <Select
+                                value={selectedStatus}
+                                onChange={setSelectedStatus}
+                                style={{ width: "100%" }}
+                                placeholder="Chọn trạng thái"
+                            >
+                                <Select.Option value="Published">Published - Đã công khai</Select.Option>
+                                <Select.Option value="Hide">Hide - Đã ẩn</Select.Option>
+                            </Select>
+                            <p style={{ marginTop: 8, fontSize: 12, color: "#999" }}>
+                                Lưu ý: Chỉ có thể chuyển sang trạng thái Published hoặc Hide
+                            </p>
+                        </div>
+                    </Space>
+                )}
             </Modal>
         </div>
     );

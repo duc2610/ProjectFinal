@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Collapse, Space, Tag, Row, Col, Statistic, Upload, Alert } from "antd";
 import { PlusOutlined, DeleteOutlined, CheckCircleOutlined, UploadOutlined, PictureOutlined } from "@ant-design/icons";
-import { createTestManual, getTestById, updateTestManual } from "@services/testsService";
+import { createTestManual, getTestById, updateTestManual, createTestDraft, saveTestPart } from "@services/testsService";
 import { uploadFile } from "@services/filesService";
 import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL, PART_QUESTION_COUNT, validateTestStructure, requiresAudio, supportsQuestionGroups, createDefaultOptions, requiresImage } from "@shared/constants/toeicStructure";
 import { TEST_TYPE } from "@shared/constants/toeicStructure";
@@ -25,6 +25,9 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     const [partsData, setPartsData] = useState({}); // { partId: { groups: [], questions: [] } }
     const [activePartTab, setActivePartTab] = useState(null);
     const [audioUrl, setAudioUrl] = useState(null);
+    const [currentTestId, setCurrentTestId] = useState(null); // Lưu testId sau khi tạo draft
+    const [savingPartId, setSavingPartId] = useState(null); // Part đang được lưu
+    const [showValidation, setShowValidation] = useState(false); // Chỉ hiển thị validation khi click "Lưu Part"
 
     const toSkillId = (val) => {
         if (val == null) return undefined;
@@ -39,11 +42,45 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     useEffect(() => {
-        if (!open) return;
+        if (!open) {
+            // Reset state khi modal đóng
+            setShowValidation(false);
+            setSavingPartId(null);
+            return;
+        }
         form.resetFields();
         setParts([]);
         setPartsData({});
         setAudioUrl(null);
+        
+        // Đảm bảo editingId là số hợp lệ
+        let validEditingId = editingId;
+        if (editingId && typeof editingId === 'object' && editingId !== null) {
+            validEditingId = editingId.id || editingId.testId || editingId.Id || editingId.TestId;
+        }
+        
+        // Xử lý trường hợp editingId là string có format "TestId: 5023" hoặc tương tự
+        if (validEditingId && typeof validEditingId === 'string') {
+            // Tìm số trong string (ví dụ: "TestId: 5023" -> "5023")
+            const numberMatch = validEditingId.match(/\d+/);
+            if (numberMatch) {
+                validEditingId = Number(numberMatch[0]);
+            } else if (/^\d+$/.test(validEditingId)) {
+                // Nếu là string số thuần, convert sang number
+                validEditingId = Number(validEditingId);
+            }
+        }
+        
+        // Đảm bảo validEditingId là số hợp lệ hoặc null/undefined
+        if (validEditingId !== null && validEditingId !== undefined) {
+            if (typeof validEditingId !== 'number' || isNaN(validEditingId)) {
+                console.warn("Invalid editingId format:", editingId);
+                validEditingId = null;
+            }
+        }
+        
+        setCurrentTestId(validEditingId); // Nếu có editingId, set làm currentTestId
+        setShowValidation(false); // Reset validation khi mở modal
 
         const loadForEdit = async (id) => {
             try {
@@ -263,50 +300,58 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     const addQuestion = (partId) => {
         // Writing và Speaking parts không có options (partId 8-15)
         const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
-        setPartsData(prev => ({
-            ...prev,
-            [partId]: {
-                ...prev[partId],
-                questions: [
-                    ...(prev[partId]?.questions || []),
-                    {
-                        content: "",
-                        imageUrl: "",
-                        audioUrl: "",
-                        explanation: "",
-                        options: defaultOptions,
-                    },
-                ],
-            },
-        }));
+        setPartsData(prev => {
+            // Đảm bảo partId được khởi tạo đúng cấu trúc
+            const currentPartData = prev[partId] || { groups: [], questions: [] };
+            return {
+                ...prev,
+                [partId]: {
+                    ...currentPartData,
+                    questions: [
+                        ...(currentPartData.questions || []),
+                        {
+                            content: "",
+                            imageUrl: "",
+                            audioUrl: "",
+                            explanation: "",
+                            options: defaultOptions,
+                        },
+                    ],
+                },
+            };
+        });
     };
 
     const addGroup = (partId) => {
         // Writing và Speaking parts không có options (partId 8-15)
         const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
-        setPartsData(prev => ({
-            ...prev,
-            [partId]: {
-                ...prev[partId],
-                groups: [
-                    ...(prev[partId]?.groups || []),
-                    {
-                        passage: "",
-                        imageUrl: "",
-                        audioUrl: "",
-                        questions: [
-                            {
-                                content: "",
-                                imageUrl: "",
-                                audioUrl: "",
-                                explanation: "",
-                                options: defaultOptions,
-                            },
-                        ],
-                    },
-                ],
-            },
-        }));
+        setPartsData(prev => {
+            // Đảm bảo partId được khởi tạo đúng cấu trúc
+            const currentPartData = prev[partId] || { groups: [], questions: [] };
+            return {
+                ...prev,
+                [partId]: {
+                    ...currentPartData,
+                    groups: [
+                        ...(currentPartData.groups || []),
+                        {
+                            passage: "",
+                            imageUrl: "",
+                            audioUrl: "",
+                            questions: [
+                                {
+                                    content: "",
+                                    imageUrl: "",
+                                    audioUrl: "",
+                                    explanation: "",
+                                    options: defaultOptions,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            };
+        });
     };
 
     const updateQuestion = (partId, questionIndex, field, value) => {
@@ -542,6 +587,197 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         return errors;
     };
 
+    // Helper để validate string (không chỉ space) - dùng chung
+    const validateString = (value) => {
+        if (!value || typeof value !== "string") return false;
+        return value.trim().length > 0;
+    };
+
+    // Hàm lưu một part cụ thể
+    const handleSavePart = async (partId) => {
+        if (!currentTestId) {
+            message.warning("Vui lòng tạo bài thi trước!");
+            return;
+        }
+        
+        // Đảm bảo testId là số hợp lệ
+        let testId = currentTestId;
+        if (typeof testId === 'object' && testId !== null) {
+            testId = testId.id || testId.testId || testId.Id || testId.TestId;
+        }
+        
+        // Xử lý trường hợp testId là string có format "TestId: 5023" hoặc tương tự
+        if (typeof testId === 'string') {
+            // Tìm số trong string (ví dụ: "TestId: 5023" -> "5023")
+            const numberMatch = testId.match(/\d+/);
+            if (numberMatch) {
+                testId = Number(numberMatch[0]);
+            } else if (!/^\d+$/.test(testId)) {
+                message.error("ID bài thi không hợp lệ!");
+                return;
+            } else {
+                // Nếu là string số thuần, convert sang number
+                testId = Number(testId);
+            }
+        }
+        
+        // Đảm bảo testId là số hợp lệ
+        if (!testId || typeof testId !== 'number' || isNaN(testId)) {
+            message.error("ID bài thi không hợp lệ!");
+            return;
+        }
+
+        const partData = partsData[partId];
+        if (!partData) {
+            message.warning("Part không có dữ liệu!");
+            return;
+        }
+
+        // Bật validation để hiển thị lỗi trong form
+        setShowValidation(true);
+
+        // Validate tất cả câu hỏi trước khi lưu
+        const errors = [];
+        const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+
+        // Validate questions đơn
+        (partData.questions || []).forEach((q, qIdx) => {
+            if (!validateString(q.content)) {
+                errors.push(`Câu hỏi ${qIdx + 1}: Nội dung không được để trống hoặc chỉ có khoảng trắng!`);
+            }
+
+            // Validate options cho L&R
+            if (!isWritingOrSpeaking && (q.options || []).length > 0) {
+                // Kiểm tra tất cả options phải có nội dung (không chỉ space)
+                (q.options || []).forEach((opt, optIdx) => {
+                    if (!validateString(opt.content)) {
+                        errors.push(`Câu hỏi ${qIdx + 1}, Đáp án ${opt.label}: Không được để trống hoặc chỉ có khoảng trắng!`);
+                    }
+                });
+
+                // Kiểm tra phải chọn ít nhất 1 đáp án đúng
+                const hasCorrectAnswer = (q.options || []).some(opt => opt.isCorrect && validateString(opt.content));
+                if (!hasCorrectAnswer) {
+                    errors.push(`Câu hỏi ${qIdx + 1}: Phải chọn ít nhất 1 đáp án đúng!`);
+                }
+            }
+        });
+
+        // Validate questions trong groups
+        (partData.groups || []).forEach((g, gIdx) => {
+            (g.questions || []).forEach((q, qIdx) => {
+                if (!validateString(q.content)) {
+                    errors.push(`Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Nội dung không được để trống hoặc chỉ có khoảng trắng!`);
+                }
+
+                // Validate options cho L&R
+                if (!isWritingOrSpeaking && (q.options || []).length > 0) {
+                    // Kiểm tra tất cả options phải có nội dung
+                    (q.options || []).forEach((opt, optIdx) => {
+                        if (!validateString(opt.content)) {
+                            errors.push(`Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}, Đáp án ${opt.label}: Không được để trống hoặc chỉ có khoảng trắng!`);
+                        }
+                    });
+
+                    // Kiểm tra phải chọn ít nhất 1 đáp án đúng
+                    const hasCorrectAnswer = (q.options || []).some(opt => opt.isCorrect && validateString(opt.content));
+                    if (!hasCorrectAnswer) {
+                        errors.push(`Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Phải chọn ít nhất 1 đáp án đúng!`);
+                    }
+                }
+            });
+        });
+
+        // Nếu có lỗi, hiển thị và không cho lưu
+        if (errors.length > 0) {
+            message.error({
+                content: (
+                    <div>
+                        <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Có lỗi trong dữ liệu Part {partId}:</div>
+                        <ul style={{ margin: 0, paddingLeft: 20, maxHeight: 200, overflowY: 'auto' }}>
+                            {errors.slice(0, 10).map((err, idx) => (
+                                <li key={idx} style={{ marginBottom: 4 }}>{err}</li>
+                            ))}
+                        </ul>
+                        {errors.length > 10 && (
+                            <div style={{ marginTop: 8, color: '#999' }}>
+                                ... và {errors.length - 10} lỗi khác
+                            </div>
+                        )}
+                    </div>
+                ),
+                duration: 5,
+            });
+            return;
+        }
+
+        // Helper để trim string hoặc return null
+        const trimOrNull = (str) => {
+            if (!str || typeof str !== "string") return null;
+            const trimmed = str.trim();
+            return trimmed.length > 0 ? trimmed : null;
+        };
+
+        // Build part payload
+        const partPayload = {
+            groups: (partData.groups || []).map(g => ({
+                passage: trimOrNull(g.passage),
+                imageUrl: trimOrNull(g.imageUrl),
+                questions: (g.questions || []).map(q => {
+                    const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+                    const optionsPayload = isWritingOrSpeaking ? [] : (q.options || []).map(o => ({
+                        label: o.label,
+                        content: trimOrNull(o.content),
+                        isCorrect: o.isCorrect || false,
+                    }));
+                    
+                    return {
+                        content: trimOrNull(q.content),
+                        imageUrl: trimOrNull(q.imageUrl),
+                        options: optionsPayload,
+                        explanation: trimOrNull(q.explanation),
+                    };
+                }),
+            })),
+            questions: (partData.questions || []).map(q => {
+                const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+                const optionsPayload = isWritingOrSpeaking ? [] : (q.options || []).map(o => ({
+                    label: o.label,
+                    content: trimOrNull(o.content),
+                    isCorrect: o.isCorrect || false,
+                }));
+                
+                return {
+                    content: trimOrNull(q.content),
+                    imageUrl: trimOrNull(q.imageUrl),
+                    options: optionsPayload,
+                    explanation: trimOrNull(q.explanation),
+                };
+            }),
+        };
+
+        try {
+            setSavingPartId(partId);
+            await saveTestPart(testId, partId, partPayload);
+            message.success(`Đã lưu Part ${partId} thành công!`);
+            setShowValidation(false);
+            if (onSuccess) {
+                onSuccess();
+            }
+        } catch (error) {
+            console.error(`Error saving part ${partId}:`, error);
+            const errorMessage = error.response?.data?.message 
+                || error.response?.data?.data 
+                || error.message 
+                || "Unknown error";
+            message.error(`Lỗi khi lưu Part ${partId}: ${errorMessage}`);
+            // Giữ validation để người dùng thấy lỗi
+        } finally {
+            setSavingPartId(null);
+        }
+    };
+
+    // Hàm tạo draft test (gọi khi click "Tạo bài thi")
     const handleSubmit = async () => {
         try {
             const values = await form.validateFields();
@@ -551,214 +787,124 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 return;
             }
 
-            // Validate tất cả inputs
-            const validationErrors = validatePartsData();
-            if (validationErrors.length > 0) {
-                message.error({
-                    content: (
-                        <div>
-                            <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Có lỗi trong dữ liệu:</div>
-                            <ul style={{ margin: 0, paddingLeft: 20 }}>
-                                {validationErrors.slice(0, 5).map((err, idx) => (
-                                    <li key={idx} style={{ marginBottom: 4 }}>{err}</li>
-                                ))}
-                            </ul>
-                            {validationErrors.length > 5 && (
-                                <div style={{ marginTop: 8, color: '#999' }}>
-                                    ... và {validationErrors.length - 5} lỗi khác
-                                </div>
-                            )}
-                        </div>
-                    ),
-                    duration: 5,
-                });
+            // Nếu đã có testId, không làm gì (chỉ tạo draft một lần)
+            if (currentTestId) {
+                message.info("Bài thi đã được tạo. Bạn có thể thêm câu hỏi và lưu từng part.");
                 return;
             }
 
-            // Build parts data cho API
-            console.log("=== CHUẨN BỊ SUBMIT ===");
-            console.log(`parts array có ${parts.length} parts:`, parts.map(p => p.partId));
-            console.log(`partsData có keys:`, Object.keys(partsData).map(k => Number(k)));
+            // Tạo draft test ngay
+            setLoading(true);
             
-            // Đảm bảo gửi TẤT CẢ parts có trong partsData (không filter theo parts array)
-            // Vì parts array chỉ chứa parts từ skill, nhưng partsData có thể có thêm parts từ API
-            const partsPayload = Object.keys(partsData)
-                .map(partIdStr => {
-                    const partId = Number(partIdStr);
-                    const partData = partsData[partId];
-                    const groupCount = (partData.groups || []).reduce((sum, g) => sum + (g.questions || []).length, 0);
-                    const questionCount = (partData.questions || []).length;
-                    const totalQuestions = groupCount + questionCount;
-                    
-                    console.log(`Part ${partId}: ${groupCount} questions từ groups + ${questionCount} single = ${totalQuestions} total`);
-                    
-                    // Chỉ gửi part nếu có ít nhất 1 câu hỏi
-                    if (totalQuestions === 0) {
-                        console.warn(`Part ${partId}: Bỏ qua vì rỗng`);
-                        return null;
-                    }
-                    
-                    // Helper để trim string hoặc return null
-                    const trimOrNull = (str) => {
-                        if (!str || typeof str !== "string") return null;
-                        const trimmed = str.trim();
-                        return trimmed.length > 0 ? trimmed : null;
-                    };
-
-                    return {
-                        partId: partId,
-                        groups: (partData.groups || []).map(g => ({
-                            passage: trimOrNull(g.passage),
-                            imageUrl: trimOrNull(g.imageUrl),
-                            audioUrl: trimOrNull(g.audioUrl),
-                            questions: (g.questions || []).map(q => {
-                                // Writing và Speaking không có options
-                                // Sử dụng partId để kiểm tra thay vì skill
-            const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
-                                const optionsPayload = isWritingOrSpeaking ? [] : (q.options || []).map(o => ({
-                                    label: o.label,
-                                    content: trimOrNull(o.content),
-                                    isCorrect: o.isCorrect || false,
-                                }));
-                                
-                                return {
-                                    content: trimOrNull(q.content),
-                                    imageUrl: trimOrNull(q.imageUrl),
-                                    audioUrl: trimOrNull(q.audioUrl),
-                                    explanation: trimOrNull(q.explanation),
-                                    options: optionsPayload,
-                                };
-                            }),
-                        })),
-                        questions: (partData.questions || []).map(q => {
-                            // Writing và Speaking không có options
-                            // Sử dụng partId để kiểm tra thay vì skill
-            const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
-                            const optionsPayload = isWritingOrSpeaking ? [] : (q.options || []).map(o => ({
-                                label: o.label,
-                                content: trimOrNull(o.content),
-                                isCorrect: o.isCorrect || false,
-                            }));
-                            
-                            return {
-                                content: trimOrNull(q.content),
-                                imageUrl: trimOrNull(q.imageUrl),
-                                audioUrl: trimOrNull(q.audioUrl),
-                                explanation: trimOrNull(q.explanation),
-                                options: optionsPayload,
-                            };
-                        }),
-                    };
-                })
-                .filter(p => p !== null); // Loại bỏ các parts null
-
-            // Log tổng hợp payload
-            const payloadTotal = partsPayload.reduce((sum, part) => {
-                const groupQ = (part.groups || []).reduce((gSum, g) => gSum + (g.questions || []).length, 0);
-                const singleQ = (part.questions || []).length;
-                return sum + groupQ + singleQ;
-            }, 0);
-            console.log(`Payload sẽ gửi: ${partsPayload.length} parts, tổng ${payloadTotal} câu hỏi`);
-            console.log("====================");
-
-            // Validate cấu trúc TOEIC
-            const validation = validateTestStructure(selectedSkill, partsPayload);
-            if (!validation.valid) {
-                message.warning(`Lỗi cấu trúc: ${validation.message}`);
-                return;
-            }
-
-            // Kiểm tra audio cho LR - chỉ kiểm tra nếu chưa upload
-            if (selectedSkill === TEST_SKILL.LR && !audioUrl) {
-                message.warning("L&R test yêu cầu audio file!");
-                return;
-            }
-
-            // Kiểm tra image bắt buộc cho các parts cần ảnh: Part 1 (L&R), Part 8 (Writing Part 1), Part 12 (Speaking Part 2)
-            const mandatoryImageParts = [1, 8, 12];
-            const partNames = { 1: "Part 1 (Photographs)", 8: "Writing Part 1", 12: "Speaking Part 2" };
-            
-            for (const partId of mandatoryImageParts) {
-                const partData = partsPayload.find(p => p.partId === partId);
-                if (partData) {
-                    // Kiểm tra questions đơn
-                    const questions = partData.questions || [];
-                    const missingImage = questions.some(q => !q.imageUrl || q.imageUrl.trim() === "");
-                    
-                    // Kiểm tra questions trong groups
-                    const groups = partData.groups || [];
-                    const groupMissingImage = groups.some(g => {
-                        const groupQuestions = g.questions || [];
-                        return groupQuestions.some(q => !q.imageUrl || q.imageUrl.trim() === "");
-                    });
-
-                    if (missingImage || groupMissingImage) {
-                        message.warning(`${partNames[partId]} yêu cầu Image URL cho tất cả câu hỏi!`);
-                        return;
-                    }
-                }
-            }
-
-            // Helper để trim string hoặc return null
-            const trimOrNull = (str) => {
-                if (!str || typeof str !== "string") return null;
-                const trimmed = str.trim();
-                return trimmed.length > 0 ? trimmed : null;
-            };
-
-            const payload = {
+            const draftPayload = {
                 title: (values.title || "").trim(),
                 testSkill: selectedSkill,
-                testType: TEST_TYPE.SIMULATOR,
-                description: trimOrNull(values.description),
-                audioUrl: trimOrNull(audioUrl),
-                parts: partsPayload,
+                description: values.description ? values.description.trim() : null,
+                audioUrl: audioUrl ? audioUrl.trim() : null,
             };
-
-            setLoading(true);
-            if (editingId) {
-                await updateTestManual(editingId, payload);
-                message.success("Cập nhật bài thi thành công");
-            } else {
-                await createTestManual(payload);
-                message.success("Tạo bài thi thành công!");
+            
+            const response = await createTestDraft(draftPayload);
+            
+            // Extract testId from response - có thể là số, object với id property, hoặc string
+            let testId = response;
+            if (typeof response === 'object' && response !== null) {
+                testId = response.id || response.testId || response.Id || response.TestId;
             }
+            
+            // Xử lý trường hợp testId là string có format "TestId: 5023" hoặc tương tự
+            if (typeof testId === 'string') {
+                // Tìm số trong string (ví dụ: "TestId: 5023" -> "5023")
+                const numberMatch = testId.match(/\d+/);
+                if (numberMatch) {
+                    testId = Number(numberMatch[0]);
+                } else if (!/^\d+$/.test(testId)) {
+                    // Nếu không phải là string số thuần, throw error
+                    throw new Error(`Không thể extract ID từ response: ${testId}`);
+                } else {
+                    // Nếu là string số thuần, convert sang number
+                    testId = Number(testId);
+                }
+            }
+            
+            // Đảm bảo testId là số hợp lệ
+            if (!testId || typeof testId !== 'number' || isNaN(testId)) {
+                throw new Error(`ID bài thi không hợp lệ: ${JSON.stringify(response)}`);
+            }
+            
+            setCurrentTestId(testId);
+            message.success("Đã tạo bài thi draft! Bạn có thể thêm câu hỏi cho từng part và lưu lại.");
+            
+            setShowValidation(false);
+            
 
-            setTimeout(() => {
+            if (!parts.length) {
+                const loadedParts = await loadPartsBySkill(selectedSkill);
+                setParts(loadedParts);
+                
+                const newPartsData = {};
+                loadedParts.forEach(p => {
+                    newPartsData[p.partId] = { groups: [], questions: [] };
+                });
+                setPartsData(newPartsData);
+                
+                if (loadedParts.length > 0) {
+                    setActivePartTab(loadedParts[0].partId);
+                }
+            } else {
+                const newPartsData = { ...partsData };
+                parts.forEach(p => {
+                    if (!newPartsData[p.partId]) {
+                        newPartsData[p.partId] = { groups: [], questions: [] };
+                    }
+                });
+                setPartsData(newPartsData);
+            }
+            
+            if (onSuccess) {
                 onSuccess();
-                onClose();
-            }, 300);
+            }
         } catch (error) {
-            console.error("Error creating test:", error);
-            message.error("Lỗi khi tạo bài thi: " + (error.message || "Unknown error"));
+            console.error("Error creating draft test:", error);
+            console.error("Error response:", error.response?.data);
+            
+            const errorMessage = error.response?.data?.message 
+                || error.response?.data?.data 
+                || error.message 
+                || "Unknown error";
+            
+            message.error("Lỗi khi tạo bài thi: " + errorMessage);
         } finally {
             setLoading(false);
         }
     };
 
+
     const totalQuestions = calculateTotalQuestions();
     const expectedTotal = selectedSkill ? TOTAL_QUESTIONS_BY_SKILL[selectedSkill] : 0;
-    const validation = selectedSkill ? validateTestStructure(selectedSkill, Object.keys(partsData).map(partId => {
-        const partData = partsData[partId] || { groups: [], questions: [] };
-        const part = parts.find(p => p.partId === Number(partId));
-        return {
-            partId: Number(partId),
-            groups: partData.groups || [],
-            questions: partData.questions || [],
-        };
-    })) : { valid: true, errors: [] };
 
     return (
         <Modal
-            title={readOnly ? "Xem Simulator Test" : (editingId ? "Cập nhật Simulator Test" : "Tạo Simulator Test")}
+            title={readOnly ? "Xem Bài Thi Mô Phỏng" : (currentTestId ? "Chỉnh Sửa Bài Thi Mô Phỏng" : "Tạo Bài Thi Mô Phỏng")}
             open={open}
             onCancel={onClose}
             onOk={readOnly ? undefined : handleSubmit}
             width={1400}
             confirmLoading={loading}
-            okText={editingId ? "Cập nhật" : "Tạo bài thi"}
+            okText={currentTestId ? "Đã tạo" : "Tạo bài thi"}
             cancelText="Hủy"
-            footer={readOnly ? null : undefined}
+            footer={readOnly ? null : (
+                <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+                    <Button onClick={onClose}>Hủy</Button>
+                    <Button
+                        type="primary"
+                        onClick={handleSubmit}
+                        loading={loading}
+                        style={{ marginLeft: 8 }}
+                    >
+                        {currentTestId ? "Đã tạo" : "Tạo bài thi"}
+                    </Button>
+                </div>
+            )}
             style={{ top: 20 }}
         >
             <Form
@@ -786,10 +932,10 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 onChange={handleSkillChange}
                                 disabled={readOnly || !!editingId}
                             >
-                                <Option value={TEST_SKILL.LR}>Listening & Reading</Option>
-                                <Option value={TEST_SKILL.FOUR_SKILLS}>Four Skills (L+R+W+S)</Option>
-                                <Option value={TEST_SKILL.SPEAKING}>Speaking</Option>
-                                <Option value={TEST_SKILL.WRITING}>Writing</Option>
+                                <Option value={TEST_SKILL.LR}>Nghe & Đọc</Option>
+                                <Option value={TEST_SKILL.FOUR_SKILLS}>Bốn Kỹ Năng (Nghe+Đọc+Viết+Nói)</Option>
+                                <Option value={TEST_SKILL.SPEAKING}>Nói</Option>
+                                <Option value={TEST_SKILL.WRITING}>Viết</Option>
                             </Select>
                         </Form.Item>
                     </Col>
@@ -858,16 +1004,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     </Form.Item>
                 )}
 
-                {!validation.valid && validation.errors.length > 0 && (
-                    <Alert
-                        message="Lỗi cấu trúc TOEIC"
-                        description={validation.errors.map((e, i) => <div key={i}>{e}</div>)}
-                        type="error"
-                        showIcon
-                        style={{ marginBottom: 16 }}
-                    />
-                )}
-
                 {selectedSkill && parts.length > 0 && (
                     <>
                         <div style={{
@@ -878,7 +1014,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                             border: "1px solid #adc6ff"
                         }}>
                             <Row gutter={16}>
-                                <Col span={8}>
+                                <Col span={12}>
                                     <Statistic
                                         title="Tổng số câu"
                                         value={totalQuestions}
@@ -888,19 +1024,10 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                         }}
                                     />
                                 </Col>
-                                <Col span={8}>
+                                <Col span={12}>
                                     <Statistic
                                         title="Số Parts"
                                         value={parts.length}
-                                    />
-                                </Col>
-                                <Col span={8}>
-                                    <Statistic
-                                        title="Trạng thái"
-                                        value={validation.valid ? "Hợp lệ" : "Chưa hợp lệ"}
-                                        valueStyle={{
-                                            color: validation.valid ? "#52c41a" : "#ff4d4f"
-                                        }}
                                     />
                                 </Col>
                             </Row>
@@ -965,6 +1092,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                             onUpdate={(field, value) => updateQuestion(part.partId, qIdx, field, value)}
                                                             onUpdateOption={(optionIndex, field, value) => updateOption(part.partId, qIdx, optionIndex, field, value)}
                                                             readOnly={readOnly}
+                                                            showValidation={showValidation}
                                                         />
                                                     </Panel>
                                                 ))}
@@ -1011,10 +1139,25 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                                 onAddQuestion={() => addQuestionToGroup(part.partId, gIdx)}
                                                                 onDeleteQuestion={(questionIndex) => deleteQuestionFromGroup(part.partId, gIdx, questionIndex)}
                                                                 readOnly={readOnly}
+                                                                showValidation={showValidation}
                                                             />
                                                         </Panel>
                                                     ))}
                                                 </Collapse>
+                                            </div>
+                                        )}
+
+                                        {/* Nút Lưu Part */}
+                                        {!readOnly && currentTestId && (
+                                            <div style={{ marginTop: 16, textAlign: "right" }}>
+                                                <Button
+                                                    type="primary"
+                                                    icon={<CheckCircleOutlined />}
+                                                    loading={savingPartId === part.partId}
+                                                    onClick={() => handleSavePart(part.partId)}
+                                                >
+                                                    Lưu Part {part.partId}
+                                                </Button>
                                             </div>
                                         )}
                                     </Tabs.TabPane>
@@ -1039,7 +1182,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
 }
 
 // Component để edit một câu hỏi
-function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUpdateOption, readOnly }) {
+function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUpdateOption, readOnly, showValidation = false }) {
     // Kiểm tra part nào cần ảnh
     const imageConfig = requiresImage(partId, skill);
     const requireImage = imageConfig.required;
@@ -1053,21 +1196,21 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
         return value.trim().length > 0;
     };
 
-    // Validate các fields
-    const contentError = !isValidString(question.content) ? "Nội dung câu hỏi không được để trống!" : "";
-    const imageError = showImage && requireImage && !isValidString(question.imageUrl) 
+    // Validate các fields - chỉ hiển thị lỗi khi showValidation = true
+    const contentError = showValidation && !isValidString(question.content) ? "Nội dung câu hỏi không được để trống!" : "";
+    const imageError = showValidation && showImage && requireImage && !isValidString(question.imageUrl) 
         ? "Image URL là bắt buộc!" 
-        : showImage && question.imageUrl && !isValidString(question.imageUrl)
+        : showValidation && showImage && question.imageUrl && !isValidString(question.imageUrl)
         ? "Image URL không hợp lệ!"
         : "";
-    const explanationError = question.explanation && !isValidString(question.explanation) 
+    const explanationError = showValidation && question.explanation && !isValidString(question.explanation) 
         ? "Giải thích không hợp lệ!" 
         : "";
     
     return (
         <Space direction="vertical" style={{ width: "100%" }} size="middle">
             <Form.Item 
-                label="Nội dung câu hỏi" 
+                label="Nội dung câu hỏi"
                 required
                 validateStatus={contentError ? "error" : ""}
                 help={contentError}
@@ -1161,7 +1304,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                 >
                     <Space direction="vertical" style={{ width: "100%" }}>
                         {(question.options || []).map((option, oIdx) => {
-                            const optionError = !isValidString(option.content) ? "Đáp án không được để trống!" : "";
+                            const optionError = showValidation && !isValidString(option.content) ? "Đáp án không được để trống!" : "";
                             
                             return (
                                 <div key={oIdx}>
@@ -1203,7 +1346,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                         })}
                         {(() => {
                             const hasCorrectAnswer = (question.options || []).some(opt => opt.isCorrect && isValidString(opt.content));
-                            return !hasCorrectAnswer && (question.options || []).length > 0 ? (
+                            return showValidation && !hasCorrectAnswer && (question.options || []).length > 0 ? (
                                 <div style={{ color: "#ff4d4f", fontSize: "12px", marginTop: "4px" }}>
                                     Phải chọn ít nhất 1 đáp án đúng!
                                 </div>
@@ -1217,16 +1360,16 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
 }
 
 // Component để edit một nhóm câu hỏi
-function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuestion, onUpdateOption, onAddQuestion, onDeleteQuestion, readOnly }) {
+function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuestion, onUpdateOption, onAddQuestion, onDeleteQuestion, readOnly, showValidation = false }) {
     // Helper để validate string
     const isValidString = (value) => {
         if (!value || typeof value !== "string") return false;
         return value.trim().length > 0;
     };
 
-    // Validate group fields
-    const passageError = group.passage && !isValidString(group.passage) ? "Passage không hợp lệ!" : "";
-    const imageError = group.imageUrl && !isValidString(group.imageUrl) ? "Image URL không hợp lệ!" : "";
+    // Validate group fields - chỉ hiển thị lỗi khi showValidation = true
+    const passageError = showValidation && group.passage && !isValidString(group.passage) ? "Passage không hợp lệ!" : "";
+    const imageError = showValidation && group.imageUrl && !isValidString(group.imageUrl) ? "Image URL không hợp lệ!" : "";
     
     return (
         <Space direction="vertical" style={{ width: "100%" }} size="middle">
@@ -1342,6 +1485,7 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
                                 onUpdate={(field, value) => onUpdateQuestion(qIdx, field, value)}
                                 onUpdateOption={(optionIndex, field, value) => onUpdateOption(qIdx, optionIndex, field, value)}
                                 readOnly={readOnly}
+                                showValidation={showValidation}
                             />
                         </Panel>
                     ))}
