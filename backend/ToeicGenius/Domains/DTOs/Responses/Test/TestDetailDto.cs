@@ -14,7 +14,8 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 		public string? AudioUrl { get; set; }
 		public int Duration { get; set; }
 		public int QuantityQuestion { get; set; }
-		public TestStatus Status { get; set; }
+		public TestCreationStatus CreationStatus { get; set; }
+		public TestVisibilityStatus VisibilityStatus { get; set; }
 		public DateTime CreatedAt { get; set; }
 		public DateTime? UpdatedAt { get; set; }
 

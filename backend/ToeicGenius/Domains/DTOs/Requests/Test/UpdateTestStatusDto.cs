@@ -3,13 +3,13 @@ using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.DTOs.Requests.Test
 {
-	public class UpdateTestStatusDto
+	public class UpdateTestVisibilityStatusDto
 	{
 
 		[Required]
 		public int TestId { get; set; }
 
 		[Required]
-		public TestStatus Status { get; set; } 
+		public TestVisibilityStatus VisibilityStatus { get; set; } 
 	}
 }
