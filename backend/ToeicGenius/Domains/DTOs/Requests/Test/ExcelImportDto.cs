@@ -8,8 +8,8 @@ public class ExcelImportDto
     public IFormFile AudioFile { get; set; } = null!;
 }
 
-public class Excel4SkillsImportDto
+public class ExcelSWImportDto
 {
     public IFormFile ExcelFile { get; set; } = null!;
-    public IFormFile AudioFile { get; set; } = null!;
+    // No audio file needed for S&W test (Speaking & Writing only)
 }

@@ -172,18 +172,18 @@ namespace ToeicGenius.Controllers
 			}
 		}
 
-		// Download Excel template for 4-skills test (L+R+W+S)
-		[HttpGet("download-template-4skills")]
+		// Download Excel template for S&W test (Speaking & Writing)
+		[HttpGet("download-template-sw")]
 		[Authorize(Roles = "TestCreator")]
-		public async Task<IActionResult> DownloadExcelTemplate4Skills()
+		public async Task<IActionResult> DownloadExcelTemplateSW()
 		{
 			try
 			{
-				var result = await _excelService.GenerateTemplate4SkillsAsync();
+				var result = await _excelService.GenerateTemplateSWAsync();
 				if (!result.IsSuccess)
-					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Failed to generate 4-skills template"));
+					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Failed to generate S&W template"));
 
-				var fileName = $"TOEIC_4Skills_Test_Template_{DateTime.UtcNow:yyyyMMdd}.xlsx";
+				var fileName = $"TOEIC_SW_Test_Template_{DateTime.UtcNow:yyyyMMdd}.xlsx";
 
 				// Set Content-Disposition header with both filename and filename* (RFC 5987) to ensure correct file extension
 				Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{fileName}";
@@ -198,10 +198,10 @@ namespace ToeicGenius.Controllers
 			}
 		}
 
-		// Import 4-skills test from Excel with audio file
-		[HttpPost("import-excel-4skills")]
+		// Import S&W test from Excel (Speaking & Writing only)
+		[HttpPost("import-excel-sw")]
 		[Authorize(Roles = "TestCreator")]
-		public async Task<IActionResult> ImportTest4SkillsFromExcel([FromForm] Excel4SkillsImportDto request)
+		public async Task<IActionResult> ImportTestSWFromExcel([FromForm] ExcelSWImportDto request)
 		{
 			try
 			{
@@ -210,30 +210,27 @@ namespace ToeicGenius.Controllers
 				{
 					return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
 				}
-				// Upload audio file to cloud storage
-				var audioUploadResult = await _fileService.UploadFileAsync(request.AudioFile, "audio");
-				if (!audioUploadResult.IsSuccess)
-					return BadRequest(ApiResponse<string>.ErrorResponse(audioUploadResult.ErrorMessage ?? "Failed to upload audio file"));
 
-				// Parse Excel to DTO (with all 15 parts, images auto-uploaded)
-				var parseResult = await _excelService.ParseExcelToTest4SkillsAsync(request.ExcelFile);
-				if (!parseResult.IsSuccess)
+				if (request == null || request.ExcelFile == null)
 				{
-					// Rollback: Delete uploaded audio file
-					await _fileService.DeleteFileAsync(audioUploadResult.Data!);
-					return BadRequest(ApiResponse<string>.ErrorResponse(parseResult.ErrorMessage ?? "Failed to parse 4-skills Excel file"));
+					return BadRequest(ApiResponse<string>.ErrorResponse("Excel file is required"));
 				}
 
-				// Set the uploaded audio URL
-				parseResult.Data!.AudioUrl = audioUploadResult.Data!;
+				// Parse Excel to DTO (with Parts 8-15, images auto-uploaded)
+				var parseResult = await _excelService.ParseExcelToTestSWAsync(request.ExcelFile);
+				if (!parseResult.IsSuccess)
+				{
+					return BadRequest(ApiResponse<string>.ErrorResponse(parseResult.ErrorMessage ?? "Failed to parse S&W Excel file"));
+				}
 
-				// Reuse existing CreateManualAsync (no breaking changes!)
+				// S&W test doesn't require audio file
+				parseResult.Data!.AudioUrl = null;
+
+				// Create test using existing CreateManualAsync
 				var createResult = await _testService.CreateManualAsync(userId, parseResult.Data!);
 				if (!createResult.IsSuccess)
 				{
-					// Rollback: Delete uploaded audio file
-					await _fileService.DeleteFileAsync(audioUploadResult.Data!);
-					return BadRequest(ApiResponse<string>.ErrorResponse(createResult.ErrorMessage ?? "Failed to create 4-skills test"));
+					return BadRequest(ApiResponse<string>.ErrorResponse(createResult.ErrorMessage ?? "Failed to create S&W test"));
 				}
 
 				return Ok(ApiResponse<string>.SuccessResponse(createResult.Data!));
