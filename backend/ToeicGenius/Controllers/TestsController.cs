@@ -499,13 +499,32 @@ namespace ToeicGenius.Controllers
 
 			return Ok(ApiResponse<StatisticResultDto>.SuccessResponse(result.Data!));
 		}
+
+		/// <summary>
+		/// Save test progress (auto-save) - keeps test status as InProgress
+		/// </summary>
+		[HttpPost("save-progress")]
+		[Authorize(Roles = "Examinee")]
+		public async Task<IActionResult> SaveProgress([FromBody] SaveProgressRequestDto request)
+		{
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var result = await _testService.SaveProgressAsync(userId, request);
+
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data!));
+		}
 		#endregion
 
 
-		//TODO: For examinee 
+		//TODO: For examinee
 		// - Test History ok
-		// - Test Result Detail ok 
-		// - Test list for Examinee ok 
+		// - Test Result Detail ok
+		// - Test list for Examinee ok
 		// - Statistic result for Examinee
 	}
 }
