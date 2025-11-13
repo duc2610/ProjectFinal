@@ -250,5 +250,30 @@ namespace ToeicGenius.Repositories.Implementations
 
 			return await query.ToListAsync();
 		}
+
+		public async Task<List<TestResult>> GetExpiredInProgressTestsAsync()
+		{
+			try
+			{
+				// Get all InProgress test results with their test details
+				var inProgressTests = await _context.TestResults
+					.Include(tr => tr.Test)
+					.Where(tr => tr.Status == TestResultStatus.InProgress)
+					.ToListAsync();
+
+				// Filter expired tests (CreatedAt + Duration + 5 minutes grace period < Now)
+				var expiredTests = inProgressTests
+					.Where(tr => tr.Test != null &&
+								 DateTime.UtcNow - tr.CreatedAt > TimeSpan.FromMinutes(tr.Test.Duration + 5))
+					.ToList();
+
+				return expiredTests;
+			}
+			catch (Exception ex)
+			{
+				_logger?.LogError(ex, "Error getting expired InProgress tests");
+				throw;
+			}
+		}
 	}
 }
