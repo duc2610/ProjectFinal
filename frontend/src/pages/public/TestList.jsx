@@ -53,7 +53,7 @@ export default function TestList() {
                                   test.testSkill === "LR" ? "Listening & Reading" :
                                   test.testSkill === "FourSkills" || test.testSkill === 4 ? "Four Skills" :
                                   (TEST_SKILL_LABELS[test.testSkill] || "Unknown"),
-                        testSkillValue: test.testSkill, // Lưu giá trị gốc để filter
+                        testSkillValue: test.testSkill,
                         duration: test.duration || 0,
                         questionQuantity: test.questionQuantity || 0,
                         status: test.status,

@@ -24,16 +24,12 @@ export async function login({ email, password }) {
 export async function logout() {
   const refreshTokenValue = tokenStore.refresh;
   
-  // Try to revoke refresh token on server
-  // Backend expects [FromBody] string, so we send it as a JSON string
   if (refreshTokenValue) {
     try {
-      // ASP.NET Core [FromBody] string expects JSON string value
       await api.post("/api/Auth/logout", JSON.stringify(refreshTokenValue), {
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      // Even if logout fails on server, clear local tokens
       console.error("Logout error:", error);
     }
   }
@@ -118,26 +114,4 @@ export async function changePassword({
     confirmNewPassword: confirmNewPassword,
   });
   return unwrap(res);
-}
-
-/**
- * Refresh access token using refresh token
- * Mục đích: Khi access token hết hạn (30 phút), dùng refresh token để lấy access token mới
- * mà không cần đăng nhập lại. Refresh token có thời gian sống dài hơn.
- */
-export async function refreshToken() {
-  const refreshTokenValue = tokenStore.refresh;
-  if (!refreshTokenValue) {
-    throw new Error("No refresh token available");
-  }
-
-  const res = await api.post("/api/Auth/refresh-token", {
-    refreshToken: refreshTokenValue,
-  });
-  const data = unwrap(res);
-
-  if (data?.token) tokenStore.access = data.token;
-  if (data?.refreshToken) tokenStore.refresh = data.refreshToken;
-
-  return data;
 }
