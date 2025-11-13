@@ -1,26 +1,21 @@
-﻿using System.Text.Json.Serialization;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
+using ToeicGenius.Domains.DTOs.Requests.Test;
+using ToeicGenius.Domains.DTOs.Responses.Question;
+using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
+using ToeicGenius.Domains.DTOs.Responses.Test;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
+using ToeicGenius.Extensions;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
-using ToeicGenius.Domains.DTOs.Requests.Test;
-using ToeicGenius.Domains.DTOs.Responses.Test;
-using ToeicGenius.Domains.DTOs.Responses.Question;
-using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
-using ToeicGenius.Extensions;
-using Newtonsoft.Json;
-using Humanizer;
-using static System.Net.Mime.MediaTypeNames;
-using Microsoft.EntityFrameworkCore;
-using ToeicGenius.Shared.Validators;
-using Azure.Core;
-using Newtonsoft.Json.Serialization;
-using System.Threading.Tasks;
 using ToeicGenius.Shared.Helpers;
+using ToeicGenius.Shared.Validators;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -1089,6 +1084,20 @@ namespace ToeicGenius.Services.Implementations
 			if (request.Answers == null || !request.Answers.Any())
 				return Result<GeneralLRResultDto>.Failure("No answers provided.");
 
+			if (!request.TestResultId.HasValue)
+				return Result<GeneralLRResultDto>.Failure("Test session must be provided.");
+			TestResult? testResult = null;
+			if (request.TestResultId.HasValue)
+			{
+				testResult = await _uow.TestResults.GetByIdAsync(request.TestResultId.Value);
+
+				if (testResult == null)
+					return Result<GeneralLRResultDto>.Failure("Test session not found.");
+				if (testResult.UserId != userId || testResult.TestId != request.TestId)
+					return Result<GeneralLRResultDto>.Failure("Test session does not match the submitted data.");
+				if (testResult.Status == TestResultStatus.Graded)
+					return Result<GeneralLRResultDto>.Failure("This test session has already been submitted.");
+			}
 
 			// Tổng số câu hỏi
 			var totalQuestion = await _uow.Tests.GetTotalQuestionAsync(request.TestId);
@@ -1100,31 +1109,6 @@ namespace ToeicGenius.Services.Implementations
 				return Result<GeneralLRResultDto>.Failure("Invalid test or questions.");
 
 			bool isSimulator = request.TestType == TestType.Simulator;
-
-			TestResult? testResult = null;
-			if (request.TestResultId.HasValue)
-			{
-				testResult = await _uow.TestResults.GetByIdAsync(request.TestResultId.Value);
-				
-				if (testResult == null)
-					return Result<GeneralLRResultDto>.Failure("Test session not found.");
-				if (testResult.UserId != userId || testResult.TestId != request.TestId)
-					return Result<GeneralLRResultDto>.Failure("Test session does not match the submitted data.");
-				if (testResult.Status == TestResultStatus.Graded)
-					return Result<GeneralLRResultDto>.Failure("This test session has already been submitted.");
-			}
-
-			if (testResult == null)
-			{
-				testResult = new TestResult
-				{
-					UserId = userId,
-					TestId = request.TestId,
-					CreatedAt = DateTime.UtcNow
-				};
-
-				await _uow.TestResults.AddAsync(testResult);
-			}
 
 			testResult.Duration = request.Duration;
 			testResult.TestType = request.TestType;

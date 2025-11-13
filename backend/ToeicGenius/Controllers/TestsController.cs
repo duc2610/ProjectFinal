@@ -1,17 +1,11 @@
-﻿using Humanizer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Drawing.Printing;
 using System.Security.Claims;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using ToeicGenius.Domains.DTOs.Requests.Test;
-using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.Test;
-using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
-using ToeicGenius.Services.Implementations;
 using ToeicGenius.Services.Interfaces;
 
 namespace ToeicGenius.Controllers
