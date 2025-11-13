@@ -55,12 +55,10 @@ export async function loadPartsBySkill(skill) {
     try {
         let parts = [];
         if (skill === TEST_SKILL.LR) {
-            // L&R bao gồm cả Listening (skill=3) và Reading (skill=4)
             const listeningParts = await getPartsBySkill(3); // Listening = 3
             const readingParts = await getPartsBySkill(4); // Reading = 4
             parts = [...(listeningParts || []), ...(readingParts || [])];
         } else if (skill === TEST_SKILL.FOUR_SKILLS) {
-            // FourSkills bao gồm tất cả 15 parts: L&R (7 parts) + Writing (3 parts) + Speaking (5 parts)
             const listeningParts = await getPartsBySkill(3); // Listening = 3
             const readingParts = await getPartsBySkill(4); // Reading = 4
             const writingParts = await getPartsBySkill(2); // Writing = 2

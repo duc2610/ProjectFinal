@@ -158,7 +158,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
 
     return (
         <Modal
-            title={readOnly ? "Xem Practice Test" : (editingId ? "Cập nhật Practice Test" : "Tạo Practice Test từ Ngân hàng câu hỏi")}
+            title={readOnly ? "Xem Bài Thi Luyện Tập" : (editingId ? "Cập nhật Bài Thi Luyện Tập" : "Tạo Bài Thi Luyện Tập từ Ngân hàng câu hỏi")}
             open={open}
             onCancel={onClose}
             onOk={readOnly ? undefined : handleSubmit}
@@ -182,7 +182,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                             label="Tiêu đề bài thi"
                             rules={[{ required: true, message: "Vui lòng nhập tiêu đề!" }]}
                         >
-                            <Input placeholder="Ví dụ: Practice Test 1" disabled={readOnly} />
+                            <Input placeholder="Ví dụ: Bài Thi Luyện Tập 1" disabled={readOnly} />
                         </Form.Item>
                     </Col>
                     <Col span={6}>
@@ -196,9 +196,9 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                                 onChange={handleSkillChange}
                                 disabled={readOnly || !!editingId}
                             >
-                                <Option value={TEST_SKILL.LR}>Listening & Reading</Option>
-                                <Option value={TEST_SKILL.SPEAKING}>Speaking</Option>
-                                <Option value={TEST_SKILL.WRITING}>Writing</Option>
+                                <Option value={TEST_SKILL.LR}>Nghe & Đọc</Option>
+                                <Option value={TEST_SKILL.SPEAKING}>Nói</Option>
+                                <Option value={TEST_SKILL.WRITING}>Viết</Option>
                             </Select>
                         </Form.Item>
                     </Col>

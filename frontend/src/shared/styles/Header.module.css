@@ -191,10 +191,29 @@
 }
 
 .dropdownMenu {
-  border-radius: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-  padding: 8px 0;
-  min-width: 180px;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  padding: 8px 0 !important;
+  min-width: 180px !important;
+  background: #ffffff !important;
+  border: none !important;
+}
+
+.dropdownMenu :global(.ant-dropdown) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.dropdownMenu :global(.ant-dropdown-menu) {
+  background: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  border-radius: 12px !important;
+  padding: 8px 0 !important;
+}
+
+.dropdownMenu :global(.ant-dropdown-wrap) {
+  background: transparent !important;
 }
 
 .dropdownMenu :global(.ant-dropdown-menu-item) {
@@ -213,6 +232,37 @@
 
 .dropdownMenu :global(.ant-dropdown-menu-item-divider) {
   margin: 4px 0;
+}
+
+/* Remove gray background overlay from dropdown */
+:global(.ant-dropdown) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:global(.ant-dropdown::before),
+:global(.ant-dropdown::after) {
+  display: none !important;
+  content: none !important;
+}
+
+/* Remove any backdrop overlay */
+:global(.ant-dropdown-mask) {
+  display: none !important;
+  background: transparent !important;
+}
+
+:global(.ant-dropdown-wrap) {
+  background: transparent !important;
+}
+
+:global(.ant-dropdown-placement-bottomRight) {
+  background: transparent !important;
+}
+
+:global(.ant-dropdown-placement-bottomRight .ant-dropdown-menu) {
+  background: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
 }
 
 /* Hide scrollbar for Ant Design Layout Header */
