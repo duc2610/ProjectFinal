@@ -18,6 +18,8 @@ import {
   CheckCircleTwoTone,
   EditOutlined,
   ArrowLeftOutlined,
+  FileTextOutlined,
+  CustomerServiceOutlined,
 } from "@ant-design/icons";
 import { getTestResultDetailLR } from "../../../services/testExamService";
 import styles from "../../styles/Result.module.css";
@@ -54,6 +56,8 @@ export default function ResultScreen() {
   const [testId, setTestId] = useState(null);
   const [questionDetailModalVisible, setQuestionDetailModalVisible] = useState(false);
   const [selectedQuestionDetail, setSelectedQuestionDetail] = useState(null);
+  const [swDetailModalVisible, setSwDetailModalVisible] = useState(false);
+  const [selectedSwFeedback, setSelectedSwFeedback] = useState(null);
 
   // Hàm xử lý quay lại - quay về trang chủ hoặc test-list
   const handleGoBack = () => {
@@ -157,11 +161,14 @@ export default function ResultScreen() {
       }
     }
     
-    // Tự động load detail từ API khi có testResultId (BẮT BUỘC)
+    // Tự động load detail từ API khi có testResultId (CHỈ CHO L&R)
+    // Nếu chỉ có S&W thì không cần load detail từ API L&R
     if (resultData?.testResultId) {
-      loadDetailFromAPI(resultData.testResultId);
-    } else {
-      message.error("Không tìm thấy testResultId để lấy chi tiết câu hỏi.");
+      // Chỉ load detail nếu có listeningScore hoặc readingScore (có L&R)
+      if (resultData.listeningScore !== undefined || resultData.readingScore !== undefined) {
+        loadDetailFromAPI(resultData.testResultId);
+      }
+      // Nếu chỉ có S&W, không cần load detail từ API L&R
     }
   }, [resultData, autoSubmit, navigate, loadDetailFromAPI]);
 
@@ -254,27 +261,124 @@ export default function ResultScreen() {
     return { listening: [], reading: [], all: [] };
   }, [detailData]);
 
-  // === TÍNH ĐIỂM READING VỚI TỐI THIỂU 5 ĐIỂM ===
+  // === LẤY ĐIỂM READING TỪ API - KHÔNG TỰ TÍNH ===
   const getReadingScore = useMemo(() => {
     if (!result) return 0;
-    const readingScore = result.readingScore || 0;
-    // Nếu không chọn đáp án nào ở phần reading, vẫn được 5 điểm
-    const hasReadingAnswers = questionRowsBySection.reading.some(
-      (row) => row.userAnswer && row.userAnswer.trim() !== ""
-    );
-    return hasReadingAnswers ? readingScore : Math.max(5, readingScore);
-  }, [result, questionRowsBySection]);
+    // Chỉ lấy từ API, không tự tính
+    return result.readingScore || 0;
+  }, [result]);
+
+  // === XỬ LÝ DỮ LIỆU WRITING/SPEAKING TỪ PERPARTFEEDBACKS ===
+  const swFeedbacks = useMemo(() => {
+    if (!result?.perPartFeedbacks || !Array.isArray(result.perPartFeedbacks)) {
+      return { writing: [], speaking: [] };
+    }
+
+    const writing = [];
+    const speaking = [];
+    let index = 1;
+
+    result.perPartFeedbacks.forEach((feedback) => {
+      // Dựa vào aiScorer để phân loại writing/speaking
+      const aiScorer = feedback.aiScorer || "";
+      const isWriting = aiScorer === "writing";
+      const isSpeaking = aiScorer === "speaking";
+
+      // Tìm partType từ result.questions dựa vào testQuestionId
+      let partType = feedback.partType || "";
+      if (!partType && result?.questions) {
+        const question = result.questions.find(
+          (q) => q.testQuestionId === feedback.testQuestionId
+        );
+        if (question) {
+          // Map partId sang partType
+          const partTypeMap = {
+            8: "writing_sentence",
+            9: "writing_email",
+            10: "writing_essay",
+            11: "speaking_read_aloud",
+            12: "speaking_describe_picture",
+            13: "speaking_respond_questions",
+            14: "speaking_respond_questions_info",
+            15: "speaking_express_opinion",
+          };
+          partType = partTypeMap[question.partId] || "";
+        }
+      }
+
+      if (isWriting || isSpeaking) {
+        const row = {
+          key: feedback.testQuestionId || index,
+          index: index++,
+          testQuestionId: feedback.testQuestionId,
+          partType: partType,
+          score: feedback.score || 0,
+          overallScore: feedback.detailedScores?.overall || 0,
+          content: feedback.content || "",
+          feedback: feedback, // Lưu toàn bộ feedback để hiển thị chi tiết
+        };
+
+        if (isWriting) {
+          writing.push(row);
+        } else if (isSpeaking) {
+          speaking.push(row);
+        }
+      }
+    });
+
+    return { writing, speaking };
+  }, [result]);
+
+  // === LẤY ĐIỂM TỔNG TỪ API ===
+  const getTotalScore = useMemo(() => {
+    if (!result) return 0;
+    
+    // Nếu API trả về totalScore, dùng nó
+    if (result.totalScore !== undefined && result.totalScore !== null) {
+      return result.totalScore;
+    }
+    
+    // Nếu API không trả totalScore, tính từ các điểm API trả về (vẫn là dữ liệu từ API)
+    let total = 0;
+    if (result.listeningScore !== undefined && result.listeningScore !== null) {
+      total += result.listeningScore;
+    }
+    if (result.readingScore !== undefined && result.readingScore !== null) {
+      total += result.readingScore;
+    }
+    if (result.writingScore !== undefined && result.writingScore !== null) {
+      total += result.writingScore;
+    }
+    if (result.speakingScore !== undefined && result.speakingScore !== null) {
+      total += result.speakingScore;
+    }
+    
+    return total;
+  }, [result]);
+  
+  // === LẤY MAX ĐIỂM TỪ API - KHÔNG TỰ TÍNH ===
+  const getMaxScore = useMemo(() => {
+    if (!result) return 990;
+    // Chỉ lấy từ API nếu có, nếu không thì dùng giá trị mặc định
+    return result.maxScore || result.totalMaxScore || 990;
+  }, [result]);
 
   // === ANIMATION ĐIỂM SỐ ===
   useEffect(() => {
     if (!result) return;
 
-    const target =
-      selectedSection === "overall"
-        ? result.totalScore
-        : selectedSection === "listening"
-        ? result.listeningScore || 0
-        : getReadingScore;
+    let target = 0;
+    if (selectedSection === "overall") {
+      target = getTotalScore;
+    } else if (selectedSection === "listening") {
+      target = result.listeningScore || 0;
+    } else if (selectedSection === "reading") {
+      target = getReadingScore;
+    } else if (selectedSection === "writing") {
+      target = result.writingScore || 0;
+    } else if (selectedSection === "speaking") {
+      target = result.speakingScore || 0;
+    }
 
     let curr = 0;
     const step = Math.max(1, Math.floor(target / 40));
@@ -288,14 +392,13 @@ export default function ResultScreen() {
       }
     }, 20);
     return () => clearInterval(id);
-  }, [selectedSection, result, getReadingScore]);
+  }, [selectedSection, result, getReadingScore, getTotalScore]);
 
   // === KIỂM TRA CÓ TRẢ LỜI KHÔNG ===
-  // CHỈ kiểm tra từ detailData (API), không dùng state
+  // Kiểm tra cả L&R (detailData) và S&W (perPartFeedbacks)
   const hasAnswered = useMemo(() => {
-    if (!detailData) return false;
-    // Kiểm tra xem có câu hỏi nào có userAnswer không
-    return detailData.parts?.some(part => 
+    // Kiểm tra L&R từ detailData
+    const hasLRAnswers = detailData?.parts?.some(part => 
       part.testQuestions?.some(tq => {
         if (tq.questionSnapshotDto) {
           return tq.questionSnapshotDto.userAnswer !== null && tq.questionSnapshotDto.userAnswer !== undefined;
@@ -308,36 +411,75 @@ export default function ResultScreen() {
         return false;
       })
     ) || false;
-  }, [detailData]);
 
-  // === SIDEBAR SECTIONS ===
+    // Kiểm tra S&W từ perPartFeedbacks
+    const hasSWAnswers = result?.perPartFeedbacks && Array.isArray(result.perPartFeedbacks) && result.perPartFeedbacks.length > 0;
+
+    return hasLRAnswers || hasSWAnswers;
+  }, [detailData, result]);
+
+  // === SIDEBAR SECTIONS - CHỈ LẤY TỪ API, KHÔNG TỰ SUY LUẬN ===
   const sections = result
     ? [
         {
           key: "overall",
           title: "Tổng điểm",
-          score: result.totalScore,
-          max: 990,
+          score: getTotalScore,
+          max: getMaxScore,
           icon: <CheckCircleTwoTone twoToneColor="#52c41a" />,
         },
-        {
-          key: "listening",
-          title: "Nghe",
-          score: result.listeningScore,
-          max: 495,
-          icon: <SoundOutlined />,
-        },
-        {
-          key: "reading",
-          title: "Đọc",
-          score: getReadingScore,
-          max: 495,
-          icon: <ReadOutlined />,
-        },
+        // CHỈ hiển thị Listening nếu có listeningScore trong API response
+        ...(result.listeningScore !== undefined && result.listeningScore !== null
+          ? [
+              {
+                key: "listening",
+                title: "Nghe",
+                score: result.listeningScore,
+                max: 495,
+                icon: <SoundOutlined />,
+              },
+            ]
+          : []),
+        // CHỈ hiển thị Reading nếu có readingScore trong API response
+        ...(result.readingScore !== undefined && result.readingScore !== null
+          ? [
+              {
+                key: "reading",
+                title: "Đọc",
+                score: result.readingScore,
+                max: 495,
+                icon: <ReadOutlined />,
+              },
+            ]
+          : []),
+        // CHỈ hiển thị Writing nếu có writingScore trong API response
+        ...(result.writingScore !== undefined && result.writingScore !== null
+          ? [
+              {
+                key: "writing",
+                title: "Viết",
+                score: result.writingScore,
+                max: 200,
+                icon: <FileTextOutlined />,
+              },
+            ]
+          : []),
+        // CHỈ hiển thị Speaking nếu có speakingScore trong API response
+        ...(result.speakingScore !== undefined && result.speakingScore !== null
+          ? [
+              {
+                key: "speaking",
+                title: "Nói",
+                score: result.speakingScore,
+                max: 200,
+                icon: <CustomerServiceOutlined />,
+              },
+            ]
+          : []),
       ]
     : [];
 
-  // === TABLE COLUMNS ===
+  // === TABLE COLUMNS CHO L&R ===
   const columns = [
     { title: "STT", dataIndex: "index", width: 80, align: "center" },
     {
@@ -402,6 +544,75 @@ export default function ResultScreen() {
     },
   ];
 
+  // === TABLE COLUMNS CHO WRITING/SPEAKING ===
+  const swColumns = [
+    { title: "STT", dataIndex: "index", width: 80, align: "center" },
+    {
+      title: "Loại câu hỏi",
+      dataIndex: "partType",
+      width: 200,
+      render: (text) => {
+        const typeMap = {
+          writing_sentence: "Viết câu",
+          writing_email: "Viết email",
+          writing_essay: "Viết luận",
+          speaking_read_aloud: "Đọc to",
+          speaking_describe_picture: "Mô tả tranh",
+          speaking_respond_questions: "Trả lời câu hỏi",
+          speaking_respond_questions_info: "Trả lời câu hỏi (thông tin)",
+          speaking_express_opinion: "Bày tỏ ý kiến",
+        };
+        return typeMap[text] || text;
+      },
+    },
+    {
+      title: "Điểm tổng",
+      dataIndex: "overallScore",
+      width: 120,
+      align: "center",
+      render: (score) => (
+        <Text strong style={{ fontSize: 16 }}>
+          {score || 0}/100
+        </Text>
+      ),
+    },
+    {
+      title: "Điểm số",
+      dataIndex: "score",
+      width: 120,
+      align: "center",
+      render: (score) => (
+        <Text strong style={{ color: "#1890ff" }}>
+          {score || 0}
+        </Text>
+      ),
+    },
+    {
+      title: "Tóm tắt",
+      dataIndex: "content",
+      render: (text) => (
+        <Text ellipsis={{ tooltip: text }} style={{ maxWidth: 300 }}>
+          {text || "—"}
+        </Text>
+      ),
+    },
+    {
+      title: "Thao tác",
+      width: 120,
+      render: (_, row) => (
+        <Button
+          size="small"
+          type="primary"
+          onClick={() => {
+            setSelectedSwFeedback(row.feedback);
+            setSwDetailModalVisible(true);
+          }}
+        >
+          Xem chi tiết
+        </Button>
+      ),
+    },
+  ];
 
   const openDetailForSection = async (key) => {
     // Đảm bảo detail đã được load
@@ -589,16 +800,26 @@ export default function ResultScreen() {
                   ? "Tổng điểm"
                   : selectedSection === "listening"
                   ? "Điểm nghe"
-                  : "Điểm đọc"}
+                  : selectedSection === "reading"
+                  ? "Điểm đọc"
+                  : selectedSection === "writing"
+                  ? "Điểm viết"
+                  : "Điểm nói"}
               </Text>
               <br />
               <Text type="secondary">
-                Trên tổng {selectedSection === "overall" ? 990 : 495} điểm
+                Trên tổng{" "}
+                {selectedSection === "overall"
+                  ? getMaxScore
+                  : selectedSection === "writing" || selectedSection === "speaking"
+                  ? 200
+                  : 495}{" "}
+                điểm
               </Text>
               {/* ĐÃ XÓA: AI Evaluation */}
             </div>
 
-            {/* BẢNG CÂU HỎI */}
+            {/* BẢNG CÂU HỎI L&R */}
             {(selectedSection === "listening" || selectedSection === "reading") && (
               <Table
                 dataSource={
@@ -613,24 +834,133 @@ export default function ResultScreen() {
               />
             )}
 
+            {/* DANH SÁCH CÂU HỎI WRITING/SPEAKING - DÙNG CARD */}
+            {(selectedSection === "writing" || selectedSection === "speaking") && (
+              <div style={{ marginTop: 20 }}>
+                {(selectedSection === "writing"
+                  ? swFeedbacks.writing
+                  : swFeedbacks.speaking
+                ).length === 0 ? (
+                  <div style={{ textAlign: "center", padding: 40 }}>
+                    <Text type="secondary">Chưa có dữ liệu câu hỏi</Text>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                    {(selectedSection === "writing"
+                      ? swFeedbacks.writing
+                      : swFeedbacks.speaking
+                    ).map((item) => (
+                      <Card
+                        key={item.key}
+                        style={{
+                          borderRadius: 8,
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                        }}
+                        actions={[
+                          <Button
+                            key="detail"
+                            type="primary"
+                            onClick={() => {
+                              setSelectedSwFeedback(item.feedback);
+                              setSwDetailModalVisible(true);
+                            }}
+                          >
+                            Xem chi tiết
+                          </Button>,
+                        ]}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                              <Tag color="blue" style={{ fontSize: 14, padding: "4px 12px" }}>
+                                Câu {item.index}
+                              </Tag>
+                              <Text strong style={{ fontSize: 16 }}>
+                                {item.partType === "writing_sentence"
+                                  ? "Viết câu"
+                                  : item.partType === "writing_email"
+                                  ? "Viết email"
+                                  : item.partType === "writing_essay"
+                                  ? "Viết luận"
+                                  : item.partType === "speaking_read_aloud"
+                                  ? "Đọc to"
+                                  : item.partType === "speaking_describe_picture"
+                                  ? "Mô tả tranh"
+                                  : item.partType === "speaking_respond_questions"
+                                  ? "Trả lời câu hỏi"
+                                  : item.partType === "speaking_respond_questions_info"
+                                  ? "Trả lời câu hỏi (thông tin)"
+                                  : item.partType === "speaking_express_opinion"
+                                  ? "Bày tỏ ý kiến"
+                                  : item.partType}
+                              </Text>
+                            </div>
+                            <div style={{ marginBottom: 8 }}>
+                              <Text type="secondary" style={{ fontSize: 13 }}>
+                                {item.content || "Không có tóm tắt"}
+                              </Text>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, marginLeft: 16 }}>
+                            <div>
+                              <Text type="secondary" style={{ fontSize: 12 }}>Điểm tổng</Text>
+                              <div>
+                                <Text strong style={{ fontSize: 20, color: "#1890ff" }}>
+                                  {item.overallScore || 0}/100
+                                </Text>
+                              </div>
+                            </div>
+                            <div>
+                              <Text type="secondary" style={{ fontSize: 12 }}>Điểm số</Text>
+                              <div>
+                                <Text strong style={{ fontSize: 18, color: "#52c41a" }}>
+                                  {item.score || 0}
+                                </Text>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* OVERALL */}
             {selectedSection === "overall" && (
               <div style={{ marginTop: 12, fontSize: 16 }}>
-                <p>
-                  <strong>Nghe:</strong> {result.listeningScore} / 495
-                </p>
-                <p>
-                  <strong>Đọc:</strong> {getReadingScore} / 495
-                </p>
-                <div style={{ marginTop: 16 }}>
-                  <Button
-                    onClick={() => openDetailForSection("overall")}
-                    type="primary"
-                    loading={loadingDetail}
-                  >
-                    Xem tất cả câu hỏi
-                  </Button>
-                </div>
+                {result.listeningScore !== undefined && result.listeningScore !== null && (
+                  <p>
+                    <strong>Nghe:</strong> {result.listeningScore} / 495
+                  </p>
+                )}
+                {result.readingScore !== undefined && result.readingScore !== null && (
+                  <p>
+                    <strong>Đọc:</strong> {getReadingScore} / 495
+                  </p>
+                )}
+                {result.writingScore !== undefined && result.writingScore !== null && (
+                  <p>
+                    <strong>Viết:</strong> {result.writingScore} / 200
+                  </p>
+                )}
+                {result.speakingScore !== undefined && result.speakingScore !== null && (
+                  <p>
+                    <strong>Nói:</strong> {result.speakingScore} / 200
+                  </p>
+                )}
+                {(result.listeningScore !== undefined || result.readingScore !== undefined) && (
+                  <div style={{ marginTop: 16 }}>
+                    <Button
+                      onClick={() => openDetailForSection("overall")}
+                      type="primary"
+                      loading={loadingDetail}
+                    >
+                      Xem tất cả câu hỏi L&R
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </Card>
@@ -840,6 +1170,326 @@ export default function ResultScreen() {
                 </Text>
               </div>
             </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* MODAL CHI TIẾT WRITING/SPEAKING - GIAO DIỆN KHÁC L&R */}
+      <Modal
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <FileTextOutlined style={{ fontSize: 24, color: "#1890ff" }} />
+            <span>
+              Chi tiết đánh giá{" "}
+              {selectedSwFeedback?.partType?.includes("writing") ? "Writing" : "Speaking"}
+            </span>
+          </div>
+        }
+        open={swDetailModalVisible}
+        onCancel={() => {
+          setSwDetailModalVisible(false);
+          setSelectedSwFeedback(null);
+        }}
+        footer={[
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => {
+              setSwDetailModalVisible(false);
+              setSelectedSwFeedback(null);
+            }}
+          >
+            Đóng
+          </Button>,
+        ]}
+        width={1200}
+        style={{ top: 20 }}
+      >
+        {selectedSwFeedback && (
+          <div>
+            {/* Điểm số tổng quan */}
+            <div
+              style={{
+                marginBottom: 24,
+                padding: 16,
+                backgroundColor: "#f0f2f5",
+                borderRadius: 4,
+              }}
+            >
+              <Title level={4} style={{ margin: 0, marginBottom: 8 }}>
+                Điểm số: {selectedSwFeedback.detailedScores?.overall || 0}/100
+              </Title>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 8 }}>
+                {selectedSwFeedback.detailedScores?.word_count !== undefined && (
+                  <div>
+                    <Text type="secondary">Số từ: </Text>
+                    <Text strong>{selectedSwFeedback.detailedScores.word_count}</Text>
+                  </div>
+                )}
+                {selectedSwFeedback.detailedScores?.grammar !== undefined && (
+                  <div>
+                    <Text type="secondary">Ngữ pháp: </Text>
+                    <Text strong>{selectedSwFeedback.detailedScores.grammar}/100</Text>
+                  </div>
+                )}
+                {selectedSwFeedback.detailedScores?.vocabulary !== undefined && (
+                  <div>
+                    <Text type="secondary">Từ vựng: </Text>
+                    <Text strong>{selectedSwFeedback.detailedScores.vocabulary}/100</Text>
+                  </div>
+                )}
+                {selectedSwFeedback.detailedScores?.organization !== undefined && (
+                  <div>
+                    <Text type="secondary">Tổ chức: </Text>
+                    <Text strong>{selectedSwFeedback.detailedScores.organization}/100</Text>
+                  </div>
+                )}
+                {selectedSwFeedback.detailedScores?.relevance !== undefined && (
+                  <div>
+                    <Text type="secondary">Liên quan: </Text>
+                    <Text strong>{selectedSwFeedback.detailedScores.relevance}/100</Text>
+                  </div>
+                )}
+                {selectedSwFeedback.detailedScores?.sentence_variety !== undefined && (
+                  <div>
+                    <Text type="secondary">Đa dạng câu: </Text>
+                    <Text strong>{selectedSwFeedback.detailedScores.sentence_variety}/100</Text>
+                  </div>
+                )}
+                {selectedSwFeedback.detailedScores?.opinion_support !== undefined && (
+                  <div>
+                    <Text type="secondary">Hỗ trợ ý kiến: </Text>
+                    <Text strong>{selectedSwFeedback.detailedScores.opinion_support}/100</Text>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Câu trả lời gốc của bạn - tìm từ questions hoặc answers */}
+            {(() => {
+              // Tìm câu trả lời gốc từ result.questions hoặc result.answers
+              let originalAnswer = null;
+              
+              // Thử tìm từ questions (nếu có cấu trúc với answerText hoặc userAnswer)
+              if (result?.questions) {
+                const question = result.questions.find(
+                  (q) => q.testQuestionId === selectedSwFeedback.testQuestionId
+                );
+                if (question) {
+                  originalAnswer = question.answerText || question.userAnswer || question.answer;
+                }
+              }
+              
+              // Nếu không tìm thấy, thử tìm từ answers object
+              if (!originalAnswer && result?.answers) {
+                originalAnswer = result.answers[selectedSwFeedback.testQuestionId];
+              }
+
+              return originalAnswer ? (
+                <div style={{ marginBottom: 16 }}>
+                  <Title level={5}>Câu trả lời của bạn:</Title>
+                  <div
+                    style={{
+                      padding: 12,
+                      backgroundColor: "#fff",
+                      border: "1px solid #d9d9d9",
+                      borderRadius: 4,
+                      whiteSpace: "pre-wrap",
+                      maxHeight: 200,
+                      overflowY: "auto",
+                    }}
+                  >
+                    <Text>{originalAnswer}</Text>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
+            {/* Câu trả lời đã chỉnh sửa */}
+            {selectedSwFeedback.correctedText && (
+              <div style={{ marginBottom: 16 }}>
+                <Title level={5}>Câu trả lời đã chỉnh sửa:</Title>
+                <div
+                  style={{
+                    padding: 12,
+                    backgroundColor: "#f6ffed",
+                    border: "1px solid #52c41a",
+                    borderRadius: 4,
+                    whiteSpace: "pre-wrap",
+                    maxHeight: 200,
+                    overflowY: "auto",
+                  }}
+                >
+                  <Text>{selectedSwFeedback.correctedText}</Text>
+                </div>
+              </div>
+            )}
+
+            {/* Lỗi ngữ pháp */}
+            {selectedSwFeedback.detailedAnalysis?.grammar_errors &&
+              selectedSwFeedback.detailedAnalysis.grammar_errors.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <Title level={5}>Lỗi ngữ pháp:</Title>
+                  <div style={{ maxHeight: 300, overflowY: "auto" }}>
+                    {selectedSwFeedback.detailedAnalysis.grammar_errors.map((error, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          marginBottom: 8,
+                          padding: 12,
+                          backgroundColor: "#fff1f0",
+                          borderLeft: "4px solid #f5222d",
+                          borderRadius: 4,
+                        }}
+                      >
+                        <div>
+                          <Text strong style={{ color: "#f5222d" }}>
+                            ✗ {error.wrong}
+                          </Text>
+                          {" → "}
+                          <Text strong style={{ color: "#52c41a" }}>
+                            ✓ {error.correct}
+                          </Text>
+                        </div>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          {error.rule} ({error.severity})
+                        </Text>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Vấn đề từ vựng */}
+            {selectedSwFeedback.detailedAnalysis?.vocabulary_issues &&
+              selectedSwFeedback.detailedAnalysis.vocabulary_issues.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <Title level={5}>Gợi ý từ vựng:</Title>
+                  <div style={{ maxHeight: 300, overflowY: "auto" }}>
+                    {selectedSwFeedback.detailedAnalysis.vocabulary_issues.map((issue, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          marginBottom: 8,
+                          padding: 12,
+                          backgroundColor: "#e6f7ff",
+                          borderLeft: "4px solid #1890ff",
+                          borderRadius: 4,
+                        }}
+                      >
+                        <div>
+                          <Text strong>"{issue.word}"</Text>
+                          {" → "}
+                          <Text strong style={{ color: "#1890ff" }}>
+                            "{issue.better}"
+                          </Text>
+                        </div>
+                        {issue.example && (
+                          <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 4 }}>
+                            Ví dụ: {issue.example}
+                          </Text>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Khuyến nghị */}
+            {selectedSwFeedback.recommendations &&
+              selectedSwFeedback.recommendations.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <Title level={5}>Khuyến nghị:</Title>
+                  <div
+                    style={{
+                      padding: 12,
+                      backgroundColor: "#fffbe6",
+                      border: "1px solid #faad14",
+                      borderRadius: 4,
+                      whiteSpace: "pre-wrap",
+                      maxHeight: 300,
+                      overflowY: "auto",
+                    }}
+                  >
+                    <Text>{selectedSwFeedback.recommendations.join("\n")}</Text>
+                  </div>
+                </div>
+              )}
+
+            {/* Matched Points */}
+            {selectedSwFeedback.detailedAnalysis?.matched_points &&
+              selectedSwFeedback.detailedAnalysis.matched_points.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <Title level={5}>✅ Các điểm đã đạt được:</Title>
+                  <div style={{ maxHeight: 200, overflowY: "auto" }}>
+                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                      {selectedSwFeedback.detailedAnalysis.matched_points.map((point, idx) => (
+                        <li key={idx} style={{ marginBottom: 4 }}>
+                          <Text>{point}</Text>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+            {/* Missing Points */}
+            {selectedSwFeedback.detailedAnalysis?.missing_points &&
+              selectedSwFeedback.detailedAnalysis.missing_points.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <Title level={5}>❌ Các điểm còn thiếu:</Title>
+                  <div style={{ maxHeight: 200, overflowY: "auto" }}>
+                    <ul style={{ margin: 0, paddingLeft: 20 }}>
+                      {selectedSwFeedback.detailedAnalysis.missing_points.map((point, idx) => (
+                        <li key={idx} style={{ marginBottom: 4 }}>
+                          <Text>{point}</Text>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+            {/* Opinion Support Issues */}
+            {selectedSwFeedback.detailedAnalysis?.opinion_support_issues &&
+              selectedSwFeedback.detailedAnalysis.opinion_support_issues.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <Title level={5}>💭 Vấn đề hỗ trợ ý kiến:</Title>
+                  <div style={{ maxHeight: 200, overflowY: "auto" }}>
+                    {selectedSwFeedback.detailedAnalysis.opinion_support_issues.map((issue, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          marginBottom: 8,
+                          padding: 12,
+                          backgroundColor: "#fffbe6",
+                          borderLeft: "4px solid #faad14",
+                          borderRadius: 4,
+                        }}
+                      >
+                        <Text>{issue}</Text>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Mô tả hình ảnh (cho writing_sentence) */}
+            {selectedSwFeedback.detailedAnalysis?.image_description && (
+              <div style={{ marginBottom: 16 }}>
+                <Title level={5}>🖼️ Mô tả hình ảnh:</Title>
+                <div
+                  style={{
+                    padding: 12,
+                    backgroundColor: "#f5f5f5",
+                    borderRadius: 4,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  <Text>{selectedSwFeedback.detailedAnalysis.image_description}</Text>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>

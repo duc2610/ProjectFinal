@@ -302,6 +302,7 @@ export default function ExamScreen() {
         testResultId: finalTestResultId, // DÙNG ID do server trả để lấy chi tiết
         testId: rawTestData.testId, // Lưu testId để có thể làm lại bài thi
         questions: questions,
+        answers: answers, // Lưu answers để hiển thị câu trả lời gốc trong result
         duration: durationMinutes,
         testType,
         isSelectTime,
