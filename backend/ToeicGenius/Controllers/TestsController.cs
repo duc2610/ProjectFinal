@@ -1,17 +1,11 @@
-﻿using Humanizer;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Drawing.Printing;
 using System.Security.Claims;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using ToeicGenius.Domains.DTOs.Requests.Test;
-using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.Test;
-using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
-using ToeicGenius.Services.Implementations;
 using ToeicGenius.Services.Interfaces;
 
 namespace ToeicGenius.Controllers
@@ -37,7 +31,13 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> CreateTestPractice([FromBody] CreateTestFromBankDto request)
 		{
-			var result = await _testService.CreateFromBankAsync(request);
+			// Get user id from token
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+			var result = await _testService.CreateFromBankAsync(userId, request);
 			if (!result.IsSuccess)
 			{
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
@@ -72,7 +72,13 @@ namespace ToeicGenius.Controllers
 
 			try
 			{
-				var result = await _testService.CreateManualAsync(request);
+				// Get user id from token
+				var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+				if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+				{
+					return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				}
+				var result = await _testService.CreateManualAsync(userId, request);
 				if (!result.IsSuccess)
 					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Create test failed."));
 
@@ -89,6 +95,11 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> ImportTestFromExcel([FromForm] ExcelImportDto request)
 		{
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
 			if (request == null || request.ExcelFile == null)
 			{
 				return BadRequest(ApiResponse<string>.ErrorResponse("Excel file is required"));
@@ -119,7 +130,7 @@ namespace ToeicGenius.Controllers
 				parseResult.Data!.AudioUrl = audioUploadResult.Data!;
 
 				// Create test
-				var createResult = await _testService.CreateManualAsync(parseResult.Data!);
+				var createResult = await _testService.CreateManualAsync(userId, parseResult.Data!);
 				if (!createResult.IsSuccess)
 				{
 					// Rollback: delete uploaded audio file
@@ -194,6 +205,11 @@ namespace ToeicGenius.Controllers
 		{
 			try
 			{
+				var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+				if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+				{
+					return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				}
 				// Upload audio file to cloud storage
 				var audioUploadResult = await _fileService.UploadFileAsync(request.AudioFile, "audio");
 				if (!audioUploadResult.IsSuccess)
@@ -212,7 +228,7 @@ namespace ToeicGenius.Controllers
 				parseResult.Data!.AudioUrl = audioUploadResult.Data!;
 
 				// Reuse existing CreateManualAsync (no breaking changes!)
-				var createResult = await _testService.CreateManualAsync(parseResult.Data!);
+				var createResult = await _testService.CreateManualAsync(userId, parseResult.Data!);
 				if (!createResult.IsSuccess)
 				{
 					// Rollback: Delete uploaded audio file
@@ -273,10 +289,10 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> HideTest(int id)
 		{
-			var request = new UpdateTestStatusDto
+			var request = new UpdateTestVisibilityStatusDto
 			{
 				TestId = id,
-				Status = Domains.Enums.TestStatus.Hide
+				VisibilityStatus = Domains.Enums.TestVisibilityStatus.Hidden
 			};
 			var result = await _testService.UpdateStatusAsync(request);
 			if (!result.IsSuccess)
@@ -288,10 +304,10 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> PublicTest(int id)
 		{
-			var request = new UpdateTestStatusDto
+			var request = new UpdateTestVisibilityStatusDto
 			{
 				TestId = id,
-				Status = Domains.Enums.TestStatus.Published
+				VisibilityStatus = Domains.Enums.TestVisibilityStatus.Published
 			};
 			var result = await _testService.UpdateStatusAsync(request);
 			if (!result.IsSuccess)
@@ -323,7 +339,7 @@ namespace ToeicGenius.Controllers
 			{
 				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
 			}
-			var result = await _testService.CreateDraftManualAsync(userId,dto);
+			var result = await _testService.CreateDraftManualAsync(userId, dto);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 
@@ -343,7 +359,7 @@ namespace ToeicGenius.Controllers
 			{
 				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
 			}
-			var result = await _testService.SavePartManualAsync(userId,testId, partId, dto);
+			var result = await _testService.SavePartManualAsync(userId, testId, partId, dto);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 
@@ -363,7 +379,7 @@ namespace ToeicGenius.Controllers
 			{
 				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
 			}
-			var result = await _testService.FinalizeTestAsync(userId,testId);
+			var result = await _testService.FinalizeTestAsync(userId, testId);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 

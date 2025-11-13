@@ -1,11 +1,9 @@
-using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
-using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.GroupQuestion;
-using ToeicGenius.Domains.DTOs.Requests.Question;
 using ToeicGenius.Domains.DTOs.Requests.QuestionGroup;
-using ToeicGenius.Domains.Enums;
 using ToeicGenius.Domains.DTOs.Responses.Question;
+using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Services.Interfaces
 {

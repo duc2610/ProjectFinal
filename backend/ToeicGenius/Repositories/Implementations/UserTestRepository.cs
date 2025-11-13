@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using ToeicGenius.Domains.Entities;
+using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Repositories.Persistence;
 
@@ -24,7 +25,7 @@ namespace ToeicGenius.Repositories.Implementations
             try
             {
                 return await _context.TestResults
-                    .Where(ut => ut.UserId == userId && ut.Status == "InProgress")
+                    .Where(ut => ut.UserId == userId && ut.Status == TestResultStatus.InProgress)
                     .OrderByDescending(ut => ut.CreatedAt)
                     .FirstOrDefaultAsync();
             }
@@ -62,7 +63,7 @@ namespace ToeicGenius.Repositories.Implementations
                 {
                     UserId = userId,
                     TestId = defaultTestId,
-                    Status = "InProgress",
+                    Status = TestResultStatus.InProgress,
                     Duration = 0,
                     TotalScore = 0,
                     TestType = Domains.Enums.TestType.Practice,
@@ -103,7 +104,7 @@ namespace ToeicGenius.Repositories.Implementations
                     return false;
                 }
 
-                userTest.Status = "Completed";
+                userTest.Status = TestResultStatus.Graded;
                 userTest.TotalScore = totalScore;
                 userTest.UpdatedAt = DateTime.UtcNow;
 

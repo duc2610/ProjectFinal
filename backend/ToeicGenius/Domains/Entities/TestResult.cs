@@ -17,7 +17,7 @@ namespace ToeicGenius.Domains.Entities
 		public Test Test { get; set; } = null!;
 		
 		public int Duration { get; set; }
-		public string? Status { get; set; }
+		public TestResultStatus Status { get; set; } = TestResultStatus.InProgress;
 		public decimal TotalScore { get; set; }
 		public int TotalQuestions { get; set; }
 		public int CorrectCount { get; set; }

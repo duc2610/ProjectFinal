@@ -1,15 +1,12 @@
-﻿using ToeicGenius.Repositories.Interfaces;
-using ToeicGenius.Services.Interfaces;
-using ToeicGenius.Domains.Entities;
-using ToeicGenius.Domains.DTOs.Responses.Question;
+﻿using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Question;
-using ToeicGenius.Domains.DTOs.Common;
-using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
+using ToeicGenius.Domains.DTOs.Responses.Question;
+using ToeicGenius.Domains.Entities;
+using ToeicGenius.Domains.Enums;
+using ToeicGenius.Repositories.Interfaces;
+using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
 using ToeicGenius.Shared.Validators;
-using ToeicGenius.Domains.Enums;
-using Azure.Core;
-using Amazon.Runtime.Internal;
 
 namespace ToeicGenius.Services.Implementations
 {

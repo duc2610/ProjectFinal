@@ -1,17 +1,10 @@
-using Amazon.Runtime.Internal;
-using Azure.Core;
-using Humanizer;
-using Microsoft.Extensions.Options;
-using System.ComponentModel.DataAnnotations;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.GroupQuestion;
-using ToeicGenius.Domains.DTOs.Requests.Question;
 using ToeicGenius.Domains.DTOs.Requests.QuestionGroup;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
-using ToeicGenius.Repositories.Implementations;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;

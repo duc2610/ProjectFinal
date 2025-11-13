@@ -55,8 +55,9 @@ namespace ToeicGenius.Repositories.Implementations
 		public async Task<User?> GetByRefreshTokenAsync(string refreshToken)
 		{
 			return await _context.Users
-								.Include(u => u.RefreshTokens) // load refresh tokens
-								.FirstOrDefaultAsync(u => u.RefreshTokens.Any(rt => rt.Token == refreshToken));
+				.Include(u => u.Roles)
+				.Include(u => u.RefreshTokens) // load refresh tokens
+				.FirstOrDefaultAsync(u => u.RefreshTokens.Any(rt => rt.Token == refreshToken));
 		}
 
 		public async Task<User?> GetUserAndRoleByUserIdAsync(Guid userId)
