@@ -27,13 +27,29 @@ namespace ToeicGenius.Repositories.Implementations
 			try
 			{
 				return await _context.TestResults
-					.Where(ut => ut.UserId == userId && ut.Status == "InProgress")
+					.Where(ut => ut.UserId == userId && ut.Status == TestResultStatus.InProgress)
 					.OrderByDescending(ut => ut.CreatedAt)
 					.FirstOrDefaultAsync();
 			}
 			catch (Exception ex)
 			{
 				_logger?.LogError(ex, "Error getting active test for user {UserId}", userId);
+				throw;
+			}
+		}
+
+		public async Task<TestResult?> GetActiveTestByUserAndTestAsync(Guid userId, int testId)
+		{
+			try
+			{
+				return await _context.TestResults
+					.Where(ut => ut.UserId == userId && ut.TestId == testId && ut.Status == TestResultStatus.InProgress)
+					.OrderByDescending(ut => ut.CreatedAt)
+					.FirstOrDefaultAsync();
+			}
+			catch (Exception ex)
+			{
+				_logger?.LogError(ex, "Error getting active test for user {UserId} and test {TestId}", userId, testId);
 				throw;
 			}
 		}
@@ -65,7 +81,7 @@ namespace ToeicGenius.Repositories.Implementations
 				{
 					UserId = userId,
 					TestId = defaultTestId,
-					Status = "InProgress",
+					Status = TestResultStatus.InProgress,
 					Duration = 0,
 					TotalScore = 0,
 					TestType = TestType.Practice,
@@ -106,7 +122,7 @@ namespace ToeicGenius.Repositories.Implementations
 					return false;
 				}
 
-				userTest.Status = "Completed";
+				userTest.Status = TestResultStatus.Graded;
 				userTest.TotalScore = totalScore;
 				userTest.UpdatedAt = DateTime.UtcNow;
 

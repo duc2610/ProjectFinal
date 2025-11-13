@@ -20,7 +20,8 @@ namespace ToeicGenius.Domains.Entities
 		public int Duration { get; set; }
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 		public DateTime? UpdatedAt { get; set; }
-		public TestStatus Status { get; set; }
+		public TestCreationStatus CreationStatus { get; set; } = TestCreationStatus.Draft;
+		public TestVisibilityStatus VisibilityStatus { get; set; } = TestVisibilityStatus.Hidden;
 		public int Version { get; set; } = 1;  //  Version control
 		public int? ParentTestId { get; set; } // Liên kết test gốc (nếu là bản clone)
 		public Test? ParentTest { get; set; }

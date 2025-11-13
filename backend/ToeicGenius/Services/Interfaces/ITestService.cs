@@ -10,11 +10,11 @@ namespace ToeicGenius.Services.Interfaces
 	public interface ITestService
 	{
 		#region Test Creator
-		Task<Result<string>> CreateManualAsync(CreateTestManualDto request);
-		Task<Result<string>> CreateFromBankAsync(CreateTestFromBankDto request);
+		Task<Result<string>> CreateManualAsync(Guid userId, CreateTestManualDto request);
+		Task<Result<string>> CreateFromBankAsync(Guid userId,CreateTestFromBankDto request);
 		Task<Result<string>> CreateFromBankRandomAsync(CreateTestFromBankRandomDto request);
 		Task<Result<PaginationResponse<TestListResponseDto>>> FilterAllAsync(TestFilterDto request);
-		Task<Result<string>> UpdateStatusAsync(UpdateTestStatusDto request);
+		Task<Result<string>> UpdateStatusAsync(UpdateTestVisibilityStatusDto request);
 		Task<Result<TestDetailDto>> GetDetailAsync(int id);
 		Task<Result<string>> UpdateManualTestAsync(int id, UpdateManualTestDto dto);
 		Task<Result<string>> UpdateTestFromBankAsync(int id, UpdateTestFromBank dto);

@@ -1,13 +1,12 @@
 ﻿using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.User;
 using ToeicGenius.Domains.DTOs.Responses.User;
+using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
-using ToeicGenius.Domains.Entities;
 using ToeicGenius.Shared.Helpers;
-using System.Text;
 
 namespace ToeicGenius.Services.Implementations
 {

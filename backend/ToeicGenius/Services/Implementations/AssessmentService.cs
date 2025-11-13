@@ -17,6 +17,7 @@ using ToeicGenius.Domains.DTOs.Responses.AI.Writing;
 using ToeicGenius.Domains.DTOs.Responses.AI;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.Entities;
+using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Helpers;
@@ -75,7 +76,7 @@ namespace ToeicGenius.Services.Implementations
                 throw new Exception($"TestResult {request.TestResultId} not found");
             if (testResult.UserId != userId)
                 throw new UnauthorizedAccessException("You don't have permission to submit this test result");
-            if (testResult.Status == "Completed")
+            if (testResult.Status == TestResultStatus.Graded)
                 throw new Exception("This test has already been submitted/completed.");
 
             var response = new ToeicGenius.Domains.DTOs.Responses.AI.SubmitBulkAssessmentResponseDto();
@@ -223,7 +224,7 @@ namespace ToeicGenius.Services.Implementations
             testResult.SkillScores = skillScores;
             testResult.Duration = request.Duration;
             testResult.UpdatedAt = DateTime.UtcNow;
-            testResult.Status = "Completed";
+            testResult.Status = TestResultStatus.Graded;
 
             // If Simulator type provided and both skills present, set TotalScore as sum of both converted scores
             if (!string.IsNullOrEmpty(request.TestType) && request.TestType.ToLower().Contains("simulator") && writingToeicScore.HasValue && speakingToeicScore.HasValue)
@@ -770,7 +771,7 @@ namespace ToeicGenius.Services.Implementations
                     throw new Exception($"TestResult {testResultId.Value} not found");
                 if (testResult.UserId != userId)
                     throw new UnauthorizedAccessException("You don't have permission to use this TestResult");
-                if (testResult.Status == "Completed")
+                if (testResult.Status == TestResultStatus.Graded)
                     throw new Exception("This test has already been completed");
 
                 _logger.LogInformation("💾 Using provided TestResult: {TestResultId}", testResult.TestResultId);
@@ -821,7 +822,7 @@ namespace ToeicGenius.Services.Implementations
                     throw new Exception($"TestResult {testResultId.Value} not found");
                 if (testResult.UserId != userId)
                     throw new UnauthorizedAccessException("You don't have permission to use this TestResult");
-                if (testResult.Status == "Completed")
+                if (testResult.Status == TestResultStatus.Graded)
                     throw new Exception("This test has already been completed");
 
                 _logger.LogInformation("💾 Using provided TestResult: {TestResultId}", testResult.TestResultId);

@@ -32,9 +32,13 @@ namespace ToeicGenius.Repositories.Implementations
 			{
 				query = query.Where(t => t.Title.ToLower().Contains(request.KeyWord.ToLower()));
 			}
-			if (request.Status.HasValue)
+			if (request.CreationStatus.HasValue)
 			{
-				query = query.Where(t => t.Status == request.Status);
+				query = query.Where(t => t.CreationStatus == request.CreationStatus);
+			}
+			if (request.VisibilityStatus.HasValue)
+			{
+				query = query.Where(t => t.VisibilityStatus == request.VisibilityStatus);
 			}
 			var page = request.page <= 0 ? NumberConstants.DefaultFirstPage : request.page;
 			var pageSize = request.pageSize <= 0 ? NumberConstants.DefaultPageSize : request.pageSize;
@@ -57,7 +61,8 @@ namespace ToeicGenius.Repositories.Implementations
 					QuestionQuantity = t.TotalQuestion,
 					Duration = t.Duration,
 					CreatedAt = t.CreatedAt,
-					Status = t.Status,
+					CreationStatus = t.CreationStatus,
+					VisibilityStatus = t.VisibilityStatus,
 					Version = t.Version,
 					ParentTestId = t.ParentTestId
 				})
@@ -119,7 +124,7 @@ namespace ToeicGenius.Repositories.Implementations
 		public async Task<List<TestListResponseDto>> GetTestByType(TestType testType)
 		{
 			var result = await _context.Tests
-							.Where(t => t.TestType == testType && t.Status == TestStatus.Published)
+							.Where(t => t.TestType == testType && t.VisibilityStatus == TestVisibilityStatus.Published)
 							.Select(t => new TestListResponseDto
 							{
 								Id = t.TestId,
@@ -128,7 +133,8 @@ namespace ToeicGenius.Repositories.Implementations
 								Title = t.Title,
 								QuestionQuantity = t.TotalQuestion,
 								Duration = t.Duration,
-								Status = t.Status,
+								CreationStatus = t.CreationStatus,
+								VisibilityStatus = t.VisibilityStatus,
 								CreatedAt = t.CreatedAt,
 							})
 							.ToListAsync();
