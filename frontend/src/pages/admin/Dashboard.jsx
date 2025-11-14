@@ -207,8 +207,8 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div style={{ padding: "24px" }}>
-      <Title level={2} style={{ marginBottom: 24 }}>
+    <div style={{ padding: "24px" }} className="animate-fade-in">
+      <Title level={2} style={{ marginBottom: 24 }} className="animate-fade-in-down">
         Bảng điều khiển Admin
       </Title>
 
@@ -216,7 +216,7 @@ export default function AdminDashboard() {
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {statCards.map((stat, index) => (
           <Col xs={24} sm={12} lg={8} xl={8} key={index}>
-            <Card>
+            <Card className="hover-lift animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s` }}>
               <Statistic
                 title={stat.title}
                 value={stat.value}
