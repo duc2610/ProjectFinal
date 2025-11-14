@@ -68,16 +68,14 @@ export default function AdminShell() {
     },
   };
 
-  const baseItems = [
-    {
-      key: "/admin/dashboard",
-      icon: <AppstoreOutlined />,
-      label: "Dashboard",
-    },
-  ];
-  let roleItems = [];
+  let siderItems = [];
   if (isAdmin) {
-    roleItems = [
+    siderItems = [
+      {
+        key: "/admin/dashboard",
+        icon: <AppstoreOutlined />,
+        label: "Dashboard",
+      },
       {
         key: "/admin/account-management",
         icon: <TeamOutlined />,
@@ -85,7 +83,12 @@ export default function AdminShell() {
       },
     ];
   } else if (isCreator) {
-    roleItems = [
+    siderItems = [
+      {
+        key: "/test-creator/dashboard",
+        icon: <AppstoreOutlined />,
+        label: "Dashboard",
+      },
       {
         key: "/test-creator/question-bank",
         icon: <DatabaseOutlined />,
@@ -98,7 +101,6 @@ export default function AdminShell() {
       },
     ];
   }
-  const siderItems = [...baseItems, ...roleItems];
 
   const onMenuClick = ({ key }) => {
     if (key && key !== location.pathname) navigate(key);
