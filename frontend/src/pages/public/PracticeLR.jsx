@@ -5,7 +5,8 @@ import {
     ClockCircleOutlined, 
     FileTextOutlined,
     AudioOutlined,
-    ReadOutlined
+    ReadOutlined,
+    LoadingOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getPracticeTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_LABELS } from "@services/testsService";
@@ -139,7 +140,7 @@ export default function PracticeLR() {
                 {/* Tests Grid */}
                 {loading ? (
                     <div className={styles.loadingContainer}>
-                        <Spin size="large" />
+                        <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} size="large" />
                     </div>
                 ) : tests.length === 0 ? (
                     <Card className={styles.emptyCard}>

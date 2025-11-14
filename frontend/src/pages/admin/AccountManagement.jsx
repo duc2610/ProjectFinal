@@ -22,6 +22,7 @@ import {
   DeleteOutlined,
   ExportOutlined,
   SearchOutlined,
+  LoadingOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { format, parseISO } from "date-fns";
@@ -354,9 +355,10 @@ const AccountManagement = () => {
   ];
   const currentData = activeTab === "active" ? filteredActive : filteredBanned;
   const currentLoading = loading[activeTab];
+  const loadingIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
 
   return (
-    <Spin spinning={currentLoading}>
+    <Spin indicator={loadingIcon} spinning={currentLoading}>
       <div className={styles.container}>
         <div className={styles.header}>
           <h1 className={styles.title}>Quản lý Tài khoản</h1>

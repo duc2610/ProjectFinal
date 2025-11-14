@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Typography, Checkbox, Spin, message, Alert } from "antd";
+import { LoadingOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import { startTest } from "../../../services/testExamService";
 import { getTestById } from "../../../services/testsService";
@@ -236,7 +237,7 @@ export default function ExamSelection() {
       >
         {metaLoading && !testInfo ? (
           <div style={{ textAlign: "center", padding: 32 }}>
-            <Spin size="large" />
+            <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} size="large" />
             <div style={{ marginTop: 12 }}>
               <Text>Đang tải thông tin bài thi...</Text>
             </div>

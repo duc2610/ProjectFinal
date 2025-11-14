@@ -22,6 +22,7 @@ import {
   ArrowLeftOutlined,
   FileTextOutlined,
   CustomerServiceOutlined,
+  LoadingOutlined,
 } from "@ant-design/icons";
 import { getTestResultDetailLR, startTest } from "../../../services/testExamService";
 import styles from "../../styles/Result.module.css";
@@ -876,10 +877,12 @@ export default function ResultScreen() {
   };
 
   // === LOADING ===
+  const loadingIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
+  
   if (!result) {
     return (
       <div style={{ textAlign: "center", padding: 100 }}>
-        <Spin size="large" />
+        <Spin indicator={loadingIcon} size="large" />
         <div style={{ marginTop: 16 }}>
           <Text>Đang xử lý kết quả...</Text>
         </div>
@@ -1215,7 +1218,7 @@ export default function ResultScreen() {
       >
         {loadingDetail ? (
           <div style={{ textAlign: "center", padding: 40 }}>
-            <Spin size="large" />
+            <Spin indicator={loadingIcon} size="large" />
             <div style={{ marginTop: 16 }}>
               <Text>Đang tải chi tiết câu hỏi...</Text>
             </div>

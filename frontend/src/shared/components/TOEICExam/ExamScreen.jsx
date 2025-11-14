@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Layout, Button, Modal, Typography, message, Spin } from "antd";
-import { MenuOutlined } from "@ant-design/icons";
+import { MenuOutlined, LoadingOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import QuestionNavigator from "./QuestionNavigator";
 import QuestionCard from "./QuestionCard";
@@ -663,10 +663,12 @@ export default function ExamScreen() {
   const answeredCount = Object.keys(answers).length;
   const totalCount = questions.length;
 
+  const loadingIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
+
   if (questions.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: 50 }}>
-        <Spin size="large" tip="Đang tải câu hỏi..." />
+        <Spin indicator={loadingIcon} size="large" tip="Đang tải câu hỏi..." />
       </div>
     );
   }
@@ -775,7 +777,7 @@ export default function ExamScreen() {
 
       <Modal open={showSubmitModal} footer={null} closable={false}>
         <div style={{ textAlign: "center", padding: 20 }}>
-          <Spin /> <Text style={{ marginLeft: 12 }}>Đang nộp bài...</Text>
+          <Spin indicator={loadingIcon} /> <Text style={{ marginLeft: 12 }}>Đang nộp bài...</Text>
         </div>
       </Modal>
 
