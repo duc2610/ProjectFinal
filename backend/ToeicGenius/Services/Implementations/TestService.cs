@@ -1087,10 +1087,11 @@ namespace ToeicGenius.Services.Implementations
 
 			// Load saved answers if user is resuming
 			var savedAnswers = await _uow.UserAnswers.GetByTestResultIdAsync(userTest.TestResultId);
-			var savedAnswersDict = savedAnswers?.ToDictionary(
+			var savedAnswersList = savedAnswers?.ToList() ?? new List<UserAnswer>();
+			var savedAnswersDict = savedAnswersList.ToDictionary(
 				ua => (ua.TestQuestionId, ua.SubQuestionIndex),
 				ua => ua
-			) ?? new Dictionary<(int, int?), UserAnswer>();
+			);
 
 			// Nếu test chưa có câu hỏi
 			if (test.TestQuestions == null || !test.TestQuestions.Any())
@@ -1148,7 +1149,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 
 			// Map saved answers to response
-			result.SavedAnswers = savedAnswers.Select(ua => new SavedAnswerDto
+			result.SavedAnswers = savedAnswersList.Select(ua => new SavedAnswerDto
 			{
 				TestQuestionId = ua.TestQuestionId,
 				ChosenOptionLabel = ua.ChosenOptionLabel,
