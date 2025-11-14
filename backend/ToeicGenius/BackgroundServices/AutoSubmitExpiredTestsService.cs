@@ -91,9 +91,9 @@ namespace ToeicGenius.BackgroundServices
 								expectedDuration.TotalMinutes);
 
 							// Auto-submit based on test skill
-							if (test.TestSkill == TestSkill.LR || test.TestSkill == TestSkill.FourSkills)
+							if (test.TestSkill == TestSkill.LR)
 							{
-								// For LR and FourSkills tests, call SubmitLRTestAsync
+								// For LR tests, call SubmitLRTestAsync
 								var submitRequest = new SubmitLRTestRequestDto
 								{
 									TestId = test.TestId,
