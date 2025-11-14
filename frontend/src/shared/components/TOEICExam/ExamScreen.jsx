@@ -237,9 +237,9 @@ export default function ExamScreen() {
     if (i >= 0 && i < questions.length) setCurrentIndex(i);
   };
 
-  // Hàm format answers L&R để lưu
-  const formatLrAnswers = (answersToFormat) => {
-    const lrAnswers = [];
+  // Hàm format answers cho tất cả loại bài thi (L&R, Writing, Speaking)
+  const formatAllAnswers = (answersToFormat) => {
+    const formattedAnswers = [];
     for (const [answerKey, answerValue] of Object.entries(answersToFormat)) {
       // Parse answerKey: có thể là "testQuestionId" hoặc "testQuestionId_subQuestionIndex"
       let testQuestionId, subQuestionIndex;
@@ -249,30 +249,60 @@ export default function ExamScreen() {
         subQuestionIndex = parseInt(parts[1]);
       } else {
         testQuestionId = parseInt(answerKey);
-        subQuestionIndex = 0;
+        subQuestionIndex = null;
       }
 
       // Tìm question tương ứng
       const q = questions.find((q) => 
         q.testQuestionId === testQuestionId && 
-        (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === 0 && !q.subQuestionIndex))
+        (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === null && !q.subQuestionIndex))
       );
       if (!q) continue;
 
-      // Chỉ lấy L&R (partId 1-7)
       const isLrPart = q.partId >= 1 && q.partId <= 7;
+      const isWritingPart = q.partId >= 8 && q.partId <= 10;
+      const isSpeakingPart = q.partId >= 11 && q.partId <= 15;
+
+      // Format theo loại câu hỏi
       if (isLrPart && answerValue) {
-        // Format: {"testQuestionId": X, "chosenOptionLabel": "A"}
-        lrAnswers.push({
+        // L&R: chosenOptionLabel
+        formattedAnswers.push({
           testQuestionId: testQuestionId,
-          chosenOptionLabel: answerValue || "",
+          chosenOptionLabel: answerValue || null,
+          answerText: null,
+          answerAudioUrl: null,
+          subQuestionIndex: subQuestionIndex,
         });
+      } else if (isWritingPart && answerValue) {
+        // Writing: answerText
+        formattedAnswers.push({
+          testQuestionId: testQuestionId,
+          chosenOptionLabel: null,
+          answerText: typeof answerValue === "string" ? answerValue : null,
+          answerAudioUrl: null,
+          subQuestionIndex: subQuestionIndex,
+        });
+      } else if (isSpeakingPart && answerValue) {
+        // Speaking: answerAudioUrl (nếu là URL) hoặc null nếu là Blob
+        const audioUrl = typeof answerValue === "string" && answerValue.startsWith("http") 
+          ? answerValue 
+          : null;
+        // Chỉ lưu nếu đã upload (có URL)
+        if (audioUrl) {
+          formattedAnswers.push({
+            testQuestionId: testQuestionId,
+            chosenOptionLabel: null,
+            answerText: null,
+            answerAudioUrl: audioUrl,
+            subQuestionIndex: subQuestionIndex,
+          });
+        }
       }
     }
-    return lrAnswers;
+    return formattedAnswers;
   };
 
-  // Hàm lưu tiến độ làm bài (chỉ cho L&R)
+  // Hàm lưu tiến độ làm bài (cho tất cả loại bài thi)
   const handleSaveProgress = async () => {
     const testResultId = rawTestData.testResultId;
     if (!testResultId) {
@@ -286,19 +316,19 @@ export default function ExamScreen() {
       return;
     }
 
-    const lrAnswers = formatLrAnswers(answers);
+    const formattedAnswers = formatAllAnswers(answers);
 
     // Nếu không có câu nào để lưu
-    if (lrAnswers.length === 0) {
+    if (formattedAnswers.length === 0) {
       message.info("Chưa có câu trả lời nào để lưu");
       return;
     }
 
     setIsSaving(true);
     try {
-      await saveProgress(testResultId, lrAnswers);
+      await saveProgress(testResultId, formattedAnswers);
       setLastSaveTime(new Date());
-      message.success(`Đã lưu tiến độ ${lrAnswers.length} câu trả lời`);
+      message.success(`Đã lưu tiến độ ${formattedAnswers.length} câu trả lời`);
     } catch (error) {
       console.error("Error saving progress:", error);
       // Nếu lỗi do mất mạng, lưu answers vào offlineAnswers
@@ -307,6 +337,10 @@ export default function ExamScreen() {
         setOfflineTimestamp(new Date());
         setIsOnline(false);
         setShowOfflineModal(true);
+      } else if (error.response?.status === 405) {
+        // Endpoint chưa được implement trên backend
+        message.warning("Tính năng lưu tiến độ chưa được kích hoạt. Vui lòng liên hệ quản trị viên.");
+        console.warn("Save progress endpoint may not be implemented on backend");
       } else {
         message.error("Không thể lưu tiến độ: " + (error.response?.data?.message || error.message));
       }
@@ -576,19 +610,33 @@ export default function ExamScreen() {
     };
   }, [answers]);
 
-  // Auto-save tiến độ mỗi 5 phút (chỉ cho L&R)
+  // Auto-save tiến độ mỗi 5 phút (cho tất cả loại bài thi)
   useEffect(() => {
     if (!rawTestData.testResultId) return;
 
-    // Chỉ auto-save nếu có ít nhất 1 câu trả lời L&R và có mạng
-    const hasLrAnswers = questions.some(q => {
+    // Chỉ auto-save nếu có ít nhất 1 câu trả lời và có mạng
+    const hasAnswers = questions.some(q => {
       const answerKey = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
         ? `${q.testQuestionId}_${q.subQuestionIndex}`
         : q.testQuestionId;
-      return (q.partId >= 1 && q.partId <= 7) && answers[answerKey];
+      const answerValue = answers[answerKey];
+      
+      // Kiểm tra có answer hợp lệ
+      if (!answerValue) return false;
+      
+      // L&R: có chosenOptionLabel
+      if (q.partId >= 1 && q.partId <= 7) return true;
+      
+      // Writing: có answerText (string)
+      if (q.partId >= 8 && q.partId <= 10 && typeof answerValue === "string") return true;
+      
+      // Speaking: có answerAudioUrl (URL string)
+      if (q.partId >= 11 && q.partId <= 15 && typeof answerValue === "string" && answerValue.startsWith("http")) return true;
+      
+      return false;
     });
 
-    if (!hasLrAnswers || !navigator.onLine) return;
+    if (!hasAnswers || !navigator.onLine) return;
 
     // Auto-save mỗi 5 phút (300000 ms)
     autoSaveIntervalRef.current = setInterval(() => {

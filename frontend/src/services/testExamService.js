@@ -63,13 +63,13 @@ export async function submitAssessmentBulk(payload) {
   }
 }
 
-// Lưu tiến độ làm bài (chỉ cho L&R)
+// Lưu tiến độ làm bài (cho tất cả loại bài thi: L&R, Writing, Speaking)
 export async function saveProgress(testResultId, answers) {
   const url = `/api/tests/save-progress`;
   try {
     const payload = {
       testResultId: testResultId,
-      answers: answers,
+      answers: answers, // Array of answer objects với format mới
     };
     console.log("Saving progress:", payload);
     const res = await api.post(url, payload);
