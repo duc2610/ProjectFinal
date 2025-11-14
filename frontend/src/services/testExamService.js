@@ -62,3 +62,21 @@ export async function submitAssessmentBulk(payload) {
     throw error;
   }
 }
+
+// Lưu tiến độ làm bài (chỉ cho L&R)
+export async function saveProgress(testResultId, answers) {
+  const url = `/api/tests/save-progress`;
+  try {
+    const payload = {
+      testResultId: testResultId,
+      answers: answers,
+    };
+    console.log("Saving progress:", payload);
+    const res = await api.post(url, payload);
+    console.log("Save progress success:", res.data);
+    return res?.data?.data ?? res?.data;
+  } catch (error) {
+    console.error("Save progress failed:", error.response?.data || error);
+    throw error;
+  }
+}

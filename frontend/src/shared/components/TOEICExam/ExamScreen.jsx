@@ -4,9 +4,10 @@ import { MenuOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import QuestionNavigator from "./QuestionNavigator";
 import QuestionCard from "./QuestionCard";
-import { submitTest, submitAssessmentBulk } from "../../../services/testExamService";
+import { submitTest, submitAssessmentBulk, saveProgress } from "../../../services/testExamService";
 import { uploadFile } from "../../../services/filesService";
 import { useNavigate } from "react-router-dom";
+import { SaveOutlined } from "@ant-design/icons";
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
@@ -32,12 +33,19 @@ export default function ExamScreen() {
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaveTime, setLastSaveTime] = useState(null);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [offlineAnswers, setOfflineAnswers] = useState(null);
+  const [offlineTimestamp, setOfflineTimestamp] = useState(null);
   const timerRef = useRef(null);
   const isSubmittingRef = useRef(false);
   const startTimestampRef = useRef(safeStartTimestamp);
   const warningTimeoutRef = useRef(null);
   const originalPushStateRef = useRef(null);
   const originalReplaceStateRef = useRef(null);
+  const autoSaveIntervalRef = useRef(null);
 
   // Sync ref với state
   useEffect(() => {
@@ -193,6 +201,9 @@ export default function ExamScreen() {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      if (autoSaveIntervalRef.current) {
+        clearInterval(autoSaveIntervalRef.current);
+      }
       window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("beforeunload", handleBeforeUnload);
       window.removeEventListener("hashchange", handleHashChange);
@@ -226,6 +237,84 @@ export default function ExamScreen() {
     if (i >= 0 && i < questions.length) setCurrentIndex(i);
   };
 
+  // Hàm format answers L&R để lưu
+  const formatLrAnswers = (answersToFormat) => {
+    const lrAnswers = [];
+    for (const [answerKey, answerValue] of Object.entries(answersToFormat)) {
+      // Parse answerKey: có thể là "testQuestionId" hoặc "testQuestionId_subQuestionIndex"
+      let testQuestionId, subQuestionIndex;
+      if (answerKey.includes('_')) {
+        const parts = answerKey.split('_');
+        testQuestionId = parseInt(parts[0]);
+        subQuestionIndex = parseInt(parts[1]);
+      } else {
+        testQuestionId = parseInt(answerKey);
+        subQuestionIndex = 0;
+      }
+
+      // Tìm question tương ứng
+      const q = questions.find((q) => 
+        q.testQuestionId === testQuestionId && 
+        (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === 0 && !q.subQuestionIndex))
+      );
+      if (!q) continue;
+
+      // Chỉ lấy L&R (partId 1-7)
+      const isLrPart = q.partId >= 1 && q.partId <= 7;
+      if (isLrPart && answerValue) {
+        // Format: {"testQuestionId": X, "chosenOptionLabel": "A"}
+        lrAnswers.push({
+          testQuestionId: testQuestionId,
+          chosenOptionLabel: answerValue || "",
+        });
+      }
+    }
+    return lrAnswers;
+  };
+
+  // Hàm lưu tiến độ làm bài (chỉ cho L&R)
+  const handleSaveProgress = async () => {
+    const testResultId = rawTestData.testResultId;
+    if (!testResultId) {
+      message.warning("Không tìm thấy testResultId");
+      return;
+    }
+
+    // Kiểm tra mạng
+    if (!navigator.onLine) {
+      message.warning("Không có kết nối mạng. Vui lòng kiểm tra lại kết nối.");
+      return;
+    }
+
+    const lrAnswers = formatLrAnswers(answers);
+
+    // Nếu không có câu nào để lưu
+    if (lrAnswers.length === 0) {
+      message.info("Chưa có câu trả lời nào để lưu");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await saveProgress(testResultId, lrAnswers);
+      setLastSaveTime(new Date());
+      message.success(`Đã lưu tiến độ ${lrAnswers.length} câu trả lời`);
+    } catch (error) {
+      console.error("Error saving progress:", error);
+      // Nếu lỗi do mất mạng, lưu answers vào offlineAnswers
+      if (!navigator.onLine || error.code === 'ERR_NETWORK' || error.message.includes('Network')) {
+        setOfflineAnswers({ ...answers });
+        setOfflineTimestamp(new Date());
+        setIsOnline(false);
+        setShowOfflineModal(true);
+      } else {
+        message.error("Không thể lưu tiến độ: " + (error.response?.data?.message || error.message));
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // Map partId sang partType cho S&W
   const getPartType = (partId) => {
     const partTypeMap = {
@@ -242,7 +331,9 @@ export default function ExamScreen() {
   };
 
   // ExamScreen.jsx
-  const handleSubmit = async (auto = false) => {
+  const handleSubmit = async (auto = false, answersToSubmit = null) => {
+    // Nếu có answersToSubmit (khi mất mạng), dùng nó, nếu không dùng answers hiện tại
+    const finalAnswers = answersToSubmit || answers;
     // Prevent multiple submissions
     if (isSubmitting) {
       console.log("Submit already in progress, ignoring duplicate call");
@@ -274,7 +365,7 @@ export default function ExamScreen() {
       const swAnswers = [];
 
       // Xử lý từng answer
-      for (const [answerKey, answerValue] of Object.entries(answers)) {
+      for (const [answerKey, answerValue] of Object.entries(finalAnswers)) {
         // Parse answerKey: có thể là "testQuestionId" hoặc "testQuestionId_subQuestionIndex"
         let testQuestionId, subQuestionIndex;
         if (answerKey.includes('_')) {
@@ -416,7 +507,7 @@ export default function ExamScreen() {
         testResultId: finalTestResultId, // DÙNG ID do server trả để lấy chi tiết
         testId: rawTestData.testId, // Lưu testId để có thể làm lại bài thi
         questions: questions,
-        answers: answers, // Lưu answers để hiển thị câu trả lời gốc trong result
+        answers: finalAnswers, // Lưu answers để hiển thị câu trả lời gốc trong result
         duration: durationMinutes,
         testType,
         isSelectTime,
@@ -435,10 +526,85 @@ export default function ExamScreen() {
 
   useEffect(() => {
     if (isSelectTime && timeLeft === 0 && !isSubmittingRef.current) {
-      handleSubmit(true);
+      // Nếu mất mạng khi hết thời gian, hiển thị thông báo và submit với offlineAnswers
+      if (!navigator.onLine && offlineAnswers) {
+        setShowOfflineModal(true);
+        message.warning("Hết thời gian làm bài. Nếu không kết nối lại mạng, bài làm sẽ được lưu với đáp án trước khi mất mạng.");
+        // Đợi 3 giây, nếu vẫn mất mạng thì submit với offlineAnswers
+        setTimeout(() => {
+          if (!navigator.onLine && offlineAnswers) {
+            handleSubmit(true, offlineAnswers);
+          }
+        }, 3000);
+      } else {
+        handleSubmit(true);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSelectTime, timeLeft]);
+
+  // Phát hiện mất mạng/kết nối lại
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowOfflineModal(false);
+      // Nếu có offlineAnswers, thử lưu lại
+      if (offlineAnswers) {
+        message.info("Đã kết nối lại mạng. Đang lưu lại tiến độ...");
+        // Cập nhật answers với offlineAnswers và thử lưu
+        setAnswers(offlineAnswers);
+        setTimeout(() => {
+          handleSaveProgress();
+        }, 1000);
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      // Lưu answers hiện tại vào offlineAnswers
+      setOfflineAnswers({ ...answers });
+      setOfflineTimestamp(new Date());
+      setShowOfflineModal(true);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [answers]);
+
+  // Auto-save tiến độ mỗi 5 phút (chỉ cho L&R)
+  useEffect(() => {
+    if (!rawTestData.testResultId) return;
+
+    // Chỉ auto-save nếu có ít nhất 1 câu trả lời L&R và có mạng
+    const hasLrAnswers = questions.some(q => {
+      const answerKey = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
+        ? `${q.testQuestionId}_${q.subQuestionIndex}`
+        : q.testQuestionId;
+      return (q.partId >= 1 && q.partId <= 7) && answers[answerKey];
+    });
+
+    if (!hasLrAnswers || !navigator.onLine) return;
+
+    // Auto-save mỗi 5 phút (300000 ms)
+    autoSaveIntervalRef.current = setInterval(() => {
+      if (!isSubmittingRef.current && navigator.onLine) {
+        handleSaveProgress();
+      }
+    }, 5 * 60 * 1000); // 5 phút
+
+    return () => {
+      if (autoSaveIntervalRef.current) {
+        clearInterval(autoSaveIntervalRef.current);
+        autoSaveIntervalRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawTestData.testResultId]);
 
   const formatTime = (value) => {
     const safeSeconds = Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
@@ -473,6 +639,22 @@ export default function ExamScreen() {
           </div>
           <div className={styles.headerRight}>
             <Button 
+              icon={<SaveOutlined />}
+              onClick={handleSaveProgress}
+              disabled={isSaving || isSubmitting}
+              loading={isSaving}
+              style={{
+                borderRadius: "8px",
+                height: "36px",
+                fontWeight: 600,
+                background: "rgba(255, 255, 255, 0.2)",
+                border: "1px solid rgba(255, 255, 255, 0.3)",
+                color: "#fff"
+              }}
+            >
+              Lưu
+            </Button>
+            <Button 
               onClick={() => handleSubmit(false)}
               disabled={isSubmitting}
               loading={isSubmitting}
@@ -480,7 +662,8 @@ export default function ExamScreen() {
                 borderRadius: "8px",
                 height: "36px",
                 fontWeight: 600,
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)"
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                marginLeft: 8
               }}
             >
               Nộp bài
@@ -545,6 +728,74 @@ export default function ExamScreen() {
       <Modal open={showSubmitModal} footer={null} closable={false}>
         <div style={{ textAlign: "center", padding: 20 }}>
           <Spin /> <Text style={{ marginLeft: 12 }}>Đang nộp bài...</Text>
+        </div>
+      </Modal>
+
+      {/* Modal thông báo mất mạng */}
+      <Modal
+        open={showOfflineModal}
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 20 }}>⚠️</span>
+            <span>Mất kết nối mạng</span>
+          </div>
+        }
+        footer={[
+          <Button
+            key="ok"
+            type="primary"
+            onClick={() => {
+              setShowOfflineModal(false);
+              // Nếu đã kết nối lại mạng, không cần hiển thị modal nữa
+              if (navigator.onLine) {
+                setIsOnline(true);
+              }
+            }}
+          >
+            Đã hiểu
+          </Button>,
+        ]}
+        closable={navigator.onLine}
+        maskClosable={false}
+        width={600}
+      >
+        <div style={{ padding: "10px 0" }}>
+          <Text style={{ fontSize: 15, lineHeight: 1.8 }}>
+            {isSelectTime && timeLeft === 0 ? (
+              <>
+                <strong>Hết thời gian làm bài!</strong>
+                <br />
+                <br />
+                Bạn đang mất kết nối mạng. Nếu bạn không kết nối lại mạng, bài làm của bạn sẽ được lưu với đáp án bạn đã trả lời trước thời gian mất mạng.
+                <br />
+                <br />
+                {offlineTimestamp && (
+                  <Text type="secondary" style={{ fontSize: 13 }}>
+                    Thời điểm mất mạng: {offlineTimestamp.toLocaleString("vi-VN")}
+                  </Text>
+                )}
+              </>
+            ) : (
+              <>
+                <strong>Bạn đã mất kết nối mạng.</strong>
+                <br />
+                <br />
+                Hệ thống đã lưu tạm thời các câu trả lời của bạn. Vui lòng kiểm tra kết nối mạng và kết nối lại để tiếp tục làm bài.
+                <br />
+                <br />
+                {offlineTimestamp && (
+                  <Text type="secondary" style={{ fontSize: 13 }}>
+                    Thời điểm mất mạng: {offlineTimestamp.toLocaleString("vi-VN")}
+                  </Text>
+                )}
+                <br />
+                <br />
+                <Text type="warning" style={{ fontSize: 13 }}>
+                  ⚠️ Lưu ý: Các câu trả lời sau thời điểm mất mạng sẽ không được lưu tự động. Vui lòng kết nối lại mạng để đảm bảo tiến độ được lưu đầy đủ.
+                </Text>
+              </>
+            )}
+          </Text>
         </div>
       </Modal>
     </Layout>
