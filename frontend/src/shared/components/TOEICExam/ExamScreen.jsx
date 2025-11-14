@@ -318,31 +318,37 @@ export default function ExamScreen() {
             });
           }
         } else if (isSpeakingPart) {
-          // Speaking: upload audio trước, sau đó gửi URL
+          // Speaking: kiểm tra nếu đã có URL thì dùng trực tiếp, nếu là Blob thì upload
           const partType = getPartType(q.partId);
-          if (partType && answerValue instanceof Blob) {
-            try {
-              // Upload audio file
-              const audioFile = new File([answerValue], `speaking_${testQuestionId}_${subQuestionIndex}.webm`, {
-                type: "audio/webm",
-              });
-              const audioUrl = await uploadFile(audioFile, "audio");
-              
+          if (partType) {
+            let audioFileUrl = null;
+            
+            // Nếu answerValue là URL (string) thì dùng trực tiếp
+            if (typeof answerValue === "string" && answerValue.startsWith("http")) {
+              audioFileUrl = answerValue;
+            } 
+            // Nếu answerValue là Blob thì upload lên
+            else if (answerValue instanceof Blob) {
+              try {
+                // Upload audio file
+                const audioFile = new File([answerValue], `speaking_${testQuestionId}_${subQuestionIndex}.webm`, {
+                  type: "audio/webm",
+                });
+                audioFileUrl = await uploadFile(audioFile, "audio");
+              } catch (error) {
+                console.error(`Error uploading audio for question ${testQuestionId}:`, error);
+                message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}`);
+                audioFileUrl = null;
+              }
+            }
+            
+            // Chỉ thêm vào swAnswers nếu có audioFileUrl hoặc đã cố gắng upload
+            if (audioFileUrl !== null || answerValue instanceof Blob || (typeof answerValue === "string" && answerValue.startsWith("http"))) {
               swAnswers.push({
                 testQuestionId: testQuestionId,
                 partType: partType,
                 answerText: null,
-                audioFileUrl: audioUrl,
-              });
-            } catch (error) {
-              console.error(`Error uploading audio for question ${testQuestionId}:`, error);
-              message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}`);
-              // Vẫn thêm vào nhưng với audioFileUrl null
-              swAnswers.push({
-                testQuestionId: testQuestionId,
-                partType: partType,
-                answerText: null,
-                audioFileUrl: null,
+                audioFileUrl: audioFileUrl,
               });
             }
           }

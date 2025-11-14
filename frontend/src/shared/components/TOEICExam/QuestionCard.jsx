@@ -2,9 +2,106 @@ import React, { useRef, useState, useEffect } from "react";
 import { Card, Typography, Radio, Button, Image, Progress, Input, message } from "antd";
 import { AudioOutlined, StopOutlined, PlayCircleOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
+import { uploadFile } from "../../../services/filesService";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+
+// Hàm chuyển đổi WebM Blob sang WAV File
+const convertWebmToWav = async (webmBlob) => {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const arrayBuffer = await webmBlob.arrayBuffer();
+      
+      // Thử decode audio data
+      let audioBuffer;
+      try {
+        audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+      } catch (decodeError) {
+        // Nếu không decode được trực tiếp, thử dùng audio element
+        console.warn("Direct decode failed, trying with audio element:", decodeError);
+        const audio = new Audio();
+        const audioUrl = URL.createObjectURL(webmBlob);
+        
+        await new Promise((resolveLoad, rejectLoad) => {
+          audio.onloadedmetadata = resolveLoad;
+          audio.onerror = () => rejectLoad(new Error("Failed to load audio"));
+          audio.src = audioUrl;
+        });
+        
+        // Tạo OfflineAudioContext để render
+        const offlineContext = new OfflineAudioContext(
+          1, // mono
+          Math.ceil(audio.duration * 44100), // frames
+          44100 // sample rate
+        );
+        
+        const source = offlineContext.createBufferSource();
+        const response = await fetch(audioUrl);
+        const arrayBuffer2 = await response.arrayBuffer();
+        audioBuffer = await offlineContext.decodeAudioData(arrayBuffer2);
+        source.buffer = audioBuffer;
+        source.connect(offlineContext.destination);
+        source.start(0);
+        
+        audioBuffer = await offlineContext.startRendering();
+        URL.revokeObjectURL(audioUrl);
+      }
+      
+      // Lấy thông số audio
+      const numberOfChannels = audioBuffer.numberOfChannels;
+      const sampleRate = audioBuffer.sampleRate;
+      const length = audioBuffer.length;
+      
+      // Tạo WAV buffer
+      const wavBuffer = new ArrayBuffer(44 + length * numberOfChannels * 2);
+      const view = new DataView(wavBuffer);
+      
+      // WAV header
+      const writeString = (offset, string) => {
+        for (let i = 0; i < string.length; i++) {
+          view.setUint8(offset + i, string.charCodeAt(i));
+        }
+      };
+      
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + length * numberOfChannels * 2, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numberOfChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * numberOfChannels * 2, true);
+      view.setUint16(32, numberOfChannels * 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, length * numberOfChannels * 2, true);
+      
+      // Convert to 16-bit PCM
+      let offset = 44;
+      for (let i = 0; i < length; i++) {
+        for (let channel = 0; channel < numberOfChannels; channel++) {
+          const sample = Math.max(-1, Math.min(1, audioBuffer.getChannelData(channel)[i]));
+          view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+          offset += 2;
+        }
+      }
+      
+      // Cleanup
+      if (audioContext.state !== 'closed') {
+        await audioContext.close();
+      }
+      
+      const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+      resolve(wavBlob);
+    } catch (error) {
+      console.error("Error converting WebM to WAV:", error);
+      reject(error);
+    }
+  });
+};
 
 export default function QuestionCard({
   question,
@@ -29,6 +126,7 @@ export default function QuestionCard({
   const [isRecording, setIsRecording] = useState(false);
   const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const isListeningPart = question.partId >= 1 && question.partId <= 4;
   const isWritingPart = question.partId >= 8 && question.partId <= 10;
@@ -59,6 +157,7 @@ export default function QuestionCard({
     setImageError(false);
     setIsRecording(false);
     setRecordingTime(0);
+    setIsUploading(false);
     audioChunksRef.current = [];
     
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
@@ -146,18 +245,60 @@ export default function QuestionCard({
         }
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         if (recordingTimer) {
           clearInterval(recordingTimer);
         }
         const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        const url = URL.createObjectURL(audioBlob);
-        setRecordedAudioUrl(url);
-        // Lưu audio vào answers với key duy nhất (bao gồm subQuestionIndex cho group questions)
+        const tempUrl = URL.createObjectURL(audioBlob);
+        setRecordedAudioUrl(tempUrl);
+        
+        // Tạo key duy nhất cho mỗi câu hỏi
         const answerKey = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
           ? `${question.testQuestionId}_${question.subQuestionIndex}`
           : question.testQuestionId;
-        onAnswer(answerKey, audioBlob);
+        
+        // Upload audio ngay sau khi ghi âm xong
+        setIsUploading(true);
+        try {
+          let audioFile;
+          
+          // Thử chuyển đổi WebM sang WAV format
+          try {
+            const wavBlob = await convertWebmToWav(audioBlob);
+            audioFile = new File([wavBlob], `speaking_${question.testQuestionId}_${question.subQuestionIndex || 0}.wav`, {
+              type: "audio/wav",
+            });
+          } catch (convertError) {
+            console.warn("Failed to convert to WAV, trying with original format:", convertError);
+            // Fallback: thử upload webm với extension .wav
+            audioFile = new File([audioBlob], `speaking_${question.testQuestionId}_${question.subQuestionIndex || 0}.wav`, {
+              type: "audio/webm",
+            });
+          }
+          
+          const uploadedUrl = await uploadFile(audioFile, "audio");
+          
+          // Lưu URL vào answers thay vì Blob
+          onAnswer(answerKey, uploadedUrl);
+          
+          // Cập nhật URL hiển thị thành URL từ server
+          setRecordedAudioUrl(uploadedUrl);
+          
+          // Revoke temp blob URL
+          URL.revokeObjectURL(tempUrl);
+          
+          message.success("Đã upload audio thành công");
+        } catch (error) {
+          console.error("Error uploading audio:", error);
+          const errorMessage = error.response?.data?.message || error.message || "Không thể upload audio";
+          message.error(`Lỗi upload audio: ${errorMessage}. Vui lòng thử lại.`);
+          // Nếu upload thất bại, vẫn lưu Blob để có thể upload lại khi submit
+          onAnswer(answerKey, audioBlob);
+        } finally {
+          setIsUploading(false);
+        }
+        
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -422,7 +563,20 @@ export default function QuestionCard({
                 </div>
               </div>
             )}
-            {recordedAudioUrl && !isRecording && (
+            {isUploading && (
+              <div style={{ 
+                padding: "20px",
+                background: "#fef3c7",
+                borderRadius: "12px",
+                border: "2px solid #fbbf24",
+                textAlign: "center"
+              }}>
+                <Text style={{ fontSize: "14px", fontWeight: 600, color: "#92400e" }}>
+                  Đang upload audio...
+                </Text>
+              </div>
+            )}
+            {recordedAudioUrl && !isRecording && !isUploading && (
               <div style={{ 
                 display: "flex", 
                 flexDirection: "column", 
@@ -473,7 +627,7 @@ export default function QuestionCard({
                   alignItems: "center",
                   gap: "8px"
                 }}>
-                  Đã ghi âm thành công
+                  {recordedAudioUrl.startsWith("http") ? "Đã upload và lưu thành công" : "Đã ghi âm thành công"}
                 </Text>
               </div>
             )}
