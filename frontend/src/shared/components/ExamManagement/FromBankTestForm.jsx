@@ -34,7 +34,6 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
         return Number.isFinite(n) ? n : undefined;
     };
 
-    // 加载问题详情（包括选项、图片、解释）
     const loadQuestionDetails = async (questionIds) => {
         const details = {};
         for (const qid of questionIds) {
@@ -73,7 +72,6 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
         setQuestionDetails(prev => ({ ...prev, ...details }));
     };
 
-    // 加载 group 详情（包括 passage、图片、问题列表）
     const loadGroupDetails = async (groupIds) => {
         const details = {};
         for (const gid of groupIds) {
@@ -179,12 +177,12 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                 setSelectedSingleQuestions(singleIds);
                 setSelectedGroupQuestions(groupIds);
                 
-                // 加载问题详情
+
                 if (singleIds.length > 0) {
                     loadQuestionDetails(singleIds);
                 }
                 
-                // 加载 group 详情
+    
                 if (groupIds.length > 0) {
                     loadGroupDetails(groupIds);
                 }
