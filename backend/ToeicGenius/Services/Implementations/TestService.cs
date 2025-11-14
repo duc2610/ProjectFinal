@@ -409,7 +409,7 @@ namespace ToeicGenius.Services.Implementations
 				if (test == null)
 					return Result<string>.Failure("Test not found");
 
-				if (test.CreationStatus == TestCreationStatus.Completed || test.VisibilityStatus == TestVisibilityStatus.Published)
+				if (test.VisibilityStatus == TestVisibilityStatus.Published)
 					return Result<string>.Failure("Cannot edit a published test. Please clone to create a new version.");
 
 				// Validate partId is compatible with test skill
@@ -699,32 +699,48 @@ namespace ToeicGenius.Services.Implementations
 			if (existing == null)
 				return Result<string>.Failure("Test not found");
 
-			// 3️. Luôn tạo version mới khi update (không update trực tiếp)
-			int parentId = existing.ParentTestId ?? existing.TestId;
-			int newVersion = await _uow.Tests.GetNextVersionAsync(parentId);
+			var isPublished = existing.VisibilityStatus == TestVisibilityStatus.Published;
+			Test targetTest;
 
-			Test targetTest = new Test
+			if (isPublished)
 			{
-				Title = dto.Title,
-				Description = dto.Description,
-				TestSkill = dto.TestSkill,
-				TestType = dto.TestType,
-				Duration = dto.Duration,
-				TotalQuestion = 0,
-				// Nếu test gốc là bản đã public, thì clone ra 1 bản nháp mới để chỉnh sửa
-				CreationStatus = existing.VisibilityStatus == TestVisibilityStatus.Published
-								? TestCreationStatus.Draft
-								: existing.CreationStatus,
+				// Clone bản mới nếu test đã publish
+				int parentId = existing.ParentTestId ?? existing.TestId;
+				int newVersion = await _uow.Tests.GetNextVersionAsync(parentId);
 
-				// Khi clone ra test mới thì mặc định ẩn
-				VisibilityStatus = TestVisibilityStatus.Hidden,
-				ParentTestId = parentId,
-				Version = newVersion,
-				CreatedAt = DateTime.UtcNow
-			};
+				targetTest = new Test
+				{
+					Title = dto.Title,
+					Description = dto.Description,
+					TestSkill = dto.TestSkill,
+					TestType = dto.TestType,
+					Duration = dto.Duration,
+					TotalQuestion = 0,
+					CreationStatus = TestCreationStatus.Completed,
+					VisibilityStatus = TestVisibilityStatus.Hidden,
+					ParentTestId = parentId,
+					Version = newVersion,
+					CreatedAt = DateTime.UtcNow
+				};
 
-			await _uow.Tests.AddAsync(targetTest);
-			await _uow.SaveChangesAsync(); // để có TestId
+				await _uow.Tests.AddAsync(targetTest);
+				await _uow.SaveChangesAsync(); // để có TestId
+			}
+			else
+			{
+				// Nếu chưa publish thì update trực tiếp
+				targetTest = existing;
+				targetTest.Title = dto.Title;
+				targetTest.Description = dto.Description;
+				targetTest.TestSkill = dto.TestSkill;
+				targetTest.TestType = dto.TestType;
+				targetTest.Duration = dto.Duration;
+				targetTest.TotalQuestion = 0;
+				targetTest.UpdatedAt = DateTime.UtcNow;
+
+				var oldQuestions = await _uow.TestQuestions.GetByTestIdAsync(targetTest.TestId);
+				_uow.TestQuestions.RemoveRange(oldQuestions);
+			}
 
 			// 5️. Snapshot câu hỏi từ bank
 			var jsonSettings = new JsonSerializerSettings
@@ -736,7 +752,9 @@ namespace ToeicGenius.Services.Implementations
 			int order = 1;
 
 			// SINGLE QUESTIONS
-			var singleQuestions = await _uow.Questions.GetByListIdAsync(dto.SingleQuestionIds);
+			var singleQuestions = dto.SingleQuestionIds?.Any() == true
+				? await _uow.Questions.GetByListIdAsync(dto.SingleQuestionIds)
+				: new List<QuestionSnapshotDto>();
 			foreach (var q in singleQuestions)
 			{
 				string snapshot = JsonConvert.SerializeObject(q, jsonSettings);
@@ -752,7 +770,9 @@ namespace ToeicGenius.Services.Implementations
 			}
 
 			// GROUP QUESTIONS
-			var groupQuestions = await _uow.QuestionGroups.GetByListIdAsync(dto.GroupQuestionIds);
+			var groupQuestions = dto.GroupQuestionIds?.Any() == true
+				? await _uow.QuestionGroups.GetByListIdAsync(dto.GroupQuestionIds)
+				: new List<QuestionGroupSnapshotDto>();
 			foreach (var g in groupQuestions)
 			{
 				string snapshot = JsonConvert.SerializeObject(g, jsonSettings);
@@ -775,7 +795,9 @@ namespace ToeicGenius.Services.Implementations
 
 			// 7️. Trả về kết quả
 			return Result<string>.Success(
-				$"Updated to version v{targetTest.Version} (TestId={targetTest.TestId})");
+				isPublished
+					? $"Cloned to new version v{targetTest.Version} (TestId={targetTest.TestId})"
+					: $"Updated successfully TestId={targetTest.TestId}");
 		}
 
 		// Update Test Manual (simulator test)
@@ -801,8 +823,9 @@ namespace ToeicGenius.Services.Implementations
 					TestType = dto.TestType,
 					AudioUrl = dto.AudioUrl,
 					Duration = GetTestDuration(dto.TestSkill),
-					TotalQuestion = totalQuestion, // sẽ cập nhật sau
+					TotalQuestion = totalQuestion, 
 					VisibilityStatus = TestVisibilityStatus.Hidden,
+					CreationStatus = TestCreationStatus.Completed,
 					ParentTestId = existing.ParentTestId ?? existing.TestId,
 					Version = newVersion,
 					CreatedAt = DateTime.UtcNow
@@ -813,7 +836,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 			else
 			{
-				// Nếu là Completed, update trực tiếp
+				// Nếu ko publish, update trực tiếp
 				targetTest = existing;
 				targetTest.Title = dto.Title;
 				targetTest.Description = dto.Description;
