@@ -10,11 +10,11 @@
 		public const int MaxQuantityOption = 4;
 		public const int MinQuantityOption = 3;
 
-		// Test Duration
+		// Test Duration (in minutes)
 		public const int LRDuration = 120;
 		public const int SpeakingDuration = 20;
 		public const int WritingDuration = 60;
-		public const int FourSkillsDuration = 200; 
+		public const int SWDuration = 80; // Speaking (20) + Writing (60) 
 
 		// Quantity question of each part - Simulator test
 		// Listening

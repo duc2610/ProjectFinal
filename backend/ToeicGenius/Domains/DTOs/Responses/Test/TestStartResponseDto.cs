@@ -14,6 +14,7 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 		public int Duration { get; set; }
 		public int QuantityQuestion { get; set; }
 		public List<TestPartDto> Parts { get; set; } = new();
+		public List<SavedAnswerDto> SavedAnswers { get; set; } = new();
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }
