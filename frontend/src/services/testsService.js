@@ -274,11 +274,12 @@ export async function updateTestManual(id, data) {
 export async function updateTestFromBank(id, data) {
   const payload = {
     Title: data.title,
+    TestType: data.testType || 2, // Practice = 2
     TestSkill: data.testSkill,
     Description: data.description || null,
     Duration: data.duration,
-    SingleQuestionIds: data.singleQuestionIds || [],
-    GroupQuestionIds: data.groupQuestionIds || [],
+    SingleQuestionIds: Array.isArray(data.singleQuestionIds) ? data.singleQuestionIds : [],
+    GroupQuestionIds: Array.isArray(data.groupQuestionIds) ? data.groupQuestionIds : [],
   };
   const res = await api.put(`/api/tests/from-bank/${id}`, payload);
   return res?.data?.data ?? res?.data;

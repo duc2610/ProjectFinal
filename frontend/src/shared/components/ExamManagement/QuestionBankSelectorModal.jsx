@@ -47,10 +47,14 @@ export default function QuestionBankSelectorModal({
     const loadQuestions = async (page = 1, pageSize = 10, withFilters = false) => {
         setLoading(true);
         try {
-            const baseParams = buildQuestionListParams({ page, pageSize, skill });
-            const params = withFilters
-                ? { ...baseParams, part: filterPart ?? undefined, keyWord: searchKeyword || undefined }
-                : baseParams;
+            const baseParams = buildQuestionListParams({ 
+                page, 
+                pageSize, 
+                skill,
+                partId: withFilters ? filterPart : undefined,
+                keyword: withFilters ? searchKeyword : undefined
+            });
+            const params = baseParams;
 
             const response = await getQuestions(params);
             const payload = response?.data || response || {};
@@ -96,12 +100,17 @@ export default function QuestionBankSelectorModal({
     };
 
     const handleTableChange = (newPagination) => {
-        loadQuestions(newPagination.current, newPagination.pageSize);
+        // 应用当前筛选条件（filterPart 为 null 表示 "Tất cả"）
+        const hasFilters = filterPart !== null || searchKeyword !== "";
+        loadQuestions(newPagination.current, newPagination.pageSize, hasFilters);
     };
 
     const handlePartFilterChange = (partId) => {
         setFilterPart(partId);
         setPagination({ ...pagination, current: 1 });
+        // 立即应用筛选（如果 partId 是 null，表示选择 "Tất cả"）
+        const hasFilters = partId !== null || searchKeyword !== "";
+        loadQuestions(1, pagination.pageSize, hasFilters);
     };
 
 
@@ -188,10 +197,14 @@ export default function QuestionBankSelectorModal({
                     <Select
                         placeholder="Chọn Part"
                         value={filterPart}
-                        onChange={handlePartFilterChange}
+                        onChange={(value) => {
+                            const partId = value === "all" ? null : value;
+                            handlePartFilterChange(partId);
+                        }}
                         style={{ width: 180 }}
                         allowClear
                     >
+                        <Option value="all">Tất cả Part</Option>
                         {parts.map(part => (
                             <Option key={part.partId} value={part.partId}>
                                 {part.name}

@@ -22,19 +22,18 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     const [loading, setLoading] = useState(false);
     const [selectedSkill, setSelectedSkill] = useState(null);
     const [parts, setParts] = useState([]);
-    const [partsData, setPartsData] = useState({}); // { partId: { groups: [], questions: [] } }
+    const [partsData, setPartsData] = useState({}); 
     const [activePartTab, setActivePartTab] = useState(null);
     const [audioUrl, setAudioUrl] = useState(null);
-    const [currentTestId, setCurrentTestId] = useState(null); // Lưu testId sau khi tạo draft
-    const [savingPartId, setSavingPartId] = useState(null); // Part đang được lưu
-    const [showValidation, setShowValidation] = useState(false); // Chỉ hiển thị validation khi click "Lưu Part"
+    const [currentTestId, setCurrentTestId] = useState(null); 
+    const [savingPartId, setSavingPartId] = useState(null);
+    const [showValidation, setShowValidation] = useState(false); 
 
     const toSkillId = (val) => {
         if (val == null) return undefined;
         if (typeof val === "number") return val;
         const s = String(val).toLowerCase();
         if (s === "3" || s.includes("lr") || s.includes("listening")) return TEST_SKILL.LR;
-        if (s === "4" || s.includes("four") || s.includes("4skills") || s.includes("4-skills")) return TEST_SKILL.FOUR_SKILLS;
         if (s === "1" || s.includes("speaking")) return TEST_SKILL.SPEAKING;
         if (s === "2" || s.includes("writing")) return TEST_SKILL.WRITING;
         const n = Number(val);
@@ -59,14 +58,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             validEditingId = editingId.id || editingId.testId || editingId.Id || editingId.TestId;
         }
         
-        // Xử lý trường hợp editingId là string có format "TestId: 5023" hoặc tương tự
         if (validEditingId && typeof validEditingId === 'string') {
-            // Tìm số trong string (ví dụ: "TestId: 5023" -> "5023")
             const numberMatch = validEditingId.match(/\d+/);
             if (numberMatch) {
                 validEditingId = Number(numberMatch[0]);
             } else if (/^\d+$/.test(validEditingId)) {
-                // Nếu là string số thuần, convert sang number
                 validEditingId = Number(validEditingId);
             }
         }
@@ -923,7 +919,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 disabled={readOnly || !!editingId}
                             >
                                 <Option value={TEST_SKILL.LR}>Nghe & Đọc</Option>
-                                <Option value={TEST_SKILL.FOUR_SKILLS}>Bốn Kỹ Năng (Nghe+Đọc+Viết+Nói)</Option>
                                 <Option value={TEST_SKILL.SPEAKING}>Nói</Option>
                                 <Option value={TEST_SKILL.WRITING}>Viết</Option>
                             </Select>
