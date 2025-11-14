@@ -33,5 +33,11 @@ namespace ToeicGenius.Repositories.Interfaces
 		Task<GeneralLRResultDto> GetTestResultLRAsync(int testResultId);
 		Task<TestResult?> GetListeningReadingResultDetailAsync(int testResultId, Guid userId);
 		Task<List<TestResult>> GetResultsWithinRangeAsync(Guid examineeId, DateTime? fromDate);
+
+		/// <summary>
+		/// Get all InProgress test results that have exceeded their duration + grace period
+		/// Used by background service to auto-submit expired tests
+		/// </summary>
+		Task<List<TestResult>> GetExpiredInProgressTestsAsync();
 	}
 }

@@ -105,7 +105,7 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       loading,
-      isAuthenticated: !!localStorage.getItem("tg_access_token"),
+      isAuthenticated: !!user, 
       signIn,
       signInWithGoogle,
       signOut,
@@ -113,6 +113,7 @@ export function AuthProvider({ children }) {
     }),
     [user, loading, signIn, signInWithGoogle, signOut, refreshProfile]
   );
+  
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

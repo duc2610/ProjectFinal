@@ -32,10 +32,15 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = tokenStore.access;
-  if (token) {
-    config.headers = config.headers ?? {};
-    config.headers.Authorization = `Bearer ${token}`;
+  const isRefreshTokenRequest = config.url?.includes("/refresh-token") || 
+                                config.url?.includes("refresh-token");
+  
+  if (!isRefreshTokenRequest) {
+    const token = tokenStore.access;
+    if (token) {
+      config.headers = config.headers ?? {};
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   const isFormData =
     typeof FormData !== "undefined" && config.data instanceof FormData;
@@ -57,6 +62,7 @@ api.interceptors.request.use((config) => {
 });
 
 // Flag to prevent infinite refresh loops
+// Flag to prevent infinite refresh loops
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -76,62 +82,62 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If error is 401 and we haven't tried to refresh yet
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (!originalRequest) return Promise.reject(error);
+
+    const status = error.response?.status;
+    if ((status === 401 || status === 403) && !originalRequest._retry) {
       if (isRefreshing) {
-        // If already refreshing, queue this request
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
+            originalRequest.headers = originalRequest.headers || {};
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return api(originalRequest);
           })
-          .catch((err) => {
-            return Promise.reject(err);
-          });
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
       try {
-        // Import refreshToken function dynamically to avoid circular dependency
-        const { refreshToken } = await import("./authService");
-        const data = await refreshToken();
+
+        const plainAxios = axios.create({
+          baseURL: api.defaults.baseURL, 
+        });
+
+        const refreshTokenValue = tokenStore.refresh;
+        if (!refreshTokenValue) {
+          throw new Error("No refresh token available");
+        }
+
+        const refreshRes = await plainAxios.post("/api/Auth/refresh-token", {
+          refreshToken: refreshTokenValue,
+        });
+
+        const data = refreshRes?.data?.data ?? refreshRes?.data;
         const newToken = data?.token || tokenStore.access;
 
+        if (data?.token) tokenStore.access = data.token;
+        if (data?.refreshToken) tokenStore.refresh = data.refreshToken;
+
         processQueue(null, newToken);
+
+        originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        // If refresh fails, clear tokens and redirect to login
         tokenStore.clear();
         localStorage.removeItem("user");
-        // You might want to redirect to login page here
-        // window.location.href = "/login";
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
       }
     }
 
-    // Log other errors
-    if (error.response) {
-      console.error("API Error:", {
-        status: error.response.status,
-        data: error.response.data,
-        url: error.config?.url,
-      });
-    } else if (error.request) {
-      console.error("Network Error: No response from server", {
-        url: error.config?.url,
-        baseURL: error.config?.baseURL,
-      });
-    } else {
-      console.error("Request Error:", error.message);
-    }
     return Promise.reject(error);
   }
 );

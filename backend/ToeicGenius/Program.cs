@@ -91,6 +91,10 @@ builder.Services.AddHttpClient();
 
 // DI
 builder.Services.AddDependencyInjectionConfiguration(builder.Configuration);
+
+// ============ BACKGROUND SERVICES ============
+builder.Services.AddHostedService<ToeicGenius.BackgroundServices.AutoSubmitExpiredTestsService>();
+
 // ============ FILE UPLOAD LIMITS ============
 builder.Services.Configure<FormOptions>(options =>
 {

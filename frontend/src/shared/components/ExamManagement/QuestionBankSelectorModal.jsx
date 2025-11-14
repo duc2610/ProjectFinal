@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Modal, Table, Input, Select, Button, Space, Tag, message } from "antd";
+import React, { useState, useEffect, useRef } from "react";
+import { Modal, Table, Input, Select, Space, Tag, message } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { getQuestions, buildQuestionListParams } from "@services/questionsService";
 import { getPartsBySkill } from "@services/partsService";
@@ -26,6 +26,7 @@ export default function QuestionBankSelectorModal({
     // Filters
     const [searchKeyword, setSearchKeyword] = useState("");
     const [filterPart, setFilterPart] = useState(null);
+    const searchDebounceRef = useRef(null);
 
     useEffect(() => {
         if (open && skill) {
@@ -47,10 +48,14 @@ export default function QuestionBankSelectorModal({
     const loadQuestions = async (page = 1, pageSize = 10, withFilters = false) => {
         setLoading(true);
         try {
-            const baseParams = buildQuestionListParams({ page, pageSize, skill });
-            const params = withFilters
-                ? { ...baseParams, part: filterPart ?? undefined, keyWord: searchKeyword || undefined }
-                : baseParams;
+            const baseParams = buildQuestionListParams({ 
+                page, 
+                pageSize, 
+                skill,
+                partId: withFilters ? filterPart : undefined,
+                keyword: withFilters ? searchKeyword : undefined
+            });
+            const params = baseParams;
 
             const response = await getQuestions(params);
             const payload = response?.data || response || {};
@@ -91,12 +96,28 @@ export default function QuestionBankSelectorModal({
         }
     };
 
-    const handleSearch = () => {
-        loadQuestions(1, pagination.pageSize, true);
-    };
+    useEffect(() => {
+        if (!open || !skill) return;
+        
+        if (searchDebounceRef.current) {
+            clearTimeout(searchDebounceRef.current);
+        }
+        
+        searchDebounceRef.current = setTimeout(() => {
+            const hasFilters = filterPart !== null || searchKeyword.trim() !== "";
+            loadQuestions(1, pagination.pageSize, hasFilters);
+        }, 400);
+        
+        return () => {
+            if (searchDebounceRef.current) {
+                clearTimeout(searchDebounceRef.current);
+            }
+        };
+    }, [searchKeyword, filterPart, open, skill]);
 
     const handleTableChange = (newPagination) => {
-        loadQuestions(newPagination.current, newPagination.pageSize);
+        const hasFilters = filterPart !== null || searchKeyword !== "";
+        loadQuestions(newPagination.current, newPagination.pageSize, hasFilters);
     };
 
     const handlePartFilterChange = (partId) => {
@@ -179,7 +200,6 @@ export default function QuestionBankSelectorModal({
                         placeholder="Tìm kiếm theo nội dung..."
                         value={searchKeyword}
                         onChange={(e) => setSearchKeyword(e.target.value)}
-                        onPressEnter={handleSearch}
                         style={{ width: 300 }}
                         prefix={<SearchOutlined />}
                         allowClear
@@ -188,10 +208,14 @@ export default function QuestionBankSelectorModal({
                     <Select
                         placeholder="Chọn Part"
                         value={filterPart}
-                        onChange={handlePartFilterChange}
+                        onChange={(value) => {
+                            const partId = value === "all" ? null : value;
+                            handlePartFilterChange(partId);
+                        }}
                         style={{ width: 180 }}
                         allowClear
                     >
+                        <Option value="all">Tất cả Part</Option>
                         {parts.map(part => (
                             <Option key={part.partId} value={part.partId}>
                                 {part.name}
@@ -199,9 +223,6 @@ export default function QuestionBankSelectorModal({
                         ))}
                     </Select>
 
-                    <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
-                        Tìm kiếm
-                    </Button>
                 </Space>
 
                 {selectedRowKeys.length > 0 && (

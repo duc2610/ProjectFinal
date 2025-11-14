@@ -84,11 +84,30 @@ namespace ToeicGenius.Services.Implementations
             var perPartResponses = new List<ToeicGenius.Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto>();
             var rawWritingScores = new List<double>();
             var rawSpeakingScores = new List<double>();
+            int skipCount = 0;
+            int totalQuestions = request.Parts.Count;
 
             foreach (var part in request.Parts)
             {
                 try
                 {
+                    // Check if this part is skipped (empty answer)
+                    bool isSkipped = false;
+                    if (part.PartType?.StartsWith("writing") == true)
+                    {
+                        isSkipped = string.IsNullOrWhiteSpace(part.AnswerText);
+                    }
+                    else
+                    {
+                        isSkipped = string.IsNullOrWhiteSpace(part.AudioFileUrl);
+                    }
+
+                    if (isSkipped)
+                    {
+                        skipCount++;
+                        continue; // Skip processing this part
+                    }
+
                     ToeicGenius.Domains.DTOs.Responses.AI.AIFeedbackResponseDto aiResponse = null!;
 
                     // Writing parts
@@ -226,11 +245,12 @@ namespace ToeicGenius.Services.Implementations
             testResult.UpdatedAt = DateTime.UtcNow;
             testResult.Status = TestResultStatus.Graded;
 
-            // If Simulator type provided and both skills present, set TotalScore as sum of both converted scores
-            if (!string.IsNullOrEmpty(request.TestType) && request.TestType.ToLower().Contains("simulator") && writingToeicScore.HasValue && speakingToeicScore.HasValue)
-            {
-                testResult.TotalScore = writingToeicScore.Value + speakingToeicScore.Value;
-            }
+            // Calculate TotalScore as sum of all skill scores (Writing + Speaking)
+            testResult.TotalScore = skillScores.Sum(s => s.Score);
+
+            // Update TotalQuestions and SkipCount
+            testResult.TotalQuestions = totalQuestions;
+            testResult.SkipCount = skipCount;
 
             await _uow.SaveChangesAsync();
 

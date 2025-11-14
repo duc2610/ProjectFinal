@@ -1019,10 +1019,50 @@ namespace ToeicGenius.Services.Implementations
 			if (existingTestResult != null)
 			{
 				userTest = existingTestResult;
-				if (userTest.Status != TestResultStatus.InProgress)
+
+				// Check if test time has expired + 5 minutes grace period -> auto-submit
+				var elapsedTime = DateTime.UtcNow - userTest.CreatedAt;
+				var testDurationWithGrace = TimeSpan.FromMinutes(test.Duration + 5);
+
+				if (elapsedTime > testDurationWithGrace && userTest.Status == TestResultStatus.InProgress)
 				{
-					userTest.Status = TestResultStatus.InProgress;
-					userTest.UpdatedAt = DateTime.UtcNow;
+					// Auto-submit the test based on test skill
+					if (test.TestSkill == TestSkill.LR)
+					{
+						// For LR tests, call SubmitLRTestAsync
+						var submitRequest = new SubmitLRTestRequestDto
+						{
+							TestId = test.TestId,
+							TestResultId = userTest.TestResultId,
+							Duration = (int)elapsedTime.TotalMinutes,
+							TestType = test.TestType,
+							Answers = new List<UserLRAnswerDto>() // Empty answers list for auto-submit
+						};
+
+						await SubmitLRTestAsync(userId, submitRequest);
+					}
+					else
+					{
+						// For Speaking/Writing/SW tests, just mark as submitted (grading happens separately via bulk grading)
+						userTest.Status = TestResultStatus.Graded;
+						userTest.Duration = (int)elapsedTime.TotalMinutes;
+						userTest.UpdatedAt = DateTime.UtcNow;
+						await _uow.SaveChangesAsync();
+					}
+
+					// After auto-submit, create a new test session for the user to start fresh
+					userTest = new TestResult
+					{
+						UserId = userId,
+						TestId = test.TestId,
+						Status = TestResultStatus.InProgress,
+						Duration = 0,
+						TotalScore = 0,
+						TestType = test.TestType,
+						CreatedAt = DateTime.UtcNow
+					};
+
+					await _uow.TestResults.AddAsync(userTest);
 					await _uow.SaveChangesAsync();
 				}
 			}
@@ -1044,6 +1084,13 @@ namespace ToeicGenius.Services.Implementations
 			}
 
 			result.TestResultId = userTest.TestResultId;
+
+			// Load saved answers if user is resuming
+			var savedAnswers = await _uow.UserAnswers.GetByTestResultIdAsync(userTest.TestResultId);
+			var savedAnswersDict = savedAnswers?.ToDictionary(
+				ua => (ua.TestQuestionId, ua.SubQuestionIndex),
+				ua => ua
+			) ?? new Dictionary<(int, int?), UserAnswer>();
 
 			// Nếu test chưa có câu hỏi
 			if (test.TestQuestions == null || !test.TestQuestions.Any())
@@ -1099,6 +1146,19 @@ namespace ToeicGenius.Services.Implementations
 
 				result.Parts.Add(partDto);
 			}
+
+			// Map saved answers to response
+			result.SavedAnswers = savedAnswers.Select(ua => new SavedAnswerDto
+			{
+				TestQuestionId = ua.TestQuestionId,
+				ChosenOptionLabel = ua.ChosenOptionLabel,
+				AnswerText = ua.AnswerText,
+				AnswerAudioUrl = ua.AnswerAudioUrl,
+				SubQuestionIndex = ua.SubQuestionIndex,
+				CreatedAt = ua.CreatedAt,
+				UpdatedAt = ua.UpdatedAt
+			}).ToList();
+
 			return Result<TestStartResponseDto>.Success(result);
 		}
 		// Submit listening & reading test
@@ -1359,7 +1419,7 @@ namespace ToeicGenius.Services.Implementations
 				TestSkill.LR => NumberConstants.LRDuration,
 				TestSkill.Speaking => NumberConstants.SpeakingDuration,
 				TestSkill.Writing => NumberConstants.WritingDuration,
-				TestSkill.FourSkills => NumberConstants.FourSkillsDuration,
+				TestSkill.SW => NumberConstants.SWDuration,
 				_ => throw new Exception("Invalid test skill")
 			};
 		}
@@ -1699,6 +1759,71 @@ namespace ToeicGenius.Services.Implementations
 			}
 
 			return (true, string.Empty);
+		}
+
+		public async Task<Result<string>> SaveProgressAsync(Guid userId, SaveProgressRequestDto request)
+		{
+			try
+			{
+				// Validate TestResult ownership and status
+				var testResult = await _uow.TestResults.GetByIdAsync(request.TestResultId);
+				if (testResult == null)
+					return Result<string>.Failure($"TestResult {request.TestResultId} not found");
+
+				if (testResult.UserId != userId)
+					return Result<string>.Failure("You don't have permission to save this test result");
+
+				if (testResult.Status == TestResultStatus.Graded)
+					return Result<string>.Failure("This test has already been submitted/graded. Cannot save progress.");
+
+				// Process each answer
+				foreach (var answerDto in request.Answers)
+				{
+					// Check if answer already exists for this question
+					var existingAnswer = await _uow.UserAnswers.GetByTestResultAndQuestionAsync(
+						request.TestResultId,
+						answerDto.TestQuestionId,
+						answerDto.SubQuestionIndex);
+
+					if (existingAnswer != null)
+					{
+						// Update existing answer
+						existingAnswer.ChosenOptionLabel = answerDto.ChosenOptionLabel;
+						existingAnswer.AnswerText = answerDto.AnswerText;
+						existingAnswer.AnswerAudioUrl = answerDto.AnswerAudioUrl;
+						existingAnswer.SubQuestionIndex = answerDto.SubQuestionIndex;
+						existingAnswer.UpdatedAt = DateTime.UtcNow;
+
+						await _uow.UserAnswers.UpdateAsync(existingAnswer);
+					}
+					else
+					{
+						// Create new answer
+						var newAnswer = new UserAnswer
+						{
+							TestResultId = request.TestResultId,
+							TestQuestionId = answerDto.TestQuestionId,
+							ChosenOptionLabel = answerDto.ChosenOptionLabel,
+							AnswerText = answerDto.AnswerText,
+							AnswerAudioUrl = answerDto.AnswerAudioUrl,
+							SubQuestionIndex = answerDto.SubQuestionIndex,
+							CreatedAt = DateTime.UtcNow
+						};
+
+						await _uow.UserAnswers.AddAsync(newAnswer);
+					}
+				}
+
+				// Update TestResult timestamp (but keep status as InProgress)
+				testResult.UpdatedAt = DateTime.UtcNow;
+				await _uow.SaveChangesAsync();
+
+				return Result<string>.Success("Progress saved successfully");
+			}
+			catch (Exception ex)
+			{
+				return Result<string>.Failure($"Error saving progress: {ex.Message}");
+			}
 		}
 		#endregion
 
