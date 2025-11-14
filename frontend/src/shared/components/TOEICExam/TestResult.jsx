@@ -570,11 +570,35 @@ export default function ResultScreen() {
     return total;
   }, [result]);
   
-  // === LẤY MAX ĐIỂM TỪ API - KHÔNG TỰ TÍNH ===
+  // === TÍNH MAX ĐIỂM DỰA TRÊN CÁC PHẦN CÓ TRONG BÀI TEST ===
   const getMaxScore = useMemo(() => {
     if (!result) return 990;
-    // Chỉ lấy từ API nếu có, nếu không thì dùng giá trị mặc định
-    return result.maxScore || result.totalMaxScore || 990;
+    
+    // Nếu API trả về maxScore hoặc totalMaxScore, dùng nó
+    if (result.maxScore !== undefined && result.maxScore !== null) {
+      return result.maxScore;
+    }
+    if (result.totalMaxScore !== undefined && result.totalMaxScore !== null) {
+      return result.totalMaxScore;
+    }
+    
+    // Tính max điểm dựa trên các phần có trong bài test
+    let maxScore = 0;
+    
+    // Kiểm tra các phần có điểm
+    const hasListening = result.listeningScore !== undefined && result.listeningScore !== null;
+    const hasReading = result.readingScore !== undefined && result.readingScore !== null;
+    const hasWriting = result.writingScore !== undefined && result.writingScore !== null;
+    const hasSpeaking = result.speakingScore !== undefined && result.speakingScore !== null;
+    
+    // Tính tổng max điểm của các phần có trong bài test
+    if (hasListening) maxScore += 495;
+    if (hasReading) maxScore += 495;
+    if (hasWriting) maxScore += 200;
+    if (hasSpeaking) maxScore += 200;
+    
+    // Nếu không có phần nào, trả về giá trị mặc định
+    return maxScore > 0 ? maxScore : 990;
   }, [result]);
 
   // === ANIMATION ĐIỂM SỐ ===
