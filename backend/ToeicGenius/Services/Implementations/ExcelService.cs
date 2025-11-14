@@ -1373,9 +1373,9 @@ public class ExcelService : IExcelService
         sheet.Columns[11].Width = 15;
     }
 
-    // ============== 4 SKILLS TEST METHODS ==============
+    // ============== S&W TEST METHODS (Speaking & Writing) ==============
 
-    public async Task<Result<CreateTestManualDto>> ParseExcelToTest4SkillsAsync(IFormFile excelFile)
+    public async Task<Result<CreateTestManualDto>> ParseExcelToTestSWAsync(IFormFile excelFile)
     {
         try
         {
@@ -1392,8 +1392,8 @@ public class ExcelService : IExcelService
 
             using var package = new ExcelPackage(stream);
 
-            // Validate required sheets (17 sheets for 4 skills)
-            var requiredSheets = new[] { "TestInfo", "Part1", "Part2", "Part3", "Part4", "Part5", "Part6", "Part7",
+            // Validate required sheets (9 sheets for S&W only)
+            var requiredSheets = new[] { "TestInfo",
                 "Part8_Writing", "Part9_Writing", "Part10_Writing",
                 "Part11_Speaking", "Part12_Speaking", "Part13_Speaking", "Part14_Speaking", "Part15_Speaking" };
 
@@ -1409,45 +1409,15 @@ public class ExcelService : IExcelService
             {
                 Title = testInfoSheet.Cells["B2"].Text,
                 Description = testInfoSheet.Cells["B3"].Text,
-                AudioUrl = null, // Will be set after audio file upload in controller
+                AudioUrl = null, // S&W test doesn't require audio
                 TestType = TestType.Simulator,
-                TestSkill = TestSkill.FourSkills, // 4-skills test
+                TestSkill = TestSkill.SW, // Speaking & Writing test
                 Parts = new List<PartDto>()
             };
 
             // Validate test info
             if (string.IsNullOrWhiteSpace(testDto.Title))
                 return Result<CreateTestManualDto>.Failure("Test title is required (Cell B2 in TestInfo sheet)");
-
-            // Parse Listening Parts (1-4)
-            var part1Result = await ParsePart1(package.Workbook.Worksheets["Part1"]);
-            if (!part1Result.IsSuccess) return Result<CreateTestManualDto>.Failure(part1Result.ErrorMessage!);
-            testDto.Parts.Add(part1Result.Data);
-
-            var part2Result = ParsePart2(package.Workbook.Worksheets["Part2"]);
-            if (!part2Result.IsSuccess) return Result<CreateTestManualDto>.Failure(part2Result.ErrorMessage!);
-            testDto.Parts.Add(part2Result.Data);
-
-            var part3Result = ParsePart3(package.Workbook.Worksheets["Part3"]);
-            if (!part3Result.IsSuccess) return Result<CreateTestManualDto>.Failure(part3Result.ErrorMessage!);
-            testDto.Parts.Add(part3Result.Data);
-
-            var part4Result = ParsePart4(package.Workbook.Worksheets["Part4"]);
-            if (!part4Result.IsSuccess) return Result<CreateTestManualDto>.Failure(part4Result.ErrorMessage!);
-            testDto.Parts.Add(part4Result.Data);
-
-            // Parse Reading Parts (5-7)
-            var part5Result = ParsePart5(package.Workbook.Worksheets["Part5"]);
-            if (!part5Result.IsSuccess) return Result<CreateTestManualDto>.Failure(part5Result.ErrorMessage!);
-            testDto.Parts.Add(part5Result.Data);
-
-            var part6Result = ParsePart6(package.Workbook.Worksheets["Part6"]);
-            if (!part6Result.IsSuccess) return Result<CreateTestManualDto>.Failure(part6Result.ErrorMessage!);
-            testDto.Parts.Add(part6Result.Data);
-
-            var part7Result = ParsePart7(package.Workbook.Worksheets["Part7"]);
-            if (!part7Result.IsSuccess) return Result<CreateTestManualDto>.Failure(part7Result.ErrorMessage!);
-            testDto.Parts.Add(part7Result.Data);
 
             // Parse Writing Parts (8-10)
             var part8Result = await ParsePart8Writing(package.Workbook.Worksheets["Part8_Writing"]);
@@ -1483,39 +1453,30 @@ public class ExcelService : IExcelService
             if (!part15Result.IsSuccess) return Result<CreateTestManualDto>.Failure(part15Result.ErrorMessage!);
             testDto.Parts.Add(part15Result.Data);
 
-            // Validate total questions: 200 (L+R) + 8 (W) + 11 (S) = 219
+            // Validate total questions: 8 (W) + 11 (S) = 19
             int totalQuestions = testDto.Parts.Sum(p =>
                 (p.Questions?.Count ?? 0) +
                 (p.Groups?.Sum(g => g.Questions.Count) ?? 0));
 
-            if (totalQuestions != 219)
-                return Result<CreateTestManualDto>.Failure($"Total questions must be 219 (L+R: 200, W: 8, S: 11), found {totalQuestions}");
+            if (totalQuestions != 19)
+                return Result<CreateTestManualDto>.Failure($"Total questions must be 19 (W: 8, S: 11), found {totalQuestions}");
 
             return Result<CreateTestManualDto>.Success(testDto);
         }
         catch (Exception ex)
         {
-            return Result<CreateTestManualDto>.Failure($"Error parsing 4-skills Excel file: {ex.Message}");
+            return Result<CreateTestManualDto>.Failure($"Error parsing S&W Excel file: {ex.Message}");
         }
     }
 
-    public async Task<Result<byte[]>> GenerateTemplate4SkillsAsync()
+    public async Task<Result<byte[]>> GenerateTemplateSWAsync()
     {
         try
         {
             using var package = new ExcelPackage();
 
-            // Create TestInfo Sheet
-            CreateTestInfoSheet4Skills(package);
-
-            // Listening & Reading (reuse existing methods)
-            CreatePart1Sheet(package);
-            CreatePart2Sheet(package);
-            CreatePart3Sheet(package);
-            CreatePart4Sheet(package);
-            CreatePart5Sheet(package);
-            CreatePart6Sheet(package);
-            CreatePart7Sheet(package);
+            // Create TestInfo Sheet for S&W
+            CreateTestInfoSheetSW(package);
 
             // Writing Parts
             CreatePart8WritingSheet(package);
@@ -1533,16 +1494,16 @@ public class ExcelService : IExcelService
         }
         catch (Exception ex)
         {
-            return Result<byte[]>.Failure($"Error generating 4-skills template: {ex.Message}");
+            return Result<byte[]>.Failure($"Error generating S&W template: {ex.Message}");
         }
     }
 
-    private void CreateTestInfoSheet4Skills(ExcelPackage package)
+    private void CreateTestInfoSheetSW(ExcelPackage package)
     {
         var sheet = package.Workbook.Worksheets.Add("TestInfo");
 
         // Headers
-        sheet.Cells["A1"].Value = "Test Information - Full 4 Skills (L+R+W+S)";
+        sheet.Cells["A1"].Value = "Test Information - Speaking & Writing (S&W)";
         sheet.Cells["A1"].Style.Font.Bold = true;
         sheet.Cells["A1"].Style.Font.Size = 14;
 
@@ -1552,22 +1513,21 @@ public class ExcelService : IExcelService
         sheet.Cells["A2:A3"].Style.Font.Bold = true;
 
         // Sample data
-        sheet.Cells["B2"].Value = "TOEIC Full 4-Skills Test";
-        sheet.Cells["B3"].Value = "Complete TOEIC test with Listening, Reading, Writing, and Speaking sections (219 questions total).";
+        sheet.Cells["B2"].Value = "TOEIC S&W Test";
+        sheet.Cells["B3"].Value = "TOEIC test with Speaking and Writing sections only (19 questions total).";
 
         // Instructions
         sheet.Cells["A5"].Value = "Instructions:";
         sheet.Cells["A5"].Style.Font.Bold = true;
         sheet.Cells["A6"].Value = "1. Fill in the test title (required)";
         sheet.Cells["A7"].Value = "2. Fill in the description (optional)";
-        sheet.Cells["A8"].Value = "3. When uploading, you will need to provide the AUDIO FILE separately (45-min listening audio)";
-        sheet.Cells["A9"].Value = "4. Fill in all questions in all 15 part sheets";
-        sheet.Cells["A10"].Value = "5. For parts requiring images (Part 1, Part 8 Writing, Part 12 Speaking, Part 14 Speaking):";
-        sheet.Cells["A11"].Value = "   - DO NOT enter image URLs as text";
-        sheet.Cells["A12"].Value = "   - Instead, INSERT/EMBED the actual image directly into the Excel cell";
-        sheet.Cells["A13"].Value = "   - Right-click the cell → Insert → Pictures → select your image file";
-        sheet.Cells["A14"].Value = "   - The system will automatically upload embedded images to cloud storage";
-        sheet.Cells["A15"].Value = "6. Question counts: L&R: 200 | Writing: 8 | Speaking: 11 | Total: 219";
+        sheet.Cells["A8"].Value = "3. Fill in all questions in all 8 part sheets (Part 8-15)";
+        sheet.Cells["A9"].Value = "4. For parts requiring images (Part 8 Writing, Part 12 Speaking, Part 14 Speaking):";
+        sheet.Cells["A10"].Value = "   - DO NOT enter image URLs as text";
+        sheet.Cells["A11"].Value = "   - Instead, INSERT/EMBED the actual image directly into the Excel cell";
+        sheet.Cells["A12"].Value = "   - Right-click the cell → Insert → Pictures → select your image file";
+        sheet.Cells["A13"].Value = "   - The system will automatically upload embedded images to cloud storage";
+        sheet.Cells["A14"].Value = "5. Question counts: Writing: 8 | Speaking: 11 | Total: 19";
 
         sheet.Columns[1].Width = 15;
         sheet.Columns[2].Width = 100;

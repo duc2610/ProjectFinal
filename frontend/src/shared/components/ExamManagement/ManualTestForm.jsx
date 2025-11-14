@@ -22,19 +22,120 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     const [loading, setLoading] = useState(false);
     const [selectedSkill, setSelectedSkill] = useState(null);
     const [parts, setParts] = useState([]);
-    const [partsData, setPartsData] = useState({}); // { partId: { groups: [], questions: [] } }
+    const [partsData, setPartsData] = useState({}); 
     const [activePartTab, setActivePartTab] = useState(null);
     const [audioUrl, setAudioUrl] = useState(null);
-    const [currentTestId, setCurrentTestId] = useState(null); // Lưu testId sau khi tạo draft
-    const [savingPartId, setSavingPartId] = useState(null); // Part đang được lưu
-    const [showValidation, setShowValidation] = useState(false); // Chỉ hiển thị validation khi click "Lưu Part"
+    const [currentTestId, setCurrentTestId] = useState(null); 
+    const [savingPartId, setSavingPartId] = useState(null);
+    const [showValidation, setShowValidation] = useState(false); 
+    const [isCloningVersion, setIsCloningVersion] = useState(false);
+
+    const trimOrNull = (value) => {
+        if (value === undefined || value === null) return null;
+        if (typeof value !== "string") return value;
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? trimmed : null;
+    };
+
+    const buildFullTestPayload = () => {
+        const values = form.getFieldsValue();
+        const partOrder = (parts || []).map(p => p.partId);
+        const fallbackOrder = Object.keys(partsData || {}).map(key => Number(key));
+        const uniquePartIds = Array.from(new Set([...partOrder, ...fallbackOrder].filter(id => id != null)));
+
+        const sanitizeQuestion = (q, partId) => {
+            const isWritingSpeaking = isWritingOrSpeakingPart(partId);
+            return {
+                content: trimOrNull(q?.content),
+                imageUrl: trimOrNull(q?.imageUrl),
+                audioUrl: trimOrNull(q?.audioUrl),
+                explanation: trimOrNull(q?.explanation),
+                options: isWritingSpeaking ? [] : (q?.options || []).map(opt => ({
+                    label: opt.label,
+                    content: trimOrNull(opt.content),
+                    isCorrect: !!opt.isCorrect,
+                })),
+            };
+        };
+
+        const normalizedParts = uniquePartIds.map(partId => {
+            const data = partsData?.[partId] || { groups: [], questions: [] };
+            return {
+                partId,
+                groups: (data.groups || []).map(group => ({
+                    passage: trimOrNull(group?.passage),
+                    imageUrl: trimOrNull(group?.imageUrl),
+                    audioUrl: trimOrNull(group?.audioUrl),
+                    questions: (group?.questions || []).map(q => sanitizeQuestion(q, partId)),
+                })),
+                questions: (data.questions || []).map(q => sanitizeQuestion(q, partId)),
+            };
+        });
+
+        return {
+            title: (values?.title || "").trim(),
+            description: trimOrNull(values?.description),
+            testSkill: selectedSkill,
+            testType: TEST_TYPE.SIMULATOR,
+            audioUrl: trimOrNull(audioUrl),
+            parts: normalizedParts,
+        };
+    };
+
+    const extractTestIdFromMessage = (text) => {
+        if (!text || typeof text !== "string") return null;
+        const match = text.match(/TestId\s*=?\s*(\d+)/i);
+        return match ? Number(match[1]) : null;
+    };
+
+    const confirmCloneVersion = () => {
+        return new Promise((resolve) => {
+            Modal.confirm({
+                title: "Tạo phiên bản mới để chỉnh sửa?",
+                content: "Bài thi đã được phát hành. Hệ thống cần tạo một phiên bản nháp mới (clone) để bạn tiếp tục chỉnh sửa. Toàn bộ dữ liệu hiện tại sẽ được sao chép sang phiên bản mới.",
+                okText: "Tạo phiên bản mới",
+                cancelText: "Hủy",
+                onOk: () => resolve(true),
+                onCancel: () => resolve(false),
+            });
+        });
+    };
+
+    const clonePublishedTestToDraft = async () => {
+        if (!currentTestId) return null;
+        setIsCloningVersion(true);
+        const hide = message.loading("Đang tạo phiên bản mới...", 0);
+        try {
+            const payload = buildFullTestPayload();
+            const result = await updateTestManual(currentTestId, payload);
+            const responseText = typeof result === "string" ? result : result?.data || result?.message;
+            const newId = extractTestIdFromMessage(responseText);
+            if (newId) {
+                setCurrentTestId(newId);
+            }
+            message.success(responseText || "Đã tạo phiên bản mới.");
+            if (onSuccess) {
+                onSuccess();
+            }
+            return newId;
+        } finally {
+            if (hide) hide();
+            setIsCloningVersion(false);
+        }
+    };
+
+    const getErrorMessage = (error) => {
+        return error?.response?.data?.message 
+            || error?.response?.data?.data 
+            || error?.message 
+            || "Unknown error";
+    };
 
     const toSkillId = (val) => {
         if (val == null) return undefined;
         if (typeof val === "number") return val;
         const s = String(val).toLowerCase();
         if (s === "3" || s.includes("lr") || s.includes("listening")) return TEST_SKILL.LR;
-        if (s === "4" || s.includes("four") || s.includes("4skills") || s.includes("4-skills")) return TEST_SKILL.FOUR_SKILLS;
         if (s === "1" || s.includes("speaking")) return TEST_SKILL.SPEAKING;
         if (s === "2" || s.includes("writing")) return TEST_SKILL.WRITING;
         const n = Number(val);
@@ -59,14 +160,12 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             validEditingId = editingId.id || editingId.testId || editingId.Id || editingId.TestId;
         }
         
-        // Xử lý trường hợp editingId là string có format "TestId: 5023" hoặc tương tự
+        // Xử lý trường hợp editingId là string có format "TestId: 5023"
         if (validEditingId && typeof validEditingId === 'string') {
-            // Tìm số trong string (ví dụ: "TestId: 5023" -> "5023")
             const numberMatch = validEditingId.match(/\d+/);
             if (numberMatch) {
                 validEditingId = Number(numberMatch[0]);
             } else if (/^\d+$/.test(validEditingId)) {
-                // Nếu là string số thuần, convert sang number
                 validEditingId = Number(validEditingId);
             }
         }
@@ -711,13 +810,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             return;
         }
 
-        // Helper để trim string hoặc return null
-        const trimOrNull = (str) => {
-            if (!str || typeof str !== "string") return null;
-            const trimmed = str.trim();
-            return trimmed.length > 0 ? trimmed : null;
-        };
-
         // Build part payload
         const partPayload = {
             groups: (partData.groups || []).map(g => ({
@@ -766,11 +858,32 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             }
         } catch (error) {
             console.error(`Error saving part ${partId}:`, error);
-            const errorMessage = error.response?.data?.message 
-                || error.response?.data?.data 
-                || error.message 
-                || "Unknown error";
-            message.error(`Lỗi khi lưu Part ${partId}: ${errorMessage}`);
+            const errorMessage = getErrorMessage(error);
+            const normalizedError = (errorMessage || "").toLowerCase();
+
+            if (normalizedError.includes("cannot edit a published test")) {
+                const shouldClone = await confirmCloneVersion();
+                if (!shouldClone) {
+                    message.info("Đã hủy thao tác tạo phiên bản mới.");
+                } else {
+                    try {
+                        const newId = await clonePublishedTestToDraft();
+                        if (newId) {
+                            await saveTestPart(newId, partId, partPayload);
+                            message.success(`Đã tạo phiên bản mới (ID ${newId}) và lưu Part ${partId} thành công!`);
+                            setShowValidation(false);
+                        } else {
+                            message.success("Đã tạo phiên bản mới. Vui lòng mở lại bài thi để tiếp tục chỉnh sửa.");
+                        }
+                    } catch (cloneError) {
+                        console.error("clonePublishedTestToDraft error:", cloneError);
+                        const cloneMessage = getErrorMessage(cloneError);
+                        message.error(`Không thể tạo phiên bản mới: ${cloneMessage}`);
+                    }
+                }
+            } else {
+                message.error(`Lỗi khi lưu Part ${partId}: ${errorMessage}`);
+            }
         } finally {
             setSavingPartId(null);
         }
@@ -923,7 +1036,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 disabled={readOnly || !!editingId}
                             >
                                 <Option value={TEST_SKILL.LR}>Nghe & Đọc</Option>
-                                <Option value={TEST_SKILL.FOUR_SKILLS}>Bốn Kỹ Năng (Nghe+Đọc+Viết+Nói)</Option>
                                 <Option value={TEST_SKILL.SPEAKING}>Nói</Option>
                                 <Option value={TEST_SKILL.WRITING}>Viết</Option>
                             </Select>

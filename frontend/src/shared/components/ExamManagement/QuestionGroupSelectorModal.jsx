@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Modal, Table, Input, Select, Button, Space, Tag, message, Tooltip } from "antd";
+import React, { useState, useEffect, useRef } from "react";
+import { Modal, Table, Input, Select, Space, Tag, message, Tooltip } from "antd";
 import { SearchOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import { buildQuestionListParams } from "@services/questionsService";
 import { getQuestionGroups } from "@services/questionGroupService";
@@ -11,8 +11,8 @@ export default function QuestionGroupSelectorModal({
     open, 
     onClose, 
     onSelect,
-    skill, // Skill đã chọn (1: Speaking, 2: Writing, 3: L&R)
-    selectedIds = [] // Danh sách Group ID đã chọn
+    skill, 
+    selectedIds = []
 }) {
     const [loading, setLoading] = useState(false);
     const [questionGroups, setQuestionGroups] = useState([]);
@@ -27,6 +27,7 @@ export default function QuestionGroupSelectorModal({
     // Filters
     const [searchKeyword, setSearchKeyword] = useState("");
     const [filterPart, setFilterPart] = useState(null);
+    const searchDebounceRef = useRef(null);
 
     useEffect(() => {
         if (open && skill) {
@@ -48,11 +49,14 @@ export default function QuestionGroupSelectorModal({
     const loadQuestionGroups = async (page = 1, pageSize = 10, withFilters = false) => {
         setLoading(true);
         try {
-            // Chỉ truyền filter khi người dùng bấm Tìm kiếm
-            const baseParams = buildQuestionListParams({ page, pageSize, skill });
-            const params = withFilters
-                ? { ...baseParams, part: filterPart ?? undefined, keyWord: searchKeyword || undefined }
-                : baseParams;
+            const baseParams = buildQuestionListParams({ 
+                page, 
+                pageSize, 
+                skill,
+                partId: withFilters ? filterPart : undefined,
+                keyword: withFilters ? searchKeyword : undefined
+            });
+            const params = baseParams;
 
             const response = await getQuestionGroups(params);
 
@@ -80,20 +84,34 @@ export default function QuestionGroupSelectorModal({
         }
     };
 
-    const handleSearch = () => {
-        loadQuestionGroups(1, pagination.pageSize, true);
-    };
+    useEffect(() => {
+        if (!open || !skill) return;
+
+        if (searchDebounceRef.current) {
+            clearTimeout(searchDebounceRef.current);
+        }
+
+        searchDebounceRef.current = setTimeout(() => {
+            const hasFilters = filterPart !== null || searchKeyword.trim() !== "";
+            loadQuestionGroups(1, pagination.pageSize, hasFilters);
+        }, 400);
+
+        return () => {
+            if (searchDebounceRef.current) {
+                clearTimeout(searchDebounceRef.current);
+            }
+        };
+    }, [searchKeyword, filterPart, open, skill]);
 
     const handleTableChange = (newPagination) => {
-        loadQuestionGroups(newPagination.current, newPagination.pageSize);
+        const hasFilters = filterPart !== null || searchKeyword !== "";
+        loadQuestionGroups(newPagination.current, newPagination.pageSize, hasFilters);
     };
 
     const handlePartFilterChange = (partId) => {
         setFilterPart(partId);
         setPagination({ ...pagination, current: 1 });
     };
-
-    // Bỏ auto-reload khi đổi Part; chỉ reload khi bấm Tìm kiếm
 
     const handleOk = () => {
         if (selectedRowKeys.length === 0) {
@@ -177,7 +195,6 @@ export default function QuestionGroupSelectorModal({
                         placeholder="Tìm kiếm theo đoạn văn..."
                         value={searchKeyword}
                         onChange={(e) => setSearchKeyword(e.target.value)}
-                        onPressEnter={handleSearch}
                         style={{ width: 300 }}
                         prefix={<SearchOutlined />}
                         allowClear
@@ -186,10 +203,14 @@ export default function QuestionGroupSelectorModal({
                     <Select
                         placeholder="Chọn Part"
                         value={filterPart}
-                        onChange={handlePartFilterChange}
+                        onChange={(value) => {
+                            const partId = value === "all" ? null : value;
+                            handlePartFilterChange(partId);
+                        }}
                         style={{ width: 180 }}
                         allowClear
                     >
+                        <Option value="all">Tất cả Part</Option>
                         {parts.map(part => (
                             <Option key={part.partId} value={part.partId}>
                                 {part.name}
@@ -197,9 +218,6 @@ export default function QuestionGroupSelectorModal({
                         ))}
                     </Select>
 
-                    <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
-                        Tìm kiếm
-                    </Button>
                 </Space>
 
                 {selectedRowKeys.length > 0 && (

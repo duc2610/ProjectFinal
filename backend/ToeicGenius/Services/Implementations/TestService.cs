@@ -409,7 +409,7 @@ namespace ToeicGenius.Services.Implementations
 				if (test == null)
 					return Result<string>.Failure("Test not found");
 
-				if (test.CreationStatus == TestCreationStatus.Completed || test.VisibilityStatus == TestVisibilityStatus.Published)
+				if (test.VisibilityStatus == TestVisibilityStatus.Published)
 					return Result<string>.Failure("Cannot edit a published test. Please clone to create a new version.");
 
 				// Validate partId is compatible with test skill
@@ -699,32 +699,48 @@ namespace ToeicGenius.Services.Implementations
 			if (existing == null)
 				return Result<string>.Failure("Test not found");
 
-			// 3️. Luôn tạo version mới khi update (không update trực tiếp)
-			int parentId = existing.ParentTestId ?? existing.TestId;
-			int newVersion = await _uow.Tests.GetNextVersionAsync(parentId);
+			var isPublished = existing.VisibilityStatus == TestVisibilityStatus.Published;
+			Test targetTest;
 
-			Test targetTest = new Test
+			if (isPublished)
 			{
-				Title = dto.Title,
-				Description = dto.Description,
-				TestSkill = dto.TestSkill,
-				TestType = dto.TestType,
-				Duration = dto.Duration,
-				TotalQuestion = 0,
-				// Nếu test gốc là bản đã public, thì clone ra 1 bản nháp mới để chỉnh sửa
-				CreationStatus = existing.VisibilityStatus == TestVisibilityStatus.Published
-								? TestCreationStatus.Draft
-								: existing.CreationStatus,
+				// Clone bản mới nếu test đã publish
+				int parentId = existing.ParentTestId ?? existing.TestId;
+				int newVersion = await _uow.Tests.GetNextVersionAsync(parentId);
 
-				// Khi clone ra test mới thì mặc định ẩn
-				VisibilityStatus = TestVisibilityStatus.Hidden,
-				ParentTestId = parentId,
-				Version = newVersion,
-				CreatedAt = DateTime.UtcNow
-			};
+				targetTest = new Test
+				{
+					Title = dto.Title,
+					Description = dto.Description,
+					TestSkill = dto.TestSkill,
+					TestType = dto.TestType,
+					Duration = dto.Duration,
+					TotalQuestion = 0,
+					CreationStatus = TestCreationStatus.Completed,
+					VisibilityStatus = TestVisibilityStatus.Hidden,
+					ParentTestId = parentId,
+					Version = newVersion,
+					CreatedAt = DateTime.UtcNow
+				};
 
-			await _uow.Tests.AddAsync(targetTest);
-			await _uow.SaveChangesAsync(); // để có TestId
+				await _uow.Tests.AddAsync(targetTest);
+				await _uow.SaveChangesAsync(); // để có TestId
+			}
+			else
+			{
+				// Nếu chưa publish thì update trực tiếp
+				targetTest = existing;
+				targetTest.Title = dto.Title;
+				targetTest.Description = dto.Description;
+				targetTest.TestSkill = dto.TestSkill;
+				targetTest.TestType = dto.TestType;
+				targetTest.Duration = dto.Duration;
+				targetTest.TotalQuestion = 0;
+				targetTest.UpdatedAt = DateTime.UtcNow;
+
+				var oldQuestions = await _uow.TestQuestions.GetByTestIdAsync(targetTest.TestId);
+				_uow.TestQuestions.RemoveRange(oldQuestions);
+			}
 
 			// 5️. Snapshot câu hỏi từ bank
 			var jsonSettings = new JsonSerializerSettings
@@ -736,7 +752,9 @@ namespace ToeicGenius.Services.Implementations
 			int order = 1;
 
 			// SINGLE QUESTIONS
-			var singleQuestions = await _uow.Questions.GetByListIdAsync(dto.SingleQuestionIds);
+			var singleQuestions = dto.SingleQuestionIds?.Any() == true
+				? await _uow.Questions.GetByListIdAsync(dto.SingleQuestionIds)
+				: new List<QuestionSnapshotDto>();
 			foreach (var q in singleQuestions)
 			{
 				string snapshot = JsonConvert.SerializeObject(q, jsonSettings);
@@ -752,7 +770,9 @@ namespace ToeicGenius.Services.Implementations
 			}
 
 			// GROUP QUESTIONS
-			var groupQuestions = await _uow.QuestionGroups.GetByListIdAsync(dto.GroupQuestionIds);
+			var groupQuestions = dto.GroupQuestionIds?.Any() == true
+				? await _uow.QuestionGroups.GetByListIdAsync(dto.GroupQuestionIds)
+				: new List<QuestionGroupSnapshotDto>();
 			foreach (var g in groupQuestions)
 			{
 				string snapshot = JsonConvert.SerializeObject(g, jsonSettings);
@@ -775,7 +795,9 @@ namespace ToeicGenius.Services.Implementations
 
 			// 7️. Trả về kết quả
 			return Result<string>.Success(
-				$"Updated to version v{targetTest.Version} (TestId={targetTest.TestId})");
+				isPublished
+					? $"Cloned to new version v{targetTest.Version} (TestId={targetTest.TestId})"
+					: $"Updated successfully TestId={targetTest.TestId}");
 		}
 
 		// Update Test Manual (simulator test)
@@ -801,8 +823,9 @@ namespace ToeicGenius.Services.Implementations
 					TestType = dto.TestType,
 					AudioUrl = dto.AudioUrl,
 					Duration = GetTestDuration(dto.TestSkill),
-					TotalQuestion = totalQuestion, // sẽ cập nhật sau
+					TotalQuestion = totalQuestion, 
 					VisibilityStatus = TestVisibilityStatus.Hidden,
+					CreationStatus = TestCreationStatus.Completed,
 					ParentTestId = existing.ParentTestId ?? existing.TestId,
 					Version = newVersion,
 					CreatedAt = DateTime.UtcNow
@@ -813,7 +836,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 			else
 			{
-				// Nếu là Completed, update trực tiếp
+				// Nếu ko publish, update trực tiếp
 				targetTest = existing;
 				targetTest.Title = dto.Title;
 				targetTest.Description = dto.Description;
@@ -996,10 +1019,50 @@ namespace ToeicGenius.Services.Implementations
 			if (existingTestResult != null)
 			{
 				userTest = existingTestResult;
-				if (userTest.Status != TestResultStatus.InProgress)
+
+				// Check if test time has expired + 5 minutes grace period -> auto-submit
+				var elapsedTime = DateTime.UtcNow - userTest.CreatedAt;
+				var testDurationWithGrace = TimeSpan.FromMinutes(test.Duration + 5);
+
+				if (elapsedTime > testDurationWithGrace && userTest.Status == TestResultStatus.InProgress)
 				{
-					userTest.Status = TestResultStatus.InProgress;
-					userTest.UpdatedAt = DateTime.UtcNow;
+					// Auto-submit the test based on test skill
+					if (test.TestSkill == TestSkill.LR)
+					{
+						// For LR tests, call SubmitLRTestAsync
+						var submitRequest = new SubmitLRTestRequestDto
+						{
+							TestId = test.TestId,
+							TestResultId = userTest.TestResultId,
+							Duration = (int)elapsedTime.TotalMinutes,
+							TestType = test.TestType,
+							Answers = new List<UserLRAnswerDto>() // Empty answers list for auto-submit
+						};
+
+						await SubmitLRTestAsync(userId, submitRequest);
+					}
+					else
+					{
+						// For Speaking/Writing/SW tests, just mark as submitted (grading happens separately via bulk grading)
+						userTest.Status = TestResultStatus.Graded;
+						userTest.Duration = (int)elapsedTime.TotalMinutes;
+						userTest.UpdatedAt = DateTime.UtcNow;
+						await _uow.SaveChangesAsync();
+					}
+
+					// After auto-submit, create a new test session for the user to start fresh
+					userTest = new TestResult
+					{
+						UserId = userId,
+						TestId = test.TestId,
+						Status = TestResultStatus.InProgress,
+						Duration = 0,
+						TotalScore = 0,
+						TestType = test.TestType,
+						CreatedAt = DateTime.UtcNow
+					};
+
+					await _uow.TestResults.AddAsync(userTest);
 					await _uow.SaveChangesAsync();
 				}
 			}
@@ -1021,6 +1084,13 @@ namespace ToeicGenius.Services.Implementations
 			}
 
 			result.TestResultId = userTest.TestResultId;
+
+			// Load saved answers if user is resuming
+			var savedAnswers = await _uow.UserAnswers.GetByTestResultIdAsync(userTest.TestResultId);
+			var savedAnswersDict = savedAnswers?.ToDictionary(
+				ua => (ua.TestQuestionId, ua.SubQuestionIndex),
+				ua => ua
+			) ?? new Dictionary<(int, int?), UserAnswer>();
 
 			// Nếu test chưa có câu hỏi
 			if (test.TestQuestions == null || !test.TestQuestions.Any())
@@ -1076,6 +1146,19 @@ namespace ToeicGenius.Services.Implementations
 
 				result.Parts.Add(partDto);
 			}
+
+			// Map saved answers to response
+			result.SavedAnswers = savedAnswers.Select(ua => new SavedAnswerDto
+			{
+				TestQuestionId = ua.TestQuestionId,
+				ChosenOptionLabel = ua.ChosenOptionLabel,
+				AnswerText = ua.AnswerText,
+				AnswerAudioUrl = ua.AnswerAudioUrl,
+				SubQuestionIndex = ua.SubQuestionIndex,
+				CreatedAt = ua.CreatedAt,
+				UpdatedAt = ua.UpdatedAt
+			}).ToList();
+
 			return Result<TestStartResponseDto>.Success(result);
 		}
 		// Submit listening & reading test
@@ -1336,7 +1419,7 @@ namespace ToeicGenius.Services.Implementations
 				TestSkill.LR => NumberConstants.LRDuration,
 				TestSkill.Speaking => NumberConstants.SpeakingDuration,
 				TestSkill.Writing => NumberConstants.WritingDuration,
-				TestSkill.FourSkills => NumberConstants.FourSkillsDuration,
+				TestSkill.SW => NumberConstants.SWDuration,
 				_ => throw new Exception("Invalid test skill")
 			};
 		}
@@ -1676,6 +1759,71 @@ namespace ToeicGenius.Services.Implementations
 			}
 
 			return (true, string.Empty);
+		}
+
+		public async Task<Result<string>> SaveProgressAsync(Guid userId, SaveProgressRequestDto request)
+		{
+			try
+			{
+				// Validate TestResult ownership and status
+				var testResult = await _uow.TestResults.GetByIdAsync(request.TestResultId);
+				if (testResult == null)
+					return Result<string>.Failure($"TestResult {request.TestResultId} not found");
+
+				if (testResult.UserId != userId)
+					return Result<string>.Failure("You don't have permission to save this test result");
+
+				if (testResult.Status == TestResultStatus.Graded)
+					return Result<string>.Failure("This test has already been submitted/graded. Cannot save progress.");
+
+				// Process each answer
+				foreach (var answerDto in request.Answers)
+				{
+					// Check if answer already exists for this question
+					var existingAnswer = await _uow.UserAnswers.GetByTestResultAndQuestionAsync(
+						request.TestResultId,
+						answerDto.TestQuestionId,
+						answerDto.SubQuestionIndex);
+
+					if (existingAnswer != null)
+					{
+						// Update existing answer
+						existingAnswer.ChosenOptionLabel = answerDto.ChosenOptionLabel;
+						existingAnswer.AnswerText = answerDto.AnswerText;
+						existingAnswer.AnswerAudioUrl = answerDto.AnswerAudioUrl;
+						existingAnswer.SubQuestionIndex = answerDto.SubQuestionIndex;
+						existingAnswer.UpdatedAt = DateTime.UtcNow;
+
+						await _uow.UserAnswers.UpdateAsync(existingAnswer);
+					}
+					else
+					{
+						// Create new answer
+						var newAnswer = new UserAnswer
+						{
+							TestResultId = request.TestResultId,
+							TestQuestionId = answerDto.TestQuestionId,
+							ChosenOptionLabel = answerDto.ChosenOptionLabel,
+							AnswerText = answerDto.AnswerText,
+							AnswerAudioUrl = answerDto.AnswerAudioUrl,
+							SubQuestionIndex = answerDto.SubQuestionIndex,
+							CreatedAt = DateTime.UtcNow
+						};
+
+						await _uow.UserAnswers.AddAsync(newAnswer);
+					}
+				}
+
+				// Update TestResult timestamp (but keep status as InProgress)
+				testResult.UpdatedAt = DateTime.UtcNow;
+				await _uow.SaveChangesAsync();
+
+				return Result<string>.Success("Progress saved successfully");
+			}
+			catch (Exception ex)
+			{
+				return Result<string>.Failure($"Error saving progress: {ex.Message}");
+			}
 		}
 		#endregion
 

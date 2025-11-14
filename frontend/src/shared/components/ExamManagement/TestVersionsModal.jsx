@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Table, Tag, message, Space } from "antd";
-import { getTestVersions } from "@services/testsService";
+import { Modal, Table, Tag, message, Switch, Tooltip } from "antd";
+import { getTestVersions, hideTest, publishTest } from "@services/testsService";
 
 export default function TestVersionsModal({ open, onClose, parentTestId, onSelectVersion }) {
     const [loading, setLoading] = useState(false);
     const [versions, setVersions] = useState([]);
+    const [actionLoadingId, setActionLoadingId] = useState(null);
 
     useEffect(() => {
         if (open && parentTestId) {
@@ -91,6 +92,49 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
         return "Draft";
     };
 
+    const getTestId = (record) => {
+        return record?.testId ?? record?.TestId ?? record?.id ?? record?.Id ?? null;
+    };
+
+    const handleToggleVisibility = async (record, targetChecked) => {
+        const currentStatus = deriveVersionStatus(record);
+        const testId = getTestId(record);
+        if (!testId) {
+            message.error("Không xác định được ID version");
+            return;
+        }
+
+        if (targetChecked && currentStatus !== "Inactive") {
+            message.warning("Chỉ có thể hiển thị version đã hoàn tất và đang ẩn.");
+            return;
+        }
+        if (!targetChecked && currentStatus !== "Active") {
+            message.warning("Chỉ có thể ẩn version đang hoạt động.");
+            return;
+        }
+
+        setActionLoadingId(testId);
+        try {
+            if (targetChecked) {
+                await publishTest(testId);
+                message.success("Đã hiển thị version.");
+            } else {
+                await hideTest(testId);
+                message.success("Đã ẩn version.");
+            }
+            await loadVersions();
+        } catch (error) {
+            console.error("Toggle visibility error:", error);
+            const errorMessage = error?.response?.data?.message
+                || error?.response?.data?.data
+                || error?.message
+                || "Unknown error";
+            message.error(errorMessage);
+        } finally {
+            setActionLoadingId(null);
+        }
+    };
+
     const columns = [
         {
             title: "Version",
@@ -140,6 +184,34 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
             key: "updatedAt",
             width: 150,
             render: (date) => date ? new Date(date).toLocaleString("vi-VN") : "-"
+        },
+        {
+            title: "Ẩn / Hiện",
+            key: "action",
+            width: 140,
+            align: "center",
+            render: (_, record) => {
+                const status = deriveVersionStatus(record);
+                const canToggle = status === "Active" || status === "Inactive";
+                const testId = getTestId(record);
+                const tooltip = status === "Draft"
+                    ? "Version chưa hoàn tất"
+                    : status === "Active"
+                        ? "Đang hiển thị"
+                        : "Đang ẩn";
+                return (
+                    <Tooltip title={!canToggle ? tooltip : ""}>
+                        <Switch
+                            checked={status === "Active"}
+                            disabled={!canToggle || actionLoadingId === testId}
+                            loading={actionLoadingId === testId}
+                            checkedChildren="Hiện"
+                            unCheckedChildren="Ẩn"
+                            onChange={(checked) => handleToggleVisibility(record, checked)}
+                        />
+                    </Tooltip>
+                );
+            }
         },
     ];
 

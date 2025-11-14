@@ -32,6 +32,7 @@ namespace ToeicGenius.Services.Interfaces
 		Task<Result<List<TestHistoryDto>>> GetTestHistoryAsync(Guid userId);
 		Task<Result<TestResultDetailDto?>> GetListeningReadingResultDetailAsync(int testResultId, Guid userId);
 		Task<Result<StatisticResultDto>> GetDashboardStatisticAsync(Guid examineeId, TestSkill skill, string range);
+		Task<Result<string>> SaveProgressAsync(Guid userId, SaveProgressRequestDto request);
 		#endregion
 	}
 }

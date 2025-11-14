@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Table, Space, Tag, Row, Col, Statistic } from "antd";
-import { PlusOutlined, DeleteOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { PlusOutlined, DeleteOutlined, CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { createTestFromBank, getTestById, updateTestFromBank } from "@services/testsService";
+import { getQuestionById } from "@services/questionsService";
+import { getQuestionGroupById } from "@services/questionGroupService";
 import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL } from "@shared/constants/toeicStructure";
 import QuestionBankSelectorModal from "./QuestionBankSelectorModal";
 import QuestionGroupSelectorModal from "./QuestionGroupSelectorModal";
@@ -16,6 +18,10 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
     const [parts, setParts] = useState([]);
     const [selectedSingleQuestions, setSelectedSingleQuestions] = useState([]);
     const [selectedGroupQuestions, setSelectedGroupQuestions] = useState([]);
+    const [questionDetails, setQuestionDetails] = useState({});
+    const [groupDetails, setGroupDetails] = useState({}); 
+    const [viewingQuestionId, setViewingQuestionId] = useState(null);
+    const [viewingGroupId, setViewingGroupId] = useState(null);
 
     const toSkillId = (val) => {
         if (val == null) return undefined;
@@ -28,12 +34,95 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
         return Number.isFinite(n) ? n : undefined;
     };
 
+    const loadQuestionDetails = async (questionIds) => {
+        const details = {};
+        for (const qid of questionIds) {
+            if (!questionDetails[qid]) {
+                try {
+                    const question = await getQuestionById(qid);
+                    const q = question?.data || question || {};
+                    const options = (q.options || q.Options || []).map(opt => ({
+                        label: opt.label || opt.Label || "",
+                        content: opt.content || opt.Content || "",
+                        isCorrect: opt.isCorrect || opt.IsCorrect || false,
+                    }));
+                    details[qid] = {
+                        content: q.content || q.Content || "",
+                        partName: q.partName || q.PartName || q.part?.name || "",
+                        questionTypeName: q.questionTypeName || q.QuestionTypeName || q.type?.name || "",
+                        options: options,
+                        audioUrl: q.audioUrl || q.AudioUrl || "",
+                        imageUrl: q.imageUrl || q.ImageUrl || "",
+                        explanation: q.explanation || q.Explanation || "",
+                    };
+                } catch (error) {
+                    console.error(`Error loading question ${qid}:`, error);
+                    details[qid] = {
+                        content: "Không tải được nội dung",
+                        partName: "",
+                        questionTypeName: "",
+                        options: [],
+                        imageUrl: "",
+                        explanation: "",
+                    };
+                }
+            } else {
+                details[qid] = questionDetails[qid];
+            }
+        }
+        setQuestionDetails(prev => ({ ...prev, ...details }));
+    };
+
+    const loadGroupDetails = async (groupIds) => {
+        const details = {};
+        for (const gid of groupIds) {
+            if (!groupDetails[gid]) {
+                try {
+                    const group = await getQuestionGroupById(gid);
+                    const g = group?.data || group || {};
+                    const questions = (g.questions || g.Questions || []).map(q => ({
+                        content: q.content || q.Content || "",
+                        imageUrl: q.imageUrl || q.ImageUrl || "",
+                        explanation: q.explanation || q.Explanation || "",
+                        audioUrl: q.audioUrl || q.AudioUrl || "",
+                        options: (q.options || q.Options || []).map(opt => ({
+                            label: opt.label || opt.Label || "",
+                            content: opt.content || opt.Content || "",
+                            isCorrect: opt.isCorrect || opt.IsCorrect || false,
+                        })),
+                    }));
+                    details[gid] = {
+                        passage: g.passageContent || g.passage || g.PassageContent || g.Passage || "",
+                        partName: g.partName || g.PartName || g.part?.name || "",
+                        imageUrl: g.imageUrl || g.ImageUrl || "",
+                        questions: questions,
+                    };
+                } catch (error) {
+                    console.error(`Error loading group ${gid}:`, error);
+                    details[gid] = {
+                        passage: "Không tải được nội dung",
+                        partName: "",
+                        imageUrl: "",
+                        questions: [],
+                    };
+                }
+            } else {
+                details[gid] = groupDetails[gid];
+            }
+        }
+        setGroupDetails(prev => ({ ...prev, ...details }));
+    };
+
     useEffect(() => {
         if (!open) return;
         form.resetFields();
         setParts([]);
         setSelectedSingleQuestions([]);
         setSelectedGroupQuestions([]);
+        setQuestionDetails({});
+        setGroupDetails({});
+        setViewingQuestionId(null);
+        setViewingGroupId(null);
 
         const loadForEdit = async (id) => {
             try {
@@ -89,6 +178,16 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
 
                 setSelectedSingleQuestions(singleIds);
                 setSelectedGroupQuestions(groupIds);
+                
+
+                if (singleIds.length > 0) {
+                    loadQuestionDetails(singleIds);
+                }
+                
+    
+                if (groupIds.length > 0) {
+                    loadGroupDetails(groupIds);
+                }
             } catch (e) {
                 message.error("Không tải được chi tiết bài thi");
             }
@@ -147,7 +246,11 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
             }, 300);
         } catch (error) {
             console.error("Error creating test:", error);
-            message.error("Lỗi khi tạo bài thi: " + (error.message || "Unknown error"));
+            const errorMessage = error?.response?.data?.message || 
+                                error?.response?.data?.error || 
+                                error?.message || 
+                                "Unknown error";
+            message.error(`Lỗi khi ${editingId ? 'cập nhật' : 'tạo'} bài thi: ${errorMessage}`);
         } finally {
             setLoading(false);
         }
@@ -259,8 +362,20 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                             parts={parts}
                             selectedSingleQuestions={selectedSingleQuestions}
                             selectedGroupQuestions={selectedGroupQuestions}
-                            onSelectSingleQuestions={setSelectedSingleQuestions}
-                            onSelectGroupQuestions={setSelectedGroupQuestions}
+                            onSelectSingleQuestions={(ids) => {
+                                setSelectedSingleQuestions(ids);
+                                loadQuestionDetails(ids);
+                            }}
+                            onSelectGroupQuestions={(ids) => {
+                                setSelectedGroupQuestions(ids);
+                                loadGroupDetails(ids);
+                            }}
+                            questionDetails={questionDetails}
+                            groupDetails={groupDetails}
+                            viewingQuestionId={viewingQuestionId}
+                            viewingGroupId={viewingGroupId}
+                            setViewingQuestionId={setViewingQuestionId}
+                            setViewingGroupId={setViewingGroupId}
                             readOnly={readOnly}
                         />
                     </>
@@ -288,6 +403,12 @@ function QuestionSelector({
     selectedGroupQuestions,
     onSelectSingleQuestions,
     onSelectGroupQuestions,
+    questionDetails = {},
+    groupDetails = {},
+    viewingQuestionId = null,
+    viewingGroupId = null,
+    setViewingQuestionId = null,
+    setViewingGroupId = null,
     readOnly,
 }) {
     const [activeTab, setActiveTab] = useState("single");
@@ -354,25 +475,156 @@ function QuestionSelector({
                         Chưa có câu hỏi nào được chọn
                     </div>
                 ) : (
-                    <div style={{ maxHeight: 300, overflowY: "auto" }}>
-                        {selectedSingleQuestions.map((qid, index) => (
+                    <div style={{ maxHeight: 500, overflowY: "auto" }}>
+                        {selectedSingleQuestions.map((qid, index) => {
+                            const detail = questionDetails[qid] || {};
+                            const content = detail.content || "";
+                            const partName = detail.partName || "";
+                            const questionTypeName = detail.questionTypeName || "";
+                            const options = detail.options || [];
+                            const imageUrl = detail.imageUrl || "";
+                            const explanation = detail.explanation || "";
+                            const isViewing = viewingQuestionId === qid;
+                            const hasOptions = options.length > 0;
+                            
+                            return (
                             <div 
                                 key={`single-${qid}-${index}`}
                                 style={{ 
-                                    display: "flex", 
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    padding: 12,
-                                    marginBottom: 8,
+                                        padding: 16,
+                                        marginBottom: 12,
                                     border: "1px solid #d9d9d9",
                                     borderRadius: 6,
                                     background: "#fafafa"
                                 }}
                             >
-                                <div>
+                                    <div style={{ marginBottom: 12 }}>
+                                        <Space style={{ marginBottom: 8 }}>
                                     <Tag color="blue">ID: {qid}</Tag>
-                                    <span>Câu hỏi #{index + 1}</span>
+                                            {partName && <Tag color="green">{partName}</Tag>}
+                                            {questionTypeName && <Tag>{questionTypeName}</Tag>}
+                                        </Space>
+                                        <div style={{ marginTop: 8 }}>
+                                            <strong>Câu hỏi #{index + 1}:</strong>
+                                            {content ? (
+                                                <div style={{ 
+                                                    marginTop: 8, 
+                                                    padding: 12, 
+                                                    background: "#fff", 
+                                                    borderRadius: 4,
+                                                    border: "1px solid #e8e8e8",
+                                                    whiteSpace: "pre-wrap",
+                                                    wordBreak: "break-word"
+                                                }}>
+                                                    {content}
+                                                </div>
+                                            ) : (
+                                                <div style={{ color: "#999", fontStyle: "italic", marginTop: 4 }}>
+                                                    Đang tải nội dung...
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Hiển thị ảnh nếu có */}
+                                        {isViewing && imageUrl && (
+                                            <div style={{ marginTop: 12 }}>
+                                                <strong style={{ display: "block", marginBottom: 8 }}>Hình ảnh:</strong>
+                                                <img 
+                                                    src={imageUrl} 
+                                                    alt="Question" 
+                                                    style={{ 
+                                                        maxWidth: "100%", 
+                                                        maxHeight: 300, 
+                                                        borderRadius: 4,
+                                                        border: "1px solid #e8e8e8",
+                                                        objectFit: "contain"
+                                                    }} 
+                                                />
+                                            </div>
+                                        )}
+                                        
+                                        {/* Hiển thị audio nếu có */}
+                                        {isViewing && detail.audioUrl && (
+                                            <div style={{ marginTop: 12 }}>
+                                                <strong style={{ display: "block", marginBottom: 8 }}>Audio:</strong>
+                                                <audio
+                                                    controls
+                                                    src={detail.audioUrl}
+                                                    style={{ width: "100%" }}
+                                                >
+                                                    Trình duyệt không hỗ trợ phát audio.
+                                                </audio>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Hiển thị đáp án nếu có */}
+                                        {isViewing && hasOptions && (
+                                            <div style={{ marginTop: 12 }}>
+                                                <strong style={{ display: "block", marginBottom: 8 }}>Đáp án:</strong>
+                                                <div style={{ 
+                                                    padding: 12, 
+                                                    background: "#fff", 
+                                                    borderRadius: 4,
+                                                    border: "1px solid #e8e8e8"
+                                                }}>
+                                                    {options.map((opt, optIdx) => (
+                                                        <div 
+                                                            key={optIdx}
+                                                            style={{ 
+                                                                marginBottom: 8,
+                                                                padding: 8,
+                                                                background: opt.isCorrect ? "#f6ffed" : "#fafafa",
+                                                                border: opt.isCorrect ? "1px solid #b7eb8f" : "1px solid #e8e8e8",
+                                                                borderRadius: 4,
+                                                                display: "flex",
+                                                                alignItems: "flex-start",
+                                                                gap: 8
+                                                            }}
+                                                        >
+                                                            <Tag color={opt.isCorrect ? "success" : "default"} style={{ margin: 0, minWidth: 30, textAlign: "center" }}>
+                                                                {opt.label}
+                                                            </Tag>
+                                                            <span style={{ flex: 1, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                                                {opt.content || "(Không có nội dung)"}
+                                                            </span>
+                                                            {opt.isCorrect && (
+                                                                <Tag color="success" style={{ margin: 0 }}>Đúng</Tag>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Hiển thị giải thích nếu có */}
+                                        {isViewing && explanation && (
+                                            <div style={{ marginTop: 12 }}>
+                                                <strong style={{ display: "block", marginBottom: 8 }}>Giải thích:</strong>
+                                                <div style={{ 
+                                                    marginTop: 4, 
+                                                    padding: 12, 
+                                                    background: "#fff", 
+                                                    borderRadius: 4,
+                                                    border: "1px solid #e8e8e8",
+                                                    whiteSpace: "pre-wrap",
+                                                    wordBreak: "break-word"
+                                                }}>
+                                                    {explanation}
+                                                </div>
+                                            </div>
+                                        )}
                                 </div>
+                                    
+                                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, borderTop: "1px solid #e8e8e8", paddingTop: 12 }}>
+                                        {content && (
+                                            <Button 
+                                                size="small"
+                                                icon={<EyeOutlined />} 
+                                                onClick={() => setViewingQuestionId && setViewingQuestionId(isViewing ? null : qid)}
+                                            >
+                                                {isViewing ? "Ẩn chi tiết" : "Xem chi tiết"}
+                                            </Button>
+                                        )}
                                 {!readOnly && (
                                 <Button 
                                     danger 
@@ -384,7 +636,9 @@ function QuestionSelector({
                                 </Button>
                                 )}
                             </div>
-                        ))}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </Tabs.TabPane>
@@ -408,25 +662,202 @@ function QuestionSelector({
                         Chưa có nhóm câu hỏi nào được chọn
                     </div>
                 ) : (
-                    <div style={{ maxHeight: 300, overflowY: "auto" }}>
-                        {selectedGroupQuestions.map((gid, index) => (
+                    <div style={{ maxHeight: 600, overflowY: "auto" }}>
+                        {selectedGroupQuestions.map((gid, index) => {
+                            const detail = groupDetails[gid] || {};
+                            const passage = detail.passage || "";
+                            const partName = detail.partName || "";
+                            const imageUrl = detail.imageUrl || "";
+                            const questions = detail.questions || [];
+                            const isViewing = viewingGroupId === gid;
+                            
+                            return (
                             <div 
                                 key={`group-${gid}-${index}`}
                                 style={{ 
-                                    display: "flex", 
-                                    justifyContent: "space-between",
-                                    alignItems: "center",
-                                    padding: 12,
-                                    marginBottom: 8,
+                                        padding: 16,
+                                        marginBottom: 12,
                                     border: "1px solid #d9d9d9",
                                     borderRadius: 6,
                                     background: "#fafafa"
                                 }}
                             >
-                                <div>
+                                    <div style={{ marginBottom: 12 }}>
+                                        <Space style={{ marginBottom: 8 }}>
                                     <Tag color="green">Group ID: {gid}</Tag>
-                                    <span>Nhóm câu hỏi #{index + 1}</span>
+                                            {partName && <Tag color="blue">{partName}</Tag>}
+                                        </Space>
+                                        <div style={{ marginTop: 8 }}>
+                                            <strong>Nhóm câu hỏi #{index + 1}</strong>
+                                            {passage ? (
+                                                <div style={{ 
+                                                    marginTop: 8, 
+                                                    padding: 12, 
+                                                    background: "#fff", 
+                                                    borderRadius: 4,
+                                                    border: "1px solid #e8e8e8",
+                                                    whiteSpace: "pre-wrap",
+                                                    wordBreak: "break-word",
+                                                    maxHeight: isViewing ? "none" : 100,
+                                                    overflow: isViewing ? "visible" : "hidden"
+                                                }}>
+                                                    <strong>Passage:</strong>
+                                                    <div style={{ marginTop: 4 }}>
+                                                        {passage}
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div style={{ color: "#999", fontStyle: "italic", marginTop: 4 }}>
+                                                    Đang tải nội dung...
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Hiển thị ảnh nếu có */}
+                                        {isViewing && imageUrl && (
+                                            <div style={{ marginTop: 12 }}>
+                                                <strong style={{ display: "block", marginBottom: 8 }}>Hình ảnh:</strong>
+                                                <img 
+                                                    src={imageUrl} 
+                                                    alt="Group" 
+                                                    style={{ 
+                                                        maxWidth: "100%", 
+                                                        maxHeight: 300, 
+                                                        borderRadius: 4,
+                                                        border: "1px solid #e8e8e8",
+                                                        objectFit: "contain"
+                                                    }} 
+                                                />
+                                            </div>
+                                        )}
+                                        
+                                        {/* Hiển thị câu hỏi trong group */}
+                                        {isViewing && questions.length > 0 && (
+                                            <div style={{ marginTop: 12 }}>
+                                                <strong style={{ display: "block", marginBottom: 8 }}>
+                                                    Câu hỏi trong nhóm ({questions.length}):
+                                                </strong>
+                                                <div style={{ 
+                                                    padding: 12, 
+                                                    background: "#fff", 
+                                                    borderRadius: 4,
+                                                    border: "1px solid #e8e8e8",
+                                                    maxHeight: "none",
+                                                    overflow: "visible"
+                                                }}>
+                                                    {questions.map((q, qIdx) => (
+                                                        <div 
+                                                            key={`group-q-${gid}-${qIdx}`} 
+                                                            style={{ 
+                                                                marginBottom: 16, 
+                                                                paddingBottom: 16, 
+                                                                borderBottom: qIdx < questions.length - 1 ? "1px solid #e8e8e8" : "none",
+                                                                display: "block",
+                                                                visibility: "visible",
+                                                                opacity: 1
+                                                            }}
+                                                        >
+                                                            <div style={{ marginBottom: 8, fontWeight: 500, fontSize: 14 }}>
+                                                                <strong>Câu {qIdx + 1}:</strong> {q.content || "(Không có nội dung)"}
+                                                            </div>
+                                                            
+                                                            {/* Hiển thị ảnh của câu hỏi nếu có */}
+                                                            {q.imageUrl && (
+                                                                <div style={{ marginTop: 8, marginBottom: 8 }}>
+                                                                    <img 
+                                                                        src={q.imageUrl} 
+                                                                        alt={`Question ${qIdx + 1}`} 
+                                                                        style={{ 
+                                                                            maxWidth: "100%", 
+                                                                            maxHeight: 200, 
+                                                                            borderRadius: 4,
+                                                                            border: "1px solid #e8e8e8",
+                                                                            objectFit: "contain",
+                                                                            display: "block"
+                                                                        }} 
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {/* Hiển thị audio nếu có */}
+                                                            {q.audioUrl && (
+                                                                <div style={{ marginTop: 8, marginBottom: 8 }}>
+                                                                    <strong style={{ display: "block", marginBottom: 4 }}>Audio:</strong>
+                                                                    <audio
+                                                                        controls
+                                                                        src={q.audioUrl}
+                                                                        style={{ width: "100%" }}
+                                                                    >
+                                                                        Trình duyệt không hỗ trợ phát audio.
+                                                                    </audio>
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {/* Hiển thị đáp án */}
+                                                            {q.options && q.options.length > 0 && (
+                                                                <div style={{ marginTop: 8, paddingLeft: 16 }}>
+                                                                    <strong style={{ display: "block", marginBottom: 8, fontSize: 13 }}>Đáp án:</strong>
+                                                                    {q.options.map((opt, optIdx) => (
+                                                                        <div 
+                                                                            key={`opt-${qIdx}-${optIdx}`}
+                                                                            style={{ 
+                                                                                marginBottom: 4,
+                                                                                padding: 8,
+                                                                                background: opt.isCorrect ? "#f6ffed" : "#fafafa",
+                                                                                borderRadius: 4,
+                                                                                border: opt.isCorrect ? "1px solid #b7eb8f" : "1px solid #e8e8e8",
+                                                                                display: "flex",
+                                                                                alignItems: "flex-start",
+                                                                                gap: 8
+                                                                            }}
+                                                                        >
+                                                                            <Tag color={opt.isCorrect ? "success" : "default"} style={{ margin: 0, minWidth: 30, textAlign: "center" }}>
+                                                                                {opt.label}
+                                                                            </Tag>
+                                                                            <span style={{ flex: 1, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                                                                {opt.content || "(Không có nội dung)"}
+                                                                            </span>
+                                                                            {opt.isCorrect && (
+                                                                                <Tag color="success" style={{ margin: 0 }}>Đúng</Tag>
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {/* Hiển thị giải thích nếu có */}
+                                                            {q.explanation && (
+                                                                <div style={{ marginTop: 8, paddingLeft: 16 }}>
+                                                                    <strong style={{ display: "block", marginBottom: 4, fontSize: 13 }}>Giải thích:</strong>
+                                                                    <div style={{ 
+                                                                        padding: 8, 
+                                                                        background: "#fafafa", 
+                                                                        borderRadius: 4,
+                                                                        border: "1px solid #e8e8e8",
+                                                                        whiteSpace: "pre-wrap",
+                                                                        wordBreak: "break-word"
+                                                                    }}>
+                                                                        {q.explanation}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                 </div>
+                                    
+                                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, borderTop: "1px solid #e8e8e8", paddingTop: 12 }}>
+                                        {passage && (
+                                            <Button 
+                                                size="small"
+                                                icon={<EyeOutlined />} 
+                                                onClick={() => setViewingGroupId && setViewingGroupId(isViewing ? null : gid)}
+                                            >
+                                                {isViewing ? "Ẩn chi tiết" : "Xem chi tiết"}
+                                            </Button>
+                                        )}
                                 {!readOnly && (
                                 <Button 
                                     danger 
@@ -438,7 +869,9 @@ function QuestionSelector({
                                 </Button>
                                 )}
                             </div>
-                        ))}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </Tabs.TabPane>
