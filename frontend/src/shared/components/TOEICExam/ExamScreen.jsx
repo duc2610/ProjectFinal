@@ -232,11 +232,11 @@ export default function ExamScreen() {
       8: "writing_sentence",      // W-Part 1
       9: "writing_email",          // W-Part 2
       10: "writing_essay",         // W-Part 3
-      11: "speaking_read_aloud",   // S-Part 1
-      12: "speaking_describe_picture", // S-Part 2
-      13: "speaking_respond_questions", // S-Part 3
-      14: "speaking_respond_questions_info", // S-Part 4
-      15: "speaking_express_opinion", // S-Part 5
+      11: "read_aloud",            // S-Part 1
+      12: "describe_picture",      // S-Part 2
+      13: "respond_questions",     // S-Part 3
+      14: "respond_with_info",     // S-Part 4
+      15: "express_opinion",       // S-Part 5
     };
     return partTypeMap[partId] || null;
   };
