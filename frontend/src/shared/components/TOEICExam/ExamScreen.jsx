@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Layout, Button, Modal, Typography, message, Spin } from "antd";
+import { Layout, Button, Modal, Typography, message, Spin, Alert } from "antd";
 import { MenuOutlined, LoadingOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import QuestionNavigator from "./QuestionNavigator";
@@ -39,6 +39,7 @@ export default function ExamScreen() {
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [offlineAnswers, setOfflineAnswers] = useState(null);
   const [offlineTimestamp, setOfflineTimestamp] = useState(null);
+  const [showSaveInfoAlert, setShowSaveInfoAlert] = useState(true);
   const timerRef = useRef(null);
   const isSubmittingRef = useRef(false);
   const startTimestampRef = useRef(safeStartTimestamp);
@@ -760,6 +761,27 @@ export default function ExamScreen() {
             </div>
           )}
           <div className={styles.questionArea} style={{ flex: isNavVisible ? 1 : "auto" }}>
+            {/* Thông tin về nút Save */}
+            {showSaveInfoAlert && (
+              <Alert
+                type="info"
+                showIcon
+                message="Tính năng lưu tiến độ"
+                description={
+                  <div style={{ fontSize: 13 }}>
+                    Hệ thống tự động lưu tiến độ mỗi 5 phút. Bạn có thể nhấn nút <strong>"Lưu"</strong> trên thanh công cụ để lưu thủ công bất cứ lúc nào.
+                    {lastSaveTime && (
+                      <span style={{ marginLeft: 8, color: "#52c41a" }}>
+                        (Đã lưu lần cuối: {lastSaveTime.toLocaleTimeString("vi-VN")})
+                      </span>
+                    )}
+                  </div>
+                }
+                closable
+                onClose={() => setShowSaveInfoAlert(false)}
+                style={{ marginBottom: 16, borderRadius: "8px" }}
+              />
+            )}
             <QuestionCard
               question={questions[currentIndex]}
               currentIndex={currentIndex}

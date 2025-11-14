@@ -1820,6 +1820,23 @@ export default function ResultScreen() {
           )}
 
           <Alert
+            type="info"
+            showIcon
+            message="Tính năng lưu tiến độ"
+            description={
+              <div>
+                <div style={{ marginBottom: 8 }}>
+                  Hệ thống sẽ tự động lưu tiến độ làm bài của bạn mỗi 5 phút. Bạn cũng có thể nhấn nút <strong>"Lưu"</strong> trên thanh công cụ để lưu thủ công bất cứ lúc nào.
+                </div>
+                <div style={{ fontSize: 12, color: "#666" }}>
+                  💡 Lưu ý: Nếu mất kết nối mạng, hệ thống sẽ lưu tạm thời các câu trả lời của bạn. Khi kết nối lại, tiến độ sẽ được lưu tự động.
+                </div>
+              </div>
+            }
+            style={{ marginBottom: 16 }}
+          />
+
+          <Alert
             type="warning"
             showIcon
             message="Lưu ý"
