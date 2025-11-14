@@ -51,6 +51,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         partName: q.partName || q.PartName || q.part?.name || "",
                         questionTypeName: q.questionTypeName || q.QuestionTypeName || q.type?.name || "",
                         options: options,
+                        audioUrl: q.audioUrl || q.AudioUrl || "",
                         imageUrl: q.imageUrl || q.ImageUrl || "",
                         explanation: q.explanation || q.Explanation || "",
                     };
@@ -83,6 +84,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         content: q.content || q.Content || "",
                         imageUrl: q.imageUrl || q.ImageUrl || "",
                         explanation: q.explanation || q.Explanation || "",
+                        audioUrl: q.audioUrl || q.AudioUrl || "",
                         options: (q.options || q.Options || []).map(opt => ({
                             label: opt.label || opt.Label || "",
                             content: opt.content || opt.Content || "",
@@ -541,6 +543,20 @@ function QuestionSelector({
                                             </div>
                                         )}
                                         
+                                        {/* Hiển thị audio nếu có */}
+                                        {isViewing && detail.audioUrl && (
+                                            <div style={{ marginTop: 12 }}>
+                                                <strong style={{ display: "block", marginBottom: 8 }}>Audio:</strong>
+                                                <audio
+                                                    controls
+                                                    src={detail.audioUrl}
+                                                    style={{ width: "100%" }}
+                                                >
+                                                    Trình duyệt không hỗ trợ phát audio.
+                                                </audio>
+                                            </div>
+                                        )}
+                                        
                                         {/* Hiển thị đáp án nếu có */}
                                         {isViewing && hasOptions && (
                                             <div style={{ marginTop: 12 }}>
@@ -760,6 +776,20 @@ function QuestionSelector({
                                                                             display: "block"
                                                                         }} 
                                                                     />
+                                                                </div>
+                                                            )}
+                                                            
+                                                            {/* Hiển thị audio nếu có */}
+                                                            {q.audioUrl && (
+                                                                <div style={{ marginTop: 8, marginBottom: 8 }}>
+                                                                    <strong style={{ display: "block", marginBottom: 4 }}>Audio:</strong>
+                                                                    <audio
+                                                                        controls
+                                                                        src={q.audioUrl}
+                                                                        style={{ width: "100%" }}
+                                                                    >
+                                                                        Trình duyệt không hỗ trợ phát audio.
+                                                                    </audio>
                                                                 </div>
                                                             )}
                                                             

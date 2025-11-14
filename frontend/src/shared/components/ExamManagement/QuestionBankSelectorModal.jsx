@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Modal, Table, Input, Select, Button, Space, Tag, message } from "antd";
+import React, { useState, useEffect, useRef } from "react";
+import { Modal, Table, Input, Select, Space, Tag, message } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { getQuestions, buildQuestionListParams } from "@services/questionsService";
 import { getPartsBySkill } from "@services/partsService";
@@ -26,6 +26,7 @@ export default function QuestionBankSelectorModal({
     // Filters
     const [searchKeyword, setSearchKeyword] = useState("");
     const [filterPart, setFilterPart] = useState(null);
+    const searchDebounceRef = useRef(null);
 
     useEffect(() => {
         if (open && skill) {
@@ -95,12 +96,26 @@ export default function QuestionBankSelectorModal({
         }
     };
 
-    const handleSearch = () => {
-        loadQuestions(1, pagination.pageSize, true);
-    };
+    useEffect(() => {
+        if (!open || !skill) return;
+        
+        if (searchDebounceRef.current) {
+            clearTimeout(searchDebounceRef.current);
+        }
+        
+        searchDebounceRef.current = setTimeout(() => {
+            const hasFilters = filterPart !== null || searchKeyword.trim() !== "";
+            loadQuestions(1, pagination.pageSize, hasFilters);
+        }, 400);
+        
+        return () => {
+            if (searchDebounceRef.current) {
+                clearTimeout(searchDebounceRef.current);
+            }
+        };
+    }, [searchKeyword, filterPart, open, skill]);
 
     const handleTableChange = (newPagination) => {
-        // 应用当前筛选条件（filterPart 为 null 表示 "Tất cả"）
         const hasFilters = filterPart !== null || searchKeyword !== "";
         loadQuestions(newPagination.current, newPagination.pageSize, hasFilters);
     };
@@ -108,9 +123,6 @@ export default function QuestionBankSelectorModal({
     const handlePartFilterChange = (partId) => {
         setFilterPart(partId);
         setPagination({ ...pagination, current: 1 });
-        // 立即应用筛选（如果 partId 是 null，表示选择 "Tất cả"）
-        const hasFilters = partId !== null || searchKeyword !== "";
-        loadQuestions(1, pagination.pageSize, hasFilters);
     };
 
 
@@ -188,7 +200,6 @@ export default function QuestionBankSelectorModal({
                         placeholder="Tìm kiếm theo nội dung..."
                         value={searchKeyword}
                         onChange={(e) => setSearchKeyword(e.target.value)}
-                        onPressEnter={handleSearch}
                         style={{ width: 300 }}
                         prefix={<SearchOutlined />}
                         allowClear
@@ -212,9 +223,6 @@ export default function QuestionBankSelectorModal({
                         ))}
                     </Select>
 
-                    <Button type="primary" icon={<SearchOutlined />} onClick={handleSearch}>
-                        Tìm kiếm
-                    </Button>
                 </Space>
 
                 {selectedRowKeys.length > 0 && (

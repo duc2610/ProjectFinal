@@ -409,7 +409,7 @@ namespace ToeicGenius.Services.Implementations
 				if (test == null)
 					return Result<string>.Failure("Test not found");
 
-				if (test.CreationStatus == TestCreationStatus.Completed || test.VisibilityStatus == TestVisibilityStatus.Published)
+				if ( test.VisibilityStatus == TestVisibilityStatus.Published)
 					return Result<string>.Failure("Cannot edit a published test. Please clone to create a new version.");
 
 				// Validate partId is compatible with test skill
