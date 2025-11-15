@@ -16,19 +16,68 @@ export default function ExamScreen() {
   const navigate = useNavigate();
   const rawTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
   const [questions] = useState(rawTestData.questions || []);
-  const [answers, setAnswers] = useState({});
+  // Load answers từ sessionStorage nếu có (từ savedAnswers khi tiếp tục bài thi)
+  const initialAnswers = rawTestData.answers || {};
+  console.log("ExamScreen - Loading answers from sessionStorage:", initialAnswers);
+  console.log("ExamScreen - Answers keys:", Object.keys(initialAnswers));
+  console.log("ExamScreen - Sample answers:", {
+    "1": initialAnswers["1"],
+    "3": initialAnswers["3"],
+    "6": initialAnswers["6"],
+    "13": initialAnswers["13"],
+    "32_2": initialAnswers["32_2"],
+    "34_2": initialAnswers["34_2"],
+  });
+  console.log("ExamScreen - Questions count:", questions.length);
+  console.log("ExamScreen - First few questions:", questions.slice(0, 5).map(q => ({
+    globalIndex: q.globalIndex,
+    testQuestionId: q.testQuestionId,
+    subQuestionIndex: q.subQuestionIndex,
+    partId: q.partId,
+  })));
+  const [answers, setAnswers] = useState(initialAnswers);
   const [currentIndex, setCurrentIndex] = useState(0);
   const normalizedDurationMinutes = Number(rawTestData.duration) || 0;
   const totalDurationSeconds = Math.max(0, Math.floor(normalizedDurationMinutes * 60));
   const isSelectTime =
     rawTestData.isSelectTime !== undefined ? !!rawTestData.isSelectTime : true;
-  const startTimestampValue = rawTestData.startedAt ? Number(rawTestData.startedAt) : Date.now();
-  const safeStartTimestamp = Number.isFinite(startTimestampValue) ? startTimestampValue : Date.now();
-  const initialElapsedSeconds =
-    !isSelectTime
-      ? Math.max(0, Math.floor((Date.now() - safeStartTimestamp) / 1000))
-      : 0;
-  const [timeLeft, setTimeLeft] = useState(isSelectTime ? totalDurationSeconds : totalDurationSeconds);
+  
+  // Kiểm tra xem có phải tiếp tục test từ history không (có originalTestResultId và createdAt)
+  const isContinueFromHistory = rawTestData.originalTestResultId !== undefined && rawTestData.createdAt;
+  
+  // Tính thời gian đã làm bài từ createdAt đến hiện tại
+  let safeStartTimestamp, initialElapsedSeconds, initialTimeLeft;
+  
+  if (isContinueFromHistory && rawTestData.createdAt) {
+    // Tiếp tục từ history: tính thời gian từ createdAt đến hiện tại
+    const createdAtTimestamp = new Date(rawTestData.createdAt).getTime();
+    const currentElapsedSeconds = Math.max(0, Math.floor((Date.now() - createdAtTimestamp) / 1000));
+    
+    safeStartTimestamp = createdAtTimestamp;
+    initialElapsedSeconds = isSelectTime ? 0 : currentElapsedSeconds;
+    initialTimeLeft = isSelectTime 
+      ? Math.max(0, totalDurationSeconds - currentElapsedSeconds)
+      : totalDurationSeconds;
+    
+    console.log("ExamScreen - Continue from history:");
+    console.log("  - createdAt:", rawTestData.createdAt);
+    console.log("  - createdAtTimestamp:", new Date(createdAtTimestamp).toISOString());
+    console.log("  - currentElapsedSeconds:", currentElapsedSeconds, "seconds");
+    console.log("  - isSelectTime:", isSelectTime);
+    console.log("  - initialTimeLeft:", initialTimeLeft, "seconds");
+    console.log("  - initialElapsedSeconds:", initialElapsedSeconds, "seconds");
+  } else {
+    // Làm test mới: dùng logic cũ
+    const startTimestampValue = rawTestData.startedAt ? Number(rawTestData.startedAt) : Date.now();
+    safeStartTimestamp = Number.isFinite(startTimestampValue) ? startTimestampValue : Date.now();
+    initialElapsedSeconds =
+      !isSelectTime
+        ? Math.max(0, Math.floor((Date.now() - safeStartTimestamp) / 1000))
+        : 0;
+    initialTimeLeft = isSelectTime ? totalDurationSeconds : totalDurationSeconds;
+  }
+  
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
   const [timeElapsed, setTimeElapsed] = useState(initialElapsedSeconds);
   const [isNavVisible, setIsNavVisible] = useState(true);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -43,6 +92,12 @@ export default function ExamScreen() {
   const timerRef = useRef(null);
   const isSubmittingRef = useRef(false);
   const startTimestampRef = useRef(safeStartTimestamp);
+  
+  // Cập nhật startTimestampRef khi safeStartTimestamp thay đổi (ví dụ: khi tiếp tục từ history)
+  useEffect(() => {
+    startTimestampRef.current = safeStartTimestamp;
+    console.log("ExamScreen - Updated startTimestampRef.current to:", new Date(safeStartTimestamp).toISOString());
+  }, [safeStartTimestamp]);
   const warningTimeoutRef = useRef(null);
   const originalPushStateRef = useRef(null);
   const originalReplaceStateRef = useRef(null);
@@ -499,14 +554,23 @@ export default function ExamScreen() {
 
       // Submit L&R nếu có
       let lrResult = null;
-      // Luôn ưu tiên testResultId do server trả về sau submit (trong trường hợp backend tạo bản ghi mới)
+      // Kiểm tra xem có phải tiếp tục test từ history không (có originalTestResultId)
+      const isContinueFromHistory = rawTestData.originalTestResultId !== undefined;
+      // Nếu tiếp tục từ history, luôn dùng testResultId từ history, không cập nhật từ response
+      // Nếu không, ưu tiên testResultId do server trả về sau submit (trong trường hợp backend tạo bản ghi mới)
       let finalTestResultId = testResultId;
+      
+      console.log("ExamScreen - Submit: testResultId from sessionStorage:", testResultId);
+      console.log("ExamScreen - Submit: isContinueFromHistory:", isContinueFromHistory);
+      if (isContinueFromHistory) {
+        console.log("ExamScreen - Submit: originalTestResultId from history:", rawTestData.originalTestResultId);
+      }
       
       if (lrAnswers.length > 0) {
         const lrPayload = {
           userId: "33333333-3333-3333-3333-333333333333",
           testId: rawTestData.testId,
-          testResultId: finalTestResultId, // Dùng testResultId ban đầu
+          testResultId: finalTestResultId, // Dùng testResultId ban đầu (từ history nếu tiếp tục test)
           duration: durationMinutes,
           testType: testType,
           answers: lrAnswers,
@@ -515,8 +579,9 @@ export default function ExamScreen() {
         lrResult = await submitTest(lrPayload);
         console.log("L&R submit response:", lrResult);
 
-        // Nếu backend trả về testResultId mới (ví dụ: 1202), dùng ID đó cho bước lấy chi tiết
-        if (lrResult && lrResult.testResultId) {
+        // CHỈ cập nhật testResultId từ response nếu KHÔNG phải tiếp tục từ history
+        // Nếu tiếp tục từ history, luôn giữ nguyên testResultId từ history
+        if (!isContinueFromHistory && lrResult && lrResult.testResultId) {
           finalTestResultId = lrResult.testResultId;
           try {
             // Đồng bộ lại testResultId trong toeic_testData để các màn sau dùng đúng ID
@@ -526,21 +591,26 @@ export default function ExamScreen() {
           } catch (e) {
             console.error("Error syncing testResultId to sessionStorage:", e);
           }
+        } else if (isContinueFromHistory) {
+          console.log("ExamScreen - Continue from history: Keeping original testResultId:", finalTestResultId);
         }
       }
 
-      // Submit S&W nếu có (dùng CÙNG testResultId ban đầu)
+      // Submit S&W nếu có (dùng CÙNG testResultId ban đầu, hoặc từ history nếu tiếp tục test)
       let swResult = null;
       if (swAnswers.length > 0) {
         const swPayload = {
-          testResultId: finalTestResultId, // Dùng CÙNG testResultId ban đầu
+          testResultId: finalTestResultId, // Dùng CÙNG testResultId ban đầu (từ history nếu tiếp tục test)
           testType: testTypeLower,
           duration: durationMinutes,
           parts: swAnswers,
         };
         console.log("Submitting S&W with testResultId:", finalTestResultId);
+        if (isContinueFromHistory) {
+          console.log("ExamScreen - S&W Submit: Using testResultId from history (continue test)");
+        }
         swResult = await submitAssessmentBulk(swPayload);
-        // KHÔNG cập nhật testResultId từ response - luôn dùng testResultId ban đầu
+        // KHÔNG cập nhật testResultId từ response - luôn dùng testResultId ban đầu hoặc từ history
         console.log("S&W submit response:", swResult);
       }
 
@@ -552,10 +622,11 @@ export default function ExamScreen() {
       }
 
       // Merge kết quả: ưu tiên L&R result vì nó có đầy đủ thông tin
+      // Nếu tiếp tục từ history, dùng testResultId từ history, không phải từ response
       const fullResult = {
         ...(lrResult || {}),
         ...(swResult || {}),
-        testResultId: finalTestResultId, // DÙNG ID do server trả để lấy chi tiết
+        testResultId: finalTestResultId, // Dùng testResultId từ history nếu tiếp tục test, nếu không thì dùng từ response
         testId: rawTestData.testId, // Lưu testId để có thể làm lại bài thi
         questions: questions,
         answers: finalAnswers, // Lưu answers để hiển thị câu trả lời gốc trong result
@@ -563,6 +634,11 @@ export default function ExamScreen() {
         testType,
         isSelectTime,
       };
+      
+      console.log("ExamScreen - Final result testResultId:", fullResult.testResultId);
+      if (isContinueFromHistory) {
+        console.log("ExamScreen - Final result: Using testResultId from history for continue test");
+      }
 
       setTimeout(() => {
         setShowSubmitModal(false);

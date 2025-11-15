@@ -188,6 +188,61 @@ export default function ExamSelection() {
       }
 
       const questions = buildQuestions(data.parts || []);
+      
+      // Xử lý savedAnswers để fill vào answers
+      // Lọc để lấy bản ghi mới nhất cho mỗi cặp (testQuestionId, subQuestionIndex)
+      const savedAnswers = data.savedAnswers || [];
+      const answersMap = new Map(); // Dùng Map để lưu bản ghi mới nhất
+      
+      savedAnswers.forEach((saved) => {
+        // Chuẩn hóa subQuestionIndex: null hoặc undefined = 0
+        const subIndex = saved.subQuestionIndex !== undefined && saved.subQuestionIndex !== null 
+          ? saved.subQuestionIndex 
+          : 0;
+        
+        // Đảm bảo testQuestionId là string để tránh type mismatch
+        const testQuestionIdStr = String(saved.testQuestionId);
+        const answerKey = subIndex !== 0
+          ? `${testQuestionIdStr}_${subIndex}`
+          : testQuestionIdStr;
+        
+        // Lấy timestamp để so sánh (ưu tiên updatedAt, nếu không có thì dùng createdAt)
+        const timestamp = saved.updatedAt 
+          ? new Date(saved.updatedAt).getTime()
+          : new Date(saved.createdAt || 0).getTime();
+        
+        // Kiểm tra xem đã có bản ghi cho key này chưa, nếu có thì so sánh timestamp
+        const existing = answersMap.get(answerKey);
+        if (!existing || timestamp > existing.timestamp) {
+          // Xử lý theo loại answer
+          let answerValue = null;
+          if (saved.chosenOptionLabel) {
+            // L&R: chosenOptionLabel
+            answerValue = saved.chosenOptionLabel;
+          } else if (saved.answerText) {
+            // Writing: answerText
+            answerValue = saved.answerText;
+          } else if (saved.answerAudioUrl) {
+            // Speaking: answerAudioUrl
+            answerValue = saved.answerAudioUrl;
+          }
+          
+          if (answerValue !== null) {
+            answersMap.set(answerKey, { value: answerValue, timestamp });
+          }
+        }
+      });
+      
+      // Chuyển Map thành object
+      const answers = {};
+      answersMap.forEach((item, key) => {
+        answers[key] = item.value;
+      });
+      
+      console.log("ExamSelection - Processed answers from savedAnswers:", answers);
+      console.log("ExamSelection - Total savedAnswers:", savedAnswers.length);
+      console.log("ExamSelection - Total unique answers:", Object.keys(answers).length);
+      
       const payload = {
         ...data,
         testId,
@@ -198,6 +253,7 @@ export default function ExamSelection() {
         questionQuantity:
           data.quantityQuestion ?? data.questionQuantity ?? testInfo?.questionQuantity ?? 0,
         questions,
+        answers, // Thêm answers đã load từ savedAnswers
         isSelectTime: finalSelectTime,
         timerMode: finalSelectTime ? "countdown" : "countup",
         startedAt: Date.now(),

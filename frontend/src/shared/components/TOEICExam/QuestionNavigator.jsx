@@ -31,13 +31,24 @@ export default function QuestionNavigator({ questions, currentIndex, answers, go
           <div className={styles.numbersGrid}>
             {groupData.items.map(({ q, idx }) => {
               // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
-              const answerKey = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
-                ? `${q.testQuestionId}_${q.subQuestionIndex}`
-                : q.testQuestionId;
+              // Chuẩn hóa: null/undefined = 0, nhưng nếu là 0 thì không thêm vào key
+              const subIndex = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
+                ? q.subQuestionIndex
+                : 0;
+              // Đảm bảo testQuestionId là string để tránh type mismatch
+              const testQuestionIdStr = String(q.testQuestionId);
+              const answerKey = subIndex !== 0
+                ? `${testQuestionIdStr}_${subIndex}`
+                : testQuestionIdStr;
               // Kiểm tra answer có giá trị hợp lệ (không phải undefined, null, hoặc empty string)
               const answerValue = answers[answerKey];
               const isAnswered = answerValue !== undefined && answerValue !== null && answerValue !== "";
               const isActive = idx === currentIndex;
+              
+              // Debug logging cho một số câu hỏi cụ thể
+              if (q.globalIndex <= 6 || q.globalIndex === 13 || q.globalIndex === 14 || q.globalIndex === 34 || q.globalIndex === 40) {
+                console.log(`QuestionNavigator - Question ${q.globalIndex} (testQuestionId: ${q.testQuestionId}, subQuestionIndex: ${q.subQuestionIndex}): answerKey="${answerKey}", answerValue="${answerValue}", isAnswered=${isAnswered}`);
+              }
 
               return (
                 <button

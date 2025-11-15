@@ -6,6 +6,7 @@ import styles from "@shared/styles/Profile.module.css";
 import { useAuth } from "@shared/hooks/useAuth";
 import { changePassword } from "@services/authService";
 import { getTestHistory } from "@services/testsService";
+import { startTest } from "@services/testExamService";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -236,6 +237,13 @@ export function TestHistoryTab() {
   };
 
   const getSkillLabel = (skill) => {
+    // Xử lý cả số và string
+    if (typeof skill === "string") {
+      const upper = skill.toUpperCase();
+      if (upper === "LR" || upper === "LISTENING & READING") return "Listening & Reading";
+      if (upper === "SW" || upper === "S&W") return "S&W";
+      return skill;
+    }
     const skillMap = {
       1: "Speaking",
       2: "Writing",
@@ -246,6 +254,15 @@ export function TestHistoryTab() {
   };
 
   const getSkillColor = (skill) => {
+    // Xử lý cả số và string
+    if (typeof skill === "string") {
+      const upper = skill.toUpperCase();
+      if (upper === "LR" || upper === "LISTENING & READING") return "purple";
+      if (upper === "SW" || upper === "S&W") return "blue";
+      if (upper === "SPEAKING") return "green";
+      if (upper === "WRITING") return "cyan";
+      return "default";
+    }
     const colorMap = {
       1: "green",
       2: "cyan",
@@ -256,6 +273,13 @@ export function TestHistoryTab() {
   };
 
   const getTestTypeLabel = (type) => {
+    // Xử lý cả số và string
+    if (typeof type === "string") {
+      const lower = type.toLowerCase();
+      if (lower.includes("practice") || lower.includes("luyện")) return "Practice";
+      if (lower.includes("simulator")) return "Simulator";
+      return type;
+    }
     const typeMap = {
       1: "Simulator",
       2: "Practice",
@@ -264,6 +288,12 @@ export function TestHistoryTab() {
   };
 
   const getTestTypeColor = (type) => {
+    // Xử lý cả số và string
+    if (typeof type === "string") {
+      const lower = type.toLowerCase();
+      if (lower.includes("simulator")) return "blue";
+      return "orange";
+    }
     return type === 1 ? "blue" : "orange";
   };
 
@@ -299,43 +329,216 @@ export function TestHistoryTab() {
   };
 
   const handleContinueTest = async (record) => {
-    if (!record.testResultId) {
+    if (!record.testResultId || !record.testId) {
       message.error("Không tìm thấy thông tin bài test");
       return;
     }
 
     try {
-      const savedTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+      message.loading({ content: "Đang tải bài thi...", key: "continueTest" });
       
-      if (savedTestData.testResultId === record.testResultId) {
-        navigate("/exam", {
-          state: {
-            testResultId: record.testResultId,
-            testId: record.testId,
-            continueTest: true,
-          },
-        });
-      } else {
-        navigate(`/toeic-exam?testId=${record.testId}&testResultId=${record.testResultId}`, {
-          state: {
-            testId: record.testId,
-            testResultId: record.testResultId,
-            continueTest: true,
-            testMeta: {
-              id: record.testId,
-              title: record.title,
-              testType: record.testType,
-              testSkill: record.testSkill,
-              duration: record.duration,
-              questionQuantity: record.totalQuestion,
-            },
-          },
-        });
+      // Gọi API startTest với testId và testResultId
+      const testIdNum = Number(record.testId);
+      if (Number.isNaN(testIdNum)) {
+        message.error({ content: "TestId không hợp lệ", key: "continueTest" });
+        return;
       }
+
+      // Lấy isSelectTime từ testType (Simulator = true, Practice = false mặc định)
+      const isSelectTime = normalizeTestType(record.testType) === "Simulator";
+      
+      const data = await startTest(testIdNum, isSelectTime);
+      
+      if (!data) {
+        message.error({ content: "Không thể tải bài thi. Vui lòng thử lại.", key: "continueTest" });
+        return;
+      }
+
+      // Kiểm tra xem có parts không
+      if (!data.parts || !Array.isArray(data.parts) || data.parts.length === 0) {
+        message.error({ content: "Không có câu hỏi trong bài thi. Vui lòng thử lại.", key: "continueTest" });
+        return;
+      }
+
+      // Import buildQuestions từ ExamSelection (hoặc định nghĩa lại)
+      const buildQuestions = (parts = []) => {
+        const questions = [];
+        let globalIndex = 1;
+        const sortedParts = [...parts].sort((a, b) => (a.partId || 0) - (b.partId || 0));
+        sortedParts.forEach((part) => {
+          part?.testQuestions?.forEach((tq) => {
+            if (tq.isGroup && tq.questionGroupSnapshotDto) {
+              const group = tq.questionGroupSnapshotDto;
+              group.questionSnapshots?.forEach((qs, idx) => {
+                questions.push({
+                  testQuestionId: tq.testQuestionId,
+                  subQuestionIndex: idx,
+                  partId: part.partId,
+                  partName: part.partName,
+                  partDescription: part.description,
+                  globalIndex: globalIndex++,
+                  type: "group",
+                  question: qs.content,
+                  passage: group.passage,
+                  imageUrl: qs.imageUrl,
+                  audioUrl: qs.audioUrl,
+                  options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+                  correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+                  userAnswer: qs.userAnswer,
+                });
+              });
+            } else if (!tq.isGroup && tq.questionSnapshotDto) {
+              const qs = tq.questionSnapshotDto;
+              questions.push({
+                testQuestionId: tq.testQuestionId,
+                subQuestionIndex: 0,
+                partId: part.partId,
+                partName: part.partName,
+                partDescription: part.description,
+                globalIndex: globalIndex++,
+                type: "single",
+                question: qs.content,
+                imageUrl: qs.imageUrl,
+                audioUrl: qs.audioUrl,
+                options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+                correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+                userAnswer: qs.userAnswer,
+              });
+            }
+          });
+        });
+        return questions;
+      };
+
+      // Build questions từ response
+      const questions = buildQuestions(data.parts);
+      
+      if (!questions || questions.length === 0) {
+        message.error({ content: "Không thể tạo danh sách câu hỏi. Vui lòng thử lại.", key: "continueTest" });
+        return;
+      }
+
+      // Xử lý savedAnswers để fill vào answers
+      // Lọc để lấy bản ghi mới nhất cho mỗi cặp (testQuestionId, subQuestionIndex)
+      const savedAnswers = data.savedAnswers || [];
+      const answersMap = new Map(); // Dùng Map để lưu bản ghi mới nhất
+      
+      savedAnswers.forEach((saved, index) => {
+        // Chuẩn hóa subQuestionIndex: null hoặc undefined = 0
+        const subIndex = saved.subQuestionIndex !== undefined && saved.subQuestionIndex !== null 
+          ? saved.subQuestionIndex 
+          : 0;
+        
+        // Đảm bảo testQuestionId là string để tránh type mismatch
+        const testQuestionIdStr = String(saved.testQuestionId);
+        const answerKey = subIndex !== 0
+          ? `${testQuestionIdStr}_${subIndex}`
+          : testQuestionIdStr;
+        
+        // Lấy timestamp để so sánh (ưu tiên updatedAt, nếu không có thì dùng createdAt)
+        const timestamp = saved.updatedAt 
+          ? new Date(saved.updatedAt).getTime()
+          : new Date(saved.createdAt || 0).getTime();
+        
+        // Kiểm tra xem đã có bản ghi cho key này chưa, nếu có thì so sánh timestamp
+        const existing = answersMap.get(answerKey);
+        if (!existing || timestamp > existing.timestamp) {
+          // Xử lý theo loại answer
+          let answerValue = null;
+          if (saved.chosenOptionLabel) {
+            // L&R: chosenOptionLabel
+            answerValue = saved.chosenOptionLabel;
+          } else if (saved.answerText) {
+            // Writing: answerText
+            answerValue = saved.answerText;
+          } else if (saved.answerAudioUrl) {
+            // Speaking: answerAudioUrl
+            answerValue = saved.answerAudioUrl;
+          }
+          
+          if (answerValue !== null) {
+            console.log(`Profile - Processing savedAnswer[${index}]: testQuestionId=${saved.testQuestionId}, subQuestionIndex=${saved.subQuestionIndex} (normalized=${subIndex}), answerKey="${answerKey}", answerValue="${answerValue}", timestamp=${timestamp}`);
+            answersMap.set(answerKey, { value: answerValue, timestamp });
+          }
+        } else {
+          console.log(`Profile - Skipping savedAnswer[${index}]: testQuestionId=${saved.testQuestionId}, subQuestionIndex=${saved.subQuestionIndex} (normalized=${subIndex}), answerKey="${answerKey}" - existing timestamp is newer`);
+        }
+      });
+      
+      // Chuyển Map thành object
+      const answers = {};
+      answersMap.forEach((item, key) => {
+        answers[key] = item.value;
+      });
+      
+      console.log("Profile - Processed answers from savedAnswers:", answers);
+      console.log("Profile - Total savedAnswers:", savedAnswers.length);
+      console.log("Profile - Total unique answers:", Object.keys(answers).length);
+      console.log("Profile - Answers keys:", Object.keys(answers));
+      console.log("Profile - Sample answers:", {
+        "1": answers["1"],
+        "3": answers["3"],
+        "6": answers["6"],
+        "13": answers["13"],
+        "32_2": answers["32_2"],
+        "34_2": answers["34_2"],
+      });
+
+      // Tạo payload cho bài thi
+      // Ưu tiên dùng testResultId từ history (record.testResultId) thay vì testResultId mới từ startTest
+      // Vì khi tiếp tục test, cần submit với testResultId cũ để cập nhật kết quả đã có
+      const originalTestResultId = record.testResultId; // testResultId từ history
+      const createdAt = record.createdAt; // Thời gian tạo testResult từ history
+      
+      const payload = {
+        ...data,
+        testId: testIdNum,
+        testResultId: originalTestResultId, // Dùng testResultId từ history, không phải từ startTest
+        originalTestResultId: originalTestResultId, // Lưu thêm để dễ debug
+        createdAt: createdAt, // Lưu createdAt từ history để tính thời gian đã làm bài
+        testType: normalizeTestType(data.testType || record.testType),
+        testSkill: data.testSkill || record.testSkill,
+        duration: data.duration ?? record.duration ?? 0,
+        questionQuantity: data.quantityQuestion ?? data.questionQuantity ?? record.totalQuestion ?? 0,
+        questions,
+        answers, // Thêm answers đã load từ savedAnswers
+        isSelectTime: isSelectTime,
+        timerMode: isSelectTime ? "countdown" : "countup",
+        startedAt: Date.now(), // Thời điểm hiện tại (sẽ được tính lại từ createdAt trong ExamScreen)
+        globalAudioUrl: data.audioUrl || null,
+      };
+      
+      console.log("Profile - Using testResultId from history:", originalTestResultId);
+      console.log("Profile - createdAt from history:", createdAt);
+      console.log("Profile - testResultId from startTest API:", data.testResultId);
+
+      // Lưu vào sessionStorage và navigate đến màn hình làm bài
+      console.log("Profile - Saving to sessionStorage, payload.answers:", payload.answers);
+      sessionStorage.setItem("toeic_testData", JSON.stringify(payload));
+      
+      // Verify saved data
+      const saved = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+      console.log("Profile - Verified saved answers in sessionStorage:", saved.answers);
+      
+      message.success({ content: "Đã tải bài thi thành công", key: "continueTest" });
+      navigate("/exam");
     } catch (error) {
       console.error("Error continuing test:", error);
-      message.error("Không thể tiếp tục bài test. Vui lòng thử lại.");
+      message.error({ 
+        content: error.response?.data?.message || "Không thể tiếp tục bài test. Vui lòng thử lại.", 
+        key: "continueTest" 
+      });
     }
+  };
+
+  const normalizeTestType = (value) => {
+    if (typeof value === "string") {
+      const lower = value.toLowerCase();
+      if (lower.includes("practice") || lower.includes("luyện")) return "Practice";
+      return "Simulator";
+    }
+    if (value === 2) return "Practice";
+    return "Simulator";
   };
 
   const columns = [

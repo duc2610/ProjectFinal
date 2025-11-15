@@ -169,9 +169,15 @@ export default function QuestionCard({
 
     // Load lại answer đã lưu nếu có
     // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
-    const answerKey = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
-      ? `${question.testQuestionId}_${question.subQuestionIndex}`
-      : question.testQuestionId;
+    // Chuẩn hóa: null/undefined = 0, nhưng nếu là 0 thì không thêm vào key
+    const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+      ? question.subQuestionIndex
+      : 0;
+    // Đảm bảo testQuestionId là string để tránh type mismatch
+    const testQuestionIdStr = String(question.testQuestionId);
+    const answerKey = subIndex !== 0
+      ? `${testQuestionIdStr}_${subIndex}`
+      : testQuestionIdStr;
     const savedAnswer = answers[answerKey];
     if (isSpeakingPart && savedAnswer) {
       if (savedAnswer instanceof Blob) {
@@ -254,9 +260,14 @@ export default function QuestionCard({
         setRecordedAudioUrl(tempUrl);
 
         // Tạo key duy nhất cho mỗi câu hỏi
-        const answerKey = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
-          ? `${question.testQuestionId}_${question.subQuestionIndex}`
-          : question.testQuestionId;
+        const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+          ? question.subQuestionIndex
+          : 0;
+        // Đảm bảo testQuestionId là string để tránh type mismatch
+        const testQuestionIdStr = String(question.testQuestionId);
+        const answerKey = subIndex !== 0
+          ? `${testQuestionIdStr}_${subIndex}`
+          : testQuestionIdStr;
 
         // Upload audio ngay sau khi ghi âm xong
         setIsUploading(true);
@@ -484,16 +495,30 @@ export default function QuestionCard({
               placeholder="Nhập câu trả lời của bạn..."
               value={(() => {
                 // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
-                const answerKey = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
-                  ? `${question.testQuestionId}_${question.subQuestionIndex}`
-                  : question.testQuestionId;
-                return typeof answers[answerKey] === "string" ? answers[answerKey] : "";
+                // Chuẩn hóa: null/undefined = 0, nhưng nếu là 0 thì không thêm vào key
+                const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+                  ? question.subQuestionIndex
+                  : 0;
+                // Đảm bảo testQuestionId là string để tránh type mismatch
+                const testQuestionIdStr = String(question.testQuestionId);
+                const answerKey = subIndex !== 0
+                  ? `${testQuestionIdStr}_${subIndex}`
+                  : testQuestionIdStr;
+                const answerValue = typeof answers[answerKey] === "string" ? answers[answerKey] : "";
+                console.log(`QuestionCard Writing - Question ${question.globalIndex} (testQuestionId: ${question.testQuestionId}, subQuestionIndex: ${question.subQuestionIndex}): answerKey="${answerKey}", answerValue="${answerValue}"`);
+                return answerValue;
               })()}
               onChange={(e) => {
                 // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
-                const answerKey = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
-                  ? `${question.testQuestionId}_${question.subQuestionIndex}`
-                  : question.testQuestionId;
+                // Chuẩn hóa: null/undefined = 0, nhưng nếu là 0 thì không thêm vào key
+                const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+                  ? question.subQuestionIndex
+                  : 0;
+                // Đảm bảo testQuestionId là string để tránh type mismatch
+                const testQuestionIdStr = String(question.testQuestionId);
+                const answerKey = subIndex !== 0
+                  ? `${testQuestionIdStr}_${subIndex}`
+                  : testQuestionIdStr;
                 onAnswer(answerKey, e.target.value);
               }}
               style={{
@@ -644,16 +669,30 @@ export default function QuestionCard({
             <Radio.Group
               value={(() => {
                 // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
-                const answerKey = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
-                  ? `${question.testQuestionId}_${question.subQuestionIndex}`
-                  : question.testQuestionId;
-                return answers[answerKey];
+                // Chuẩn hóa: null/undefined = 0, nhưng nếu là 0 thì không thêm vào key
+                const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+                  ? question.subQuestionIndex
+                  : 0;
+                // Đảm bảo testQuestionId là string để tránh type mismatch
+                const testQuestionIdStr = String(question.testQuestionId);
+                const answerKey = subIndex !== 0
+                  ? `${testQuestionIdStr}_${subIndex}`
+                  : testQuestionIdStr;
+                const answerValue = answers[answerKey];
+                console.log(`QuestionCard - Question ${question.globalIndex} (testQuestionId: ${question.testQuestionId}, subQuestionIndex: ${question.subQuestionIndex}): answerKey="${answerKey}", answerValue="${answerValue}"`);
+                return answerValue;
               })()}
               onChange={(e) => {
                 // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
-                const answerKey = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
-                  ? `${question.testQuestionId}_${question.subQuestionIndex}`
-                  : question.testQuestionId;
+                // Chuẩn hóa: null/undefined = 0, nhưng nếu là 0 thì không thêm vào key
+                const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+                  ? question.subQuestionIndex
+                  : 0;
+                // Đảm bảo testQuestionId là string để tránh type mismatch
+                const testQuestionIdStr = String(question.testQuestionId);
+                const answerKey = subIndex !== 0
+                  ? `${testQuestionIdStr}_${subIndex}`
+                  : testQuestionIdStr;
                 const currentValue = answers[answerKey];
                 // Nếu click vào radio đã chọn, bỏ chọn (set về null)
                 if (currentValue === e.target.value) {
@@ -666,9 +705,15 @@ export default function QuestionCard({
             >
               {question.options?.map((opt) => {
                 // Tạo key duy nhất cho mỗi câu hỏi
-                const answerKey = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
-                  ? `${question.testQuestionId}_${question.subQuestionIndex}`
-                  : question.testQuestionId;
+                // Chuẩn hóa: null/undefined = 0, nhưng nếu là 0 thì không thêm vào key
+                const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+                  ? question.subQuestionIndex
+                  : 0;
+                // Đảm bảo testQuestionId là string để tránh type mismatch
+                const testQuestionIdStr = String(question.testQuestionId);
+                const answerKey = subIndex !== 0
+                  ? `${testQuestionIdStr}_${subIndex}`
+                  : testQuestionIdStr;
                 const currentValue = answers[answerKey];
                 const isSelected = currentValue === opt.key;
                 
@@ -689,7 +734,15 @@ export default function QuestionCard({
                       if (isSelected) {
                         e.preventDefault();
                         e.stopPropagation();
-                        onAnswer(answerKey, null);
+                        // Đảm bảo answerKey được tạo đúng
+                        const subIdx = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+                          ? question.subQuestionIndex
+                          : 0;
+                        const testQuestionIdStr = String(question.testQuestionId);
+                        const correctAnswerKey = subIdx !== 0
+                          ? `${testQuestionIdStr}_${subIdx}`
+                          : testQuestionIdStr;
+                        onAnswer(correctAnswerKey, null);
                       }
                     }}
                     onMouseEnter={(e) => {
