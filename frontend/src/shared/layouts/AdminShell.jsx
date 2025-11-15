@@ -74,12 +74,12 @@ export default function AdminShell() {
       {
         key: "/admin/dashboard",
         icon: <AppstoreOutlined />,
-        label: "Dashboard",
+        label: "Bảng điều khiển",
       },
       {
         key: "/admin/account-management",
         icon: <TeamOutlined />,
-        label: "Users Management",
+        label: "Quản lý người dùng",
       },
     ];
   } else if (isCreator) {
@@ -87,17 +87,17 @@ export default function AdminShell() {
       {
         key: "/test-creator/dashboard",
         icon: <AppstoreOutlined />,
-        label: "Dashboard",
+        label: "Bảng điều khiển",
       },
       {
         key: "/test-creator/question-bank",
         icon: <DatabaseOutlined />,
-        label: "QuestionBank",
+        label: "Quản lý câu hỏi",
       },
       {
         key: "/test-creator/exam-management",
         icon: <FileTextOutlined />,
-        label: "Test Bank",
+        label: "Quản lý Test",
       },
     ];
   }

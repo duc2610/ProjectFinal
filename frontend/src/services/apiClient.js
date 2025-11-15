@@ -1,29 +1,36 @@
 import axios from "axios";
 import env from "@config/env";
+import { getCookie, setCookie, removeCookie } from "@shared/utils/cookie";
 
 const ACCESS_KEY = "tg_access_token";
 const REFRESH_KEY = "tg_refresh_token";
+const COOKIE_EXPIRY_DAYS = 7;
+const REFRESH_COOKIE_EXPIRY_DAYS = 30;
 
 export const tokenStore = {
   get access() {
-    return localStorage.getItem(ACCESS_KEY);
+    return getCookie(ACCESS_KEY);
   },
   set access(v) {
-    v
-      ? localStorage.setItem(ACCESS_KEY, v)
-      : localStorage.removeItem(ACCESS_KEY);
+    if (v) {
+      setCookie(ACCESS_KEY, v, COOKIE_EXPIRY_DAYS, { sameSite: 'strict' });
+    } else {
+      removeCookie(ACCESS_KEY);
+    }
   },
   get refresh() {
-    return localStorage.getItem(REFRESH_KEY);
+    return getCookie(REFRESH_KEY);
   },
   set refresh(v) {
-    v
-      ? localStorage.setItem(REFRESH_KEY, v)
-      : localStorage.removeItem(REFRESH_KEY);
+    if (v) {
+      setCookie(REFRESH_KEY, v, REFRESH_COOKIE_EXPIRY_DAYS, { sameSite: 'strict' });
+    } else {
+      removeCookie(REFRESH_KEY);
+    }
   },
   clear() {
-    localStorage.removeItem(ACCESS_KEY);
-    localStorage.removeItem(REFRESH_KEY);
+    removeCookie(ACCESS_KEY);
+    removeCookie(REFRESH_KEY);
   },
 };
 
@@ -61,8 +68,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Flag to prevent infinite refresh loops
-// Flag to prevent infinite refresh loops
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -131,7 +136,7 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         tokenStore.clear();
-        localStorage.removeItem("user");
+        removeCookie("user");
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

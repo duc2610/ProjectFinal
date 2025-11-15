@@ -86,11 +86,25 @@ export default function QuestionGroupModal({
       r.readAsDataURL(file);
     });
 
+  // Part 3, 4: Listening - yêu cầu audio, có thể có image → hiển thị cả audio và image
+  // Part 6, 7: Reading - không yêu cầu audio, không cần image → ẩn cả hai
+  // Chỉ hiển thị audio và image cho các part yêu cầu cả hai (3, 4)
   const isAudioRequired = useMemo(
     () => [3, 4].includes(Number(selectedPart)),
     [selectedPart]
   );
-  const isImageRequired = false;
+  const isImageRequired = useMemo(
+    () => false, // Image không bắt buộc cho group questions
+    [selectedPart]
+  );
+  const showAudioField = useMemo(
+    () => [3, 4].includes(Number(selectedPart)), // Part 3, 4 cần audio
+    [selectedPart]
+  );
+  const showImageField = useMemo(
+    () => [3, 4].includes(Number(selectedPart)), // Part 3, 4 có thể có image
+    [selectedPart]
+  );
 
   const requiredOptionsPerQuestion = 4;
 
@@ -297,14 +311,32 @@ export default function QuestionGroupModal({
     const cur = form.getFieldValue("questions") || [];
     const partIdNum = toNum(partId);
     
-    // Cập nhật tất cả câu hỏi con với partId mới
-    form.setFieldsValue({
+    // Xóa audio/image nếu part mới không cần
+    const partNum = Number(partId);
+    const needsAudio = [3, 4].includes(partNum);
+    const needsImage = [3, 4].includes(partNum);
+    
+    const updates = {
       questions: cur.map((q) => ({
         ...q,
         partId: partIdNum, // Luôn set partId từ nhóm
         questionTypeId: q.questionTypeId ?? firstType,
       })),
-    });
+    };
+    
+    // Xóa audio nếu part mới không cần
+    if (!needsAudio) {
+      updates.audio = [];
+      setAudioSrc(null);
+    }
+    
+    // Xóa image nếu part mới không cần
+    if (!needsImage) {
+      updates.image = [];
+      setImageSrc(null);
+    }
+    
+    form.setFieldsValue(updates);
     
     try {
       await form.validateFields(["audio", "image", ["questions"]]);
@@ -362,7 +394,7 @@ export default function QuestionGroupModal({
 
   const validateGroupAudio = () => ({
     validator(_, value) {
-      if (!isAudioRequired) return Promise.resolve();
+      if (!isAudioRequired || !showAudioField) return Promise.resolve();
       const hasNew =
         Array.isArray(value) && value.length > 0 && !!value[0]?.originFileObj;
       const hasOld = !!value?.[0]?.url;
@@ -388,12 +420,20 @@ export default function QuestionGroupModal({
         throw new Error(`Câu ${i + 1}: Phải chọn đúng 1 đáp án đúng`);
       for (let j = 0; j < opts.length; j++) {
         const op = opts[j];
-        if (!op?.label || !op?.content?.trim())
+        const labelTrimmed = String(op?.label || "").trim();
+        const contentTrimmed = String(op?.content || "").trim();
+        if (!labelTrimmed)
           throw new Error(
-            `Câu ${i + 1} - Đáp án ${op?.label || j + 1}: thiếu nội dung`
+            `Câu ${i + 1} - Đáp án ${j + 1}: nhãn không được để trống hoặc chỉ có khoảng trắng`
+          );
+        if (!contentTrimmed)
+          throw new Error(
+            `Câu ${i + 1} - Đáp án ${op?.label || j + 1}: nội dung không được để trống hoặc chỉ có khoảng trắng`
           );
       }
-      if (!q.content?.trim()) throw new Error(`Câu ${i + 1}: thiếu nội dung`);
+      const questionContentTrimmed = String(q.content || "").trim();
+      if (!questionContentTrimmed) 
+        throw new Error(`Câu ${i + 1}: nội dung không được để trống hoặc chỉ có khoảng trắng`);
       if (!q.questionTypeId)
         throw new Error(`Câu ${i + 1}: chọn Question Type`);
     }
@@ -420,7 +460,7 @@ export default function QuestionGroupModal({
         content: (q.content || "").trim(),
         questionTypeId: Number(q.questionTypeId),
         partId: Number(q.partId ?? v.partId),
-        solution: q.solution || "",
+        solution: (q.solution || "").trim(),
         answerOptions: (q.answerOptions || []).map((op) => ({
           optionId: op.optionId ?? null,
           content: (op.content || "").trim(),
@@ -495,7 +535,11 @@ export default function QuestionGroupModal({
       width={1000}
       okButtonProps={{ disabled: showGroupWarning }}
     >
-      <Form form={form} layout="vertical">
+      <Form 
+        form={form} 
+        layout="vertical"
+        validateTrigger={[]}
+      >
         <Row gutter={12}>
           <Col span={8}>
             <Form.Item
@@ -543,95 +587,109 @@ export default function QuestionGroupModal({
           label="Nội dung đoạn văn / Passage"
           rules={[
             { required: true, message: "Vui lòng nhập nội dung đoạn văn" },
+            {
+              validator: (_, value) => {
+                if (!value || !value.trim()) {
+                  return Promise.reject(new Error("Nội dung đoạn văn không được để trống hoặc chỉ có khoảng trắng"));
+                }
+                return Promise.resolve();
+              },
+            },
           ]}
         >
           <Input.TextArea rows={4} placeholder="Nhập nội dung đoạn văn..." />
         </Form.Item>
 
-        <Row gutter={12}>
-          <Col span={12}>
-            <Form.Item
-              name="audio"
-              label={`Audio nhóm ${
-                isAudioRequired ? "(bắt buộc - MP3)" : "(tùy chọn - MP3)"
-              }`}
-              valuePropName="fileList"
-              getValueFromEvent={(e) => e?.fileList}
-              rules={[validateGroupAudio(), validateMp3("Chỉ chấp nhận file .mp3")]}
-            >
-              <Upload
-                beforeUpload={() => false}
-                maxCount={1}
-                accept=".mp3,audio/mpeg,audio/mp3"
-                showUploadList={{
-                  showPreviewIcon: false,
-                  showRemoveIcon: true,
-                }}
-                onRemove={() => {
-                  form.setFieldsValue({ audio: [] });
-                  return true;
-                }}
-              >
-                <Button icon={<UploadOutlined />}>Chọn file audio (.mp3)</Button>
-              </Upload>
-              {audioSrc && (
-                <div style={{ marginTop: 8 }}>
-                  <audio
-                    controls
-                    preload="none"
-                    src={audioSrc}
-                    style={{ width: "100%" }}
-                  />
-                </div>
-              )}
-            </Form.Item>
-          </Col>
-
-          <Col span={12}>
-            <Form.Item
-              name="image"
-              label={`Ảnh nhóm ${
-                isImageRequired ? "(bắt buộc)" : "(tùy chọn)"
-              }`}
-              valuePropName="fileList"
-              getValueFromEvent={(e) => e?.fileList}
-            >
-              <Upload
-                beforeUpload={() => false}
-                maxCount={1}
-                accept="image/*"
-                listType="picture"
-                showUploadList={{
-                  showPreviewIcon: false,
-                  showRemoveIcon: true,
-                }}
-                onRemove={() => {
-                  form.setFieldsValue({ image: [] });
-                  return true;
-                }}
-              >
-                <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
-              </Upload>
-              {imageSrc && (
-                <div style={{ marginTop: 8 }}>
-                  <img
-                    src={imageSrc}
-                    alt="preview"
-                    style={{
-                      maxWidth: "100%",
-                      height: 140,
-                      objectFit: "contain",
-                      border: "1px solid #f0f0f0",
-                      borderRadius: 6,
-                      padding: 6,
-                      background: "#fff",
+        {(showAudioField || showImageField) && (
+          <Row gutter={12}>
+            {showAudioField && (
+              <Col span={showImageField ? 12 : 24}>
+                <Form.Item
+                  name="audio"
+                  label={`Audio nhóm ${
+                    isAudioRequired ? "(bắt buộc - MP3)" : "(tùy chọn - MP3)"
+                  }`}
+                  valuePropName="fileList"
+                  getValueFromEvent={(e) => e?.fileList}
+                  rules={[validateGroupAudio(), validateMp3("Chỉ chấp nhận file .mp3")]}
+                >
+                  <Upload
+                    beforeUpload={() => false}
+                    maxCount={1}
+                    accept=".mp3,audio/mpeg,audio/mp3"
+                    showUploadList={{
+                      showPreviewIcon: false,
+                      showRemoveIcon: true,
                     }}
-                  />
-                </div>
-              )}
-            </Form.Item>
-          </Col>
-        </Row>
+                    onRemove={() => {
+                      form.setFieldsValue({ audio: [] });
+                      return true;
+                    }}
+                  >
+                    <Button icon={<UploadOutlined />}>Chọn file audio (.mp3)</Button>
+                  </Upload>
+                  {audioSrc && (
+                    <div style={{ marginTop: 8 }}>
+                      <audio
+                        controls
+                        preload="none"
+                        src={audioSrc}
+                        style={{ width: "100%" }}
+                      />
+                    </div>
+                  )}
+                </Form.Item>
+              </Col>
+            )}
+
+            {showImageField && (
+              <Col span={showAudioField ? 12 : 24}>
+                <Form.Item
+                  name="image"
+                  label={`Ảnh nhóm ${
+                    isImageRequired ? "(bắt buộc)" : "(tùy chọn)"
+                  }`}
+                  valuePropName="fileList"
+                  getValueFromEvent={(e) => e?.fileList}
+                >
+                  <Upload
+                    beforeUpload={() => false}
+                    maxCount={1}
+                    accept="image/*"
+                    listType="picture"
+                    showUploadList={{
+                      showPreviewIcon: false,
+                      showRemoveIcon: true,
+                    }}
+                    onRemove={() => {
+                      form.setFieldsValue({ image: [] });
+                      return true;
+                    }}
+                  >
+                    <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+                  </Upload>
+                  {imageSrc && (
+                    <div style={{ marginTop: 8 }}>
+                      <img
+                        src={imageSrc}
+                        alt="preview"
+                        style={{
+                          maxWidth: "100%",
+                          height: 140,
+                          objectFit: "contain",
+                          border: "1px solid #f0f0f0",
+                          borderRadius: 6,
+                          padding: 6,
+                          background: "#fff",
+                        }}
+                      />
+                    </div>
+                  )}
+                </Form.Item>
+              </Col>
+            )}
+          </Row>
+        )}
 
         <Divider style={{ margin: "12px 0" }} />
         <Form.List name="questions" rules={[{ validator: validateQuestions }]}>
@@ -780,6 +838,14 @@ export default function QuestionGroupModal({
                     label="Nội dung câu hỏi"
                     rules={[
                       { required: true, message: "Nhập nội dung câu hỏi" },
+                      {
+                        validator: (_, value) => {
+                          if (!value || !String(value).trim()) {
+                            return Promise.reject(new Error("Nội dung câu hỏi không được để trống hoặc chỉ có khoảng trắng"));
+                          }
+                          return Promise.resolve();
+                        },
+                      },
                     ]}
                   >
                     <Input.TextArea rows={3} />
@@ -804,6 +870,14 @@ export default function QuestionGroupModal({
                                   rules={[
                                     { required: true, message: "Vui lòng nhập nhãn" },
                                     { max: 3, message: "Tối đa 3 ký tự" },
+                                    {
+                                      validator: (_, value) => {
+                                        if (!value || !String(value).trim()) {
+                                          return Promise.reject(new Error("Nhãn không được để trống hoặc chỉ có khoảng trắng"));
+                                        }
+                                        return Promise.resolve();
+                                      },
+                                    },
                                   ]}
                                 >
                                   <Input
@@ -824,6 +898,14 @@ export default function QuestionGroupModal({
                                       message: "Vui lòng nhập nội dung đáp án",
                                     },
                                     { max: 500, message: "Tối đa 500 ký tự" },
+                                    {
+                                      validator: (_, value) => {
+                                        if (!value || !String(value).trim()) {
+                                          return Promise.reject(new Error("Nội dung đáp án không được để trống hoặc chỉ có khoảng trắng"));
+                                        }
+                                        return Promise.resolve();
+                                      },
+                                    },
                                   ]}
                                 >
                                   <Input placeholder="Nhập nội dung đáp án" />
