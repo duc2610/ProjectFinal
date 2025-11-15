@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -40,7 +41,7 @@ namespace ToeicGenius.Domains.Entities
         public string? AudioFileUrl { get; set; }
         public string? ImageFileUrl { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = Now;
         public DateTime? UpdatedAt { get; set; }
     }
 }

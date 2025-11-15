@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using ToeicGenius.Domains.Enums;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -23,8 +24,9 @@ namespace ToeicGenius.Domains.Entities
 		public int CorrectCount { get; set; }
 		public int IncorrectCount { get; set; }
 		public int SkipCount { get; set; }
+		public bool IsSelectTime { get; set; } = true;
 		public TestType TestType { get; set; }
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime CreatedAt { get; set; } = Now;
 		public DateTime? UpdatedAt { get; set; }
 		public ICollection<UserAnswer> UserAnswers { get; set; } = new List<UserAnswer>();
 		public ICollection<UserTestSkillScore> SkillScores { get; set; } = new List<UserTestSkillScore>();

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Repositories.Persistence;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Repositories.Implementations
 {
@@ -37,7 +38,7 @@ namespace ToeicGenius.Repositories.Implementations
             {
                 set.TotalCards = await _context.Flashcards
                     .CountAsync(f => f.SetId == setId);
-                set.UpdatedAt = DateTime.UtcNow;
+                set.UpdatedAt = Now;
             }
         }
 

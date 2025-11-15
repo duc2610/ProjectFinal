@@ -10,6 +10,7 @@ using ToeicGenius.Domains.DTOs.Requests.AI.Writing;
 using ToeicGenius.Domains.DTOs.Responses.AI;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Controllers
 {
@@ -248,7 +249,7 @@ namespace ToeicGenius.Controllers
             return Ok(new
             {
                 success = true,
-                timestamp = DateTime.UtcNow,
+                timestamp = Now,
                 services = new
                 {
                     writing_api = new

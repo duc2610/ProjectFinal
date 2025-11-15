@@ -7,6 +7,7 @@ using ToeicGenius.Domains.DTOs.Requests.Test;
 using ToeicGenius.Domains.DTOs.Responses.Test;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Services.Interfaces;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Controllers
 {
@@ -157,7 +158,7 @@ namespace ToeicGenius.Controllers
 				if (!result.IsSuccess)
 					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Failed to generate template"));
 
-				var fileName = $"TOEIC_LR_Test_Template_{DateTime.UtcNow:yyyyMMdd}.xlsx";
+				var fileName = $"TOEIC_LR_Test_Template_{Now:yyyyMMdd}.xlsx";
 
 				// Set Content-Disposition header with both filename and filename* (RFC 5987) to ensure correct file extension
 				Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{fileName}";
@@ -183,7 +184,7 @@ namespace ToeicGenius.Controllers
 				if (!result.IsSuccess)
 					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Failed to generate S&W template"));
 
-				var fileName = $"TOEIC_SW_Test_Template_{DateTime.UtcNow:yyyyMMdd}.xlsx";
+				var fileName = $"TOEIC_SW_Test_Template_{Now:yyyyMMdd}.xlsx";
 
 				// Set Content-Disposition header with both filename and filename* (RFC 5987) to ensure correct file extension
 				Response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{fileName}";

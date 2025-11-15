@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -15,7 +16,7 @@ namespace ToeicGenius.Domains.Entities
 		public string Token { get; set; } = string.Empty;
 
 		public DateTime ExpiresAt { get; set; }
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime CreatedAt { get; set; } = Now;
 
 		[MaxLength(50)]
 		public string? CreatedByIp { get; set; }

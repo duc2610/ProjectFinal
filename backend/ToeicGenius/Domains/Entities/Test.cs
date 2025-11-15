@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using ToeicGenius.Domains.Enums;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -18,7 +19,7 @@ namespace ToeicGenius.Domains.Entities
 		public string? AudioUrl { get; set; }
 		[Required]
 		public int Duration { get; set; }
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime CreatedAt { get; set; } = Now;
 		public DateTime? UpdatedAt { get; set; }
 		public TestCreationStatus CreationStatus { get; set; } = TestCreationStatus.Draft;
 		public TestVisibilityStatus VisibilityStatus { get; set; } = TestVisibilityStatus.Hidden;

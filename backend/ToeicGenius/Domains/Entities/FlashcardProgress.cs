@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -25,7 +26,7 @@ namespace ToeicGenius.Domains.Entities
         public DateTime? LastReviewedAt { get; set; }
         public DateTime? NextReviewAt { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = Now;
         public DateTime? UpdatedAt { get; set; }
     }
 }

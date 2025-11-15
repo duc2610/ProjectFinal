@@ -1,6 +1,7 @@
 ﻿using System.Text.RegularExpressions;
 using ToeicGenius.Shared.Constants;
 using static System.Net.WebRequestMethods;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Shared.Helpers
 {
@@ -29,7 +30,7 @@ namespace ToeicGenius.Shared.Helpers
 
 		public static bool ValidateOtp(string inputOtp, string storedOtp, DateTime expiryTime)
 		{
-			if (DateTime.UtcNow > expiryTime) return false;
+			if (Now > expiryTime) return false;
 			return BCrypt.Net.BCrypt.Verify(inputOtp, storedOtp);
 		}
 		public static (bool IsValid, string? ErrorMessage) ValidatePassword(string? password)

@@ -5,6 +5,7 @@ using ToeicGenius.Domains.DTOs.Requests.Test;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.BackgroundServices
 {
@@ -61,7 +62,7 @@ namespace ToeicGenius.BackgroundServices
 
 				if (expiredTests == null || !expiredTests.Any())
 				{
-					_logger.LogDebug("No expired tests found at {Time}", DateTime.UtcNow);
+					_logger.LogDebug("No expired tests found at {Time}", Now);
 					return;
 				}
 
@@ -78,7 +79,7 @@ namespace ToeicGenius.BackgroundServices
 							continue;
 						}
 
-						var elapsedTime = DateTime.UtcNow - testResult.CreatedAt;
+						var elapsedTime = Now - testResult.CreatedAt;
 						var expectedDuration = TimeSpan.FromMinutes(test.Duration + 5); // 5 minutes grace period
 
 						if (elapsedTime > expectedDuration)
@@ -120,7 +121,7 @@ namespace ToeicGenius.BackgroundServices
 								// For Speaking/Writing tests, just mark as Graded (bulk grading will handle scoring)
 								testResult.Status = TestResultStatus.Graded;
 								testResult.Duration = (int)elapsedTime.TotalMinutes;
-								testResult.UpdatedAt = DateTime.UtcNow;
+								testResult.UpdatedAt = Now;
 								await uow.TestResults.UpdateAsync(testResult);
 								await uow.SaveChangesAsync();
 

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using ToeicGenius.Domains.Enums;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -16,7 +17,7 @@ namespace ToeicGenius.Domains.Entities
 		public string? Content { get; set; }
 		public bool IsCorrect { get; set; }
 		public CommonStatus Status { get; set; } = CommonStatus.Active;
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime CreatedAt { get; set; } = Now;
 		public DateTime? UpdatedAt { get; set; }
 	}
 }

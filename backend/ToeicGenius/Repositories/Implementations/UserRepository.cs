@@ -6,6 +6,7 @@ using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Repositories.Persistence;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Repositories.Implementations
 {
@@ -26,7 +27,7 @@ namespace ToeicGenius.Repositories.Implementations
 		// Count new user this month
 		public async Task<int> CountNewUsersThisMonthAsync()
 		{
-			var now = DateTime.UtcNow.Date;
+			var now = Today;
 			var startOfMonth = new DateTime(now.Year, now.Month, 1);
 			return await _context.Users.CountAsync(u => u.CreatedAt >= startOfMonth);
 		}
@@ -34,7 +35,7 @@ namespace ToeicGenius.Repositories.Implementations
 		// Count new user this week
 		public async Task<int> CountNewUsersThisWeekAsync()
 		{
-			var now = DateTime.UtcNow.Date;
+			var now = Today;
 			var diff = (7 + (int)now.DayOfWeek - (int)DayOfWeek.Monday) % 7; // tuần bắt đầu từ Monday
 			var startOfWeek = now.AddDays(-diff);
 			return await _context.Users.CountAsync(u => u.CreatedAt >= startOfWeek);

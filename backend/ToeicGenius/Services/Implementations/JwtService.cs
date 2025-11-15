@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using System.Text;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Services.Interfaces;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -55,9 +56,9 @@ namespace ToeicGenius.Services.Implementations
 			return new RefreshToken
 			{
 				Token = Convert.ToBase64String(randomBytes),
-				ExpiresAt = DateTime.UtcNow.AddDays(7),
+				ExpiresAt = Now.AddDays(7),
 				CreatedByIp = ipAddress,
-				CreatedAt = DateTime.UtcNow,
+				CreatedAt = Now,
 			};
 		}
 

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Repositories.Persistence;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Repositories.Implementations
 {
@@ -68,7 +69,7 @@ namespace ToeicGenius.Repositories.Implementations
 
         public async Task<AIFeedback> UpdateAsync(AIFeedback feedback)
         {
-            feedback.UpdatedAt = DateTime.UtcNow;
+            feedback.UpdatedAt = Now;
             _context.AIFeedbacks.Update(feedback);
             await _context.SaveChangesAsync();
             return feedback;
