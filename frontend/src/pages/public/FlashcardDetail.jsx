@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Card, Space, Row, Col, message, Empty } from "antd";
+import { Button, Card, Space, Row, Col, message, Empty, Spin } from "antd";
 import {
   ArrowLeftOutlined,
   LeftOutlined,
@@ -13,6 +13,10 @@ import {
   CheckOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
+import { getFlashcardSetById, getFlashcardsBySetId, deleteFlashcard } from "@services/flashcardService";
+import AddFlashcardModal from "@shared/components/Flashcard/AddFlashcardModal";
+import UpdateFlashcardSetModal from "@shared/components/Flashcard/UpdateFlashcardSetModal";
+import UpdateFlashcardModal from "@shared/components/Flashcard/UpdateFlashcardModal";
 import "@shared/styles/FlashcardDetail.css";
 
 export default function FlashcardDetail() {
@@ -24,56 +28,31 @@ export default function FlashcardDetail() {
   const [flashcards, setFlashcards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [studyMode, setStudyMode] = useState("flashcard"); // flashcard, learn
+  const [addCardModalOpen, setAddCardModalOpen] = useState(false);
+  const [editSetModalOpen, setEditSetModalOpen] = useState(false);
+  const [editCardModalOpen, setEditCardModalOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState(null);
 
   useEffect(() => {
-    fetchFlashcardDetail();
+    if (setId) {
+      fetchFlashcardDetail();
+    }
   }, [setId]);
 
   const fetchFlashcardDetail = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // Mock data for now
-      const mockSet = {
-        setId: parseInt(setId),
-        title: "Present Perfect structure",
-        formula: "Subject + have/has + past participle",
-        description: "Learn the structure and usage of Present Perfect tense",
-      };
+      const [setData, cardsData] = await Promise.all([
+        getFlashcardSetById(setId),
+        getFlashcardsBySetId(setId),
+      ]);
 
-      const mockCards = [
-        {
-          cardId: 1,
-          frontText: "accomplish",
-          backText: "hoàn thành, đạt được",
-        },
-        {
-          cardId: 2,
-          frontText: "achieve",
-          backText: "đạt được, thực hiện",
-        },
-        {
-          cardId: 3,
-          frontText: "complete",
-          backText: "hoàn thành, kết thúc",
-        },
-        {
-          cardId: 4,
-          frontText: "finish",
-          backText: "kết thúc, hoàn tất",
-        },
-        {
-          cardId: 5,
-          frontText: "succeed",
-          backText: "thành công, đạt được",
-        },
-      ];
-
-      setFlashcardSet(mockSet);
-      setFlashcards(mockCards);
+      setFlashcardSet(setData);
+      setFlashcards(Array.isArray(cardsData) ? cardsData : []);
     } catch (error) {
       console.error("Error fetching flashcard detail:", error);
-      message.error("Không thể tải chi tiết flashcard");
+      const errorMsg = error?.response?.data?.message || "Không thể tải chi tiết flashcard";
+      message.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -102,9 +81,23 @@ export default function FlashcardDetail() {
     setIsFlipped(false);
   };
 
-  const handleDeleteCard = (cardId, e) => {
+  const handleDeleteCard = async (cardId, e) => {
     e.stopPropagation();
-    message.info("Tính năng đang phát triển");
+    try {
+      await deleteFlashcard(cardId);
+      message.success("Xóa thẻ thành công");
+      // Reload cards
+      const cardsData = await getFlashcardsBySetId(setId);
+      setFlashcards(Array.isArray(cardsData) ? cardsData : []);
+      // Reset to first card if current card was deleted
+      if (currentCardIndex >= flashcards.length - 1) {
+        setCurrentCardIndex(Math.max(0, flashcards.length - 2));
+      }
+    } catch (error) {
+      console.error("Error deleting flashcard:", error);
+      const errorMsg = error?.response?.data?.message || "Không thể xóa thẻ";
+      message.error(errorMsg);
+    }
   };
 
   const handlePlayAudio = (e) => {
@@ -114,16 +107,24 @@ export default function FlashcardDetail() {
 
   const currentCard = flashcards[currentCardIndex];
 
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", padding: "100px 0" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
   return (
     <div className="quizlet-container">
       {/* Header */}
       <div className="quizlet-header">
        
-        {flashcardSet && (
+            {flashcardSet && (
           <div className="quizlet-title-section">
             <h1 className="quizlet-title">{flashcardSet.title}</h1>
-            {flashcardSet.formula && (
-              <p className="quizlet-subtitle">{flashcardSet.formula}</p>
+            {flashcardSet.description && (
+              <p className="quizlet-subtitle">{flashcardSet.description}</p>
             )}
           </div>
         )}
@@ -152,7 +153,7 @@ export default function FlashcardDetail() {
         <Button
           type="default"
           icon={<PlusOutlined />}
-          onClick={() => message.info("Tính năng đang phát triển")}
+          onClick={() => setAddCardModalOpen(true)}
           className="quizlet-action-btn"
         >
           Thêm thẻ
@@ -160,7 +161,7 @@ export default function FlashcardDetail() {
         <Button
           type="default"
           icon={<EditOutlined />}
-          onClick={() => message.info("Tính năng đang phát triển")}
+          onClick={() => setEditSetModalOpen(true)}
           className="quizlet-action-btn"
         >
           Chỉnh sửa
@@ -186,7 +187,7 @@ export default function FlashcardDetail() {
               <div className="quizlet-card-inner">
                 <div className={`quizlet-card-face quizlet-card-front ${isFlipped ? "hidden" : ""}`}>
                   <div className="quizlet-card-content">
-                    <div className="quizlet-card-word">{currentCard?.frontText}</div>
+                    <div className="quizlet-card-word">{currentCard?.term || currentCard?.frontText}</div>
                     <div className="quizlet-card-hint">
                       <RotateLeftOutlined /> Nhấn để xem nghĩa
                     </div>
@@ -194,7 +195,7 @@ export default function FlashcardDetail() {
                 </div>
                 <div className={`quizlet-card-face quizlet-card-back ${!isFlipped ? "hidden" : ""}`}>
                   <div className="quizlet-card-content">
-                    <div className="quizlet-card-word">{currentCard?.backText}</div>
+                    <div className="quizlet-card-word">{currentCard?.definition || currentCard?.backText}</div>
                     <div className="quizlet-card-hint">
                       <RotateLeftOutlined /> Nhấn để xem từ
                     </div>
@@ -241,10 +242,20 @@ export default function FlashcardDetail() {
               >
                 <div className="quizlet-vocab-number">{index + 1}</div>
                 <div className="quizlet-vocab-content">
-                  <div className="quizlet-vocab-term">{card.frontText}</div>
-                  <div className="quizlet-vocab-definition">{card.backText}</div>
+                  <div className="quizlet-vocab-term">{card.term || card.frontText}</div>
+                  <div className="quizlet-vocab-definition">{card.definition || card.backText}</div>
                 </div>
                 <div className="quizlet-vocab-actions">
+                  <Button
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingCard(card);
+                      setEditCardModalOpen(true);
+                    }}
+                    className="quizlet-vocab-action-icon"
+                  />
                   <Button
                     type="text"
                     icon={<SoundOutlined />}
@@ -264,6 +275,36 @@ export default function FlashcardDetail() {
           </div>
         )}
       </div>
+
+      <AddFlashcardModal
+        open={addCardModalOpen}
+        onClose={() => setAddCardModalOpen(false)}
+        onSuccess={() => {
+          fetchFlashcardDetail();
+        }}
+        setId={parseInt(setId)}
+      />
+
+      <UpdateFlashcardSetModal
+        open={editSetModalOpen}
+        onClose={() => setEditSetModalOpen(false)}
+        onSuccess={() => {
+          fetchFlashcardDetail();
+        }}
+        setId={parseInt(setId)}
+      />
+
+      <UpdateFlashcardModal
+        open={editCardModalOpen}
+        onClose={() => {
+          setEditCardModalOpen(false);
+          setEditingCard(null);
+        }}
+        onSuccess={() => {
+          fetchFlashcardDetail();
+        }}
+        card={editingCard}
+      />
     </div>
   );
 }
