@@ -64,11 +64,12 @@ export default function QuestionGroupModal({
   const audioList = Form.useWatch("audio", form);
   const imageList = Form.useWatch("image", form);
 
+  // Chỉ hiển thị các kỹ năng có Group Question
+  // Listening (3) có Part 3, 4
+  // Reading (4) có Part 6, 7
   const SKILLS = [
-    { value: 3, label: "Listening" },
-    { value: 4, label: "Reading" },
-    { value: 1, label: "Speaking" },
-    { value: 2, label: "Writing" },
+    { value: 3, label: "Nghe" },
+    { value: 4, label: "Đọc" },
   ];
 
   const toNum = (v) => {
@@ -145,11 +146,11 @@ export default function QuestionGroupModal({
     })().catch(() => setImageSrc(null));
   }, [imageList]);
 
-  const createEmptyQuestion = () => ({
+  const createEmptyQuestion = (groupPartId = undefined) => ({
     questionId: null,
     content: "",
     questionTypeId: undefined,
-    partId: undefined,
+    partId: groupPartId ? toNum(groupPartId) : undefined,
     solution: "",
     answerOptions: [
       { optionId: null, label: "A", content: "", isCorrect: false },
@@ -237,15 +238,16 @@ export default function QuestionGroupModal({
           })),
         }));
 
+        const groupPartId = toNum(g.partId);
         form.setFieldsValue({
           skill: toNum(skillId),
-          partId: toNum(g.partId),
+          partId: groupPartId,
           passageContent: g.passageContent ?? "",
           audio: audioFiles,
           image: imageFiles,
           questions: mappedQs.length
             ? mappedQs
-            : [createEmptyQuestion(), createEmptyQuestion()],
+            : [createEmptyQuestion(groupPartId), createEmptyQuestion(groupPartId)],
         });
 
         // set default questionTypeId cho câu con nếu thiếu
@@ -293,17 +295,44 @@ export default function QuestionGroupModal({
     const types = await loadTypes(partId);
     const firstType = toNum(types?.[0]?.__val);
     const cur = form.getFieldValue("questions") || [];
+    const partIdNum = toNum(partId);
+    
+    // Cập nhật tất cả câu hỏi con với partId mới
     form.setFieldsValue({
       questions: cur.map((q) => ({
         ...q,
-        partId: toNum(partId),
+        partId: partIdNum, // Luôn set partId từ nhóm
         questionTypeId: q.questionTypeId ?? firstType,
       })),
     });
+    
     try {
       await form.validateFields(["audio", "image", ["questions"]]);
     } catch {}
   };
+
+  // Tự động sync partId của các câu hỏi con khi partId của nhóm thay đổi
+  useEffect(() => {
+    if (!selectedPart) return;
+    
+    const questions = form.getFieldValue("questions") || [];
+    const partIdNum = toNum(selectedPart);
+    
+    // Chỉ update nếu có câu hỏi nào chưa có partId hoặc partId khác với nhóm
+    const needsUpdate = questions.some(q => {
+      const qPartId = toNum(q?.partId);
+      return qPartId !== partIdNum;
+    });
+    
+    if (needsUpdate && questions.length > 0) {
+      form.setFieldsValue({
+        questions: questions.map((q) => ({
+          ...q,
+          partId: partIdNum, // Luôn sync với partId của nhóm
+        })),
+      });
+    }
+  }, [selectedPart]);
   // Chọn đáp án đúng (radio behavior)
   const handleToggleCorrect = (qIndex, optIndex, checked) => {
     const list = form.getFieldValue("questions") || [];
@@ -455,11 +484,12 @@ export default function QuestionGroupModal({
 
   return (
     <Modal
-      title={isEdit ? "Edit Question Group" : "Add Question Group"}
+      title={isEdit ? "Chỉnh sửa Nhóm câu hỏi" : "Thêm Nhóm câu hỏi"}
       open={open}
       onCancel={onClose}
       onOk={onSubmit}
-      okText={isEdit ? "Update" : "Create"}
+      okText={isEdit ? "Cập nhật" : "Tạo mới"}
+      cancelText="Hủy"
       confirmLoading={submitting}
       destroyOnClose
       width={1000}
@@ -470,11 +500,11 @@ export default function QuestionGroupModal({
           <Col span={8}>
             <Form.Item
               name="skill"
-              label="Skill"
-              rules={[{ required: true, message: "Chọn Skill" }]}
+              label="Kỹ năng"
+              rules={[{ required: true, message: "Vui lòng chọn kỹ năng" }]}
             >
               <Select
-                placeholder="Chọn Skill"
+                placeholder="Chọn kỹ năng"
                 options={SKILLS}
                 allowClear
                 onChange={onChangeSkill}
@@ -485,8 +515,8 @@ export default function QuestionGroupModal({
           <Col span={8}>
             <Form.Item
               name="partId"
-              label="Part (Group chỉ: 3, 4, 6, 7)"
-              rules={[{ required: true, message: "Chọn Part" }]}
+              label="Part (Nhóm chỉ: 3, 4, 6, 7)"
+              rules={[{ required: true, message: "Vui lòng chọn Part" }]}
             >
               <Select
                 placeholder="Chọn Part"
@@ -510,24 +540,24 @@ export default function QuestionGroupModal({
 
         <Form.Item
           name="passageContent"
-          label="Passage / Content (nhóm)"
+          label="Nội dung đoạn văn / Passage"
           rules={[
-            { required: true, message: "Nhập nội dung nhóm (passage/content)" },
+            { required: true, message: "Vui lòng nhập nội dung đoạn văn" },
           ]}
         >
-          <Input.TextArea rows={4} placeholder="Nhập nội dung..." />
+          <Input.TextArea rows={4} placeholder="Nhập nội dung đoạn văn..." />
         </Form.Item>
 
         <Row gutter={12}>
           <Col span={12}>
             <Form.Item
               name="audio"
-              label={`Group Audio ${
-                isAudioRequired ? "(bắt buộc - MP3)" : "(tuỳ chọn - MP3)"
+              label={`Audio nhóm ${
+                isAudioRequired ? "(bắt buộc - MP3)" : "(tùy chọn - MP3)"
               }`}
               valuePropName="fileList"
               getValueFromEvent={(e) => e?.fileList}
-              rules={[validateGroupAudio(), validateMp3("Chỉ chấp nhận .mp3")]}
+              rules={[validateGroupAudio(), validateMp3("Chỉ chấp nhận file .mp3")]}
             >
               <Upload
                 beforeUpload={() => false}
@@ -542,7 +572,7 @@ export default function QuestionGroupModal({
                   return true;
                 }}
               >
-                <Button icon={<UploadOutlined />}>Chọn audio (.mp3)</Button>
+                <Button icon={<UploadOutlined />}>Chọn file audio (.mp3)</Button>
               </Upload>
               {audioSrc && (
                 <div style={{ marginTop: 8 }}>
@@ -560,8 +590,8 @@ export default function QuestionGroupModal({
           <Col span={12}>
             <Form.Item
               name="image"
-              label={`Group Image ${
-                isImageRequired ? "(bắt buộc)" : "(tuỳ chọn)"
+              label={`Ảnh nhóm ${
+                isImageRequired ? "(bắt buộc)" : "(tùy chọn)"
               }`}
               valuePropName="fileList"
               getValueFromEvent={(e) => e?.fileList}
@@ -613,16 +643,22 @@ export default function QuestionGroupModal({
                 style={{ marginBottom: 8 }}
               >
                 <Col>
-                  <strong>Questions in Group (2–5)</strong>
+                  <strong>Câu hỏi trong nhóm (2–5 câu)</strong>
                 </Col>
                 <Col>
                   <Button
-                    onClick={() =>
+                    onClick={() => {
+                      const groupPartId = form.getFieldValue("partId");
+                      const currentQuestions = form.getFieldValue("questions") || [];
+                      const firstType = questionTypes?.[0]?.__val 
+                        ? toNum(questionTypes[0].__val) 
+                        : undefined;
+                      
                       add({
                         questionId: null,
                         content: "",
-                        questionTypeId: undefined,
-                        partId: undefined,
+                        questionTypeId: firstType,
+                        partId: groupPartId ? toNum(groupPartId) : undefined,
                         solution: "",
                         answerOptions: [
                           {
@@ -650,8 +686,8 @@ export default function QuestionGroupModal({
                             isCorrect: false,
                           },
                         ],
-                      })
-                    }
+                      });
+                    }}
                     icon={<PlusOutlined />}
                     disabled={fields.length >= 5}
                   >
@@ -695,13 +731,13 @@ export default function QuestionGroupModal({
                       <Form.Item
                         {...restField}
                         name={[name, "questionTypeId"]}
-                        label="Question Type"
+                        label="Loại câu hỏi"
                         rules={[
-                          { required: true, message: "Chọn Question Type" },
+                          { required: true, message: "Vui lòng chọn loại câu hỏi" },
                         ]}
                       >
                         <Select
-                          placeholder="Chọn type"
+                          placeholder="Chọn loại câu hỏi"
                           options={questionTypes?.map((t) => ({
                             value:
                               t.__val ?? toNum(t.questionTypeId ?? t.id ?? t),
@@ -717,9 +753,10 @@ export default function QuestionGroupModal({
                         {...restField}
                         name={[name, "partId"]}
                         label="Part (của câu)"
+                        initialValue={selectedPart}
                       >
                         <Select
-                          placeholder="Theo group Part nếu bỏ trống"
+                          placeholder="Theo Part của nhóm nếu bỏ trống"
                           allowClear
                           options={(parts || [])
                             .filter((p) => isGroupPart(p.partId ?? p.id ?? p))
@@ -763,10 +800,10 @@ export default function QuestionGroupModal({
                                 <Form.Item
                                   {...rest2}
                                   name={[n2, "label"]}
-                                  label={idx === 0 ? "Label" : ""}
+                                  label={idx === 0 ? "Nhãn" : ""}
                                   rules={[
-                                    { required: true, message: "Nhập label" },
-                                    { max: 3, message: "<= 3 ký tự" },
+                                    { required: true, message: "Vui lòng nhập nhãn" },
+                                    { max: 3, message: "Tối đa 3 ký tự" },
                                   ]}
                                 >
                                   <Input
@@ -780,23 +817,23 @@ export default function QuestionGroupModal({
                                 <Form.Item
                                   {...rest2}
                                   name={[n2, "content"]}
-                                  label={idx === 0 ? "Đáp án" : ""}
+                                  label={idx === 0 ? "Nội dung đáp án" : ""}
                                   rules={[
                                     {
                                       required: true,
-                                      message: "Nhập nội dung đáp án",
+                                      message: "Vui lòng nhập nội dung đáp án",
                                     },
-                                    { max: 500, message: "<= 500 ký tự" },
+                                    { max: 500, message: "Tối đa 500 ký tự" },
                                   ]}
                                 >
-                                  <Input placeholder="Nội dung đáp án" />
+                                  <Input placeholder="Nhập nội dung đáp án" />
                                 </Form.Item>
                               </Col>
                               <Col span={4}>
                                 <Form.Item
                                   valuePropName="checked"
                                   name={[n2, "isCorrect"]}
-                                  label={idx === 0 ? "Đúng?" : ""}
+                                  label={idx === 0 ? "Đúng" : ""}
                                 >
                                   <Checkbox
                                     onChange={(e) =>
@@ -819,9 +856,9 @@ export default function QuestionGroupModal({
                   <Form.Item
                     {...restField}
                     name={[name, "solution"]}
-                    label="Solution (tuỳ chọn)"
+                    label="Giải thích (tùy chọn)"
                   >
-                    <Input.TextArea rows={2} />
+                    <Input.TextArea rows={2} placeholder="Nhập giải thích..." />
                   </Form.Item>
                 </div>
               ))}

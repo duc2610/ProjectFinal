@@ -370,6 +370,14 @@ export async function downloadTemplate4Skills() {
   return res.data;
 }
 
+// Download Excel template for S&W test (Speaking & Writing)
+export async function downloadTemplateSW() {
+  const res = await api.get("/api/tests/download-template-sw", {
+    responseType: "blob",
+  });
+  return res.data;
+}
+
 // Import test from Excel file (L&R)
 export async function importTestFromExcel(excelFile, audioFile) {
   const formData = new FormData();
@@ -389,6 +397,16 @@ export async function importTest4SkillsFromExcel(excelFile, audioFile) {
   
   // apiClient will automatically handle FormData and remove Content-Type header
   const res = await api.post("/api/tests/import-excel-4skills", formData);
+  return res?.data?.data ?? res?.data;
+}
+
+// Import S&W test from Excel file (Speaking & Writing only, no audio needed)
+export async function importTestSWFromExcel(excelFile) {
+  const formData = new FormData();
+  formData.append("ExcelFile", excelFile);
+  
+  // apiClient will automatically handle FormData and remove Content-Type header
+  const res = await api.post("/api/tests/import-excel-sw", formData);
   return res?.data?.data ?? res?.data;
 }
 
