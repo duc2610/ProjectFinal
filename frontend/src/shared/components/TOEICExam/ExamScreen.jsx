@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { Layout, Button, Modal, Typography, message, Spin, Alert } from "antd";
 import { MenuOutlined, LoadingOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
@@ -47,6 +47,14 @@ export default function ExamScreen() {
   const originalPushStateRef = useRef(null);
   const originalReplaceStateRef = useRef(null);
   const autoSaveIntervalRef = useRef(null);
+
+  // Kiểm tra xem bài thi có Speaking/Writing không
+  const hasSpeakingOrWriting = useMemo(() => {
+    return questions.some(q => {
+      const partId = q.partId;
+      return (partId >= 8 && partId <= 10) || (partId >= 11 && partId <= 15);
+    });
+  }, [questions]);
 
   // Sync ref với state
   useEffect(() => {
@@ -799,7 +807,17 @@ export default function ExamScreen() {
 
       <Modal open={showSubmitModal} footer={null} closable={false}>
         <div style={{ textAlign: "center", padding: 20 }}>
-          <Spin indicator={loadingIcon} /> <Text style={{ marginLeft: 12 }}>Đang nộp bài...</Text>
+          <Spin indicator={loadingIcon} size="large" />
+          <div style={{ marginTop: 16 }}>
+            <Text strong style={{ fontSize: 16, display: "block", marginBottom: 8 }}>
+              Đang nộp bài...
+            </Text>
+            {hasSpeakingOrWriting && (
+              <Text type="secondary" style={{ display: "block", fontSize: 14 }}>
+                Vui lòng đợi 5 đến 10 phút để AI chấm bài của bạn.
+              </Text>
+            )}
+          </div>
         </div>
       </Modal>
 

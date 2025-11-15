@@ -951,32 +951,14 @@ export default function ResultScreen() {
             }`}
             style={{ marginBottom: 10, cursor: "pointer" }}
           >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <Text strong>
-                  {s.icon} {s.title}
-                </Text>
-                <br />
-                <Text type="secondary">
-                  {s.score}/{s.max} điểm
-                </Text>
-              </div>
-              <Button
-                size="small"
-                type="link"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openDetailForSection(s.key);
-                }}
-              >
-                Xem chi tiết
-              </Button>
+            <div>
+              <Text strong>
+                {s.icon} {s.title}
+              </Text>
+              <br />
+              <Text type="secondary">
+                {s.score}/{s.max} điểm
+              </Text>
             </div>
           </Card>
         ))}
@@ -1422,7 +1404,9 @@ export default function ResultScreen() {
             <FileTextOutlined style={{ fontSize: 24, color: "#1890ff" }} />
             <span>
               Chi tiết đánh giá{" "}
-              {selectedSwFeedback?.partType?.includes("writing") ? "Writing" : "Speaking"}
+              {selectedSwFeedback?.aiScorer === "writing" ? "Viết" : 
+               selectedSwFeedback?.aiScorer === "speaking" ? "Nói" :
+               selectedSwFeedback?.partType?.includes("writing") ? "Viết" : "Nói"}
             </span>
           </div>
         }
