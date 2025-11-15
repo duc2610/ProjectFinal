@@ -24,7 +24,9 @@ export default function QuestionNavigator({ questions, currentIndex, answers, go
               const answerKey = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
                 ? `${q.testQuestionId}_${q.subQuestionIndex}`
                 : q.testQuestionId;
-              const isAnswered = answers[answerKey] !== undefined;
+              // Kiểm tra answer có giá trị hợp lệ (không phải undefined, null, hoặc empty string)
+              const answerValue = answers[answerKey];
+              const isAnswered = answerValue !== undefined && answerValue !== null && answerValue !== "";
               const isActive = idx === currentIndex;
 
               return (

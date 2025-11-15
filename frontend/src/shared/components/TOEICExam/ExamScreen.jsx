@@ -239,7 +239,15 @@ export default function ExamScreen() {
   ]);
 
   const onAnswer = (testQuestionId, value) => {
-    setAnswers((prev) => ({ ...prev, [testQuestionId]: value }));
+    setAnswers((prev) => {
+      // Nếu value là null, undefined, hoặc empty string, xóa key khỏi answers
+      if (value === null || value === undefined || value === "") {
+        const newAnswers = { ...prev };
+        delete newAnswers[testQuestionId];
+        return newAnswers;
+      }
+      return { ...prev, [testQuestionId]: value };
+    });
   };
 
   const goToQuestionByIndex = (i) => {

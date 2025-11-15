@@ -652,41 +652,64 @@ export default function QuestionCard({
                 const answerKey = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
                   ? `${question.testQuestionId}_${question.subQuestionIndex}`
                   : question.testQuestionId;
-                onAnswer(answerKey, e.target.value);
+                const currentValue = answers[answerKey];
+                // Nếu click vào radio đã chọn, bỏ chọn (set về null)
+                if (currentValue === e.target.value) {
+                  onAnswer(answerKey, null);
+                } else {
+                  onAnswer(answerKey, e.target.value);
+                }
               }}
               style={{ width: "100%" }}
             >
-              {question.options?.map((opt) => (
-                <div
-                  key={opt.key}
-                  className={styles.optionRow}
-                  style={{
-                    margin: "12px 0",
-                    padding: "16px",
-                    borderRadius: "8px",
-                    border: "2px solid #e2e8f0",
-                    transition: "all 0.2s ease",
-                    cursor: "pointer"
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "#f7fafc";
-                    e.currentTarget.style.borderColor = "#667eea";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "#ffffff";
-                    e.currentTarget.style.borderColor = "#e2e8f0";
-                  }}
-                >
-                  <Radio value={opt.key} style={{ width: "100%" }}>
-                    <Text strong style={{ color: "#667eea", marginRight: "8px" }}>
-                      {opt.key}.
-                    </Text>
-                    <Text style={{ fontSize: "15px", color: "#4a5568" }}>
-                      {opt.text}
-                    </Text>
-                  </Radio>
-                </div>
-              ))}
+              {question.options?.map((opt) => {
+                // Tạo key duy nhất cho mỗi câu hỏi
+                const answerKey = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+                  ? `${question.testQuestionId}_${question.subQuestionIndex}`
+                  : question.testQuestionId;
+                const currentValue = answers[answerKey];
+                const isSelected = currentValue === opt.key;
+                
+                return (
+                  <div
+                    key={opt.key}
+                    className={styles.optionRow}
+                    style={{
+                      margin: "12px 0",
+                      padding: "16px",
+                      borderRadius: "8px",
+                      border: "2px solid #e2e8f0",
+                      transition: "all 0.2s ease",
+                      cursor: "pointer"
+                    }}
+                    onClick={(e) => {
+                      // Nếu click vào radio đã chọn, bỏ chọn
+                      if (isSelected) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onAnswer(answerKey, null);
+                      }
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = "#f7fafc";
+                      e.currentTarget.style.borderColor = "#667eea";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = "#ffffff";
+                      e.currentTarget.style.borderColor = "#e2e8f0";
+                    }}
+                  >
+                    <Radio value={opt.key} style={{ width: "100%" }}>
+                      <Text strong style={{ color: "#667eea", marginRight: "8px" }}>
+                        {opt.key}.
+                      </Text>
+                      <Text style={{ fontSize: "15px", color: "#4a5568" }}>
+                        {opt.text}
+                      </Text>
+                    </Radio>
+                  </div>
+                );
+              })}
             </Radio.Group>
           </div>
         </div>
