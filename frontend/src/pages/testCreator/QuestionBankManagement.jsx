@@ -38,12 +38,13 @@ import {
   deleteQuestionGroup,
   restoreQuestionGroup,
 } from "@services/questionGroupService";
+import { getPartsBySkill } from "@services/partsService";
 
 const QUESTION_SKILLS = [
-  { value: 3, label: "Listening" },
-  { value: 4, label: "Reading" },
-  { value: 1, label: "Speaking" },
-  { value: 2, label: "Writing" },
+  { value: 3, label: "Nghe" },
+  { value: 4, label: "Đọc" },
+  { value: 1, label: "Nói" },
+  { value: 2, label: "Viết" },
 ];
 
 const skillNameToId = (s) => {
@@ -66,17 +67,17 @@ const toNum = (v) => {
 const normalizeStatus = (raw) => {
   const n = Number(raw);
   if (Number.isFinite(n)) {
-    if (n === 1) return { isActive: true, text: "Active", color: "green" };
-    if (n === 0) return { isActive: false, text: "Draft", color: "gold" };
-    return { isActive: false, text: "Inactive", color: "red" };
+    if (n === 1) return { isActive: true, text: "Hoạt động", color: "green" };
+    if (n === 0) return { isActive: false, text: "Bản nháp", color: "gold" };
+    return { isActive: false, text: "Ngưng hoạt động", color: "red" };
   }
   const s = String(raw ?? "").toLowerCase();
-  if (s === "active") return { isActive: true, text: "Active", color: "green" };
-  if (s === "draft") return { isActive: false, text: "Draft", color: "gold" };
-  return { isActive: false, text: "Inactive", color: "red" };
+  if (s === "active") return { isActive: true, text: "Hoạt động", color: "green" };
+  if (s === "draft") return { isActive: false, text: "Bản nháp", color: "gold" };
+  return { isActive: false, text: "Ngưng hoạt động", color: "red" };
 };
 
-export default function QuestionBankManagement() {
+export default function QuanLyNganHangCauHoi() {
   const [listLoading, setListLoading] = useState(false);
   const [dataSource, setDataSource] = useState([]);
   const [pagination, setPagination] = useState({
@@ -88,17 +89,19 @@ export default function QuestionBankManagement() {
   const [tabKey, setTabKey] = useState("single");
   const [searchKeyword, setSearchKeyword] = useState("");
   const [filterSkill, setFilterSkill] = useState("all");
+  const [filterPart, setFilterPart] = useState("all");
+  const [partsList, setPartsList] = useState([]);
   const [searchTimeout, setSearchTimeout] = useState(null);
 
-  // Modal state - Single
+  // Modal - Single
   const [singleModalOpen, setSingleModalOpen] = useState(false);
   const [editingSingleId, setEditingSingleId] = useState(null);
 
-  // Modal state - Group
+  // Modal - Group
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [editingGroupId, setEditingGroupId] = useState(null);
 
-  const loadList = async (page = 1, pageSize = 10, keyword = "", skill = "all") => {
+  const loadList = async (page = 1, pageSize = 10, keyword = "", skill = "all", partId = "all") => {
     try {
       setListLoading(true);
       const params = buildQuestionListParams({ 
@@ -106,6 +109,7 @@ export default function QuestionBankManagement() {
         pageSize,
         keyword: keyword || undefined,
         skill: skill !== "all" ? skill : undefined,
+        partId: partId !== "all" ? partId : undefined,
       });
       let res;
       if (tabKey === "single") {
@@ -159,6 +163,20 @@ export default function QuestionBankManagement() {
       const total = data?.totalCount ?? data?.total ?? items.length;
       setDataSource(items);
       setPagination({ current: page, pageSize, total });
+
+      // Extract unique parts from dataSource for filter (only when no skill filter)
+      if (skill === "all") {
+        const uniqueParts = [...new Map(
+          items
+            .filter(item => item.partName || item.partId)
+            .map(item => ({
+              id: item.partId || item.part?.id,
+              name: item.partName || item.part?.name || item.partId,
+            }))
+            .map(item => [item.id || item.name, item])
+        ).values()];
+        setPartsList(uniqueParts);
+      }
     } catch (e) {
       message.error("Không tải được danh sách câu hỏi");
       console.error(e);
@@ -167,16 +185,36 @@ export default function QuestionBankManagement() {
     }
   };
 
+  // Load parts when skill changes
   useEffect(() => {
-    loadList(1, 10, searchKeyword, filterSkill);
+    const loadParts = async () => {
+      if (filterSkill !== "all") {
+        try {
+          const parts = await getPartsBySkill(filterSkill);
+          const partsData = Array.isArray(parts) ? parts : (parts?.data || []);
+          setPartsList(partsData.map(p => ({
+            id: p.partId || p.id,
+            name: p.partName || p.name,
+          })));
+        } catch (e) {
+          console.error("Error loading parts:", e);
+        }
+      } else {
+        setPartsList([]);
+      }
+    };
+    loadParts();
+  }, [filterSkill]);
+
+  useEffect(() => {
+    loadList(1, 10, searchKeyword, filterSkill, filterPart);
     
-    // Cleanup timeout khi component unmount
     return () => {
       if (searchTimeout) {
         clearTimeout(searchTimeout);
       }
     };
-  }, [showDeleted, tabKey]);
+  }, [showDeleted, tabKey, filterPart]);
 
   const filteredData = useMemo(() => dataSource, [dataSource]);
 
@@ -201,52 +239,53 @@ export default function QuestionBankManagement() {
   };
 
   const afterSaved = () => {
-    loadList(pagination.current, pagination.pageSize, searchKeyword, filterSkill);
+    loadList(pagination.current, pagination.pageSize, searchKeyword, filterSkill, filterPart);
   };
 
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchKeyword(value);
     
-    // Clear timeout cũ
     if (searchTimeout) {
       clearTimeout(searchTimeout);
     }
     
-    // Tạo timeout mới để debounce search
     const newTimeout = setTimeout(() => {
       setPagination({ ...pagination, current: 1 });
-      loadList(1, pagination.pageSize, value, filterSkill);
-    }, 500); // Delay 500ms sau khi người dùng ngừng gõ
+      loadList(1, pagination.pageSize, value, filterSkill, filterPart);
+    }, 500);
     
     setSearchTimeout(newTimeout);
   };
 
   const handleSkillFilterChange = (skill) => {
     setFilterSkill(skill);
+    setFilterPart("all"); // Reset part filter when skill changes
     setPagination({ ...pagination, current: 1 });
-    loadList(1, pagination.pageSize, searchKeyword, skill);
+    loadList(1, pagination.pageSize, searchKeyword, skill, "all");
   };
 
-  const handleTableChange = (newPagination) => {
-    loadList(newPagination.current, newPagination.pageSize, searchKeyword, filterSkill);
+  const handlePartFilterChange = (partId) => {
+    setFilterPart(partId);
+    setPagination({ ...pagination, current: 1 });
+    loadList(1, pagination.pageSize, searchKeyword, filterSkill, partId);
   };
 
   return (
     <>
       <Card
-        title="Question List"
+        title="Danh sách câu hỏi"
         size="small"
         extra={
           <Space>
-            <span>Show Deleted</span>
+            <span>Hiện câu đã xoá</span>
             <Switch checked={showDeleted} onChange={setShowDeleted} />
             {!showDeleted && (
               <>
                 <Button type="primary" onClick={openAddSingle}>
-                  Add Single
+                  Thêm câu
                 </Button>
-                <Button onClick={openAddGroup}>Add Group</Button>
+                <Button onClick={openAddGroup}>Thêm nhóm câu</Button>
               </>
             )}
           </Space>
@@ -256,7 +295,7 @@ export default function QuestionBankManagement() {
           <Col flex="auto">
             <Space size="middle" style={{ width: '100%' }}>
               <Input
-                placeholder="Tìm kiếm theo tên/nội dung..."
+                placeholder="Tìm kiếm theo nội dung..."
                 style={{ width: 300 }}
                 value={searchKeyword}
                 onChange={handleSearchChange}
@@ -266,13 +305,27 @@ export default function QuestionBankManagement() {
               <Select
                 value={filterSkill}
                 onChange={handleSkillFilterChange}
-                style={{ width: 200 }}
+                style={{ width: 180 }}
                 placeholder="Chọn kỹ năng"
               >
                 <Select.Option value="all">Tất cả kỹ năng</Select.Option>
                 {QUESTION_SKILLS.map((skill) => (
                   <Select.Option key={skill.value} value={skill.value}>
                     {skill.label}
+                  </Select.Option>
+                ))}
+              </Select>
+              <Select
+                value={filterPart}
+                onChange={handlePartFilterChange}
+                style={{ width: 200 }}
+                placeholder="Chọn Part"
+                disabled={filterSkill === "all"}
+              >
+                <Select.Option value="all">Tất cả Part</Select.Option>
+                {partsList.map((part) => (
+                  <Select.Option key={part.id || part.name} value={part.id || part.name}>
+                    {part.name}
                   </Select.Option>
                 ))}
               </Select>
@@ -284,8 +337,8 @@ export default function QuestionBankManagement() {
           activeKey={tabKey}
           onChange={setTabKey}
           items={[
-            { key: "single", label: "Single" },
-            { key: "group", label: "Group" },
+            { key: "single", label: "Câu lẻ" },
+            { key: "group", label: "Nhóm câu" },
           ]}
         />
 
@@ -293,52 +346,52 @@ export default function QuestionBankManagement() {
           rowKey={(r) => `${r.id}-${r.isGroupQuestion ? "G" : "S"}`}
           dataSource={filteredData}
           loading={listLoading}
-          pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: pagination.total,
-            onChange: (p, ps) => loadList(p, ps, searchKeyword, filterSkill),
-          }}
+          pagination={pagination}
           columns={[
             { title: "ID", dataIndex: "id", width: 80 },
             {
               title: "Part",
               dataIndex: "partName",
               width: 140,
-              render: (_, r) => r.partName || r.partId,
+              render: (_, r) => r.partName || r.partId || "-",
             },
             {
-              title: "Skill",
+              title: "Kỹ năng",
               dataIndex: "__skillName",
               width: 120,
-              render: (v, r) => r.__skillName || "-",
+              render: (v, r) => {
+                const skillName = r.__skillName || "";
+                const skillMap = {
+                  "Listening": "Nghe",
+                  "Reading": "Đọc",
+                  "Speaking": "Nói",
+                  "Writing": "Viết",
+                };
+                return skillMap[skillName] || skillName || "-";
+              },
             },
             {
-              title: "Type",
+              title: "Loại",
               dataIndex: "isGroupQuestion",
               width: 100,
               render: (v) =>
-                v ? <Tag color="purple">Group</Tag> : <Tag>Single</Tag>,
+                v ? <Tag color="purple">Nhóm</Tag> : <Tag color="orange">Đơn</Tag>,
             },
             {
-              title: "Content / Passage",
+              title: "Nội dung / Đoạn văn",
               dataIndex: "content",
               ellipsis: true,
             },
             {
-              title: "Status",
+              title: "Trạng thái",
               dataIndex: "status",
               width: 110,
               render: (_, r) => <Tag color={r.statusColor}>{r.statusText}</Tag>,
             },
             {
-              title: "Actions",
+              title: "Hành động",
               width: 120,
               render: (_, record) => {
-                const isDeleted =
-                  String(record?.statusText).toLowerCase() === "inactive" ||
-                  record?.isDeleted === true;
-
                 return (
                   <Space>
                     {!showDeleted && (
@@ -354,7 +407,7 @@ export default function QuestionBankManagement() {
 
                     {!showDeleted ? (
                       <Popconfirm
-                        title="Xoá?"
+                        title="Bạn chắc chắn muốn xoá?"
                         onConfirm={async () => {
                           try {
                             if (record.isGroupQuestion) {
@@ -362,7 +415,7 @@ export default function QuestionBankManagement() {
                             } else {
                               await deleteQuestion(record.id, false);
                             }
-                            loadList(pagination.current, pagination.pageSize, searchKeyword, filterSkill);
+                            afterSaved();
                           } catch (e) {
                             const msg =
                               e?.response?.data?.message ||
@@ -390,7 +443,7 @@ export default function QuestionBankManagement() {
                             } else {
                               await restoreQuestion(record.id, false);
                             }
-                            loadList(pagination.current, pagination.pageSize, searchKeyword, filterSkill);
+                            afterSaved();
                           } catch (e) {
                             const msg =
                               e?.response?.data?.message ||

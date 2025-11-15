@@ -52,7 +52,8 @@ export default function TestList() {
                         testSkill: test.testSkill === "Speaking" ? "Speaking" :
                                   test.testSkill === "Writing" ? "Writing" :
                                   test.testSkill === "LR" ? "Listening & Reading" :
-                                  test.testSkill === "FourSkills" || test.testSkill === 4 ? "Four Skills" :
+                                  test.testSkill === "FourSkills" || test.testSkill === 4 ? "S&W" :
+                                  test.testSkill === "S&W" || test.testSkill === "SW" ? "S&W" :
                                   (TEST_SKILL_LABELS[test.testSkill] || "Unknown"),
                         testSkillValue: test.testSkill,
                         duration: test.duration || 0,
@@ -92,7 +93,7 @@ export default function TestList() {
         const skillValue = skill === "lr" ? TEST_SKILL.LR :
                          skill === "speaking" ? TEST_SKILL.SPEAKING :
                          skill === "writing" ? TEST_SKILL.WRITING :
-                         skill === "fourSkills" ? TEST_SKILL.FOUR_SKILLS : null;
+                         skill === "sw" || skill === "fourSkills" ? TEST_SKILL.FOUR_SKILLS : null;
         
         if (skillValue === null) {
             setTests(testsList);
@@ -120,7 +121,7 @@ export default function TestList() {
             if (skill === "writing" && (test.testSkillValue === 2 || test.testSkill === "Writing" || test.testSkillValue === "Writing")) {
                 return true;
             }
-            if (skill === "fourSkills" && (test.testSkillValue === 4 || test.testSkill === "FourSkills" || test.testSkill === "Four Skills" || test.testSkillValue === "FourSkills" || test.testSkillValue === "Four Skills")) {
+            if ((skill === "sw" || skill === "fourSkills") && (test.testSkillValue === 4 || test.testSkill === "FourSkills" || test.testSkill === "S&W" || test.testSkill === "Four Skills" || test.testSkillValue === "FourSkills" || test.testSkillValue === "Four Skills" || test.testSkillValue === "S&W")) {
                 return true;
             }
             
@@ -157,6 +158,8 @@ export default function TestList() {
                 return "purple";
             case "Four Skills":
             case "FourSkills":
+            case "S&W":
+            case "SW":
                 return "blue";
             default: 
                 return "blue";
@@ -174,7 +177,9 @@ export default function TestList() {
                 return "Writing";
             case "Four Skills":
             case "FourSkills":
-                return "Four Skills";
+            case "S&W":
+            case "SW":
+                return "S&W";
             default: 
                 return skill;
         }
@@ -204,7 +209,7 @@ export default function TestList() {
                         <Option value="lr">Listening & Reading</Option>
                         <Option value="speaking">Speaking</Option>
                         <Option value="writing">Writing</Option>
-                        <Option value="fourSkills">Four Skills</Option>
+                        <Option value="sw">S&W</Option>
                     </Select>
                 </div>
 

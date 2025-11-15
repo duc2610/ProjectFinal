@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, Form, Input, Button, Row, Col, Modal, notification, Table, Tag, Space, Empty, message } from "antd";
+import { PlayCircleOutlined } from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
 import styles from "@shared/styles/Profile.module.css";
 import { useAuth } from "@shared/hooks/useAuth";
 import { changePassword } from "@services/authService";
@@ -186,6 +188,7 @@ export function PersonalTab({ user }) {
 export function TestHistoryTab() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchHistory();
@@ -200,6 +203,8 @@ export function TestHistoryTab() {
       // Normalize data: convert PascalCase to camelCase để đảm bảo match với backend
       const normalizedHistory = historyList.map(item => ({
         testId: item.testId || item.TestId,
+        testResultId: item.testResultId || item.TestResultId,
+        testStatus: item.testStatus || item.TestStatus,
         testType: item.testType || item.TestType,
         testSkill: item.testSkill || item.TestSkill,
         title: item.title || item.Title,
@@ -235,7 +240,7 @@ export function TestHistoryTab() {
       1: "Speaking",
       2: "Writing",
       3: "Listening & Reading",
-      4: "Four Skills",
+      4: "S&W",
     };
     return skillMap[skill] || skill;
   };
@@ -273,6 +278,66 @@ export function TestHistoryTab() {
     return "error";
   };
 
+  const getStatusLabel = (status) => {
+    if (status === "InProgress" || status === "inProgress" || status === 0 || status === "0") {
+      return "Đang làm";
+    }
+    if (status === "Graded" || status === "graded" || status === 2 || status === "2") {
+      return "Đã hoàn thành";
+    }
+    return "Không xác định";
+  };
+
+  const getStatusColor = (status) => {
+    if (status === "InProgress" || status === "inProgress" || status === 0 || status === "0") {
+      return "processing"; 
+    }
+    if (status === "Graded" || status === "graded" || status === 2 || status === "2") {
+      return "success";
+    }
+    return "default";
+  };
+
+  const handleContinueTest = async (record) => {
+    if (!record.testResultId) {
+      message.error("Không tìm thấy thông tin bài test");
+      return;
+    }
+
+    try {
+      const savedTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+      
+      if (savedTestData.testResultId === record.testResultId) {
+        navigate("/exam", {
+          state: {
+            testResultId: record.testResultId,
+            testId: record.testId,
+            continueTest: true,
+          },
+        });
+      } else {
+        navigate(`/toeic-exam?testId=${record.testId}&testResultId=${record.testResultId}`, {
+          state: {
+            testId: record.testId,
+            testResultId: record.testResultId,
+            continueTest: true,
+            testMeta: {
+              id: record.testId,
+              title: record.title,
+              testType: record.testType,
+              testSkill: record.testSkill,
+              duration: record.duration,
+              questionQuantity: record.totalQuestion,
+            },
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error continuing test:", error);
+      message.error("Không thể tiếp tục bài test. Vui lòng thử lại.");
+    }
+  };
+
   const columns = [
     {
       title: "Tiêu đề",
@@ -297,6 +362,15 @@ export function TestHistoryTab() {
       width: 150,
       render: (skill) => (
         <Tag color={getSkillColor(skill)}>{getSkillLabel(skill)}</Tag>
+      ),
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "testStatus",
+      key: "testStatus",
+      width: 130,
+      render: (status) => (
+        <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
       ),
     },
     {
@@ -330,6 +404,32 @@ export function TestHistoryTab() {
       key: "createdAt",
       width: 180,
       render: (date) => formatDate(date),
+    },
+    {
+      title: "Hành động",
+      key: "action",
+      width: 150,
+      fixed: "right",
+      render: (_, record) => {
+        const isInProgress = record.testStatus === "InProgress" || 
+                             record.testStatus === "inProgress" ||
+                             record.testStatus === 0 ||
+                             record.testStatus === "0";
+        
+        if (isInProgress) {
+          return (
+            <Button
+              type="primary"
+              icon={<PlayCircleOutlined />}
+              size="small"
+              onClick={() => handleContinueTest(record)}
+            >
+              Tiếp tục
+            </Button>
+          );
+        }
+        return null;
+      },
     },
   ];
 

@@ -7,7 +7,9 @@ import {
     publishTest,
     finalizeTest,
     downloadTemplate,
+    downloadTemplateSW,
     importTestFromExcel,
+    importTestSWFromExcel,
 } from "@services/testsService";
 import { HistoryOutlined } from "@ant-design/icons";
 import { TOTAL_QUESTIONS_BY_SKILL } from "@shared/constants/toeicStructure";
@@ -39,6 +41,7 @@ export default function ExamManagement() {
     const [filterCreationStatus, setFilterCreationStatus] = useState("all");
     const [searchTimeout, setSearchTimeout] = useState(null);
     const [importModalOpen, setImportModalOpen] = useState(false);
+    const [importTestType, setImportTestType] = useState("LR"); // "LR" or "SW"
     const [downloadTemplateModalOpen, setDownloadTemplateModalOpen] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [fileList, setFileList] = useState([]);
@@ -334,26 +337,44 @@ export default function ExamManagement() {
         }
     };
 
+    const handleDownloadTemplateSW = async () => {
+        try {
+            const blob = await downloadTemplateSW();
+            
+            // Check if blob is valid
+            if (!blob || blob.size === 0) {
+                message.error("File template không hợp lệ");
+                return;
+            }
+            
+            // Extract filename from Content-Disposition header if available, otherwise use default
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            const fileName = `TOEIC_SW_Test_Template_${new Date().toISOString().split('T')[0].replace(/-/g, '')}.xlsx`;
+            link.setAttribute("download", fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            message.success("Đã tải template Nói & Viết thành công");
+            setDownloadTemplateModalOpen(false);
+        } catch (error) {
+            console.error("Download template S&W error:", error);
+            const errorMsg = error?.response?.data?.message || error?.message || "Unknown error";
+            message.error("Lỗi khi tải template: " + errorMsg);
+        }
+    };
+
     const handleImportExcel = async () => {
         if (fileList.length === 0) {
             message.warning("Vui lòng chọn file Excel để import");
             return;
         }
 
-        if (audioFileList.length === 0) {
-            message.warning("Vui lòng chọn file Audio để import");
-            return;
-        }
-
         const excelFile = fileList[0].originFileObj;
         if (!excelFile) {
             message.warning("File Excel không hợp lệ");
-            return;
-        }
-
-        const audioFile = audioFileList[0].originFileObj;
-        if (!audioFile) {
-            message.warning("File Audio không hợp lệ");
             return;
         }
 
@@ -364,29 +385,62 @@ export default function ExamManagement() {
             return;
         }
 
-        // Validate Audio file extension
-        const audioFileName = audioFile.name.toLowerCase();
-        const validAudioExtensions = [".mp3", ".wav", ".m4a", ".aac", ".ogg"];
-        const isValidAudio = validAudioExtensions.some(ext => audioFileName.endsWith(ext));
-        if (!isValidAudio) {
-            message.error("File Audio phải có định dạng .mp3, .wav, .m4a, .aac hoặc .ogg");
-            return;
-        }
+        // Validate Audio file for L&R test
+        if (importTestType === "LR") {
+            if (audioFileList.length === 0) {
+                message.warning("Vui lòng chọn file Audio để import");
+                return;
+            }
 
-        try {
-            setUploading(true);
+            const audioFile = audioFileList[0].originFileObj;
+            if (!audioFile) {
+                message.warning("File Audio không hợp lệ");
+                return;
+            }
+
+            // Validate Audio file extension
+            const audioFileName = audioFile.name.toLowerCase();
+            const validAudioExtensions = [".mp3", ".wav", ".m4a", ".aac", ".ogg"];
+            const isValidAudio = validAudioExtensions.some(ext => audioFileName.endsWith(ext));
+            if (!isValidAudio) {
+                message.error("File Audio phải có định dạng .mp3, .wav, .m4a, .aac hoặc .ogg");
+                return;
+            }
+
+            try {
+                setUploading(true);
                 await importTestFromExcel(excelFile, audioFile);
-            message.success("Nhập bài thi Nghe & Đọc thành công");
-            setImportModalOpen(false);
-            setFileList([]);
-            setAudioFileList([]);
-            handleTestCreated(); // Reload danh sách
-        } catch (error) {
-            console.error("Import Excel error:", error);
-            const errorMsg = error?.response?.data?.message || error?.response?.data?.data || error?.message || "Unknown error";
-            message.error("Lỗi khi import: " + errorMsg);
-        } finally {
-            setUploading(false);
+                message.success("Nhập bài thi Nghe & Đọc thành công");
+                setImportModalOpen(false);
+                setFileList([]);
+                setAudioFileList([]);
+                setImportTestType("LR");
+                handleTestCreated(); // Reload danh sách
+            } catch (error) {
+                console.error("Import Excel error:", error);
+                const errorMsg = error?.response?.data?.message || error?.response?.data?.data || error?.message || "Unknown error";
+                message.error("Lỗi khi import: " + errorMsg);
+            } finally {
+                setUploading(false);
+            }
+        } else {
+            // S&W test - no audio needed
+            try {
+                setUploading(true);
+                await importTestSWFromExcel(excelFile);
+                message.success("Nhập bài thi Nói & Viết thành công");
+                setImportModalOpen(false);
+                setFileList([]);
+                setAudioFileList([]);
+                setImportTestType("LR");
+                handleTestCreated(); // Reload danh sách
+            } catch (error) {
+                console.error("Import Excel S&W error:", error);
+                const errorMsg = error?.response?.data?.message || error?.response?.data?.data || error?.message || "Unknown error";
+                message.error("Lỗi khi import: " + errorMsg);
+            } finally {
+                setUploading(false);
+            }
         }
     };
 
@@ -394,6 +448,7 @@ export default function ExamManagement() {
         setImportModalOpen(false);
         setFileList([]);
         setAudioFileList([]);
+        setImportTestType("LR");
     };
 
     const openCreateExam = () => { 
@@ -588,8 +643,17 @@ export default function ExamManagement() {
             key: "testType",
             width: 130,
             render: (type) => {
-                const color = type === "Simulator" ? "blue" : "orange";
-                return <Tag color={color}>{type}</Tag>;
+
+                let color = "cyan"
+                let label = type
+                if(type ==="Simulator"){
+                    color= "blue"
+                    label="Thi mô phỏng"
+                }else if (type === "Practice"){
+                    color= "magenta"
+                    label="Luyện tập"
+                }
+                return <Tag color={color}>{label}</Tag>;
             }
         },
         { 
@@ -853,9 +917,6 @@ export default function ExamManagement() {
                                 <Select.Option value="all">Tất cả trạng thái</Select.Option>
                                 <Select.Option value="Published">Đã công khai</Select.Option>
                                 <Select.Option value="Hidden">Đã ẩn</Select.Option>
-                                <Select.Option value="Draft">Bản nháp</Select.Option>
-                                <Select.Option value="InProgress">Đang tiến hành</Select.Option>
-                                <Select.Option value="Completed">Hoàn thành</Select.Option>
                             </Select>
                         </Col>
                         <Col xs={24} sm={12} md={6}>
@@ -954,7 +1015,7 @@ export default function ExamManagement() {
                 <Space direction="vertical" style={{ width: "100%" }} size="large">
                     <div>
                         <p style={{ marginBottom: 16, fontSize: 14, color: "#666" }}>
-                            Tải template cho bài thi Nghe & Đọc:
+                            Chọn template để tải:
                         </p>
                     </div>
                     <Space direction="vertical" style={{ width: "100%" }} size="middle">
@@ -969,7 +1030,22 @@ export default function ExamManagement() {
                             <div style={{ textAlign: "left" }}>
                                 <div style={{ fontWeight: 500 }}>Template Nghe & Đọc</div>
                                 <div style={{ fontSize: 12, color: "#999", fontWeight: "normal" }}>
-                                    Bài thi Nghe & Đọc
+                                    Bài thi Nghe & Đọc (L&R)
+                                </div>
+                            </div>
+                        </Button>
+                        <Button
+                            type="default"
+                            block
+                            size="large"
+                            icon={<DownloadOutlined />}
+                            onClick={() => handleDownloadTemplateSW()}
+                            style={{ height: 60, fontSize: 15 }}
+                        >
+                            <div style={{ textAlign: "left" }}>
+                                <div style={{ fontWeight: 500 }}>Template Nói & Viết</div>
+                                <div style={{ fontSize: 12, color: "#999", fontWeight: "normal" }}>
+                                    Bài thi Nói & Viết (S&W)
                                 </div>
                             </div>
                         </Button>
@@ -987,46 +1063,77 @@ export default function ExamManagement() {
                 cancelText="Hủy"
                 confirmLoading={uploading}
                 okButtonProps={{ 
-                    disabled: fileList.length === 0 || audioFileList.length === 0 || uploading 
+                    disabled: fileList.length === 0 || (importTestType === "LR" && audioFileList.length === 0) || uploading 
                 }}
                 width={600}
             >
                 <Space direction="vertical" style={{ width: "100%" }} size="large">
-                        <div>
-                            <p style={{ marginBottom: 16, fontSize: 14, fontWeight: 500 }}>
-                            Chọn file Excel và Audio để import bài thi Nghe & Đọc
+                    <div>
+                        <p style={{ marginBottom: 16, fontSize: 14, fontWeight: 500 }}>
+                            Chọn loại bài thi và file để import
                         </p>
-                            <div style={{ marginBottom: 8 }}>
-                            <Tag color="green">Bài thi Nghe & Đọc</Tag>
+                        <div style={{ marginBottom: 16 }}>
+                            <p style={{ marginBottom: 8, fontWeight: 500 }}>Loại bài thi:</p>
+                            <Select
+                                value={importTestType}
+                                onChange={(value) => {
+                                    setImportTestType(value);
+                                    // Reset files when changing test type
+                                    setFileList([]);
+                                    setAudioFileList([]);
+                                }}
+                                style={{ width: "100%" }}
+                                size="large"
+                            >
+                                <Select.Option value="LR">
+                                    <Tag color="green">Nghe & Đọc (L&R)</Tag>
+                                    <span style={{ marginLeft: 8 }}>Cần file Excel và Audio</span>
+                                </Select.Option>
+                                <Select.Option value="SW">
+                                    <Tag color="blue">Nói & Viết (S&W)</Tag>
+                                    <span style={{ marginLeft: 8 }}>Chỉ cần file Excel</span>
+                                </Select.Option>
+                            </Select>
+                        </div>
+                        <div style={{ marginBottom: 8 }}>
+                            {importTestType === "LR" ? (
+                                <Tag color="green">Bài thi Nghe & Đọc</Tag>
+                            ) : (
+                                <Tag color="blue">Bài thi Nói & Viết</Tag>
+                            )}
+                        </div>
+                        <p style={{ marginBottom: 8, fontSize: 12, color: "#999" }}>
+                            {importTestType === "LR" 
+                                ? "Excel: .xlsx, .xls | Audio: .mp3, .wav, .m4a, .aac, .ogg"
+                                : "Excel: .xlsx, .xls (Không cần file Audio)"
+                            }
+                        </p>
+                        <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                            <div>
+                                <p style={{ marginBottom: 8, fontWeight: 500 }}>File Excel:</p>
+                                <Upload
+                                    fileList={fileList}
+                                    beforeUpload={(file) => {
+                                        setFileList([{
+                                            uid: file.uid,
+                                            name: file.name,
+                                            status: 'done',
+                                            originFileObj: file,
+                                        }]);
+                                        return false;
+                                    }}
+                                    onRemove={() => {
+                                        setFileList([]);
+                                    }}
+                                    accept=".xlsx,.xls"
+                                    maxCount={1}
+                                >
+                                    <Button icon={<FileExcelOutlined />}>
+                                        Chọn file Excel
+                                    </Button>
+                                </Upload>
                             </div>
-                            <p style={{ marginBottom: 8, fontSize: 12, color: "#999" }}>
-                                Excel: .xlsx, .xls | Audio: .mp3, .wav, .m4a, .aac, .ogg
-                            </p>
-                            <Space direction="vertical" style={{ width: "100%" }} size="middle">
-                                <div>
-                                    <p style={{ marginBottom: 8, fontWeight: 500 }}>File Excel:</p>
-                                    <Upload
-                                        fileList={fileList}
-                                        beforeUpload={(file) => {
-                                            setFileList([{
-                                                uid: file.uid,
-                                                name: file.name,
-                                                status: 'done',
-                                                originFileObj: file,
-                                            }]);
-                                            return false;
-                                        }}
-                                        onRemove={() => {
-                                            setFileList([]);
-                                        }}
-                                        accept=".xlsx,.xls"
-                                        maxCount={1}
-                                    >
-                                        <Button icon={<FileExcelOutlined />}>
-                                            Chọn file Excel
-                                        </Button>
-                                    </Upload>
-                                </div>
+                            {importTestType === "LR" && (
                                 <div>
                                     <p style={{ marginBottom: 8, fontWeight: 500 }}>File Audio:</p>
                                     <Upload
@@ -1051,8 +1158,9 @@ export default function ExamManagement() {
                                         </Button>
                                     </Upload>
                                 </div>
-                            </Space>
-                        </div>
+                            )}
+                        </Space>
+                    </div>
                 </Space>
             </Modal>
 

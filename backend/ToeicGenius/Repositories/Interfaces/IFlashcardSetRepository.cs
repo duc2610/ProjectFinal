@@ -8,6 +8,8 @@ namespace ToeicGenius.Repositories.Interfaces
         Task<FlashcardSet?> GetByIdWithCardsAsync(int setId);
         Task<bool> IsOwnerAsync(int setId, Guid userId);
         Task UpdateTotalCardsAsync(int setId);
+        Task<IEnumerable<FlashcardSet>> GetPublicSetsAsync();
+        Task<FlashcardSet?> GetByIdWithCardsAndProgressAsync(int setId, Guid userId);
     }
 }
 

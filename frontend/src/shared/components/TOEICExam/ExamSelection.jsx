@@ -26,7 +26,7 @@ const normalizeTestSkill = (value) => {
     1: "Speaking",
     2: "Writing",
     3: "Listening & Reading",
-    4: "Four Skills",
+    4: "S&W",
   };
   return mapping[value] || "Unknown";
 };

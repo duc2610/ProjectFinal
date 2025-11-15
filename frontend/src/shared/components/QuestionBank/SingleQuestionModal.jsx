@@ -44,10 +44,10 @@ export default function SingleQuestionModal({
   const [imageSrc, setImageSrc] = useState(null);
 
   const QUESTION_SKILLS = [
-    { value: 3, label: "Listening" },
-    { value: 4, label: "Reading" },
-    { value: 1, label: "Speaking" },
-    { value: 2, label: "Writing" },
+    { value: 3, label: "Nghe" },
+    { value: 4, label: "Đọc" },
+    { value: 1, label: "Nói" },
+    { value: 2, label: "Viết" },
   ];
 
   const skillNameToId = (s) => {
@@ -416,12 +416,13 @@ export default function SingleQuestionModal({
 
   return (
     <Modal
-      title={isEdit ? "Edit Question" : "Add Question"}
+      title={isEdit ? "Chỉnh sửa Câu hỏi" : "Thêm Câu hỏi"}
       open={open}
       onCancel={onClose}
       onOk={onSubmit}
       confirmLoading={submitting}
-      okText={isEdit ? "Update" : "Create"}
+      okText={isEdit ? "Cập nhật" : "Tạo mới"}
+      cancelText="Hủy"
       destroyOnClose
     >
       <Form form={form} layout="vertical">
@@ -429,12 +430,12 @@ export default function SingleQuestionModal({
           <Col span={8}>
             <Form.Item
               name="skill"
-              label="Skill"
-              rules={[{ required: true, message: "Chọn Skill" }]}
+              label="Kỹ năng"
+              rules={[{ required: true, message: "Vui lòng chọn kỹ năng" }]}
             >
               <Select
                 options={QUESTION_SKILLS}
-                placeholder="Chọn Skill"
+                placeholder="Chọn kỹ năng"
                 allowClear
                 onChange={async (skill) => {
                   const keepAudio = form.getFieldValue("audio");
@@ -458,7 +459,7 @@ export default function SingleQuestionModal({
             <Form.Item
               name="partId"
               label="Part"
-              rules={[{ required: true, message: "Chọn Part" }]}
+              rules={[{ required: true, message: "Vui lòng chọn Part" }]}
             >
               <Select
                 placeholder="Chọn Part"
@@ -495,11 +496,11 @@ export default function SingleQuestionModal({
           <Col span={8}>
             <Form.Item
               name="questionTypeId"
-              label="Question Type"
-              rules={[{ required: true, message: "Chọn Question Type" }]}
+              label="Loại câu hỏi"
+              rules={[{ required: true, message: "Vui lòng chọn loại câu hỏi" }]}
             >
               <Select
-                placeholder="Chọn Type"
+                placeholder="Chọn loại câu hỏi"
                 options={questionTypes?.map((t) => ({
                   value: t.__val ?? toNum(t.questionTypeId ?? t.id ?? t),
                   label: t.typeName || t.name,
@@ -513,9 +514,9 @@ export default function SingleQuestionModal({
 
         <Form.Item
           name="content"
-          label="Content"
+          label="Nội dung câu hỏi"
           rules={[
-            { required: true, message: "Nhập nội dung câu hỏi" },
+            { required: true, message: "Vui lòng nhập nội dung câu hỏi" },
             { max: 1000, message: "Tối đa 1000 ký tự" },
           ]}
         >
@@ -523,7 +524,7 @@ export default function SingleQuestionModal({
             rows={4}
             showCount
             maxLength={1000}
-            placeholder="Nhập nội dung..."
+            placeholder="Nhập nội dung câu hỏi..."
           />
         </Form.Item>
 
@@ -533,7 +534,7 @@ export default function SingleQuestionModal({
               <Form.Item
                 name="audio"
                 label={`Audio ${
-                  isAudioRequired ? "(bắt buộc - MP3)" : "(tuỳ chọn - MP3)"
+                  isAudioRequired ? "(bắt buộc - MP3)" : "(tùy chọn - MP3)"
                 }`}
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList}
@@ -549,11 +550,11 @@ export default function SingleQuestionModal({
                       return hasNew || hasOld
                         ? Promise.resolve()
                         : Promise.reject(
-                            new Error("Listening bắt buộc Audio (.mp3)")
+                            new Error("Kỹ năng Nghe bắt buộc phải có Audio (.mp3)")
                           );
                     },
                   }),
-                  validateMp3("Chỉ chấp nhận tệp .mp3"),
+                  validateMp3("Chỉ chấp nhận file .mp3"),
                 ]}
               >
                 <Upload
@@ -569,7 +570,7 @@ export default function SingleQuestionModal({
                     return true;
                   }}
                 >
-                  <Button icon={<UploadOutlined />}>Chọn audio (.mp3)</Button>
+                  <Button icon={<UploadOutlined />}>Chọn file audio (.mp3)</Button>
                 </Upload>
                 {audioSrc && (
                   <div style={{ marginTop: 8 }}>
@@ -589,7 +590,7 @@ export default function SingleQuestionModal({
             <Col span={12}>
               <Form.Item
                 name="image"
-                label={`Image ${isImageRequired ? "(bắt buộc)" : "(tuỳ chọn)"}`}
+                label={`Ảnh ${isImageRequired ? "(bắt buộc)" : "(tùy chọn)"}`}
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList}
                 rules={[
@@ -606,9 +607,9 @@ export default function SingleQuestionModal({
                       
                       const partNum = Number(form.getFieldValue("partId"));
                       let errorMsg = "Bắt buộc phải có ảnh";
-                      if (partNum === 1) errorMsg = "L-Part 1 (Photographs) bắt buộc phải có ảnh";
-                      else if (partNum === 8) errorMsg = "W-Part 1 (Write sentence) bắt buộc phải có ảnh";
-                      else if (partNum === 12) errorMsg = "S-Part 2 (Describe picture) bắt buộc phải có ảnh";
+                      if (partNum === 1) errorMsg = "Part 1 (Nghe - Hình ảnh) bắt buộc phải có ảnh";
+                      else if (partNum === 8) errorMsg = "Part 1 (Viết - Viết câu dựa trên hình ảnh) bắt buộc phải có ảnh";
+                      else if (partNum === 12) errorMsg = "Part 2 (Nói - Mô tả hình ảnh) bắt buộc phải có ảnh";
                       
                       return Promise.reject(new Error(errorMsg));
                     },
@@ -656,8 +657,8 @@ export default function SingleQuestionModal({
         {(Number(selectedSkill) === 3 || Number(selectedSkill) === 4) && (
           <>
             <div style={{ fontWeight: 600, marginBottom: 8 }}>
-              Answer Options{" "}
-              {requiredOptionsCount ? `(yêu cầu: ${requiredOptionsCount})` : ""}
+              Đáp án{" "}
+              {requiredOptionsCount ? `(yêu cầu: ${requiredOptionsCount} đáp án)` : ""}
             </div>
             <Form.List
               name="answerOptions"
@@ -696,8 +697,8 @@ export default function SingleQuestionModal({
                           {...restField}
                           name={[restField.name, "label"]}
                           rules={[
-                            { required: true, message: "Nhập label" },
-                            { max: 3, message: "<= 3 ký tự" },
+                            { required: true, message: "Vui lòng nhập nhãn" },
+                            { max: 3, message: "Tối đa 3 ký tự" },
                           ]}
                         >
                           <Input placeholder="A" />
@@ -710,12 +711,12 @@ export default function SingleQuestionModal({
                           rules={[
                             {
                               required: true,
-                              message: "Nhập nội dung đáp án",
+                              message: "Vui lòng nhập nội dung đáp án",
                             },
-                            { max: 500, message: "<= 500 ký tự" },
+                            { max: 500, message: "Tối đa 500 ký tự" },
                           ]}
                         >
-                          <Input placeholder="Nội dung đáp án" />
+                          <Input placeholder="Nhập nội dung đáp án" />
                         </Form.Item>
                       </Col>
                       <Col span={3}>
@@ -766,8 +767,8 @@ export default function SingleQuestionModal({
           </>
         )}
 
-        <Form.Item name="solution" label="Solution (tuỳ chọn)">
-          <Input.TextArea rows={3} placeholder="Giải thích / lời giải" />
+        <Form.Item name="solution" label="Giải thích (tùy chọn)">
+          <Input.TextArea rows={3} placeholder="Nhập giải thích / lời giải..." />
         </Form.Item>
       </Form>
     </Modal>

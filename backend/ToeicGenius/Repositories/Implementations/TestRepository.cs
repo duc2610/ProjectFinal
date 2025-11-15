@@ -109,14 +109,16 @@ namespace ToeicGenius.Repositories.Implementations
 				.Select(tr => new TestHistoryDto
 				{
 					TestId = tr.TestId,
-					TestType = tr.TestType,
+                    TestResultId = tr.TestResultId,
+                    TestType = tr.TestType,
 					TestSkill = tr.Test.TestSkill,
 					Title = tr.Test.Title,
 					Duration = tr.Duration,
 					CreatedAt = tr.CreatedAt,
 					TotalQuestion = tr.TotalQuestions,
-					CorrectQuestion = tr.CorrectCount
-				})
+					CorrectQuestion = tr.CorrectCount,
+                    TestStatus = tr.Status.ToString()
+                })
 				.ToListAsync();
 
 			return query;
