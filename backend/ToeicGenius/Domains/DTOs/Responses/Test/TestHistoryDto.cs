@@ -7,7 +7,11 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 	{
 		public int TestId { get; set; }
 
-		public TestType TestType { get; set; } // Mode: Simulator, Practice
+		public int TestResultId { get; set; }
+
+		public string TestStatus { get; set; } 
+
+        public TestType TestType { get; set; } // Mode: Simulator, Practice
 		public TestSkill TestSkill { get; set; } = TestSkill.LR; // Skill: L&R, Writing, Speaking, L&R
 		public string Title { get; set; }
 		public int Duration { get; set; }
