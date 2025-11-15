@@ -40,6 +40,23 @@ namespace ToeicGenius.Repositories.Implementations
                 set.UpdatedAt = DateTime.UtcNow;
             }
         }
+
+        public async Task<IEnumerable<FlashcardSet>> GetPublicSetsAsync()
+        {
+            return await _dbSet
+                .Where(fs => fs.IsPublic == true)
+                .Include(fs => fs.User)
+                .OrderByDescending(fs => fs.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<FlashcardSet?> GetByIdWithCardsAndProgressAsync(int setId, Guid userId)
+        {
+            return await _dbSet
+                .Include(fs => fs.Flashcards)
+                    .ThenInclude(f => f.Progresses.Where(p => p.UserId == userId))
+                .FirstOrDefaultAsync(fs => fs.SetId == setId);
+        }
     }
 }
 

@@ -54,11 +54,20 @@ namespace ToeicGenius.Controllers
 
 		/// <summary>
 		/// Get flashcard set by ID with all cards
+		/// Public sets can be viewed without authentication
 		/// </summary>
 		[HttpGet("sets/{setId}")]
+		[AllowAnonymous]
 		public async Task<IActionResult> GetSetById(int setId)
 		{
-			var userId = GetUserId();
+			// Get userId if user is authenticated, otherwise null
+			Guid? userId = null;
+			var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+			{
+				userId = parsedUserId;
+			}
+
 			var result = await _flashcardService.GetSetByIdAsync(setId, userId);
 
 			if (!result.IsSuccess)
@@ -148,11 +157,20 @@ namespace ToeicGenius.Controllers
 
 		/// <summary>
 		/// Get all flashcards in a set
+		/// Public sets can be viewed without authentication
 		/// </summary>
 		[HttpGet("sets/{setId}/cards")]
+		[AllowAnonymous]
 		public async Task<IActionResult> GetCardsBySetId(int setId)
 		{
-			var userId = GetUserId();
+			// Get userId if user is authenticated, otherwise null
+			Guid? userId = null;
+			var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+			{
+				userId = parsedUserId;
+			}
+
 			var result = await _flashcardService.GetCardsBySetIdAsync(setId, userId);
 
 			if (!result.IsSuccess)
@@ -189,6 +207,79 @@ namespace ToeicGenius.Controllers
 				return BadRequest(ApiResponse<bool>.ErrorResponse(result.ErrorMessage!));
 
 			return Ok(ApiResponse<bool>.SuccessResponse(true));
+		}
+
+		#endregion
+
+		#region Study Mode APIs
+
+		/// <summary>
+		/// Get all public flashcard sets (for discovery/browse)
+		/// No authentication required - anyone can view public sets
+		/// </summary>
+		[HttpGet("public")]
+		[AllowAnonymous]
+		public async Task<IActionResult> GetPublicSets()
+		{
+			// Get userId if user is authenticated, otherwise null
+			Guid? userId = null;
+			var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+			{
+				userId = parsedUserId;
+			}
+
+			var result = await _flashcardService.GetPublicSetsAsync(userId);
+
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<IEnumerable<PublicFlashcardSetDto>>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<IEnumerable<PublicFlashcardSetDto>>.SuccessResponse(result.Data!));
+		}
+
+		/// <summary>
+		/// Start study session for a flashcard set (with progress tracking)
+		/// </summary>
+		[HttpGet("study/{setId}")]
+		public async Task<IActionResult> StartStudySession(int setId)
+		{
+			var userId = GetUserId();
+			var result = await _flashcardService.StartStudySessionAsync(setId, userId);
+
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<StudySessionResponseDto>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<StudySessionResponseDto>.SuccessResponse(result.Data!));
+		}
+
+		/// <summary>
+		/// Mark flashcard as known/unknown during study
+		/// </summary>
+		[HttpPost("study/mark")]
+		public async Task<IActionResult> MarkCardKnowledge([FromBody] MarkCardKnowledgeDto dto)
+		{
+			var userId = GetUserId();
+			var result = await _flashcardService.MarkCardKnowledgeAsync(dto, userId);
+
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<bool>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<bool>.SuccessResponse(true));
+		}
+
+		/// <summary>
+		/// Get study statistics for a flashcard set
+		/// </summary>
+		[HttpGet("study/{setId}/stats")]
+		public async Task<IActionResult> GetStudyStats(int setId)
+		{
+			var userId = GetUserId();
+			var result = await _flashcardService.GetStudyStatsAsync(setId, userId);
+
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<StudyStatsResponseDto>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<StudyStatsResponseDto>.SuccessResponse(result.Data!));
 		}
 
 		#endregion
