@@ -235,7 +235,7 @@ export function TestHistoryTab() {
       1: "Speaking",
       2: "Writing",
       3: "Listening & Reading",
-      4: "Four Skills",
+      4: "S&W",
     };
     return skillMap[skill] || skill;
   };

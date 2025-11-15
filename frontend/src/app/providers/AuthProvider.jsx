@@ -12,7 +12,8 @@ import {
   loginWithGoogle as svcGoogle,
   getProfile as svcGetProfile,
 } from "@services/authService";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ROLES } from "@shared/utils/acl";
 
 const AuthContext = createContext(null);
 
@@ -20,6 +21,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     (async () => {
@@ -29,6 +31,16 @@ export function AuthProvider({ children }) {
           const profile = await svcGetProfile();
           setUser(profile);
           localStorage.setItem("user", JSON.stringify(profile));
+          
+          const currentPath = location.pathname;
+          if (currentPath === "/") {
+            const roles = Array.isArray(profile?.roles) ? profile.roles : [];
+            if (roles.includes(ROLES.Admin)) {
+              navigate("/admin/dashboard", { replace: true });
+            } else if (roles.includes(ROLES.TestCreator)) {
+              navigate("/test-creator/dashboard", { replace: true });
+            }
+          }
         } else {
           localStorage.removeItem("user");
           setUser(null);
@@ -42,7 +54,7 @@ export function AuthProvider({ children }) {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [navigate, location.pathname]);
 
   const persistTokens = (data) => {
     if (data && data.accessToken)

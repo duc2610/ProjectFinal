@@ -28,7 +28,7 @@ export default function Login() {
     if (roles.includes(ROLES.Admin))
       return navigate("/admin/dashboard", { replace: true });
     if (roles.includes(ROLES.TestCreator))
-      return navigate("/admin/dashboard", { replace: true });
+      return navigate("/test-creator/dashboard", { replace: true });
     return navigate("/", { replace: true });
   };
   const handleLogin = async (values) => {

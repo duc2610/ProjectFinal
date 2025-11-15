@@ -315,7 +315,7 @@ export const TEST_SKILL = {
   SPEAKING: 1,
   WRITING: 2,
   LR: 3,
-  FOUR_SKILLS: 4,
+  SW: 4,
 };
 
 export const TEST_STATUS = {
@@ -335,7 +335,7 @@ export const TEST_SKILL_LABELS = {
   1: "Speaking",
   2: "Writing",
   3: "Listening & Reading",
-  4: "Four Skills",
+  4: "S&W",
 };
 
 export const TEST_STATUS_LABELS = {

@@ -26,7 +26,7 @@ export const TOTAL_QUESTIONS_BY_SKILL = {
     1: 11,   // Speaking (2+2+3+3+1 = 11)
     2: 8,    // Writing
     3: 200,  // L&R
-    4: 219,  // FourSkills (L+R+W+S: 200+8+11 = 219)
+    4: 219,  // S&W (L+R+W+S: 200+8+11 = 219)
 };
 
 // Yêu cầu audio theo skill
@@ -34,7 +34,7 @@ export const REQUIRES_AUDIO = {
     1: false, // Speaking - không yêu cầu audio
     2: false, // Writing - không yêu cầu audio
     3: true,  // L&R - YÊU CẦU audio tổng
-    4: true,  // FourSkills - YÊU CẦU audio tổng
+    4: true,  // S&W - YÊU CẦU audio tổng
 };
 
 // Enum TestSkill (phải khớp với backend)
@@ -42,7 +42,7 @@ export const TEST_SKILL = {
     SPEAKING: 1,
     WRITING: 2,
     LR: 3,
-    FOUR_SKILLS: 4, // L+R+W+S (219 questions total)
+    FOUR_SKILLS: 4, // S&W: L+R+W+S (219 questions total)
 };
 
 // Enum TestType (phải khớp với backend)
