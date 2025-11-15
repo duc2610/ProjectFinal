@@ -5,7 +5,8 @@ import {
     ClockCircleOutlined, 
     FileTextOutlined,
     AudioOutlined,
-    EditOutlined
+    EditOutlined,
+    LoadingOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getPracticeTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_LABELS } from "@services/testsService";
@@ -108,8 +109,8 @@ export default function PracticeSW() {
         }
     };
 
-    const handleStartTest = (testId) => {
-        navigate(`/toeic-exam?testId=${testId}`, { state: { from: location.pathname } });
+    const handleStartTest = (test) => {
+        navigate(`/toeic-exam?testId=${test.id}`, { state: { from: location.pathname, testMeta: test } });
     };
 
     const getSkillColor = (skill) => {
@@ -138,7 +139,7 @@ export default function PracticeSW() {
         if (loading) {
             return (
                 <div className={styles.loadingContainer}>
-                    <Spin size="large" />
+                    <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} size="large" />
                 </div>
             );
         }
@@ -172,7 +173,8 @@ export default function PracticeSW() {
                                     type="primary"
                                     icon={<PlayCircleOutlined />}
                                     size="middle"
-                                    onClick={() => handleStartTest(test.id)}
+                                    onClick={() => handleStartTest(test)}
+                                    onClick={() => handleStartTest(test)}
                                     className={styles.testStartButton}
                                 >
                                     Bắt đầu làm bài

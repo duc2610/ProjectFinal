@@ -6,20 +6,21 @@ import {
   Col,
   Statistic,
   Tag,
+  Progress,
   Space,
   Avatar,
   List,
+  Divider,
 } from "antd";
 import {
-  UserOutlined,
   FileTextOutlined,
   QuestionCircleOutlined,
   TrophyOutlined,
   ArrowUpOutlined,
   CheckCircleOutlined,
-  ExclamationCircleOutlined,
-  LineChartOutlined,
   ClockCircleOutlined,
+  BarChartOutlined,
+  LineChartOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -30,89 +31,123 @@ dayjs.locale("vi");
 
 const { Title, Text } = Typography;
 
-// Mock data generator for Admin
-const generateAdminMockData = () => {
+// Mock data generator for TestCreator
+const generateCreatorMockData = () => {
   // Statistics data
   const stats = {
-    totalUsers: 1248,
-    activeUsers: 892,
-    totalTests: 156,
-    totalQuestions: 3420,
-    totalTestResults: 8456,
-    bannedUsers: 12,
-    newUsersToday: 23,
-    newTestsToday: 3,
+    totalTests: 45,
+    publishedTests: 32,
+    draftTests: 13,
+    totalQuestions: 1240,
+    totalTestResults: 2340,
+    newTestsToday: 2,
+    newQuestionsToday: 15,
+    averageScore: 78.5,
   };
 
   // Recent activities
   const activities = [
     {
       id: 1,
-      type: "user",
-      action: "Đăng ký mới",
-      user: "Nguyễn Văn A",
-      time: dayjs().subtract(5, "minute"),
-      status: "success",
+      type: "test",
+      action: "Tạo bài thi mới",
+      test: "TOEIC Practice Test #46",
+      time: dayjs().subtract(10, "minute"),
+      status: "info",
     },
     {
       id: 2,
-      type: "test",
-      action: "Hoàn thành bài thi",
-      user: "Trần Thị B",
+      type: "question",
+      action: "Thêm câu hỏi",
       test: "TOEIC Practice Test #45",
-      time: dayjs().subtract(12, "minute"),
+      count: 5,
+      time: dayjs().subtract(30, "minute"),
       status: "success",
     },
     {
       id: 3,
-      type: "user",
-      action: "Bị cấm",
-      user: "Lê Văn C",
-      time: dayjs().subtract(1, "hour"),
-      status: "error",
+      type: "test",
+      action: "Xuất bản bài thi",
+      test: "TOEIC Full Test #44",
+      time: dayjs().subtract(2, "hour"),
+      status: "success",
     },
     {
       id: 4,
       type: "test",
-      action: "Tạo bài thi mới",
-      user: "Test Creator",
-      test: "TOEIC Full Test #157",
-      time: dayjs().subtract(2, "hour"),
+      action: "Cập nhật bài thi",
+      test: "TOEIC Practice Test #43",
+      time: dayjs().subtract(4, "hour"),
       status: "info",
     },
     {
       id: 5,
-      type: "user",
-      action: "Đăng nhập",
-      user: "Phạm Thị D",
-      time: dayjs().subtract(3, "hour"),
-      status: "success",
+      type: "question",
+      action: "Xóa câu hỏi",
+      test: "TOEIC Practice Test #42",
+      count: 2,
+      time: dayjs().subtract(6, "hour"),
+      status: "error",
     },
   ];
 
-  // User growth data
-  const userGrowth = Array.from({ length: 12 }, (_, i) => ({
-    month: dayjs().subtract(11 - i, "month").format("MM/YYYY"),
-    users: Math.floor(Math.random() * 100) + 50,
-  }));
-
-  // Test completion data
-  const testCompletion = Array.from({ length: 7 }, (_, i) => ({
+  // Test performance data (for charts simulation)
+  const testPerformance = Array.from({ length: 7 }, (_, i) => ({
     date: dayjs().subtract(6 - i, "day").format("DD/MM"),
     completed: Math.floor(Math.random() * 50) + 20,
+    averageScore: Math.floor(Math.random() * 30) + 60,
   }));
 
-  return { stats, activities, userGrowth, testCompletion };
+  // Top performing tests
+  const topTests = [
+    {
+      id: 1,
+      name: "TOEIC Practice Test #45",
+      completed: 234,
+      averageScore: 85.5,
+      status: "published",
+    },
+    {
+      id: 2,
+      name: "TOEIC Full Test #44",
+      completed: 189,
+      averageScore: 82.3,
+      status: "published",
+    },
+    {
+      id: 3,
+      name: "TOEIC Practice Test #43",
+      completed: 156,
+      averageScore: 79.8,
+      status: "published",
+    },
+    {
+      id: 4,
+      name: "TOEIC Practice Test #42",
+      completed: 142,
+      averageScore: 77.2,
+      status: "published",
+    },
+    {
+      id: 5,
+      name: "TOEIC Full Test #41",
+      completed: 128,
+      averageScore: 75.6,
+      status: "published",
+    },
+  ];
+
+  return { stats, activities, testPerformance, topTests };
 };
 
-export default function AdminDashboard() {
+export default function TestCreatorDashboard() {
   const [mockData, setMockData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Simulate API call
     setTimeout(() => {
-      setMockData(generateAdminMockData());
+      setMockData(generateCreatorMockData());
       setLoading(false);
     }, 500);
   }, []);
@@ -125,28 +160,10 @@ export default function AdminDashboard() {
     );
   }
 
-  const { stats, activities, userGrowth, testCompletion } = mockData;
+  const { stats, activities, testPerformance, topTests } = mockData;
 
   // Statistic cards configuration
   const statCards = [
-    {
-      title: "Tổng số người dùng",
-      value: stats.totalUsers,
-      prefix: <UserOutlined />,
-      suffix: (
-        <span style={{ fontSize: 14, color: "#52c41a" }}>
-          <ArrowUpOutlined /> +{stats.newUsersToday}
-        </span>
-      ),
-      valueStyle: { color: "#1890ff" },
-    },
-    {
-      title: "Người dùng hoạt động",
-      value: stats.activeUsers,
-      prefix: <CheckCircleOutlined />,
-      suffix: `${Math.round((stats.activeUsers / stats.totalUsers) * 100)}%`,
-      valueStyle: { color: "#52c41a" },
-    },
     {
       title: "Tổng số bài thi",
       value: stats.totalTests,
@@ -156,13 +173,31 @@ export default function AdminDashboard() {
           <ArrowUpOutlined /> +{stats.newTestsToday}
         </span>
       ),
-      valueStyle: { color: "#722ed1" },
+      valueStyle: { color: "#1890ff" },
+    },
+    {
+      title: "Bài thi đã xuất bản",
+      value: stats.publishedTests,
+      prefix: <CheckCircleOutlined />,
+      suffix: `${Math.round((stats.publishedTests / stats.totalTests) * 100)}%`,
+      valueStyle: { color: "#52c41a" },
+    },
+    {
+      title: "Bài thi nháp",
+      value: stats.draftTests,
+      prefix: <ClockCircleOutlined />,
+      valueStyle: { color: "#fa8c16" },
     },
     {
       title: "Tổng số câu hỏi",
       value: stats.totalQuestions,
       prefix: <QuestionCircleOutlined />,
-      valueStyle: { color: "#fa8c16" },
+      suffix: (
+        <span style={{ fontSize: 14, color: "#52c41a" }}>
+          <ArrowUpOutlined /> +{stats.newQuestionsToday}
+        </span>
+      ),
+      valueStyle: { color: "#722ed1" },
     },
     {
       title: "Kết quả thi",
@@ -171,10 +206,11 @@ export default function AdminDashboard() {
       valueStyle: { color: "#eb2f96" },
     },
     {
-      title: "Tài khoản bị cấm",
-      value: stats.bannedUsers,
-      prefix: <ExclamationCircleOutlined />,
-      valueStyle: { color: "#f5222d" },
+      title: "Điểm trung bình",
+      value: stats.averageScore,
+      prefix: <BarChartOutlined />,
+      suffix: "/100",
+      valueStyle: { color: "#13c2c2" },
     },
   ];
 
@@ -196,7 +232,7 @@ export default function AdminDashboard() {
   const getActivityIcon = (type) => {
     switch (type) {
       case "user":
-        return <UserOutlined style={{ color: "#1890ff" }} />;
+        return <FileTextOutlined style={{ color: "#1890ff" }} />;
       case "test":
         return <FileTextOutlined style={{ color: "#52c41a" }} />;
       case "question":
@@ -209,7 +245,7 @@ export default function AdminDashboard() {
   return (
     <div style={{ padding: "24px" }} className="animate-fade-in">
       <Title level={2} style={{ marginBottom: 24 }} className="animate-fade-in-down">
-        Bảng điều khiển Admin
+        Bảng điều khiển Test Creator
       </Title>
 
       {/* Statistics Cards */}
@@ -236,48 +272,14 @@ export default function AdminDashboard() {
             title={
               <Space>
                 <LineChartOutlined />
-                <span>Thống kê người dùng theo tháng</span>
+                <span>Hiệu suất bài thi (7 ngày qua)</span>
               </Space>
             }
             style={{ marginBottom: 16 }}
           >
             <div style={{ padding: "20px 0" }}>
-              <Row gutter={[8, 16]}>
-                {userGrowth.map((item, index) => (
-                  <Col span={2} key={index}>
-                    <div style={{ textAlign: "center" }}>
-                      <div
-                        style={{
-                          height: `${(item.users / 150) * 200}px`,
-                          background: "linear-gradient(to top, #1890ff, #40a9ff)",
-                          borderRadius: "4px 4px 0 0",
-                          marginBottom: 8,
-                          minHeight: 20,
-                        }}
-                      />
-                      <Text style={{ fontSize: 11 }}>{item.month}</Text>
-                      <br />
-                      <Text strong style={{ fontSize: 12 }}>
-                        {item.users}
-                      </Text>
-                    </div>
-                  </Col>
-                ))}
-              </Row>
-            </div>
-          </Card>
-
-          <Card
-            title={
-              <Space>
-                <TrophyOutlined />
-                <span>Hoàn thành bài thi (7 ngày qua)</span>
-              </Space>
-            }
-          >
-            <div style={{ padding: "20px 0" }}>
               <Row gutter={[16, 24]}>
-                {testCompletion.map((item, index) => (
+                {testPerformance.map((item, index) => (
                   <Col span={24} key={index}>
                     <div>
                       <div
@@ -288,32 +290,83 @@ export default function AdminDashboard() {
                         }}
                       >
                         <Text strong>{item.date}</Text>
-                        <Text type="secondary">
-                          Hoàn thành: {item.completed} bài thi
-                        </Text>
+                        <Space>
+                          <Text type="secondary">
+                            Hoàn thành: {item.completed}
+                          </Text>
+                          <Text type="secondary">
+                            Điểm TB: {item.averageScore}%
+                          </Text>
+                        </Space>
                       </div>
-                      <div
-                        style={{
-                          height: 8,
-                          background: "#f0f0f0",
-                          borderRadius: 4,
-                          overflow: "hidden",
+                      <Progress
+                        percent={item.averageScore}
+                        strokeColor={{
+                          "0%": "#108ee9",
+                          "100%": "#87d068",
                         }}
-                      >
-                        <div
-                          style={{
-                            height: "100%",
-                            width: `${(item.completed / 70) * 100}%`,
-                            background: "linear-gradient(to right, #1890ff, #40a9ff)",
-                            transition: "width 0.3s ease",
-                          }}
-                        />
-                      </div>
+                        showInfo={false}
+                      />
                     </div>
                   </Col>
                 ))}
               </Row>
             </div>
+          </Card>
+
+          {/* Top Performing Tests */}
+          <Card
+            title={
+              <Space>
+                <TrophyOutlined />
+                <span>Top bài thi hiệu suất cao</span>
+              </Space>
+            }
+          >
+            <List
+              dataSource={topTests}
+              renderItem={(item) => (
+                <List.Item>
+                  <List.Item.Meta
+                    avatar={
+                      <Avatar
+                        style={{
+                          backgroundColor: "#52c41a",
+                        }}
+                      >
+                        {item.id}
+                      </Avatar>
+                    }
+                    title={
+                      <Space>
+                        <Text strong>{item.name}</Text>
+                        <Tag color="green">{item.status}</Tag>
+                      </Space>
+                    }
+                    description={
+                      <Space>
+                        <Text type="secondary">
+                          Hoàn thành: {item.completed}
+                        </Text>
+                        <Divider type="vertical" />
+                        <Text type="secondary">
+                          Điểm TB: {item.averageScore}%
+                        </Text>
+                      </Space>
+                    }
+                  />
+                  <Progress
+                    type="circle"
+                    percent={item.averageScore}
+                    size={60}
+                    strokeColor={{
+                      "0%": "#108ee9",
+                      "100%": "#87d068",
+                    }}
+                  />
+                </List.Item>
+              )}
+            />
           </Card>
         </Col>
 
@@ -350,13 +403,13 @@ export default function AdminDashboard() {
                     }
                     description={
                       <div>
-                        {item.user && (
-                          <Text type="secondary">Người dùng: {item.user}</Text>
-                        )}
                         {item.test && (
                           <div>
                             <Text type="secondary">Bài thi: {item.test}</Text>
                           </div>
+                        )}
+                        {item.count && (
+                          <Text type="secondary">Số lượng: {item.count}</Text>
                         )}
                         <div>
                           <Text type="secondary" style={{ fontSize: 12 }}>
@@ -375,3 +428,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+

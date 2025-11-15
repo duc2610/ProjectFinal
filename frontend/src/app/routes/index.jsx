@@ -21,6 +21,7 @@ const ForgotPassword = lazy(() => import("@pages/auth/ForgotPassword.jsx"));
 const VerifyRegister = lazy(() => import("@pages/auth/VerifyRegister.jsx"));
 const Profile = lazy(() => import("@pages/account/Profile.jsx"));
 const AdminDashboard = lazy(() => import("@pages/admin/Dashboard.jsx"));
+const TestCreatorDashboard = lazy(() => import("@pages/testCreator/Dashboard.jsx"));
 const ResetPassword = lazy(() => import("@pages/auth/ResetPassword.jsx"));
 const VerifyReset = lazy(() => import("@pages/auth/VerifyReset.jsx"));
 const AccountManagement = lazy(() =>
@@ -97,7 +98,12 @@ export default function RoutesRoot() {
         {/* Role-based routes */}
         <Route element={<RoleRoute allow={[ROLES.Admin, ROLES.TestCreator]} />}>
           <Route element={<AdminShell />}>
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route element={<RoleRoute allow={[ROLES.Admin]} />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            </Route>
+            <Route element={<RoleRoute allow={[ROLES.TestCreator]} />}>
+              <Route path="/test-creator/dashboard" element={<TestCreatorDashboard />} />
+            </Route>
             <Route element={<RoleRoute allow={[ROLES.Admin]} />}>
               <Route
                 path="/admin/account-management"

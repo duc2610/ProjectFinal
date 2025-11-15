@@ -6,6 +6,7 @@ namespace ToeicGenius.Repositories.Interfaces
     {
         Task<FlashcardProgress?> GetByCardAndUserAsync(int cardId, Guid userId);
         Task<IEnumerable<FlashcardProgress>> GetByUserIdAsync(Guid userId);
+        Task<IEnumerable<FlashcardProgress>> GetBySetAndUserAsync(int setId, Guid userId);
     }
 }
 

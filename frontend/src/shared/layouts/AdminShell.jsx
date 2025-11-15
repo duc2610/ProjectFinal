@@ -68,37 +68,39 @@ export default function AdminShell() {
     },
   };
 
-  const baseItems = [
-    {
-      key: "/admin/dashboard",
-      icon: <AppstoreOutlined />,
-      label: "Dashboard",
-    },
-  ];
-  let roleItems = [];
+  let siderItems = [];
   if (isAdmin) {
-    roleItems = [
+    siderItems = [
+      {
+        key: "/admin/dashboard",
+        icon: <AppstoreOutlined />,
+        label: "Bảng điều khiển",
+      },
       {
         key: "/admin/account-management",
         icon: <TeamOutlined />,
-        label: "Users Management",
+        label: "Quản lý người dùng",
       },
     ];
   } else if (isCreator) {
-    roleItems = [
+    siderItems = [
+      {
+        key: "/test-creator/dashboard",
+        icon: <AppstoreOutlined />,
+        label: "Bảng điều khiển",
+      },
       {
         key: "/test-creator/question-bank",
         icon: <DatabaseOutlined />,
-        label: "QuestionBank",
+        label: "Quản lý câu hỏi",
       },
       {
         key: "/test-creator/exam-management",
         icon: <FileTextOutlined />,
-        label: "Test Bank",
+        label: "Quản lý Test",
       },
     ];
   }
-  const siderItems = [...baseItems, ...roleItems];
 
   const onMenuClick = ({ key }) => {
     if (key && key !== location.pathname) navigate(key);

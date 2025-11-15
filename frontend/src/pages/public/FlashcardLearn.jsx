@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Progress, message } from "antd";
+import { Button, Progress, message, Spin } from "antd";
 import {
   LeftOutlined,
   RightOutlined,
@@ -10,6 +10,7 @@ import {
   RedoOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
+import { getFlashcardsBySetId, markCardKnowledge } from "@services/flashcardService";
 import "@shared/styles/FlashcardDetail.css";
 
 export default function FlashcardLearn() {
@@ -33,40 +34,12 @@ export default function FlashcardLearn() {
   const fetchFlashcardDetail = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // Mock data for now
-      const mockCards = [
-        {
-          cardId: 1,
-          frontText: "accomplish",
-          backText: "hoàn thành, đạt được",
-        },
-        {
-          cardId: 2,
-          frontText: "achieve",
-          backText: "đạt được, thực hiện",
-        },
-        {
-          cardId: 3,
-          frontText: "complete",
-          backText: "hoàn thành, kết thúc",
-        },
-        {
-          cardId: 4,
-          frontText: "finish",
-          backText: "kết thúc, hoàn tất",
-        },
-        {
-          cardId: 5,
-          frontText: "succeed",
-          backText: "thành công, đạt được",
-        },
-      ];
-
-      setFlashcards(mockCards);
+      const cardsData = await getFlashcardsBySetId(setId);
+      setFlashcards(Array.isArray(cardsData) ? cardsData : []);
     } catch (error) {
       console.error("Error fetching flashcard detail:", error);
-      message.error("Không thể tải chi tiết flashcard");
+      const errorMsg = error?.response?.data?.message || "Không thể tải chi tiết flashcard";
+      message.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -78,9 +51,23 @@ export default function FlashcardLearn() {
     }
   };
 
-  const handleMarkLearned = () => {
+  const handleMarkLearned = async () => {
+    const card = flashcards[currentCardIndex];
+    if (!card) return;
+
+    try {
+      // Mark as known in backend
+      await markCardKnowledge({
+        cardId: card.cardId,
+        isKnown: true,
+      });
+    } catch (error) {
+      console.error("Error marking card as learned:", error);
+      // Continue with UI update even if API fails
+    }
+
     const newLearned = new Set(learnedCards);
-    newLearned.add(flashcards[currentCardIndex].cardId);
+    newLearned.add(card.cardId);
     setLearnedCards(newLearned);
     setIsSwipeComplete(true);
     
@@ -101,9 +88,23 @@ export default function FlashcardLearn() {
     }, 300);
   };
 
-  const handleMarkNotLearned = () => {
+  const handleMarkNotLearned = async () => {
+    const card = flashcards[currentCardIndex];
+    if (!card) return;
+
+    try {
+      // Mark as unknown in backend
+      await markCardKnowledge({
+        cardId: card.cardId,
+        isKnown: false,
+      });
+    } catch (error) {
+      console.error("Error marking card as not learned:", error);
+      // Continue with UI update even if API fails
+    }
+
     const newLearned = new Set(learnedCards);
-    newLearned.delete(flashcards[currentCardIndex].cardId);
+    newLearned.delete(card.cardId);
     setLearnedCards(newLearned);
     setIsSwipeComplete(true);
     
@@ -189,6 +190,32 @@ export default function FlashcardLearn() {
     : 0;
   const isCurrentCardLearned = currentCard && learnedCards.has(currentCard.cardId);
 
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", padding: "100px 0" }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (flashcards.length === 0) {
+    return (
+      <div className="quizlet-learn-page">
+        <div style={{ textAlign: "center", padding: "100px 0" }}>
+          <Empty description="Không có thẻ flashcard nào" />
+          <Button
+            type="primary"
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate(`/flashcard/${setId}`)}
+            style={{ marginTop: 20 }}
+          >
+            Quay trở lại
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="quizlet-learn-page">
       <div className="quizlet-learn-container">
@@ -244,7 +271,7 @@ export default function FlashcardLearn() {
                 <div className="quizlet-learn-card-inner">
                   <div className={`quizlet-card-face quizlet-card-front ${isFlipped ? "hidden" : ""}`}>
                     <div className="quizlet-card-content">
-                      <div className="quizlet-card-word">{currentCard?.frontText}</div>
+                      <div className="quizlet-card-word">{currentCard?.term || currentCard?.frontText}</div>
                       <div className="quizlet-card-hint">
                         <RotateLeftOutlined /> Nhấn để xem nghĩa
                       </div>
@@ -252,7 +279,7 @@ export default function FlashcardLearn() {
                   </div>
                   <div className={`quizlet-card-face quizlet-card-back ${!isFlipped ? "hidden" : ""}`}>
                     <div className="quizlet-card-content">
-                      <div className="quizlet-card-word">{currentCard?.backText}</div>
+                      <div className="quizlet-card-word">{currentCard?.definition || currentCard?.backText}</div>
                       <div className="quizlet-card-hint">
                         <RotateLeftOutlined /> Nhấn để xem từ
                       </div>

@@ -3,7 +3,8 @@ import { Card, Button, Tag, Row, Col, Empty, Spin, Space, Typography, Divider, m
 import { 
     PlayCircleOutlined, 
     ClockCircleOutlined, 
-    FileTextOutlined
+    FileTextOutlined,
+    LoadingOutlined
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getSimulatorTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_LABELS } from "@services/testsService";
@@ -51,7 +52,8 @@ export default function TestList() {
                         testSkill: test.testSkill === "Speaking" ? "Speaking" :
                                   test.testSkill === "Writing" ? "Writing" :
                                   test.testSkill === "LR" ? "Listening & Reading" :
-                                  test.testSkill === "FourSkills" || test.testSkill === 4 ? "Four Skills" :
+                                  test.testSkill === "FourSkills" || test.testSkill === 4 ? "S&W" :
+                                  test.testSkill === "S&W" || test.testSkill === "SW" ? "S&W" :
                                   (TEST_SKILL_LABELS[test.testSkill] || "Unknown"),
                         testSkillValue: test.testSkill,
                         duration: test.duration || 0,
@@ -91,7 +93,7 @@ export default function TestList() {
         const skillValue = skill === "lr" ? TEST_SKILL.LR :
                          skill === "speaking" ? TEST_SKILL.SPEAKING :
                          skill === "writing" ? TEST_SKILL.WRITING :
-                         skill === "fourSkills" ? TEST_SKILL.FOUR_SKILLS : null;
+                         skill === "sw" || skill === "fourSkills" ? TEST_SKILL.FOUR_SKILLS : null;
         
         if (skillValue === null) {
             setTests(testsList);
@@ -119,7 +121,7 @@ export default function TestList() {
             if (skill === "writing" && (test.testSkillValue === 2 || test.testSkill === "Writing" || test.testSkillValue === "Writing")) {
                 return true;
             }
-            if (skill === "fourSkills" && (test.testSkillValue === 4 || test.testSkill === "FourSkills" || test.testSkill === "Four Skills" || test.testSkillValue === "FourSkills" || test.testSkillValue === "Four Skills")) {
+            if ((skill === "sw" || skill === "fourSkills") && (test.testSkillValue === 4 || test.testSkill === "FourSkills" || test.testSkill === "S&W" || test.testSkill === "Four Skills" || test.testSkillValue === "FourSkills" || test.testSkillValue === "Four Skills" || test.testSkillValue === "S&W")) {
                 return true;
             }
             
@@ -141,8 +143,8 @@ export default function TestList() {
         }
     }, [filterSkill, allTests]);
 
-    const handleStartTest = (testId) => {
-        navigate(`/toeic-exam?testId=${testId}`, { state: { from: location.pathname } });
+    const handleStartTest = (test) => {
+        navigate(`/toeic-exam?testId=${test.id}`, { state: { from: location.pathname, testMeta: test } });
     };
 
     const getSkillColor = (skill) => {
@@ -156,6 +158,8 @@ export default function TestList() {
                 return "purple";
             case "Four Skills":
             case "FourSkills":
+            case "S&W":
+            case "SW":
                 return "blue";
             default: 
                 return "blue";
@@ -173,7 +177,9 @@ export default function TestList() {
                 return "Writing";
             case "Four Skills":
             case "FourSkills":
-                return "Four Skills";
+            case "S&W":
+            case "SW":
+                return "S&W";
             default: 
                 return skill;
         }
@@ -203,14 +209,14 @@ export default function TestList() {
                         <Option value="lr">Listening & Reading</Option>
                         <Option value="speaking">Speaking</Option>
                         <Option value="writing">Writing</Option>
-                        <Option value="fourSkills">Four Skills</Option>
+                        <Option value="sw">S&W</Option>
                     </Select>
                 </div>
 
                 {/* Tests Grid */}
                 {loading ? (
                     <div className={styles.loadingContainer}>
-                        <Spin size="large" />
+                        <Spin indicator={<LoadingOutlined style={{ fontSize: 24 }} spin />} size="large" />
                     </div>
                 ) : tests.length === 0 ? (
                     <Card className={styles.emptyCard}>
@@ -237,7 +243,7 @@ export default function TestList() {
                                             type="primary"
                                             icon={<PlayCircleOutlined />}
                                             size="middle"
-                                            onClick={() => handleStartTest(test.id)}
+                                            onClick={() => handleStartTest(test)}
                                             className={styles.testStartButton}
                                         >
                                             Bắt đầu làm bài

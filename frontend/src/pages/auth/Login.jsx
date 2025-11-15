@@ -15,6 +15,7 @@ import { useAuth } from "@shared/hooks/useAuth";
 import logo from "@assets/images/logo.png";
 import { useGoogleLogin } from "@react-oauth/google";
 import { ROLES } from "@shared/utils/acl";
+import styles from "@shared/styles/Auth.module.css";
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,7 +28,7 @@ export default function Login() {
     if (roles.includes(ROLES.Admin))
       return navigate("/admin/dashboard", { replace: true });
     if (roles.includes(ROLES.TestCreator))
-      return navigate("/admin/dashboard", { replace: true });
+      return navigate("/test-creator/dashboard", { replace: true });
     return navigate("/", { replace: true });
   };
   const handleLogin = async (values) => {
@@ -110,35 +111,20 @@ export default function Login() {
     flow: "auth-code",
   });
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#f7f7fb",
-        padding: 16,
-      }}
-    >
-      <img src={logo} alt="Logo" style={{ height: 90, margin: 16 }} />
+    <div className={styles.authContainer}>
+      <img src={logo} alt="Logo" className={styles.authLogo} />
       <Card
-        style={{
-          width: 520,
-          borderRadius: 16,
-          padding: "32px 24px",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-        }}
+        className={styles.authCard}
         bodyStyle={{ padding: 0 }}
       >
-        <div style={{ padding: "28px 28px 8px", textAlign: "center" }}>
+        <div className={styles.authHeader}>
           <Title level={3} style={{ marginBottom: 4 }}>
             Chào mừng trở lại
           </Title>
           <Text type="secondary">Đăng nhập vào tài khoản của bạn</Text>
         </div>
 
-        <div style={{ padding: "0 28px 24px" }}>
+        <div className={styles.authForm}>
           <Form form={form} layout="vertical" onFinish={handleLogin}>
             <Form.Item
               label="Email"
@@ -156,9 +142,9 @@ export default function Login() {
             <Form.Item
               label={
                 <div
-                  style={{ display: "flex", justifyContent: "space-between" }}
+                  style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}
                 >
-                  <span style={{ marginRight: 230 }}>Mật khẩu</span>
+                  <span>Mật khẩu</span>
                   <a href="/forgot-password">Quên mật khẩu?</a>
                 </div>
               }
@@ -173,12 +159,7 @@ export default function Login() {
               htmlType="submit"
               block
               size="large"
-              style={{
-                height: 44,
-                border: "none",
-                background: "linear-gradient(90deg, #7b61ff 0%, #3ea1ff 100%)",
-                fontWeight: 600,
-              }}
+              className={styles.authButton}
               icon={<ArrowRightOutlined />}
               loading={loading}
               iconPosition="end"
@@ -194,15 +175,7 @@ export default function Login() {
               block
               size="large"
               icon={<GoogleOutlined />}
-              style={{
-                height: 44,
-                background: "#fff",
-                borderColor: "#eee",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
+              className={styles.googleButton}
               onClick={() => googleLogin()}
             >
               Tiếp tục với Google

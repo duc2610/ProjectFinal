@@ -22,6 +22,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
     const [groupDetails, setGroupDetails] = useState({}); 
     const [viewingQuestionId, setViewingQuestionId] = useState(null);
     const [viewingGroupId, setViewingGroupId] = useState(null);
+    const [activeTab, setActiveTab] = useState("single");
 
     const toSkillId = (val) => {
         if (val == null) return undefined;
@@ -115,14 +116,21 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
 
     useEffect(() => {
         if (!open) return;
-        form.resetFields();
-        setParts([]);
-        setSelectedSingleQuestions([]);
-        setSelectedGroupQuestions([]);
-        setQuestionDetails({});
-        setGroupDetails({});
-        setViewingQuestionId(null);
-        setViewingGroupId(null);
+        
+        // Chỉ reset khi mở modal mới (không phải edit) hoặc khi editingId thay đổi
+        const shouldReset = !editingId;
+        
+        if (shouldReset) {
+            form.resetFields();
+            setParts([]);
+            setSelectedSingleQuestions([]);
+            setSelectedGroupQuestions([]);
+            setQuestionDetails({});
+            setGroupDetails({});
+            setViewingQuestionId(null);
+            setViewingGroupId(null);
+            setActiveTab("single");
+        }
 
         const loadForEdit = async (id) => {
             try {
@@ -187,6 +195,8 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
     
                 if (groupIds.length > 0) {
                     loadGroupDetails(groupIds);
+                    // Tự động chuyển sang tab group nếu có group questions
+                    setActiveTab("group");
                 }
             } catch (e) {
                 message.error("Không tải được chi tiết bài thi");
@@ -239,11 +249,81 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
 
             message.success(editingId ? "Cập nhật bài thi thành công" : `Tạo bài thi thành công! (${totalQuestions} câu hỏi)`);
             
-            // Delay nhỏ để đảm bảo backend đã lưu xong version mới
-            setTimeout(() => {
-                onSuccess();
-                onClose();
-            }, 300);
+            if (editingId) {
+                // Khi update, reload dữ liệu mà không đóng modal
+                try {
+                    const detail = await getTestById(editingId);
+                    const d = detail?.data || detail || {};
+                    const skillVal = toSkillId(d.testSkill ?? d.TestSkill);
+                    
+                    const singleIds = [];
+                    const groupIds = [];
+                    const partsArr = d.parts || d.Parts || [];
+                    
+                    if (partsArr && partsArr.length > 0) {
+                        (partsArr).forEach((p) => {
+                            const tqs = p.testQuestions || p.TestQuestions || [];
+                            if (tqs && tqs.length > 0) {
+                                tqs.forEach((tq) => {
+                                    const isGroup = tq.isGroup ?? tq.IsGroup;
+                                    if (isGroup) {
+                                        const gSnap = tq.questionGroupSnapshotDto || tq.QuestionGroupSnapshotDto;
+                                        if (gSnap) {
+                                            const gid = gSnap.questionGroupId ?? gSnap.QuestionGroupId;
+                                            if (gid != null && !groupIds.includes(gid)) {
+                                                groupIds.push(gid);
+                                            }
+                                        }
+                                    } else {
+                                        const qSnap = tq.questionSnapshotDto || tq.QuestionSnapshotDto;
+                                        if (qSnap) {
+                                            const qid = qSnap.questionId ?? qSnap.QuestionId;
+                                            if (qid != null && !singleIds.includes(qid)) {
+                                                singleIds.push(qid);
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+
+                    // Lưu số lượng group questions trước khi update để biết có thêm mới không
+                    const previousGroupCount = selectedGroupQuestions.length;
+                    
+                    setSelectedSingleQuestions(singleIds);
+                    setSelectedGroupQuestions(groupIds);
+                    
+                    // Load details cho các câu hỏi mới
+                    const newSingleIds = singleIds.filter(id => !questionDetails[id]);
+                    const newGroupIds = groupIds.filter(id => !groupDetails[id]);
+                    
+                    if (newSingleIds.length > 0) {
+                        loadQuestionDetails(newSingleIds);
+                    }
+                    if (newGroupIds.length > 0) {
+                        loadGroupDetails(newGroupIds);
+                    }
+                    
+                    // Nếu vừa thêm group questions mới (số lượng tăng) và đang ở tab single, chuyển sang tab group
+                    // Hoặc nếu đang ở tab group, giữ nguyên tab group
+                    if (activeTab === "group" || (activeTab === "single" && groupIds.length > previousGroupCount && groupIds.length > 0)) {
+                        setActiveTab("group");
+                    }
+                    
+                    onSuccess();
+                } catch (error) {
+                    console.error("Error reloading test data:", error);
+                    onSuccess();
+                    onClose();
+                }
+            } else {
+                // Khi tạo mới, đóng modal
+                setTimeout(() => {
+                    onSuccess();
+                    onClose();
+                }, 300);
+            }
         } catch (error) {
             console.error("Error creating test:", error);
             const errorMessage = error?.response?.data?.message || 
@@ -376,6 +456,8 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                             viewingGroupId={viewingGroupId}
                             setViewingQuestionId={setViewingQuestionId}
                             setViewingGroupId={setViewingGroupId}
+                            activeTab={activeTab}
+                            setActiveTab={setActiveTab}
                             readOnly={readOnly}
                         />
                     </>
@@ -409,12 +491,25 @@ function QuestionSelector({
     viewingGroupId = null,
     setViewingQuestionId = null,
     setViewingGroupId = null,
+    activeTab: activeTabProp = "single",
+    setActiveTab: setActiveTabProp = null,
     readOnly,
 }) {
-    const [activeTab, setActiveTab] = useState("single");
+    const [internalActiveTab, setInternalActiveTab] = useState(activeTabProp);
     const [singleQuestionModalOpen, setSingleQuestionModalOpen] = useState(false);
     const [groupQuestionModalOpen, setGroupQuestionModalOpen] = useState(false);
     const isLR = skill === TEST_SKILL.LR;
+    
+    // Sử dụng prop nếu có, nếu không thì dùng state nội bộ
+    const activeTab = setActiveTabProp ? activeTabProp : internalActiveTab;
+    const setActiveTab = setActiveTabProp || setInternalActiveTab;
+    
+    // Sync state nội bộ với prop khi prop thay đổi (chỉ khi không có setActiveTabProp)
+    useEffect(() => {
+        if (!setActiveTabProp && activeTabProp !== internalActiveTab) {
+            setInternalActiveTab(activeTabProp);
+        }
+    }, [activeTabProp, setActiveTabProp, internalActiveTab]);
 
     const handleAddSingleQuestion = () => {
         setSingleQuestionModalOpen(true);
@@ -435,6 +530,8 @@ function QuestionSelector({
         // Merge với danh sách đã chọn, loại bỏ duplicate
         const newIds = [...new Set([...selectedGroupQuestions, ...groupIds])];
         onSelectGroupQuestions(newIds);
+        // Tự động chuyển sang tab group khi thêm group questions
+        setActiveTab("group");
         message.success(`Đã thêm ${groupIds.length} nhóm câu hỏi`);
     };
 

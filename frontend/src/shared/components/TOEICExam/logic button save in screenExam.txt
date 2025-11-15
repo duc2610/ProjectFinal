@@ -1,0 +1,119 @@
+https://localhost:7100/api/tests/save-progress
+
+
+input body (raw)
+
+{
+    "testResultId": 123,
+    "answers": [
+      {"testQuestionId":1,"chosenOptionLabel":"A"},
+      {"testQuestionId":2,"chosenOptionLabel":"B"}
+    ]
+  }
+
+/////////////////////LOGIC//////////////////////////////////////////////////////////
+TEST CASE 1: Flow Bình Thường
+# Step 1: Login
+TOKEN=$(curl -s -X POST "http://localhost:5000/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"examinee@example.com","password":"YourPassword123"}' \
+  | jq -r '.data.token')
+
+echo "Token: $TOKEN"
+
+# Step 2: Start Test
+RESULT=$(curl -s -X POST "http://localhost:5000/api/tests/start" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"testId":1}')
+
+TEST_RESULT_ID=$(echo $RESULT | jq -r '.data.testResultId')
+echo "TestResultId: $TEST_RESULT_ID"
+
+# Step 3: Save Progress (sau 5 phút)
+sleep 5
+curl -X POST "http://localhost:5000/api/tests/save-progress" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d "{
+    \"testResultId\": $TEST_RESULT_ID,
+    \"answers\": [
+      {\"testQuestionId\":1,\"chosenOptionLabel\":\"A\"},
+      {\"testQuestionId\":2,\"chosenOptionLabel\":\"B\"}
+    ]
+  }"
+
+# Step 4: Save Progress lần 2 (sau 10 phút)
+sleep 5
+curl -X POST "http://localhost:5000/api/tests/save-progress" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d "{
+    \"testResultId\": $TEST_RESULT_ID,
+    \"answers\": [
+      {\"testQuestionId\":1,\"chosenOptionLabel\":\"A\"},
+      {\"testQuestionId\":2,\"chosenOptionLabel\":\"C\"},
+      {\"testQuestionId\":3,\"chosenOptionLabel\":\"D\"}
+    ]
+  }"
+
+# Step 5: Submit Test
+curl -X POST "http://localhost:5000/api/tests/submit-lr" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d "{
+    \"testId\": 1,
+    \"testResultId\": $TEST_RESULT_ID,
+    \"duration\": 60,
+    \"testType\": 1,
+    \"answers\": [
+      {\"testQuestionId\":1,\"chosenOptionLabel\":\"A\"},
+      {\"testQuestionId\":2,\"chosenOptionLabel\":\"C\"},
+      {\"testQuestionId\":3,\"chosenOptionLabel\":\"D\"}
+    ]
+  }"
+TEST CASE 2: Mất Mạng, Resume Bài
+# Step 1: Start Test
+curl -X POST "http://localhost:5000/api/tests/start" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"testId":1}'
+# Lưu testResultId = 123
+
+# Step 2: Save Progress
+curl -X POST "http://localhost:5000/api/tests/save-progress" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "testResultId": 123,
+    "answers": [
+      {"testQuestionId":1,"chosenOptionLabel":"A"},
+      {"testQuestionId":2,"chosenOptionLabel":"B"}
+    ]
+  }'
+
+# Step 3: Giả lập mất mạng (user thoát app)
+# ... user offline 15 phút ...
+
+# Step 4: User quay lại, start lại test
+curl -X POST "http://localhost:5000/api/tests/start" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"testId":1}'
+
+# Response sẽ có savedAnswers với câu 1,2 đã trả lời trước đó
+TEST CASE 3: Test Background Service Auto-Submit
+# Để test background service, bạn cần:
+
+# 1. Start test với duration ngắn (ví dụ 2 phút)
+# 2. Save progress
+# 3. Đợi 2 + 5 = 7 phút (quá grace period)
+# 4. Check logs của backend
+
+# Check logs trong terminal chạy backend:
+# Bạn sẽ thấy:
+# [11:06] Found 1 expired test(s) to auto-submit.
+# [11:06] Auto-submitting TestResult 123 for User abc-def-ghi
+# [11:06] Successfully auto-submitted LR test for TestResult 123
+
+

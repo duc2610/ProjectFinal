@@ -1,0 +1,45 @@
+https://localhost:7100/api/tests/submit/L&R
+
+
+input body (raw)
+
+
+{
+  "userId": "33333333-3333-3333-3333-333333333333",
+  "testId": 2,
+  "testResultId": 1193,
+  "duration": 1,
+  "testType": "Simulator",
+  "answers": [
+    {
+      "testQuestionId": 8,
+      "subQuestionIndex": 0,
+      "chosenOptionLabel": "A"
+    }
+  ]
+}
+
+
+
+data response
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": {
+        "testResultId": 1195,
+        "totalQuestions": 200,
+        "correctCount": 1,
+        "incorrectCount": 0,
+        "skipCount": 199,
+        "duration": 1,
+        "totalScore": 10,
+        "listeningCorrect": 1,
+        "listeningTotal": 100,
+        "listeningScore": 5,
+        "readingCorrect": 0,
+        "readingTotal": 100,
+        "readingScore": 5
+    },
+    "success": true
+}
