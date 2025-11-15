@@ -31,21 +31,28 @@ namespace ToeicGenius.Repositories.Implementations
 					ImageUrl = g.ImageUrl,
 					PassageContent = g.PassageContent,
 					Status = g.Status,
-					Questions = g.Questions.Select(q => new SingleQuestionDto
-					{
-						QuestionId = q.QuestionId,
-						QuestionTypeId = q.QuestionTypeId,
-						QuestionTypeName = q.QuestionType.TypeName,
-						PartId = q.PartId,
-						PartName = g.Part.Name ?? "",
-						Content = q.Content,
-						Options = q.Options.Select(o => new OptionDto
-						{
-							OptionId = o.OptionId,
-							Content = o.Content ?? "",
-							Label = o.Label ?? "",
-							IsCorrect = o.IsCorrect
-						}).ToList(),
+					// Chỉ lấy QUESTION Active
+					Questions = g.Questions
+								.Where(q => q.Status == CommonStatus.Active)
+								.Select(q => new SingleQuestionDto
+								{
+									QuestionId = q.QuestionId,
+									QuestionTypeId = q.QuestionTypeId,
+									QuestionTypeName = q.QuestionType.TypeName,
+									PartId = q.PartId,
+									PartName = g.Part.Name ?? "",
+									Content = q.Content,
+									// Chỉ lấy OPTION Active
+									Options = q.Options
+										.Where(o => o.Status == CommonStatus.Active)
+										.Select(o => new OptionDto
+										{
+											OptionId = o.OptionId,
+											Content = o.Content ?? "",
+											Label = o.Label ?? "",
+											IsCorrect = o.IsCorrect
+										})
+										.ToList(),
 						Solution = q.Explanation,
 						Status = q.Status
 					}).ToList(),

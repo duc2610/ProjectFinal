@@ -31,12 +31,18 @@ namespace ToeicGenius.Repositories.Implementations
 					PartId = q.PartId,
 					PartName = q.Part.Name ?? "",
 					Content = q.Content,
-					Options = q.Options.Select(o => new OptionDto
-					{
-						OptionId = o.OptionId,
-						Content = o.Content ?? "",
-						IsCorrect = o.IsCorrect
-					}).ToList(),
+
+					// Only take ACTIVE options
+					Options = q.Options
+						.Where(o => o.Status == CommonStatus.Active)
+						.Select(o => new OptionDto
+						{
+							OptionId = o.OptionId,
+							Content = o.Content ?? "",
+							IsCorrect = o.IsCorrect
+						})
+						.ToList(),
+
 					Solution = q.Explanation,
 					AudioUrl = q.AudioUrl,
 					ImageUrl = q.ImageUrl,
@@ -46,6 +52,7 @@ namespace ToeicGenius.Repositories.Implementations
 
 			return question;
 		}
+
 
 		public async Task<PaginationResponse<QuestionResponseDto>> FilterQuestionsAsync(
 			int? partId, int? questionTypeId, string? keyWord, int? skill, int page, int pageSize, CommonStatus status)
