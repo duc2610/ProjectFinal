@@ -8,6 +8,7 @@ using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 using ToeicGenius.Shared.Validators;
 
 namespace ToeicGenius.Services.Implementations
@@ -182,7 +183,10 @@ namespace ToeicGenius.Services.Implementations
 			var part = await _uow.Parts.GetByIdAsync(dto.PartId);
 			if (part != null && part.Skill == QuestionSkill.Listening)
 			{
-				if (dto.Audio == null || dto.Audio.Length == 0)
+				// FIX: only require audio when neither new file is provided nor question already has audio
+				var hasExistingAudio = !string.IsNullOrEmpty(currentQuestionGroup.AudioUrl);
+				var hasNewAudio = dto.Audio != null && dto.Audio.Length > 0;
+				if (!hasExistingAudio && !hasNewAudio)
 				{
 					return Result<string>.Failure("Audio file is required for Listening part.");
 				}
@@ -235,7 +239,7 @@ namespace ToeicGenius.Services.Implementations
 				// Update question 
 				currentQuestionGroup.PartId = dto.PartId;
 				currentQuestionGroup.PassageContent = dto.PassageContent;
-				currentQuestionGroup.UpdatedAt = DateTime.UtcNow;
+				currentQuestionGroup.UpdatedAt = Now;
 
 				// Chỉ thay khi có file mới
 				if (!string.IsNullOrEmpty(newAudioUrl)) currentQuestionGroup.AudioUrl = newAudioUrl;
@@ -250,31 +254,33 @@ namespace ToeicGenius.Services.Implementations
 						q.Content = qDto.Content;
 						q.Explanation = qDto.Solution;
 						q.QuestionTypeId = qDto.QuestionTypeId;
-						q.UpdatedAt = DateTime.UtcNow;
+						q.UpdatedAt = Now;
 
 						// Xử lý option
 						// Update options
 						var existingOpts = q.Options.ToDictionary(o => o.OptionId, o => o);
-						var keepIds = new HashSet<int>(qDto.AnswerOptions.Where(o => o.OptionId.HasValue)
-																		 .Select(o => o.OptionId!.Value));
+						// build keepIds from DTO but only positive ids (ids <= 0 are treated as "new")
+						var keepIds = new HashSet<int>(qDto.AnswerOptions
+							.Where(d => d.Id.HasValue && d.Id.Value > 0)
+							.Select(d => d.Id!.Value));
 
 						// Soft delete removed
 						foreach (var old in q.Options.Where(o => !keepIds.Contains(o.OptionId)))
 						{
 							old.Status = CommonStatus.Inactive;
-							old.UpdatedAt = DateTime.UtcNow;
+							old.UpdatedAt = Now;
 						}
 
 						// Upsert
 						foreach (var oDto in qDto.AnswerOptions)
 						{
-							if (oDto.OptionId.HasValue && existingOpts.TryGetValue(oDto.OptionId.Value, out var opt))
+							if (oDto.Id.HasValue && existingOpts.TryGetValue(oDto.Id.Value, out var opt))
 							{
 								opt.Label = oDto.Label;
 								opt.Content = oDto.Content;
 								opt.IsCorrect = oDto.IsCorrect;
 								opt.Status = CommonStatus.Active;
-								opt.UpdatedAt = DateTime.UtcNow;
+								opt.UpdatedAt = Now;
 							}
 							else
 							{
@@ -284,7 +290,7 @@ namespace ToeicGenius.Services.Implementations
 									Content = oDto.Content,
 									IsCorrect = oDto.IsCorrect,
 									Status = CommonStatus.Active,
-									CreatedAt = DateTime.UtcNow
+									CreatedAt = Now
 								});
 							}
 						}
@@ -310,14 +316,14 @@ namespace ToeicGenius.Services.Implementations
 							Content = qDto.Content,
 							Explanation = qDto.Solution,
 							Status = CommonStatus.Active,
-							CreatedAt = DateTime.UtcNow,
+							CreatedAt = Now,
 							Options = qDto.AnswerOptions.Select(o => new Option
 							{
 								Label = o.Label,
 								Content = o.Content,
 								IsCorrect = o.IsCorrect,
 								Status = CommonStatus.Active,
-								CreatedAt = DateTime.UtcNow
+								CreatedAt = Now
 							}).ToList()
 						};
 

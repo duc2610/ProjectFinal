@@ -15,6 +15,7 @@ using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
 using ToeicGenius.Shared.Helpers;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 using ToeicGenius.Shared.Validators;
 
 namespace ToeicGenius.Services.Implementations
@@ -93,7 +94,7 @@ namespace ToeicGenius.Services.Implementations
 						SnapshotJson = snapshot,
 						OrderInTest = order++,
 						SourceType = QuestionSourceType.FromBank,
-						CreatedAt = DateTime.UtcNow
+						CreatedAt = Now
 					});
 				}
 
@@ -113,7 +114,7 @@ namespace ToeicGenius.Services.Implementations
 						SnapshotJson = snapshot,
 						OrderInTest = order++,
 						SourceType = QuestionSourceType.FromBank,
-						CreatedAt = DateTime.UtcNow,
+						CreatedAt = Now,
 					});
 				}
 				test.TotalQuestion = quantityQuestion;
@@ -200,7 +201,7 @@ namespace ToeicGenius.Services.Implementations
 								SnapshotJson = snapshot,
 								OrderInTest = order++,
 								SourceType = QuestionSourceType.FromBank,
-								CreatedAt = DateTime.UtcNow
+								CreatedAt = Now
 							});
 						}
 					}
@@ -237,7 +238,7 @@ namespace ToeicGenius.Services.Implementations
 								SnapshotJson = snapshot,
 								OrderInTest = order++,
 								SourceType = QuestionSourceType.FromBank,
-								CreatedAt = DateTime.UtcNow,
+								CreatedAt = Now,
 							});
 						}
 					}
@@ -294,7 +295,7 @@ namespace ToeicGenius.Services.Implementations
 					AudioUrl = dto.AudioUrl,
 					Version = NumberConstants.FirstVersion,
 					TotalQuestion = quantity,
-					CreatedAt = DateTime.UtcNow,
+					CreatedAt = Now,
 					CreatedById = userId
 				};
 
@@ -323,7 +324,7 @@ namespace ToeicGenius.Services.Implementations
 								PartId = part.PartId,
 								SourceType = QuestionSourceType.Manual,
 								SnapshotJson = snapshotJson,
-								CreatedAt = DateTime.UtcNow
+								CreatedAt = Now
 							});
 						}
 					}
@@ -345,7 +346,7 @@ namespace ToeicGenius.Services.Implementations
 								PartId = part.PartId,
 								SourceType = QuestionSourceType.Manual,
 								SnapshotJson = snapshotJson,
-								CreatedAt = DateTime.UtcNow
+								CreatedAt = Now
 							});
 						}
 					}
@@ -383,7 +384,7 @@ namespace ToeicGenius.Services.Implementations
 					CreationStatus = TestCreationStatus.Draft,
 					VisibilityStatus = TestVisibilityStatus.Hidden,
 					Duration = GetTestDuration(dto.TestSkill),
-					CreatedAt = DateTime.UtcNow,
+					CreatedAt = Now,
 					CreatedById = userId
 				};
 
@@ -454,7 +455,7 @@ namespace ToeicGenius.Services.Implementations
 							OrderInTest = 0, // will be resequenced
 							SourceType = QuestionSourceType.Manual,
 							SnapshotJson = snapshotJson,
-							CreatedAt = DateTime.UtcNow
+							CreatedAt = Now
 						});
 					}
 				}
@@ -475,7 +476,7 @@ namespace ToeicGenius.Services.Implementations
 							OrderInTest = 0, // will be resequenced
 							SourceType = QuestionSourceType.Manual,
 							SnapshotJson = snapshotJson,
-							CreatedAt = DateTime.UtcNow
+							CreatedAt = Now
 						});
 					}
 				}
@@ -524,7 +525,7 @@ namespace ToeicGenius.Services.Implementations
 				// Cập nhật tổng số câu hỏi của test sau khi lưu/resequence
 				test.TotalQuestion = totalQuestions;
 
-				test.UpdatedAt = DateTime.UtcNow;
+				test.UpdatedAt = Now;
 				test.CreationStatus = TestCreationStatus.InProgress;
 
 				await _uow.SaveChangesAsync();
@@ -575,7 +576,7 @@ namespace ToeicGenius.Services.Implementations
 
 			test.TotalQuestion = totalQuestions;
 			test.CreationStatus = TestCreationStatus.Completed;
-			test.UpdatedAt = DateTime.UtcNow;
+			test.UpdatedAt = Now;
 
 			await _uow.SaveChangesAsync();
 
@@ -720,7 +721,7 @@ namespace ToeicGenius.Services.Implementations
 					VisibilityStatus = TestVisibilityStatus.Hidden,
 					ParentTestId = parentId,
 					Version = newVersion,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = Now
 				};
 
 				await _uow.Tests.AddAsync(targetTest);
@@ -736,7 +737,7 @@ namespace ToeicGenius.Services.Implementations
 				targetTest.TestType = dto.TestType;
 				targetTest.Duration = dto.Duration;
 				targetTest.TotalQuestion = 0;
-				targetTest.UpdatedAt = DateTime.UtcNow;
+				targetTest.UpdatedAt = Now;
 
 				var oldQuestions = await _uow.TestQuestions.GetByTestIdAsync(targetTest.TestId);
 				_uow.TestQuestions.RemoveRange(oldQuestions);
@@ -765,7 +766,7 @@ namespace ToeicGenius.Services.Implementations
 					OrderInTest = order++,
 					SourceType = QuestionSourceType.FromBank,
 					SnapshotJson = snapshot,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = Now
 				});
 			}
 
@@ -783,7 +784,7 @@ namespace ToeicGenius.Services.Implementations
 					OrderInTest = order++,
 					SourceType = QuestionSourceType.FromBank,
 					SnapshotJson = snapshot,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = Now
 				});
 			}
 
@@ -828,7 +829,7 @@ namespace ToeicGenius.Services.Implementations
 					CreationStatus = TestCreationStatus.Completed,
 					ParentTestId = existing.ParentTestId ?? existing.TestId,
 					Version = newVersion,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = Now
 				};
 
 				await _uow.Tests.AddAsync(targetTest);
@@ -843,7 +844,7 @@ namespace ToeicGenius.Services.Implementations
 				targetTest.AudioUrl = dto.AudioUrl;
 				targetTest.TestSkill = dto.TestSkill;
 				targetTest.TotalQuestion = totalQuestion;
-				targetTest.UpdatedAt = DateTime.UtcNow;
+				targetTest.UpdatedAt = Now;
 
 				// Xóa test question cũ
 				var oldQuestions = await _uow.TestQuestions.GetByTestIdAsync(targetTest.TestId);
@@ -877,7 +878,7 @@ namespace ToeicGenius.Services.Implementations
 							IsQuestionGroup = true,
 							SourceType = QuestionSourceType.Manual,
 							SnapshotJson = snapshot,
-							CreatedAt = DateTime.UtcNow
+							CreatedAt = Now
 						});
 					}
 				}
@@ -897,7 +898,7 @@ namespace ToeicGenius.Services.Implementations
 							OrderInTest = order++,
 							SourceType = QuestionSourceType.Manual,
 							SnapshotJson = snapshot,
-							CreatedAt = DateTime.UtcNow
+							CreatedAt = Now
 						});
 					}
 				}
@@ -934,7 +935,7 @@ namespace ToeicGenius.Services.Implementations
 				VisibilityStatus = TestVisibilityStatus.Hidden,
 				Version = source.Version + 1,
 				ParentTestId = source.TestId,
-				CreatedAt = DateTime.UtcNow
+				CreatedAt = Now
 			};
 
 			// Clone snapshot của TestQuestion
@@ -946,7 +947,7 @@ namespace ToeicGenius.Services.Implementations
 					OrderInTest = tq.OrderInTest,
 					SourceType = tq.SourceType,
 					SnapshotJson = tq.SnapshotJson,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = Now
 				});
 			}
 
@@ -1021,7 +1022,7 @@ namespace ToeicGenius.Services.Implementations
 				userTest = existingTestResult;
 
 				// Check if test time has expired + 5 minutes grace period -> auto-submit
-				var elapsedTime = DateTime.UtcNow - userTest.CreatedAt;
+				var elapsedTime = Now - userTest.CreatedAt;
 				var testDurationWithGrace = TimeSpan.FromMinutes(test.Duration + 5);
 
 				if (elapsedTime > testDurationWithGrace && userTest.Status == TestResultStatus.InProgress)
@@ -1046,7 +1047,7 @@ namespace ToeicGenius.Services.Implementations
 						// For Speaking/Writing/SW tests, just mark as submitted (grading happens separately via bulk grading)
 						userTest.Status = TestResultStatus.Graded;
 						userTest.Duration = (int)elapsedTime.TotalMinutes;
-						userTest.UpdatedAt = DateTime.UtcNow;
+						userTest.UpdatedAt = Now;
 						await _uow.SaveChangesAsync();
 					}
 
@@ -1059,7 +1060,8 @@ namespace ToeicGenius.Services.Implementations
 						Duration = 0,
 						TotalScore = 0,
 						TestType = test.TestType,
-						CreatedAt = DateTime.UtcNow
+						CreatedAt = Now,
+						IsSelectTime = request.IsSelectTime
 					};
 
 					await _uow.TestResults.AddAsync(userTest);
@@ -1076,7 +1078,8 @@ namespace ToeicGenius.Services.Implementations
 					Duration = 0,
 					TotalScore = 0,
 					TestType = test.TestType,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = Now,
+					IsSelectTime = request.IsSelectTime
 				};
 
 				await _uow.TestResults.AddAsync(userTest);
@@ -1197,7 +1200,7 @@ namespace ToeicGenius.Services.Implementations
 			testResult.Duration = request.Duration;
 			testResult.TestType = request.TestType;
 			testResult.Status = TestResultStatus.Graded;
-			testResult.UpdatedAt = DateTime.UtcNow;
+			testResult.UpdatedAt = Now;
 
 			// Lấy map Part -> Skill
 			var partIds = testQuestions.Select(q => q.PartId).Distinct().ToList();
@@ -1605,7 +1608,7 @@ namespace ToeicGenius.Services.Implementations
 				SubQuestionIndex = subIndex,
 				ChosenOptionLabel = chosenLabel,
 				IsCorrect = isCorrect,
-				CreatedAt = DateTime.UtcNow
+				CreatedAt = Now
 			};
 		}
 		private GeneralLRResultDto CalculateSimulatorResult(TestStats stats, int duration)
@@ -1712,12 +1715,12 @@ namespace ToeicGenius.Services.Implementations
 		{
 			return range.ToLower() switch
 			{
-				"1y" => DateTime.UtcNow.AddYears(-1),
-				"6m" => DateTime.UtcNow.AddMonths(-6),
-				"3m" => DateTime.UtcNow.AddMonths(-3),
-				"1m" => DateTime.UtcNow.AddMonths(-1),
-				"7d" => DateTime.UtcNow.AddDays(-7),
-				"3d" => DateTime.UtcNow.AddDays(-3),
+				"1y" => Now.AddYears(-1),
+				"6m" => Now.AddMonths(-6),
+				"3m" => Now.AddMonths(-3),
+				"1m" => Now.AddMonths(-1),
+				"7d" => Now.AddDays(-7),
+				"3d" => Now.AddDays(-3),
 				_ => null // all
 			};
 		}
@@ -1793,7 +1796,7 @@ namespace ToeicGenius.Services.Implementations
 						existingAnswer.AnswerText = answerDto.AnswerText;
 						existingAnswer.AnswerAudioUrl = answerDto.AnswerAudioUrl;
 						existingAnswer.SubQuestionIndex = answerDto.SubQuestionIndex;
-						existingAnswer.UpdatedAt = DateTime.UtcNow;
+						existingAnswer.UpdatedAt = Now;
 
 						await _uow.UserAnswers.UpdateAsync(existingAnswer);
 					}
@@ -1808,7 +1811,7 @@ namespace ToeicGenius.Services.Implementations
 							AnswerText = answerDto.AnswerText,
 							AnswerAudioUrl = answerDto.AnswerAudioUrl,
 							SubQuestionIndex = answerDto.SubQuestionIndex,
-							CreatedAt = DateTime.UtcNow
+							CreatedAt = Now
 						};
 
 						await _uow.UserAnswers.AddAsync(newAnswer);
@@ -1816,7 +1819,7 @@ namespace ToeicGenius.Services.Implementations
 				}
 
 				// Update TestResult timestamp (but keep status as InProgress)
-				testResult.UpdatedAt = DateTime.UtcNow;
+				testResult.UpdatedAt = Now;
 				await _uow.SaveChangesAsync();
 
 				return Result<string>.Success("Progress saved successfully");

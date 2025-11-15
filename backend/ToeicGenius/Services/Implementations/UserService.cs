@@ -7,6 +7,7 @@ using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
 using ToeicGenius.Shared.Helpers;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -95,7 +96,7 @@ namespace ToeicGenius.Services.Implementations
 				FullName = dto.FullName,
 				PasswordHash = SecurityHelper.HashPassword(plainPassword),
 				Status = UserStatus.Active,
-				CreatedAt = DateTime.UtcNow
+				CreatedAt = Now
 			};
 
 			await _uow.Users.AddAsync(user);
@@ -136,7 +137,7 @@ namespace ToeicGenius.Services.Implementations
 
 			// Cập nhật thông tin cơ bản
 			user.FullName = dto.FullName;
-			user.UpdatedAt = DateTime.UtcNow;
+			user.UpdatedAt = Now;
 
 			// Cập nhật mật khẩu nếu có
 			if (!string.IsNullOrWhiteSpace(dto.Password))

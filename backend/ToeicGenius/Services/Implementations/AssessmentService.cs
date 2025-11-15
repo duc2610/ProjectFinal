@@ -21,6 +21,7 @@ using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Helpers;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -242,7 +243,7 @@ namespace ToeicGenius.Services.Implementations
 
             testResult.SkillScores = skillScores;
             testResult.Duration = request.Duration;
-            testResult.UpdatedAt = DateTime.UtcNow;
+            testResult.UpdatedAt = Now;
             testResult.Status = TestResultStatus.Graded;
 
             // Calculate TotalScore as sum of all skill scores (Writing + Speaking)
@@ -372,7 +373,7 @@ namespace ToeicGenius.Services.Implementations
                 PythonApiResponse = jsonResponse,
                 AudioFileUrl = audioUrl,
                 ImageFileUrl = taskType == "describe_picture" ? singleSnapshot?.ImageUrl : null,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = Now
             };
 
             await _feedbackRepository.CreateAsync(feedback);
@@ -438,7 +439,7 @@ namespace ToeicGenius.Services.Implementations
                     CorrectedText = pythonResponse.DetailedAnalysis?.CorrectedText,
                     PythonApiResponse = jsonResponse,
                     ImageFileUrl = snapshot.ImageUrl,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = Now
                 };
 
                 await _feedbackRepository.CreateAsync(feedback);
@@ -510,7 +511,7 @@ namespace ToeicGenius.Services.Implementations
                     RecommendationsJson = JsonSerializer.Serialize(pythonResponse.Recommendations, _jsonOptions),
                     CorrectedText = pythonResponse.DetailedAnalysis?.CorrectedText,
                     PythonApiResponse = jsonResponse,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = Now
                 };
 
                 await _feedbackRepository.CreateAsync(feedback);
@@ -582,7 +583,7 @@ namespace ToeicGenius.Services.Implementations
                     RecommendationsJson = JsonSerializer.Serialize(pythonResponse.Recommendations, _jsonOptions),
                     CorrectedText = pythonResponse.DetailedAnalysis?.CorrectedText,
                     PythonApiResponse = jsonResponse,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = Now
                 };
 
                 await _feedbackRepository.CreateAsync(feedback);
@@ -686,7 +687,7 @@ namespace ToeicGenius.Services.Implementations
                     PythonApiResponse = jsonResponse,
                     AudioFileUrl = audioUrl,
                     ImageFileUrl = taskType == "describe_picture" ? snapshot.ImageUrl : null,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = Now
                 };
 
                 await _feedbackRepository.CreateAsync(feedback);
@@ -814,7 +815,7 @@ namespace ToeicGenius.Services.Implementations
                 TestResultId = testResult.TestResultId,
                 TestQuestionId = testQuestionId,
                 AnswerText = answerText,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = Now
             };
 
             await _uow.UserAnswers.AddAsync(userAnswer);
@@ -874,7 +875,7 @@ namespace ToeicGenius.Services.Implementations
                 TestResultId = testResult.TestResultId,
                 TestQuestionId = testQuestionId,
                 AnswerAudioUrl = audioUrl,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = Now
             };
 
             await _uow.UserAnswers.AddAsync(userAnswer);

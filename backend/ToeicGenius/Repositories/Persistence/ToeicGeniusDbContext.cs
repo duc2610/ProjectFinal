@@ -7,6 +7,7 @@ using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Shared.Helpers;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Repositories.Persistence
 {
@@ -396,7 +397,7 @@ namespace ToeicGenius.Repositories.Persistence
 					FullName = adminConfig["FullName"]!,
 					PasswordHash = SecurityHelper.HashPassword(adminConfig["Password"]!),
 					Status = UserStatus.Active,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = Now
 				},
 				new User
 				{
@@ -405,7 +406,7 @@ namespace ToeicGenius.Repositories.Persistence
 					FullName = creatorConfig["FullName"]!,
 					PasswordHash = SecurityHelper.HashPassword(creatorConfig["Password"]!),
 					Status = UserStatus.Active,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = Now
 				},
 				new User
 				{
@@ -414,7 +415,7 @@ namespace ToeicGenius.Repositories.Persistence
 					FullName = examineeConfig["FullName"]!,
 					PasswordHash = SecurityHelper.HashPassword(examineeConfig["Password"]!),
 					Status = UserStatus.Active,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = Now
 				}
 			);
 			// Seed bảng trung gian ẩn danh (UserRoles)

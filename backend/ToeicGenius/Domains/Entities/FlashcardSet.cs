@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -22,7 +23,7 @@ namespace ToeicGenius.Domains.Entities
         public Guid UserId { get; set; }
         public User User { get; set; } = null!;
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = Now;
         public DateTime? UpdatedAt { get; set; }
 
         public int TotalCards { get; set; } = 0; 

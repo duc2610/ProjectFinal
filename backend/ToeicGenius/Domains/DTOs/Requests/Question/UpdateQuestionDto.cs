@@ -24,7 +24,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Question
 	}
 	public class UpdateAnswerOptionDto
 	{
-		public int? OptionId { get; set; } // Null for new options
+		public int? Id { get; set; } // Null for new options
 
 		[Required]
 		public string Content { get; set; } = string.Empty;

@@ -8,6 +8,7 @@ using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
 using ToeicGenius.Shared.Helpers;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -54,7 +55,7 @@ namespace ToeicGenius.Services.Implementations
             if (string.IsNullOrEmpty(user.PasswordHash))
             {
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(changePasswordRequest.NewPassword);
-                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedAt = Now;
                 await _unitOfWork.Users.UpdateAsync(user);
                 await _unitOfWork.SaveChangesAsync();
                 return "";
@@ -64,7 +65,7 @@ namespace ToeicGenius.Services.Implementations
                 return ErrorMessages.OldPasswordMismatch;
 
             user.PasswordHash = SecurityHelper.HashPassword(changePasswordRequest.NewPassword);
-            user.UpdatedAt = DateTime.UtcNow;
+            user.UpdatedAt = Now;
             await _unitOfWork.Users.UpdateAsync(user);
             await _unitOfWork.SaveChangesAsync();
             return "";
@@ -78,7 +79,7 @@ namespace ToeicGenius.Services.Implementations
                 if (user == null) return ErrorMessages.UserNotFound;
 
                 user.PasswordHash = SecurityHelper.HashPassword(resetPasswordConfirmDto.NewPassword);
-                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedAt = Now;
                 await _unitOfWork.Users.UpdateAsync(user);
                 await _unitOfWork.SaveChangesAsync();
                 return "";
@@ -116,7 +117,7 @@ namespace ToeicGenius.Services.Implementations
                 Fullname = user.FullName,
                 Email = user.Email,
                 UserId = user.Id,
-                ExpireAt = DateTime.UtcNow.AddMinutes(30)
+                ExpireAt = Now.AddMinutes(30)
             };
 
             return Result<LoginResponseDto>.Success(response);
@@ -145,7 +146,7 @@ namespace ToeicGenius.Services.Implementations
                     FullName = payload.Name ?? payload.Email,
                     GoogleId = payload.Subject,
                     Status = UserStatus.Active,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = Now
                 };
 
                 var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.Examinee);
@@ -161,7 +162,7 @@ namespace ToeicGenius.Services.Implementations
                 if (string.IsNullOrEmpty(user.GoogleId))
                     user.GoogleId = payload.Subject;
 
-                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedAt = Now;
                 await _unitOfWork.Users.UpdateAsync(user);
                 await _unitOfWork.SaveChangesAsync();
             }
@@ -182,7 +183,7 @@ namespace ToeicGenius.Services.Implementations
                 Email = user.Email,
                 Token = accessToken,
                 RefreshToken = refreshToken.Token,
-                ExpireAt = DateTime.UtcNow.AddMinutes(30)
+                ExpireAt = Now.AddMinutes(30)
             };
         }
 
@@ -218,7 +219,7 @@ namespace ToeicGenius.Services.Implementations
                     Email = registerDto.Email,
                     FullName = registerDto.FullName,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = Now,
                     Status = UserStatus.Active,
                 };
 
@@ -270,7 +271,7 @@ namespace ToeicGenius.Services.Implementations
                 if (user == null) return ErrorMessages.UserNotFound;
 
                 user.PasswordHash = SecurityHelper.HashPassword(newPassword);
-                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedAt = Now;
                 await _unitOfWork.Users.UpdateAsync(user);
                 await _unitOfWork.SaveChangesAsync();
                 return "";
@@ -288,10 +289,10 @@ namespace ToeicGenius.Services.Implementations
                 return Result<RefreshTokenResponseDto>.Failure("Invalid refresh token");
 
             var existingToken = user.RefreshTokens.FirstOrDefault(rt => rt.Token == refreshToken);
-            if (existingToken == null || existingToken.ExpiresAt <= DateTime.UtcNow || existingToken.RevokeAt != null)
+            if (existingToken == null || existingToken.ExpiresAt <= Now || existingToken.RevokeAt != null)
                 return Result<RefreshTokenResponseDto>.Failure("Refresh token expired or revoked");
 
-            existingToken.RevokeAt = DateTime.UtcNow;
+            existingToken.RevokeAt = Now;
             existingToken.RevokeByIp = ipAddress;
 
             var newAccessToken = _jwtService.GenerateAccessToken(user);
@@ -324,7 +325,7 @@ namespace ToeicGenius.Services.Implementations
             if (existingToken.RevokeAt != null)
                 return Result<string>.Failure("Refresh token đã bị hủy trước đó");
 
-            existingToken.RevokeAt = DateTime.UtcNow;
+            existingToken.RevokeAt = Now;
             existingToken.RevokeByIp = ipAddress;
 
             await _unitOfWork.Users.UpdateAsync(user);
@@ -342,8 +343,8 @@ namespace ToeicGenius.Services.Implementations
                 Email = email,
                 OtpCodeHash = hashed,
                 Type = type,
-                CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(10)
+                CreatedAt = Now,
+                ExpiresAt = Now.AddMinutes(10)
             };
             await _unitOfWork.UserOtps.AddAsync(entity);
             await _unitOfWork.SaveChangesAsync();
@@ -362,7 +363,7 @@ namespace ToeicGenius.Services.Implementations
             var record = await _unitOfWork.UserOtps.GetOtpByEmailAsync(email, type);
             if (record != null)
             {
-                record.UsedAt = DateTime.UtcNow;
+                record.UsedAt = Now;
                 await _unitOfWork.UserOtps.UpdateAsync(record);
                 await _unitOfWork.SaveChangesAsync();
             }

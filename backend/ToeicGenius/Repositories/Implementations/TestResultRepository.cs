@@ -6,6 +6,7 @@ using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Repositories.Persistence;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Repositories.Implementations
 {
@@ -85,7 +86,7 @@ namespace ToeicGenius.Repositories.Implementations
 					Duration = 0,
 					TotalScore = 0,
 					TestType = TestType.Practice,
-					CreatedAt = DateTime.UtcNow
+					CreatedAt = Now
 				};
 
 				await _context.TestResults.AddAsync(newTest);
@@ -124,7 +125,7 @@ namespace ToeicGenius.Repositories.Implementations
 
 				userTest.Status = TestResultStatus.Graded;
 				userTest.TotalScore = totalScore;
-				userTest.UpdatedAt = DateTime.UtcNow;
+				userTest.UpdatedAt = Now;
 
 				await _context.SaveChangesAsync();
 
@@ -264,7 +265,7 @@ namespace ToeicGenius.Repositories.Implementations
 				// Filter expired tests (CreatedAt + Duration + 5 minutes grace period < Now)
 				var expiredTests = inProgressTests
 					.Where(tr => tr.Test != null &&
-								 DateTime.UtcNow - tr.CreatedAt > TimeSpan.FromMinutes(tr.Test.Duration + 5))
+								 Now - tr.CreatedAt > TimeSpan.FromMinutes(tr.Test.Duration + 5))
 					.ToList();
 
 				return expiredTests;

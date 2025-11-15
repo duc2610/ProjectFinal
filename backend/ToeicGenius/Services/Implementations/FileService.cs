@@ -6,6 +6,7 @@ using System.Text;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -156,7 +157,7 @@ namespace ToeicGenius.Services.Implementations
 					{
 						BucketName = _bucketName,
 						Key = key,
-						Expires = DateTime.UtcNow.AddMinutes(30)
+						Expires = Now.AddMinutes(30)
 					})
 					: $"https://{_cloudFrontDomain}/{key}";
 

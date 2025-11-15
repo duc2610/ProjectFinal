@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using ToeicGenius.Domains.Enums;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.DTOs.Responses.Test
 {
@@ -15,7 +16,7 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 		public TestSkill TestSkill { get; set; } = TestSkill.LR; // Skill: L&R, Writing, Speaking, L&R
 		public string Title { get; set; }
 		public int Duration { get; set; }
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime CreatedAt { get; set; } = Now;
 		public int TotalQuestion { get; set; }
 		public int TotalScore { get; set; }
 		public int CorrectQuestion { get; set; }

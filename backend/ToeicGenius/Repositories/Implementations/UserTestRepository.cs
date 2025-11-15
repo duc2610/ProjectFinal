@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 using Microsoft.Extensions.Logging;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
@@ -67,7 +68,7 @@ namespace ToeicGenius.Repositories.Implementations
                     Duration = 0,
                     TotalScore = 0,
                     TestType = Domains.Enums.TestType.Practice,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = Now
                 };
 
                 await _context.TestResults.AddAsync(newTest);
@@ -106,7 +107,7 @@ namespace ToeicGenius.Repositories.Implementations
 
                 userTest.Status = TestResultStatus.Graded;
                 userTest.TotalScore = totalScore;
-                userTest.UpdatedAt = DateTime.UtcNow;
+                userTest.UpdatedAt = Now;
 
                 await _context.SaveChangesAsync();
 

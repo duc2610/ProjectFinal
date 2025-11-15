@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -27,7 +28,7 @@ namespace ToeicGenius.Domains.Entities
 		// Chấm điểm (nếu có)
 		public bool? IsCorrect { get; set; }
 
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime CreatedAt { get; set; } = Now;
 		public DateTime? UpdatedAt { get; set; }
 
 		public virtual ICollection<AIFeedback> AIFeedbacks { get; set; } = new List<AIFeedback>();
