@@ -4,7 +4,7 @@ import { MenuOutlined, LoadingOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import QuestionNavigator from "./QuestionNavigator";
 import QuestionCard from "./QuestionCard";
-import { submitTest, submitAssessmentBulk, saveProgress } from "../../../services/testExamService";
+import { submitTest, submitAssessmentBulk, saveProgress, startTest } from "../../../services/testExamService";
 import { uploadFile } from "../../../services/filesService";
 import { useNavigate } from "react-router-dom";
 import { SaveOutlined } from "@ant-design/icons";
@@ -16,27 +16,14 @@ export default function ExamScreen() {
   const navigate = useNavigate();
   const rawTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
   const [questions] = useState(rawTestData.questions || []);
-  // Load answers từ sessionStorage nếu có (từ savedAnswers khi tiếp tục bài thi)
-  const initialAnswers = rawTestData.answers || {};
-  console.log("ExamScreen - Loading answers from sessionStorage:", initialAnswers);
-  console.log("ExamScreen - Answers keys:", Object.keys(initialAnswers));
-  console.log("ExamScreen - Sample answers:", {
-    "1": initialAnswers["1"],
-    "3": initialAnswers["3"],
-    "6": initialAnswers["6"],
-    "13": initialAnswers["13"],
-    "32_2": initialAnswers["32_2"],
-    "34_2": initialAnswers["34_2"],
-  });
-  console.log("ExamScreen - Questions count:", questions.length);
-  console.log("ExamScreen - First few questions:", questions.slice(0, 5).map(q => ({
-    globalIndex: q.globalIndex,
-    testQuestionId: q.testQuestionId,
-    subQuestionIndex: q.subQuestionIndex,
-    partId: q.partId,
-  })));
-  const [answers, setAnswers] = useState(initialAnswers);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  // Lần đầu vào: dùng answers từ sessionStorage (đã được load từ ExamSelection/Profile)
+  // Khi reload: sẽ load lại từ API startTest
+  const [answers, setAnswers] = useState(rawTestData.answers || {});
+  const [isLoadingAnswers, setIsLoadingAnswers] = useState(false);
+  const hasLoadedFromBackendRef = useRef(false);
+  // Load currentIndex từ sessionStorage nếu có (để khôi phục vị trí câu hỏi khi reload)
+  const initialCurrentIndex = rawTestData.currentIndex !== undefined ? Number(rawTestData.currentIndex) : 0;
+  const [currentIndex, setCurrentIndex] = useState(initialCurrentIndex);
   const normalizedDurationMinutes = Number(rawTestData.duration) || 0;
   const totalDurationSeconds = Math.max(0, Math.floor(normalizedDurationMinutes * 60));
   const isSelectTime =
@@ -116,6 +103,107 @@ export default function ExamScreen() {
     isSubmittingRef.current = isSubmitting;
   }, [isSubmitting]);
 
+  // Load answers từ backend khi reload (chỉ load đáp án đã được lưu từ API startTest)
+  useEffect(() => {
+    const loadAnswersFromBackend = async () => {
+      // Chỉ load một lần khi component mount
+      if (hasLoadedFromBackendRef.current) return;
+      
+      const testId = rawTestData.testId;
+      const testResultId = rawTestData.testResultId;
+      if (!testId || !testResultId) {
+        hasLoadedFromBackendRef.current = true;
+        return;
+      }
+      
+      // Kiểm tra xem có phải reload không (dựa vào performance.navigation.type hoặc kiểm tra page visibility)
+      // Nếu đã có lastBackendLoadTime và đây là lần đầu vào, không cần load lại
+      // Nếu không có lastBackendLoadTime hoặc đây là reload, load từ API
+      const isReload = !rawTestData.lastBackendLoadTime || 
+        (typeof window !== 'undefined' && window.performance && 
+         window.performance.navigation && 
+         window.performance.navigation.type === window.performance.navigation.TYPE_RELOAD);
+      
+      // Luôn load từ backend khi reload để đảm bảo chỉ có answers đã được lưu
+      // Nếu là lần đầu vào và đã có lastBackendLoadTime, có thể bỏ qua (đã load từ ExamSelection/Profile)
+      if (isReload || !rawTestData.lastBackendLoadTime) {
+        setIsLoadingAnswers(true);
+        try {
+          const isSelectTime = rawTestData.isSelectTime !== undefined ? !!rawTestData.isSelectTime : true;
+          const data = await startTest(testId, isSelectTime);
+          
+          if (data && data.savedAnswers) {
+            // Xử lý savedAnswers để fill vào answers (chỉ đáp án đã được lưu lên backend)
+            const savedAnswers = data.savedAnswers || [];
+            const answersMap = new Map();
+            
+            savedAnswers.forEach((saved) => {
+              const subIndex = saved.subQuestionIndex !== undefined && saved.subQuestionIndex !== null 
+                ? saved.subQuestionIndex 
+                : 0;
+              
+              const testQuestionIdStr = String(saved.testQuestionId);
+              const answerKey = subIndex !== 0
+                ? `${testQuestionIdStr}_${subIndex}`
+                : testQuestionIdStr;
+              
+              // Xử lý theo loại answer
+              let answerValue = null;
+              if (saved.chosenOptionLabel) {
+                answerValue = saved.chosenOptionLabel;
+              } else if (saved.answerText) {
+                answerValue = saved.answerText;
+              } else if (saved.answerAudioUrl) {
+                answerValue = saved.answerAudioUrl;
+              }
+              
+              if (answerValue !== null) {
+                answersMap.set(answerKey, answerValue);
+              }
+            });
+            
+            // Chuyển Map thành object và chỉ dùng answers đã được lưu từ backend
+            const savedAnswersObj = {};
+            answersMap.forEach((value, key) => {
+              savedAnswersObj[key] = value;
+            });
+            
+            // Chỉ dùng answers từ API, không merge với sessionStorage
+            setAnswers(savedAnswersObj);
+            
+            // Cập nhật sessionStorage với answers từ backend
+            const savedData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+            savedData.answers = savedAnswersObj;
+            savedData.lastBackendLoadTime = Date.now();
+            sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
+            
+            console.log("ExamScreen - Reload: Loaded answers from API startTest only:", savedAnswersObj);
+          } else {
+            // Nếu không có savedAnswers từ API, set answers rỗng
+            setAnswers({});
+            const savedData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+            savedData.answers = {};
+            savedData.lastBackendLoadTime = Date.now();
+            sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
+            console.log("ExamScreen - Reload: No savedAnswers from API, cleared answers");
+          }
+        } catch (error) {
+          console.error("Error loading answers from backend on reload:", error);
+          // Nếu lỗi, vẫn dùng answers từ sessionStorage (fallback)
+          console.log("ExamScreen - Reload: Error loading from API, using sessionStorage as fallback");
+        } finally {
+          setIsLoadingAnswers(false);
+          hasLoadedFromBackendRef.current = true;
+        }
+      } else {
+        // Lần đầu vào và đã có lastBackendLoadTime, đánh dấu đã load
+        hasLoadedFromBackendRef.current = true;
+      }
+    };
+    
+    loadAnswersFromBackend();
+  }, []); // Chỉ chạy một lần khi component mount
+
   useEffect(() => {
     const handlePopState = () => {
       history.go(1);
@@ -131,15 +219,18 @@ export default function ExamScreen() {
       };
     }
 
-    // === CHẶN TẮT TAB/TRÌNH DUYỆT ===
+    // === CHẶN ĐÓNG TAB/TRÌNH DUYỆT (nhưng cho phép reload) ===
     const handleBeforeUnload = (e) => {
       if (isSubmittingRef.current) return; // Nếu đang submit thì cho phép
       
-      // Hiển thị alert mặc định của browser với nội dung tiếng Việt
+      // Hiển thị cảnh báo khi cố đóng tab/trình duyệt
+      // Lưu ý: Modern browsers có thể bỏ qua message tùy chỉnh và hiển thị message mặc định
+      // Nhưng vẫn nên set để một số browser/phiên bản có thể hiển thị
       e.preventDefault();
-      e.returnValue = "Bạn đang làm bài thi. Nếu bạn rời khỏi trang này, bài thi sẽ được nộp tự động. Bạn có chắc chắn muốn rời khỏi trang không?";
+      const message = "Bạn đang làm bài thi. Các thay đổi bạn đã thực hiện có thể không được lưu. Bạn có chắc chắn muốn rời khỏi trang này không?";
+      e.returnValue = message;
       
-      return e.returnValue; // Chrome, Safari
+      return message; // Chrome, Safari
     };
 
     // === CHẶN THAY ĐỔI URL ===
@@ -189,16 +280,16 @@ export default function ExamScreen() {
     };
 
     // Đăng ký event listeners
+    // beforeunload: chặn đóng tab/trình duyệt (nhưng vẫn cho phép reload bằng F5/Ctrl+R)
     window.addEventListener("beforeunload", handleBeforeUnload);
     window.addEventListener("hashchange", handleHashChange);
 
-    // Chặn các phím tắt nguy hiểm
+    // Chặn các phím tắt nguy hiểm (nhưng cho phép F5 và Ctrl+R để reload)
     const handleKeyDown = (e) => {
-      // Chặn Ctrl+W, Ctrl+T, Alt+F4, F5, Ctrl+R
+      // Chặn Ctrl+W, Ctrl+T, Alt+F4 (nhưng KHÔNG chặn F5 và Ctrl+R để cho phép reload)
       if (
-        (e.ctrlKey && (e.key === "w" || e.key === "W" || e.key === "t" || e.key === "T" || e.key === "r" || e.key === "R")) ||
-        (e.altKey && e.key === "F4") ||
-        e.key === "F5"
+        (e.ctrlKey && (e.key === "w" || e.key === "W" || e.key === "t" || e.key === "T")) ||
+        (e.altKey && e.key === "F4")
       ) {
         if (isSubmittingRef.current) return;
         e.preventDefault();
@@ -210,6 +301,7 @@ export default function ExamScreen() {
           handleSubmit(false);
         }
       }
+      // F5 và Ctrl+R được phép để reload trang (answers sẽ được load lại từ sessionStorage)
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -296,17 +388,39 @@ export default function ExamScreen() {
   const onAnswer = (testQuestionId, value) => {
     setAnswers((prev) => {
       // Nếu value là null, undefined, hoặc empty string, xóa key khỏi answers
+      let newAnswers;
       if (value === null || value === undefined || value === "") {
-        const newAnswers = { ...prev };
+        newAnswers = { ...prev };
         delete newAnswers[testQuestionId];
-        return newAnswers;
+      } else {
+        newAnswers = { ...prev, [testQuestionId]: value };
       }
-      return { ...prev, [testQuestionId]: value };
+      
+      // Lưu answers vào sessionStorage để có thể load lại khi reload trang
+      try {
+        const savedData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+        savedData.answers = newAnswers;
+        sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
+      } catch (error) {
+        console.error("Error saving answers to sessionStorage:", error);
+      }
+      
+      return newAnswers;
     });
   };
 
   const goToQuestionByIndex = (i) => {
-    if (i >= 0 && i < questions.length) setCurrentIndex(i);
+    if (i >= 0 && i < questions.length) {
+      setCurrentIndex(i);
+      // Lưu currentIndex vào sessionStorage để khôi phục khi reload
+      try {
+        const savedData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+        savedData.currentIndex = i;
+        sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
+      } catch (error) {
+        console.error("Error saving currentIndex to sessionStorage:", error);
+      }
+    }
   };
 
   // Hàm format answers cho tất cả loại bài thi (L&R, Writing, Speaking)
@@ -401,6 +515,11 @@ export default function ExamScreen() {
       await saveProgress(testResultId, formattedAnswers);
       setLastSaveTime(new Date());
       message.success(`Đã lưu tiến độ ${formattedAnswers.length} câu trả lời`);
+      
+      // Đánh dấu đã lưu lên backend để khi reload sẽ load từ backend
+      const savedData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+      savedData.lastBackendLoadTime = Date.now();
+      sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
     } catch (error) {
       console.error("Error saving progress:", error);
       // Nếu lỗi do mất mạng, lưu answers vào offlineAnswers
@@ -443,6 +562,13 @@ export default function ExamScreen() {
     // Prevent multiple submissions
     if (isSubmitting) {
       console.log("Submit already in progress, ignoring duplicate call");
+      return;
+    }
+
+    // Kiểm tra sớm nếu không có câu nào được trả lời (trước khi set isSubmitting)
+    const hasAnyAnswer = Object.keys(finalAnswers).length > 0;
+    if (!hasAnyAnswer && !auto) {
+      message.warning("Bạn chưa trả lời câu nào!");
       return;
     }
 
@@ -614,10 +740,12 @@ export default function ExamScreen() {
         console.log("S&W submit response:", swResult);
       }
 
-      // Kiểm tra nếu không có câu nào được trả lời
+      // Kiểm tra lại nếu không có câu nào được trả lời (sau khi format)
+      // Lưu ý: Kiểm tra này có thể xảy ra nếu tất cả answers không hợp lệ (ví dụ: Speaking chưa upload)
       if (lrAnswers.length === 0 && swAnswers.length === 0) {
-        message.warning("Bạn chưa trả lời câu nào!");
+        message.warning("Bạn chưa trả lời câu nào hoặc các câu trả lời chưa hợp lệ!");
         setShowSubmitModal(false);
+        setIsSubmitting(false); // Reset flag để nút không bị disable
         return;
       }
 

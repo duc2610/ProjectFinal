@@ -298,8 +298,16 @@ export function TestHistoryTab() {
   };
 
   const calculateScore = (correct, total) => {
-    if (!total || total === 0) return 0;
-    return Math.round((correct / total) * 100);
+    // Xử lý trường hợp undefined, null, hoặc NaN
+    const correctNum = Number(correct);
+    const totalNum = Number(total);
+    
+    if (isNaN(correctNum) || isNaN(totalNum) || !totalNum || totalNum === 0) {
+      return 0;
+    }
+    
+    const score = Math.round((correctNum / totalNum) * 100);
+    return isNaN(score) ? 0 : score;
   };
 
   const getScoreColor = (score) => {
@@ -345,9 +353,19 @@ export function TestHistoryTab() {
       }
 
       // Lấy isSelectTime từ testType (Simulator = true, Practice = false mặc định)
-      const isSelectTime = normalizeTestType(record.testType) === "Simulator";
+      // LƯU Ý: Khi tiếp tục bài Practice, giá trị này có thể không chính xác nếu user đã chọn đếm ngược khi bắt đầu
+      // Backend cần lưu và trả về isSelectTime gốc trong response để đảm bảo chế độ timer đúng
+      const defaultIsSelectTime = normalizeTestType(record.testType) === "Simulator";
       
-      const data = await startTest(testIdNum, isSelectTime);
+      const data = await startTest(testIdNum, defaultIsSelectTime);
+      
+      // Ưu tiên lấy isSelectTime từ response của backend (nếu backend lưu và trả về)
+      // Nếu không có, dùng giá trị mặc định (có thể không chính xác cho Practice với đếm ngược)
+      const isSelectTime = data.isSelectTime !== undefined ? !!data.isSelectTime : defaultIsSelectTime;
+      
+      console.log("Profile - Continue test: isSelectTime from backend:", data.isSelectTime);
+      console.log("Profile - Continue test: defaultIsSelectTime:", defaultIsSelectTime);
+      console.log("Profile - Continue test: final isSelectTime:", isSelectTime);
       
       if (!data) {
         message.error({ content: "Không thể tải bài thi. Vui lòng thử lại.", key: "continueTest" });
@@ -506,6 +524,7 @@ export function TestHistoryTab() {
         timerMode: isSelectTime ? "countdown" : "countup",
         startedAt: Date.now(), // Thời điểm hiện tại (sẽ được tính lại từ createdAt trong ExamScreen)
         globalAudioUrl: data.audioUrl || null,
+        lastBackendLoadTime: Date.now(), // Đánh dấu đã load từ backend (tiếp tục từ history)
       };
       
       console.log("Profile - Using testResultId from history:", originalTestResultId);
@@ -581,15 +600,31 @@ export function TestHistoryTab() {
       key: "result",
       width: 150,
       render: (_, record) => {
-        const score = calculateScore(record.correctQuestion, record.totalQuestion);
+        // Kiểm tra xem có phải Speaking hoặc Writing không (không có khái niệm "câu đúng")
+        const testSkill = record.testSkill || "";
+        const isSW = testSkill === "Writing" || testSkill === "Speaking" || testSkill === "S&W" || 
+                     testSkill === 2 || testSkill === 1 || testSkill === 4;
+        
+        // Chỉ tính điểm phần trăm cho L&R
+        const score = isSW ? null : calculateScore(record.correctQuestion, record.totalQuestion);
+        
         return (
           <Space direction="vertical" size="small">
-            <span>
-              <Tag color={getScoreColor(score)}>{score}%</Tag>
-            </span>
-            <span style={{ fontSize: 12, color: "#666" }}>
-              {record.correctQuestion}/{record.totalQuestion} câu đúng
-            </span>
+            {score !== null ? (
+              <span>
+                <Tag color={getScoreColor(score)}>{score}%</Tag>
+              </span>
+            ) : (
+              <span>
+                <Tag color="default">—</Tag>
+              </span>
+            )}
+            {/* Chỉ hiển thị số câu đúng cho L&R */}
+            {!isSW && (
+              <span style={{ fontSize: 12, color: "#666" }}>
+                {record.correctQuestion ?? 0}/{record.totalQuestion ?? 0} câu đúng
+              </span>
+            )}
           </Space>
         );
       },

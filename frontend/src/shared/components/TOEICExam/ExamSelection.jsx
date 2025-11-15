@@ -258,6 +258,7 @@ export default function ExamSelection() {
         timerMode: finalSelectTime ? "countdown" : "countup",
         startedAt: Date.now(),
         globalAudioUrl: data.audioUrl || null,
+        lastBackendLoadTime: Date.now(), // Đánh dấu đã load từ backend (bắt đầu test mới hoặc tiếp tục)
       };
 
       sessionStorage.setItem("toeic_testData", JSON.stringify(payload));
