@@ -17,6 +17,7 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 		public int Duration { get; set; }
 		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 		public int TotalQuestion { get; set; }
+		public int TotalScore { get; set; }
 		public int CorrectQuestion { get; set; }
 	}
 }
