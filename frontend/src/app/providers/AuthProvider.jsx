@@ -14,6 +14,7 @@ import {
 } from "@services/authService";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROLES } from "@shared/utils/acl";
+import { getCookie, setCookie, removeCookie, hasCookie } from "@shared/utils/cookie";
 
 const AuthContext = createContext(null);
 
@@ -26,11 +27,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     (async () => {
       try {
-        const hasToken = !!localStorage.getItem("tg_access_token");
+        const hasToken = hasCookie("tg_access_token");
         if (hasToken) {
           const profile = await svcGetProfile();
           setUser(profile);
-          localStorage.setItem("user", JSON.stringify(profile));
+          setCookie("user", JSON.stringify(profile), 7, { sameSite: 'strict' });
           
           const currentPath = location.pathname;
           if (currentPath === "/") {
@@ -42,13 +43,13 @@ export function AuthProvider({ children }) {
             }
           }
         } else {
-          localStorage.removeItem("user");
+          removeCookie("user");
           setUser(null);
         }
       } catch (e) {
-        localStorage.removeItem("tg_access_token");
-        localStorage.removeItem("tg_refresh_token");
-        localStorage.removeItem("user");
+        removeCookie("tg_access_token");
+        removeCookie("tg_refresh_token");
+        removeCookie("user");
         setUser(null);
       } finally {
         setLoading(false);
@@ -56,17 +57,10 @@ export function AuthProvider({ children }) {
     })();
   }, [navigate, location.pathname]);
 
-  const persistTokens = (data) => {
-    if (data && data.accessToken)
-      localStorage.setItem("tg_access_token", data.accessToken);
-    if (data && data.refreshToken)
-      localStorage.setItem("tg_refresh_token", data.refreshToken);
-  };
-
   const refreshProfile = useCallback(async () => {
     const profile = await svcGetProfile();
     setUser(profile);
-    localStorage.setItem("user", JSON.stringify(profile));
+    setCookie("user", JSON.stringify(profile), 7, { sameSite: 'strict' });
     return profile;
   }, []);
 
@@ -75,7 +69,6 @@ export function AuthProvider({ children }) {
       setLoading(true);
       try {
         const data = await svcLogin({ email, password });
-        persistTokens(data);
         const profile = await refreshProfile();
         return { ok: true, user: profile };
       } catch (err) {
@@ -93,7 +86,6 @@ export function AuthProvider({ children }) {
       setLoading(true);
       try {
         const data = await svcGoogle(code);
-        persistTokens(data);
         const profile = await refreshProfile();
         return { ok: true, user: profile };
       } catch (err) {
@@ -110,7 +102,7 @@ export function AuthProvider({ children }) {
   const signOut = () => {
     svcLogout();
     setUser(null);
-    localStorage.removeItem("user");
+    removeCookie("user");
   };
 
   const value = useMemo(

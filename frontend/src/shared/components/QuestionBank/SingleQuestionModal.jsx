@@ -1,4 +1,3 @@
-// Filename: SingleQuestionModal.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -167,7 +166,8 @@ export default function SingleQuestionModal({
     while (cur.length < required) {
       cur.push({ label: labels[cur.length], content: "", isCorrect: false });
     }
-    cur = cur.map((o, i) => ({ ...o, label: o.label || labels[i] }));
+    // Luôn set label theo index (A, B, C, D hoặc A, B, C)
+    cur = cur.map((o, i) => ({ ...o, label: labels[i] }));
     if (cur.filter((x) => x.isCorrect).length !== 1) {
       cur = cur.map((x) => ({ ...x, isCorrect: false }));
     }
@@ -178,6 +178,35 @@ export default function SingleQuestionModal({
     if (!isOptionSkill) return undefined;
     return Number(selectedSkill) === 3 && Number(selectedPart) === 2 ? 3 : 4;
   }, [isOptionSkill, selectedSkill, selectedPart]);
+
+  // Tự động sync label cho answerOptions
+  useEffect(() => {
+    if (!isOptionSkill || !answerOptions || answerOptions.length === 0) return;
+    if (requiredOptionsCount === undefined) return;
+    
+    const labels = requiredOptionsCount === 3 
+      ? ["A", "B", "C"] 
+      : ["A", "B", "C", "D"];
+    
+    const needsUpdate = answerOptions.some((opt, idx) => {
+      return opt?.label !== labels[idx];
+    });
+    
+    if (needsUpdate) {
+      const updated = answerOptions.map((opt, idx) => ({
+        ...opt,
+        label: labels[idx] || "A",
+      }));
+      // Chỉ update nếu thực sự cần thiết để tránh vòng lặp
+      const currentValues = form.getFieldValue("answerOptions") || [];
+      const hasChanged = updated.some((opt, idx) => {
+        return opt.label !== (currentValues[idx]?.label || labels[idx]);
+      });
+      if (hasChanged) {
+        form.setFieldsValue({ answerOptions: updated });
+      }
+    }
+  }, [answerOptions?.length, requiredOptionsCount, isOptionSkill, form]);
 
   const handleToggleCorrect = (index, checked) => {
     const list = (form.getFieldValue("answerOptions") || []).map((o, i) => ({
@@ -265,9 +294,10 @@ export default function SingleQuestionModal({
 
         const labels = ["A", "B", "C", "D", "E"];
         const rawOpts = q.options ?? [];
+        // Tự động set label theo index (A, B, C, D hoặc A, B, C)
         const opts = rawOpts.map((o, i) => ({
           id: o.optionId,
-          label: o.label ?? labels[i] ?? "",
+          label: labels[i] ?? "A", // Luôn dùng label theo index
           content: o.content ?? "",
           isCorrect: !!o.isCorrect,
         }));
@@ -365,6 +395,30 @@ export default function SingleQuestionModal({
               },
             ],
           };
+        // Kiểm tra không được chỉ có space sau khi trim
+        for (let i = 0; i < list.length; i++) {
+          const opt = list[i];
+          if (!opt.label || !opt.label.trim()) {
+            throw {
+              errorFields: [
+                {
+                  name: ["answerOptions", i, "label"],
+                  errors: ["Nhãn không được để trống hoặc chỉ có khoảng trắng"],
+                },
+              ],
+            };
+          }
+          if (!opt.content || !opt.content.trim()) {
+            throw {
+              errorFields: [
+                {
+                  name: ["answerOptions", i, "content"],
+                  errors: ["Nội dung đáp án không được để trống hoặc chỉ có khoảng trắng"],
+                },
+              ],
+            };
+          }
+        }
         values.answerOptions = list;
       } else {
         values.answerOptions = [];
@@ -375,7 +429,7 @@ export default function SingleQuestionModal({
       fd.append("QuestionTypeId", String(typeNum));
       fd.append("PartId", String(partNum));
       fd.append("Number", String(Number(values.number || 1)));
-      if (values.solution) fd.append("Solution", values.solution);
+      if (values.solution) fd.append("Solution", (values.solution || "").trim());
 
       if (audioFile) fd.append("Audio", audioFile);
       if (imageFile) fd.append("Image", imageFile);
@@ -425,7 +479,11 @@ export default function SingleQuestionModal({
       cancelText="Hủy"
       destroyOnClose
     >
-      <Form form={form} layout="vertical">
+      <Form 
+        form={form} 
+        layout="vertical"
+        validateTrigger={[]}
+      >
         <Row gutter={12}>
           <Col span={8}>
             <Form.Item
@@ -518,6 +576,14 @@ export default function SingleQuestionModal({
           rules={[
             { required: true, message: "Vui lòng nhập nội dung câu hỏi" },
             { max: 1000, message: "Tối đa 1000 ký tự" },
+            {
+              validator: (_, value) => {
+                if (!value || !String(value).trim()) {
+                  return Promise.reject(new Error("Nội dung câu hỏi không được để trống hoặc chỉ có khoảng trắng"));
+                }
+                return Promise.resolve();
+              },
+            },
           ]}
         >
           <Input.TextArea
@@ -679,6 +745,18 @@ export default function SingleQuestionModal({
                     ).length;
                     if (correctCount !== 1)
                       throw new Error("Phải chọn đúng 1 đáp án đúng");
+                    // Kiểm tra trim cho label và content
+                    for (let i = 0; i < arr.length; i++) {
+                      const opt = arr[i];
+                      const labelTrimmed = String(opt?.label || "").trim();
+                      const contentTrimmed = String(opt?.content || "").trim();
+                      if (!labelTrimmed) {
+                        throw new Error(`Đáp án ${i + 1}: nhãn không được để trống hoặc chỉ có khoảng trắng`);
+                      }
+                      if (!contentTrimmed) {
+                        throw new Error(`Đáp án ${opt?.label || i + 1}: nội dung không được để trống hoặc chỉ có khoảng trắng`);
+                      }
+                    }
                   },
                 },
               ]}
@@ -696,12 +774,24 @@ export default function SingleQuestionModal({
                         <Form.Item
                           {...restField}
                           name={[restField.name, "label"]}
-                          rules={[
-                            { required: true, message: "Vui lòng nhập nhãn" },
-                            { max: 3, message: "Tối đa 3 ký tự" },
-                          ]}
+                          label={idx === 0 ? "Nhãn" : ""}
                         >
-                          <Input placeholder="A" />
+                          <Input 
+                            disabled 
+                            readOnly
+                            value={(() => {
+                              const labels = requiredOptionsCount === 3 
+                                ? ["A", "B", "C"] 
+                                : ["A", "B", "C", "D"];
+                              return labels[idx] || "A";
+                            })()}
+                            style={{ 
+                              backgroundColor: "#f5f5f5",
+                              cursor: "not-allowed",
+                              fontWeight: "bold",
+                              textAlign: "center"
+                            }}
+                          />
                         </Form.Item>
                       </Col>
                       <Col span={16}>
@@ -714,6 +804,14 @@ export default function SingleQuestionModal({
                               message: "Vui lòng nhập nội dung đáp án",
                             },
                             { max: 500, message: "Tối đa 500 ký tự" },
+                            {
+                              validator: (_, value) => {
+                                if (!value || !String(value).trim()) {
+                                  return Promise.reject(new Error("Nội dung đáp án không được để trống hoặc chỉ có khoảng trắng"));
+                                }
+                                return Promise.resolve();
+                              },
+                            },
                           ]}
                         >
                           <Input placeholder="Nhập nội dung đáp án" />
@@ -750,9 +848,17 @@ export default function SingleQuestionModal({
                     </Row>
                   ))}
                   <Button
-                    onClick={() =>
-                      add({ label: "", content: "", isCorrect: false })
-                    }
+                    onClick={() => {
+                      const labels = requiredOptionsCount === 3 
+                        ? ["A", "B", "C"] 
+                        : ["A", "B", "C", "D"];
+                      const nextIndex = (answerOptions?.length || 0);
+                      add({ 
+                        label: labels[nextIndex] || "A", 
+                        content: "", 
+                        isCorrect: false 
+                      });
+                    }}
                     style={{ marginTop: 4 }}
                     disabled={
                       !!requiredOptionsCount &&
