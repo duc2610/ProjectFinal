@@ -213,6 +213,7 @@ export function TestHistoryTab() {
         createdAt: item.createdAt || item.CreatedAt,
         totalQuestion: item.totalQuestion || item.TotalQuestion,
         correctQuestion: item.correctQuestion || item.CorrectQuestion,
+        totalScore: item.totalScore || item.TotalScore,
       }));
       
       setHistory(normalizedHistory);
@@ -605,14 +606,18 @@ export function TestHistoryTab() {
         const isSW = testSkill === "Writing" || testSkill === "Speaking" || testSkill === "S&W" || 
                      testSkill === 2 || testSkill === 1 || testSkill === 4;
         
-        // Chỉ tính điểm phần trăm cho L&R
-        const score = isSW ? null : calculateScore(record.correctQuestion, record.totalQuestion);
+        // Tất cả đều hiển thị totalScore từ API
+        const totalScore = record.totalScore !== undefined && record.totalScore !== null 
+          ? Number(record.totalScore) 
+          : null;
         
         return (
           <Space direction="vertical" size="small">
-            {score !== null ? (
+            {totalScore !== null && !isNaN(totalScore) ? (
               <span>
-                <Tag color={getScoreColor(score)}>{score}%</Tag>
+                <Tag color={isSW ? "blue" : getScoreColor(calculateScore(record.correctQuestion, record.totalQuestion))}>
+                  {totalScore} điểm
+                </Tag>
               </span>
             ) : (
               <span>
