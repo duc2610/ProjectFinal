@@ -1093,13 +1093,27 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 </Upload>
                             )}
                             {audioUrl && (
-                                <div style={{ marginTop: 8 }}>
+                                <div style={{ marginTop: 8, position: "relative" }}>
                                     <audio
                                         controls
                                         preload="none"
                                         src={audioUrl}
                                         style={{ width: "100%" }}
                                     />
+                                    {!readOnly && (
+                                        <Button
+                                            danger
+                                            type="primary"
+                                            icon={<DeleteOutlined />}
+                                            size="small"
+                                            onClick={() => setAudioUrl(null)}
+                                            style={{
+                                                marginTop: 8,
+                                            }}
+                                        >
+                                            Xóa audio
+                                        </Button>
+                                    )}
                                 </div>
                             )}
                         </Space>
@@ -1173,9 +1187,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                 )}
                                             </Space>
                                             <Collapse>
-                                                {(partData.questions || []).map((q, qIdx) => (
+                                                {(partData.questions || []).map((q, qIdx) => {
+                                                    const questionLabel = `Part ${part.partId}: Câu ${qIdx + 1}`;
+                                                    return (
                                                     <Panel
-                                                        header={`Câu hỏi ${qIdx + 1}`}
+                                                        header={questionLabel}
                                                         key={`q-${qIdx}`}
                                                         extra={!readOnly && (
                                                             <DeleteOutlined
@@ -1197,7 +1213,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                             showValidation={showValidation}
                                                         />
                                                     </Panel>
-                                                ))}
+                                                    );
+                                                })}
                                             </Collapse>
                                         </div>
 
@@ -1378,6 +1395,20 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                                         background: "#fff",
                                     }}
                                 />
+                                {!readOnly && (
+                                    <Button
+                                        danger
+                                        type="primary"
+                                        icon={<DeleteOutlined />}
+                                        size="small"
+                                        onClick={() => onUpdate("imageUrl", "")}
+                                        style={{
+                                            marginTop: 8,
+                                        }}
+                                    >
+                                        Xóa ảnh
+                                    </Button>
+                                )}
                             </div>
                         )}
                     </Space>
@@ -1542,6 +1573,20 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
                                         background: "#fff",
                                     }}
                                 />
+                                {!readOnly && (
+                                    <Button
+                                        danger
+                                        type="primary"
+                                        icon={<DeleteOutlined />}
+                                        size="small"
+                                        onClick={() => onUpdate("imageUrl", "")}
+                                        style={{
+                                            marginTop: 8,
+                                        }}
+                                    >
+                                        Xóa ảnh
+                                    </Button>
+                                )}
                             </div>
                         )}
                     </Space>
@@ -1566,9 +1611,11 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
                 }
             >
                 <Collapse>
-                    {(group.questions || []).map((q, qIdx) => (
+                    {(group.questions || []).map((q, qIdx) => {
+                        const questionLabel = `Part ${partId}: Câu ${qIdx + 1}`;
+                        return (
                         <Panel
-                            header={`Câu ${qIdx + 1}`}
+                            header={questionLabel}
                             key={`gq-${qIdx}`}
                             extra={!readOnly && (
                                 <DeleteOutlined
@@ -1590,7 +1637,8 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
                                 showValidation={showValidation}
                             />
                         </Panel>
-                    ))}
+                        );
+                    })}
                 </Collapse>
             </Form.Item>
         </Space>

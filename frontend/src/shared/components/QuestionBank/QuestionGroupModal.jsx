@@ -629,13 +629,30 @@ export default function QuestionGroupModal({
                     <Button icon={<UploadOutlined />}>Chọn file audio (.mp3)</Button>
                   </Upload>
                   {audioSrc && (
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: 8, position: "relative" }}>
                       <audio
                         controls
                         preload="none"
                         src={audioSrc}
                         style={{ width: "100%" }}
                       />
+                      {audioList?.[0]?.url && (
+                        <Button
+                          danger
+                          type="primary"
+                          icon={<DeleteOutlined />}
+                          size="small"
+                          onClick={() => {
+                            form.setFieldsValue({ audio: [] });
+                            setAudioSrc(null);
+                          }}
+                          style={{
+                            marginTop: 8,
+                          }}
+                        >
+                          Xóa audio
+                        </Button>
+                      )}
                     </div>
                   )}
                 </Form.Item>
@@ -683,6 +700,23 @@ export default function QuestionGroupModal({
                           background: "#fff",
                         }}
                       />
+                      {imageList?.[0]?.url && (
+                        <Button
+                          danger
+                          type="primary"
+                          icon={<DeleteOutlined />}
+                          size="small"
+                          onClick={() => {
+                            form.setFieldsValue({ image: [] });
+                            setImageSrc(null);
+                          }}
+                          style={{
+                            marginTop: 8,
+                          }}
+                        >
+                          Xóa ảnh
+                        </Button>
+                      )}
                     </div>
                   )}
                 </Form.Item>
