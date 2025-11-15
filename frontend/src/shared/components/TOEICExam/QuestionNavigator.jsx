@@ -9,17 +9,27 @@ export default function QuestionNavigator({ questions, currentIndex, answers, go
     const partKey = q.partDescription 
       ? `${partName} - ${q.partDescription}` 
       : partName;
-    if (!groups[partKey]) groups[partKey] = [];
-    groups[partKey].push({ q, idx });
+    if (!groups[partKey]) {
+      groups[partKey] = {
+        partId: q.partId, // Lưu partId để sắp xếp
+        items: []
+      };
+    }
+    groups[partKey].items.push({ q, idx });
+  });
+
+  // Sắp xếp các groups theo partId tăng dần (bắt đầu từ part 1)
+  const sortedGroups = Object.entries(groups).sort((a, b) => {
+    return a[1].partId - b[1].partId;
   });
 
   return (
     <div className={styles.sideInner}>
-      {Object.entries(groups).map(([partKey, items]) => (
+      {sortedGroups.map(([partKey, groupData]) => (
         <div key={partKey} className={styles.partGroup}>
           <div className={styles.partGroupTitle}>{partKey}</div>
           <div className={styles.numbersGrid}>
-            {items.map(({ q, idx }) => {
+            {groupData.items.map(({ q, idx }) => {
               // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
               const answerKey = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
                 ? `${q.testQuestionId}_${q.subQuestionIndex}`

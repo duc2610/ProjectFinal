@@ -63,7 +63,10 @@ const buildQuestions = (parts = []) => {
   const questions = [];
   let globalIndex = 1;
 
-  parts.forEach((part) => {
+  // Sắp xếp parts theo partId tăng dần (bắt đầu từ part 1)
+  const sortedParts = [...parts].sort((a, b) => (a.partId || 0) - (b.partId || 0));
+
+  sortedParts.forEach((part) => {
     part?.testQuestions?.forEach((tq) => {
       if (tq.isGroup && tq.questionGroupSnapshotDto) {
         const group = tq.questionGroupSnapshotDto;

@@ -359,7 +359,8 @@ export default function QuestionCard({
             background: "linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)",
             borderRadius: "12px",
             border: "1px solid #e2e8f0",
-            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)"
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
+            whiteSpace: "pre-line" // Giữ nguyên xuống dòng từ \r\n và \n
           }}>
             <Text italic style={{ fontSize: "15px", lineHeight: "1.8", color: "#4a5568" }}>
               {question.passage}
@@ -462,7 +463,8 @@ export default function QuestionCard({
           border: "1px solid #e2e8f0",
           fontSize: "16px",
           lineHeight: "1.8",
-          color: "#2d3748"
+          color: "#2d3748",
+          whiteSpace: "pre-line" // Giữ nguyên xuống dòng từ \r\n và \n
         }}>
           <Text strong style={{ fontSize: "16px", color: "#2d3748" }}>
             {question.question}
