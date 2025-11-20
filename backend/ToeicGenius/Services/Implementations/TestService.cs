@@ -1325,6 +1325,77 @@ namespace ToeicGenius.Services.Implementations
 
 			return Result<TestResultDetailDto>.Success(dto);
 		}
+
+		public async Task<Result<object>> GetUnifiedTestResultDetailAsync(int testResultId, Guid userId)
+		{
+			// 1. Lấy TestResult với Test và SkillScores
+			var testResult = await _uow.TestResults.GetTestResultWithDetailsAsync(testResultId);
+
+			if (testResult == null)
+				return Result<object>.Failure("Test result not found.");
+
+			if (testResult.UserId != userId)
+				return Result<object>.Failure("Unauthorized access.");
+
+			var testSkill = testResult.Test.TestSkill;
+
+			// 2. Nếu là L&R → trả về TestResultDetailDto
+			if (testSkill == TestSkill.LR)
+			{
+				var lrResult = await GetListeningReadingResultDetailAsync(testResultId, userId);
+				if (!lrResult.IsSuccess)
+					return Result<object>.Failure(lrResult.ErrorMessage);
+
+				return Result<object>.Success(lrResult.Data);
+			}
+
+			// 3. Nếu là S/W/SW → trả về SubmitBulkAssessmentResponseDto
+			var aiFeedbacks = await _uow.AIFeedbacks.GetByTestResultIdAsync(testResultId);
+
+			if (!aiFeedbacks.Any())
+				return Result<object>.Failure("No AI feedbacks found for this test.");
+
+			// Lấy điểm từ SkillScores (đã được convert sang TOEIC scale 0-200)
+			var writingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Writing");
+			var speakingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Speaking");
+
+			// Map sang SubmitBulkAssessmentResponseDto
+			var response = new Domains.DTOs.Responses.AI.SubmitBulkAssessmentResponseDto
+			{
+				// Lấy điểm từ SkillScores (TOEIC scale: 0-200)
+				WritingScore = writingSkillScore != null ? (double?)writingSkillScore.Score : null,
+				SpeakingScore = speakingSkillScore != null ? (double?)speakingSkillScore.Score : null,
+				TotalScore = (double)testResult.TotalScore,
+				PerPartFeedbacks = aiFeedbacks.Select(f => new Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto
+				{
+					TestQuestionId = f.UserAnswer?.TestQuestionId ?? 0,
+					FeedbackId = f.FeedbackId,
+					UserAnswerId = f.UserAnswerId,
+					// User's original answer
+					AnswerText = f.UserAnswer?.AnswerText,
+					AnswerAudioUrl = f.UserAnswer?.AnswerAudioUrl,
+					Score = (double)f.Score,  // Raw score 0-100 cho từng câu
+					Content = f.Content ?? string.Empty,
+					AIScorer = f.AIScorer ?? string.Empty,
+					DetailedScores = string.IsNullOrEmpty(f.DetailedScoresJson)
+						? new Dictionary<string, object>()
+						: System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.DetailedScoresJson) ?? new Dictionary<string, object>(),
+					DetailedAnalysis = string.IsNullOrEmpty(f.DetailedAnalysisJson)
+						? new Dictionary<string, object>()
+						: System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.DetailedAnalysisJson) ?? new Dictionary<string, object>(),
+					Recommendations = string.IsNullOrEmpty(f.RecommendationsJson)
+						? new List<string>()
+						: System.Text.Json.JsonSerializer.Deserialize<List<string>>(f.RecommendationsJson) ?? new List<string>(),
+					Transcription = f.Transcription ?? string.Empty,
+					CorrectedText = f.CorrectedText ?? string.Empty,
+					AudioDuration = f.AudioDuration,
+					CreatedAt = f.CreatedAt
+				}).ToList()
+			};
+
+			return Result<object>.Success(response);
+		}
+
 		public async Task<Result<List<TestListResponseDto>>> GetTestsByTypeAsync(TestType testType)
 		{
 			var result = await _uow.Tests.GetTestByType(testType);

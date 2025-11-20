@@ -276,5 +276,13 @@ namespace ToeicGenius.Repositories.Implementations
 				throw;
 			}
 		}
+
+		public async Task<TestResult?> GetTestResultWithDetailsAsync(int testResultId)
+		{
+			return await _context.TestResults
+				.Include(tr => tr.Test)
+				.Include(tr => tr.SkillScores)
+				.FirstOrDefaultAsync(tr => tr.TestResultId == testResultId);
+		}
 	}
 }

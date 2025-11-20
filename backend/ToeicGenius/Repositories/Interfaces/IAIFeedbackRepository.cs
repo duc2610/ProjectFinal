@@ -9,6 +9,7 @@ namespace ToeicGenius.Repositories.Interfaces
         Task<AIFeedback> GetByUserAnswerIdAsync(int userAnswerId);
         Task<List<AIFeedback>> GetByUserIdAsync(Guid userId, int skip = 0, int take = 20);
         Task<List<AIFeedback>> GetHistoryAsync(Guid userId, string aiScorer = null);
+        Task<List<AIFeedback>> GetByTestResultIdAsync(int testResultId);
         Task<AIFeedback> UpdateAsync(AIFeedback feedback);
         Task<bool> DeleteAsync(int feedbackId);
         Task<bool> IsUserOwnerAsync(int feedbackId, Guid userId);
