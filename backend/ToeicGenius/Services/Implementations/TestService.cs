@@ -1904,11 +1904,16 @@ namespace ToeicGenius.Services.Implementations
 						existingAnswer.AnswerAudioUrl = answerDto.AnswerAudioUrl;
 						existingAnswer.SubQuestionIndex = answerDto.SubQuestionIndex;
 						existingAnswer.UpdatedAt = Now;
+						// Keep QuestionVersion unchanged (it was set when first created)
 
 						await _uow.UserAnswers.UpdateAsync(existingAnswer);
 					}
 					else
 					{
+						// Get current version from TestQuestion for new answer
+						var testQuestion = await _uow.TestQuestions.GetByIdAsync(answerDto.TestQuestionId);
+						var questionVersion = testQuestion?.CurrentVersion ?? 1;
+
 						// Create new answer
 						var newAnswer = new UserAnswer
 						{
@@ -1918,6 +1923,7 @@ namespace ToeicGenius.Services.Implementations
 							AnswerText = answerDto.AnswerText,
 							AnswerAudioUrl = answerDto.AnswerAudioUrl,
 							SubQuestionIndex = answerDto.SubQuestionIndex,
+							QuestionVersion = questionVersion, // Save the version user is answering
 							CreatedAt = Now
 						};
 

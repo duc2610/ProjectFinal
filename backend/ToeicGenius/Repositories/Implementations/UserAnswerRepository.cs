@@ -25,11 +25,14 @@ namespace ToeicGenius.Repositories.Implementations
 
             if (subQuestionIndex.HasValue)
             {
+                // For question groups: match by specific subQuestionIndex
                 query = query.Where(ua => ua.SubQuestionIndex == subQuestionIndex.Value);
             }
             else
             {
-                query = query.Where(ua => ua.SubQuestionIndex == null);
+                // For single questions: SubQuestionIndex should be null OR not set
+                // Some records might have SubQuestionIndex = null, others might not have it at all
+                query = query.Where(ua => ua.SubQuestionIndex == null || ua.SubQuestionIndex == 0);
             }
 
             return await query.FirstOrDefaultAsync();
