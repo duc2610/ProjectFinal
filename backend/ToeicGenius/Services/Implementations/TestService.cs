@@ -1280,10 +1280,41 @@ namespace ToeicGenius.Services.Implementations
 
 				foreach (var tq in group.OrderBy(q => q.OrderInTest))
 				{
+					// Get the snapshot JSON to use (version-aware)
+					string snapshotJsonToUse = tq.SnapshotJson; // Default: current/latest version
+
+					// If SnapshotVersions exists, try to get the version from user's answer
+					if (!string.IsNullOrEmpty(tq.SnapshotVersions))
+					{
+						// Find user answer for this question to get the version they saw
+						var anyUserAnswer = testResult.UserAnswers.FirstOrDefault(x => x.TestQuestionId == tq.TestQuestionId);
+						if (anyUserAnswer != null)
+						{
+							try
+							{
+								var versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionVersionHistory>(tq.SnapshotVersions);
+								if (versionHistory != null)
+								{
+									// Get snapshot from the version user answered
+									var versionSnapshot = versionHistory.GetSnapshot(anyUserAnswer.QuestionVersion);
+									if (versionSnapshot != null)
+									{
+										// Use the versioned snapshot
+										snapshotJsonToUse = System.Text.Json.JsonSerializer.Serialize(versionSnapshot);
+									}
+								}
+							}
+							catch
+							{
+								// If version lookup fails, fall back to SnapshotJson
+							}
+						}
+					}
+
 					// Với question group
 					if (tq.IsQuestionGroup)
 					{
-						var groupSnap = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(tq.SnapshotJson ?? "{}");
+						var groupSnap = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(snapshotJsonToUse ?? "{}");
 						if (groupSnap == null) continue;
 
 						for (int i = 0; i < groupSnap.QuestionSnapshots.Count; i++)
@@ -1309,7 +1340,7 @@ namespace ToeicGenius.Services.Implementations
 					else
 					{
 						// 🔹 Câu hỏi đơn
-						var questionSnap = JsonConvert.DeserializeObject<QuestionSnapshotDto>(tq.SnapshotJson ?? "{}");
+						var questionSnap = JsonConvert.DeserializeObject<QuestionSnapshotDto>(snapshotJsonToUse ?? "{}");
 						if (questionSnap == null) continue;
 
 						var userAnswer = testResult.UserAnswers.FirstOrDefault(x => x.TestQuestionId == tq.TestQuestionId);
@@ -1916,23 +1947,73 @@ namespace ToeicGenius.Services.Implementations
 				if (testQuestion == null)
 					return Result<string>.Failure("TestQuestion not found");
 
-				// Deserialize current snapshot
-				QuestionSnapshotDto? snapshot = null;
-				try
+				// Try to get version history (new format), or migrate from old format
+				QuestionVersionHistory? versionHistory = null;
+				QuestionSnapshotDto? currentSnapshot = null;
+
+				if (!string.IsNullOrEmpty(testQuestion.SnapshotVersions))
 				{
-					snapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionSnapshotDto>(testQuestion.SnapshotJson);
+					// New format: Use SnapshotVersions
+					try
+					{
+						versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionVersionHistory>(testQuestion.SnapshotVersions);
+					}
+					catch
+					{
+						return Result<string>.Failure("Invalid snapshot versions format");
+					}
+
+					if (versionHistory == null || !versionHistory.Versions.Any())
+						return Result<string>.Failure("Failed to deserialize version history");
+
+					currentSnapshot = versionHistory.GetLatestSnapshot();
 				}
-				catch
+				else
 				{
-					return Result<string>.Failure("Invalid snapshot JSON format");
+					// Old format: Migrate from SnapshotJson to SnapshotVersions
+					try
+					{
+						currentSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionSnapshotDto>(testQuestion.SnapshotJson);
+					}
+					catch
+					{
+						return Result<string>.Failure("Invalid snapshot JSON format");
+					}
+
+					if (currentSnapshot == null)
+						return Result<string>.Failure("Failed to deserialize snapshot");
+
+					// Initialize version history with current snapshot
+					versionHistory = QuestionVersionHistory.CreateInitial(currentSnapshot, testQuestion.CreatedAt);
 				}
 
-				if (snapshot == null)
-					return Result<string>.Failure("Failed to deserialize snapshot");
+				if (currentSnapshot == null)
+					return Result<string>.Failure("No snapshot found");
 
-				// Update snapshot with new data
+				var snapshot = currentSnapshot;
+
+				// Clone the snapshot for the new version
+				var newSnapshot = new QuestionSnapshotDto
+				{
+					QuestionId = snapshot.QuestionId,
+					PartId = snapshot.PartId,
+					Content = snapshot.Content,
+					AudioUrl = snapshot.AudioUrl,
+					ImageUrl = snapshot.ImageUrl,
+					Explanation = snapshot.Explanation,
+					Options = snapshot.Options.Select(o => new OptionSnapshotDto
+					{
+						Label = o.Label,
+						Content = o.Content,
+						IsCorrect = o.IsCorrect
+					}).ToList(),
+					UserAnswer = snapshot.UserAnswer,
+					IsCorrect = snapshot.IsCorrect
+				};
+
+				// Update new snapshot with changes
 				if (!string.IsNullOrEmpty(dto.Content))
-					snapshot.Content = dto.Content;
+					newSnapshot.Content = dto.Content;
 
 				if (dto.Audio != null)
 				{
@@ -1940,7 +2021,7 @@ namespace ToeicGenius.Services.Implementations
 					var audioUploadResult = await _fileService.UploadFileAsync(dto.Audio, "audios");
 					if (!audioUploadResult.IsSuccess)
 						return Result<string>.Failure($"Failed to upload audio: {audioUploadResult.ErrorMessage}");
-					snapshot.AudioUrl = audioUploadResult.Data;
+					newSnapshot.AudioUrl = audioUploadResult.Data;
 				}
 
 				if (dto.Image != null)
@@ -1949,15 +2030,15 @@ namespace ToeicGenius.Services.Implementations
 					var imageUploadResult = await _fileService.UploadFileAsync(dto.Image, "images");
 					if (!imageUploadResult.IsSuccess)
 						return Result<string>.Failure($"Failed to upload image: {imageUploadResult.ErrorMessage}");
-					snapshot.ImageUrl = imageUploadResult.Data;
+					newSnapshot.ImageUrl = imageUploadResult.Data;
 				}
 
 				if (!string.IsNullOrEmpty(dto.Solution))
-					snapshot.Explanation = dto.Solution;
+					newSnapshot.Explanation = dto.Solution;
 
 				if (dto.AnswerOptions != null && dto.AnswerOptions.Any())
 				{
-					snapshot.Options = dto.AnswerOptions.Select(o => new OptionSnapshotDto
+					newSnapshot.Options = dto.AnswerOptions.Select(o => new OptionSnapshotDto
 					{
 						Label = o.Label,
 						Content = o.Content,
@@ -1965,11 +2046,29 @@ namespace ToeicGenius.Services.Implementations
 					}).ToList();
 				}
 
-				// Serialize updated snapshot
-				var updatedSnapshotJson = System.Text.Json.JsonSerializer.Serialize(snapshot);
-				testQuestion.SnapshotJson = updatedSnapshotJson;
+				// Check if anyone has answered this question
+				var anyUserAnswers = (await _uow.UserAnswers.GetAllAsync())
+					.Any(ua => ua.TestQuestionId == testQuestionId);
+
+				if (anyUserAnswers)
+				{
+					// Add as new version (preserve old version)
+					versionHistory.AddVersion(newSnapshot, Now);
+					testQuestion.CurrentVersion = versionHistory.CurrentVersion;
+				}
+				else
+				{
+					// No one answered yet, update the current version directly
+					versionHistory.Versions[versionHistory.Versions.Count - 1].Snapshot = newSnapshot;
+					versionHistory.Versions[versionHistory.Versions.Count - 1].CreatedAt = Now;
+				}
+
+				// Serialize updated version history (new format)
+				testQuestion.SnapshotVersions = System.Text.Json.JsonSerializer.Serialize(versionHistory);
+
+				// Also update SnapshotJson with latest version (for backward compatibility)
+				testQuestion.SnapshotJson = System.Text.Json.JsonSerializer.Serialize(newSnapshot);
 				testQuestion.UpdatedAt = Now;
-				testQuestion.Version++;
 
 				await _uow.TestQuestions.UpdateTestQuestionAsync(testQuestion);
 
@@ -1983,11 +2082,11 @@ namespace ToeicGenius.Services.Implementations
 						if (!string.IsNullOrEmpty(dto.Content))
 							sourceQuestion.Content = dto.Content;
 
-						if (dto.Audio != null && !string.IsNullOrEmpty(snapshot.AudioUrl))
-							sourceQuestion.AudioUrl = snapshot.AudioUrl;
+						if (dto.Audio != null && !string.IsNullOrEmpty(newSnapshot.AudioUrl))
+							sourceQuestion.AudioUrl = newSnapshot.AudioUrl;
 
-						if (dto.Image != null && !string.IsNullOrEmpty(snapshot.ImageUrl))
-							sourceQuestion.ImageUrl = snapshot.ImageUrl;
+						if (dto.Image != null && !string.IsNullOrEmpty(newSnapshot.ImageUrl))
+							sourceQuestion.ImageUrl = newSnapshot.ImageUrl;
 
 						if (!string.IsNullOrEmpty(dto.Solution))
 							sourceQuestion.Explanation = dto.Solution;
