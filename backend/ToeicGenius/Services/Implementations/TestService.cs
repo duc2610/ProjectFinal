@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using ToeicGenius.Domains.DTOs.Requests.Test;
+using ToeicGenius.Domains.DTOs.Requests.TestQuestion;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.DTOs.Responses.Test;
@@ -94,6 +95,7 @@ namespace ToeicGenius.Services.Implementations
 						SnapshotJson = snapshot,
 						OrderInTest = order++,
 						SourceType = QuestionSourceType.FromBank,
+						SourceQuestionId = q.QuestionId,
 						CreatedAt = Now
 					});
 				}
@@ -114,6 +116,7 @@ namespace ToeicGenius.Services.Implementations
 						SnapshotJson = snapshot,
 						OrderInTest = order++,
 						SourceType = QuestionSourceType.FromBank,
+						SourceQuestionGroupId = q.QuestionGroupId,
 						CreatedAt = Now,
 					});
 				}
@@ -201,6 +204,7 @@ namespace ToeicGenius.Services.Implementations
 								SnapshotJson = snapshot,
 								OrderInTest = order++,
 								SourceType = QuestionSourceType.FromBank,
+								SourceQuestionId = q.QuestionId,
 								CreatedAt = Now
 							});
 						}
@@ -238,6 +242,7 @@ namespace ToeicGenius.Services.Implementations
 								SnapshotJson = snapshot,
 								OrderInTest = order++,
 								SourceType = QuestionSourceType.FromBank,
+								SourceQuestionGroupId = g.QuestionGroupId,
 								CreatedAt = Now,
 							});
 						}
@@ -1898,6 +1903,130 @@ namespace ToeicGenius.Services.Implementations
 			catch (Exception ex)
 			{
 				return Result<string>.Failure($"Error saving progress: {ex.Message}");
+			}
+		}
+
+		public async Task<Result<string>> UpdateTestQuestionAsync(int testQuestionId, UpdateTestQuestionDto dto)
+		{
+			await _uow.BeginTransactionAsync();
+			try
+			{
+				// Get TestQuestion with details
+				var testQuestion = await _uow.TestQuestions.GetByIdWithDetailsAsync(testQuestionId);
+				if (testQuestion == null)
+					return Result<string>.Failure("TestQuestion not found");
+
+				// Deserialize current snapshot
+				QuestionSnapshotDto? snapshot = null;
+				try
+				{
+					snapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionSnapshotDto>(testQuestion.SnapshotJson);
+				}
+				catch
+				{
+					return Result<string>.Failure("Invalid snapshot JSON format");
+				}
+
+				if (snapshot == null)
+					return Result<string>.Failure("Failed to deserialize snapshot");
+
+				// Update snapshot with new data
+				if (!string.IsNullOrEmpty(dto.Content))
+					snapshot.Content = dto.Content;
+
+				if (dto.Audio != null)
+				{
+					// Upload new audio
+					var audioUploadResult = await _fileService.UploadFileAsync(dto.Audio, "audios");
+					if (!audioUploadResult.IsSuccess)
+						return Result<string>.Failure($"Failed to upload audio: {audioUploadResult.ErrorMessage}");
+					snapshot.AudioUrl = audioUploadResult.Data;
+				}
+
+				if (dto.Image != null)
+				{
+					// Upload new image
+					var imageUploadResult = await _fileService.UploadFileAsync(dto.Image, "images");
+					if (!imageUploadResult.IsSuccess)
+						return Result<string>.Failure($"Failed to upload image: {imageUploadResult.ErrorMessage}");
+					snapshot.ImageUrl = imageUploadResult.Data;
+				}
+
+				if (!string.IsNullOrEmpty(dto.Solution))
+					snapshot.Explanation = dto.Solution;
+
+				if (dto.AnswerOptions != null && dto.AnswerOptions.Any())
+				{
+					snapshot.Options = dto.AnswerOptions.Select(o => new OptionSnapshotDto
+					{
+						Label = o.Label,
+						Content = o.Content,
+						IsCorrect = o.IsCorrect
+					}).ToList();
+				}
+
+				// Serialize updated snapshot
+				var updatedSnapshotJson = System.Text.Json.JsonSerializer.Serialize(snapshot);
+				testQuestion.SnapshotJson = updatedSnapshotJson;
+				testQuestion.UpdatedAt = Now;
+				testQuestion.Version++;
+
+				await _uow.TestQuestions.UpdateTestQuestionAsync(testQuestion);
+
+				// If requested, also update the source Question in bank
+				if (dto.AlsoUpdateSourceInBank && testQuestion.SourceQuestionId.HasValue)
+				{
+					var sourceQuestion = await _uow.Questions.GetByIdAsync(testQuestion.SourceQuestionId.Value);
+					if (sourceQuestion != null)
+					{
+						// Update Question entity
+						if (!string.IsNullOrEmpty(dto.Content))
+							sourceQuestion.Content = dto.Content;
+
+						if (dto.Audio != null && !string.IsNullOrEmpty(snapshot.AudioUrl))
+							sourceQuestion.AudioUrl = snapshot.AudioUrl;
+
+						if (dto.Image != null && !string.IsNullOrEmpty(snapshot.ImageUrl))
+							sourceQuestion.ImageUrl = snapshot.ImageUrl;
+
+						if (!string.IsNullOrEmpty(dto.Solution))
+							sourceQuestion.Explanation = dto.Solution;
+
+						sourceQuestion.UpdatedAt = Now;
+						await _uow.Questions.UpdateAsync(sourceQuestion);
+
+						// Update Options in bank
+						if (dto.AnswerOptions != null && dto.AnswerOptions.Any())
+						{
+							var existingOptions = await _uow.Options.GetOptionsByQuestionIdAsync(sourceQuestion.QuestionId);
+							_uow.Options.RemoveRange(existingOptions);
+
+							foreach (var optDto in dto.AnswerOptions)
+							{
+								await _uow.Options.AddAsync(new Option
+								{
+									QuestionId = sourceQuestion.QuestionId,
+									Label = optDto.Label,
+									Content = optDto.Content,
+									IsCorrect = optDto.IsCorrect
+								});
+							}
+						}
+					}
+				}
+
+				// Save all changes to database before committing transaction
+				await _uow.SaveChangesAsync();
+				await _uow.CommitTransactionAsync();
+				return Result<string>.Success("TestQuestion updated successfully" +
+					(dto.AlsoUpdateSourceInBank && testQuestion.SourceQuestionId.HasValue
+						? " (including source Question in bank)"
+						: ""));
+			}
+			catch (Exception ex)
+			{
+				await _uow.RollbackTransactionAsync();
+				return Result<string>.Failure($"Error updating TestQuestion: {ex.Message}");
 			}
 		}
 		#endregion

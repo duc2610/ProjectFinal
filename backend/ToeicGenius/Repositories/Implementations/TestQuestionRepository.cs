@@ -27,5 +27,19 @@ namespace ToeicGenius.Repositories.Implementations
 				.Where(q => q.TestId == testId && q.PartId == partId)
 				.ToListAsync();
 		}
+
+		public async Task<TestQuestion?> GetByIdWithDetailsAsync(int testQuestionId)
+		{
+			return await _context.TestQuestions
+				.Include(tq => tq.Test)
+				.Include(tq => tq.Part)
+				.FirstOrDefaultAsync(tq => tq.TestQuestionId == testQuestionId);
+		}
+
+		public async Task UpdateTestQuestionAsync(TestQuestion testQuestion)
+		{
+			_context.TestQuestions.Update(testQuestion);
+			await _context.SaveChangesAsync();
+		}
 	}
 }

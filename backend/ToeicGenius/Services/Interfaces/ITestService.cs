@@ -1,6 +1,7 @@
 ﻿using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using ToeicGenius.Domains.DTOs.Requests.Test;
+using ToeicGenius.Domains.DTOs.Requests.TestQuestion;
 using ToeicGenius.Domains.DTOs.Responses.Test;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
@@ -23,6 +24,7 @@ namespace ToeicGenius.Services.Interfaces
 		Task<Result<string>> CreateDraftManualAsync(Guid userId, CreateTestManualDraftDto dto);
 		Task<Result<string>> SavePartManualAsync(Guid userId, int testId, int partId, PartDto dto);
 		Task<Result<string>> FinalizeTestAsync(Guid userId, int testId);
+		Task<Result<string>> UpdateTestQuestionAsync(int testQuestionId, UpdateTestQuestionDto dto);
 		#endregion
 
 		#region Examinee

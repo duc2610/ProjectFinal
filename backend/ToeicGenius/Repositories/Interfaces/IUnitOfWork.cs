@@ -24,6 +24,7 @@ namespace ToeicGenius.Repositories.Interfaces
         IUserTestRepository UserTests { get; }
         IUserTestSkillScoreRepository UserTestSkillScores { get; }
         ITestQuestionRepository TestQuestions{ get; }
+        IQuestionReportRepository QuestionReports { get; }
 
         Task<int> SaveChangesAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();

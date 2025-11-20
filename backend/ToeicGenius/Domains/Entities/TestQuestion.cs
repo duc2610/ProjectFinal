@@ -19,6 +19,10 @@ namespace ToeicGenius.Domains.Entities
 		public QuestionSourceType SourceType { get; set; } // Manual or FromBank
 		public bool IsQuestionGroup { get; set; } = false;
 
+		// Link to original Question/QuestionGroup in bank (nullable for manual questions)
+		public int? SourceQuestionId { get; set; }
+		public int? SourceQuestionGroupId { get; set; }
+
 		[Required]
 		public string SnapshotJson { get; set; } = string.Empty;
 		public int Version { get; set; } = 1;

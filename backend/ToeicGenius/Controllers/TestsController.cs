@@ -4,6 +4,7 @@ using System.Security.Claims;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using ToeicGenius.Domains.DTOs.Requests.Test;
+using ToeicGenius.Domains.DTOs.Requests.TestQuestion;
 using ToeicGenius.Domains.DTOs.Responses.Test;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Services.Interfaces;
@@ -378,6 +379,21 @@ namespace ToeicGenius.Controllers
 				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
 			}
 			var result = await _testService.FinalizeTestAsync(userId, testId);
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
+		}
+
+		/// <summary>
+		/// Update a TestQuestion (snapshot in a specific test)
+		/// Used when fixing reported questions
+		/// </summary>
+		[HttpPut("test-questions/{testQuestionId}")]
+		[Authorize(Roles = "Admin,TestCreator")]
+		public async Task<IActionResult> UpdateTestQuestion(int testQuestionId, [FromForm] UpdateTestQuestionDto request)
+		{
+			var result = await _testService.UpdateTestQuestionAsync(testQuestionId, request);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 
