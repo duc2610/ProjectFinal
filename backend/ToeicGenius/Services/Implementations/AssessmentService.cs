@@ -185,6 +185,9 @@ namespace ToeicGenius.Services.Implementations
                         TestQuestionId = part.TestQuestionId,
                         FeedbackId = aiResponse.FeedbackId,
                         UserAnswerId = aiResponse.UserAnswerId ?? 0,
+                        // User's original answer
+                        AnswerText = part.AnswerText,
+                        AnswerAudioUrl = part.AudioFileUrl,
                         Score = (double)aiResponse.Score,
                         Content = aiResponse.Content ?? string.Empty,
                         AIScorer = aiResponse.AIScorer ?? string.Empty,
@@ -213,10 +216,6 @@ namespace ToeicGenius.Services.Implementations
             // Convert averaged RAW scores (0-100) to TOEIC scale scores (0-200) - ONE TIME ONLY
             int? writingToeicScore = writingAvg.HasValue ? ToeicScoreTable.ConvertWritingScore(writingAvg.Value) : (int?)null;
             int? speakingToeicScore = speakingAvg.HasValue ? ToeicScoreTable.ConvertSpeakingScore(speakingAvg.Value) : (int?)null;
-
-            response.WritingScore = writingToeicScore;
-            response.SpeakingScore = speakingToeicScore;
-            response.PerPartFeedbacks = perPartResponses;
 
             // Update TestResult
             var skillScores = new List<ToeicGenius.Domains.Entities.UserTestSkillScore>();
@@ -254,6 +253,12 @@ namespace ToeicGenius.Services.Implementations
             testResult.SkipCount = skipCount;
 
             await _uow.SaveChangesAsync();
+
+            // Set response values
+            response.WritingScore = writingToeicScore;
+            response.SpeakingScore = speakingToeicScore;
+            response.TotalScore = (double)testResult.TotalScore;
+            response.PerPartFeedbacks = perPartResponses;
 
             return response;
         }

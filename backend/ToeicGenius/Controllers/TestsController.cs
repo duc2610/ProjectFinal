@@ -439,7 +439,25 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<List<TestHistoryDto>>.SuccessResponse(result.Data!));
 		}
 
-		// Test Result Detail
+		// Unified Test Result Detail - supports both L&R and S&W tests
+		[HttpGet("result/detail/{testResultId}")]
+		[Authorize(Roles = "Examinee")]
+		public async Task<IActionResult> GetUnifiedTestResultDetail(int testResultId)
+		{
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var result = await _testService.GetUnifiedTestResultDetailAsync(testResultId, userId);
+
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<object>.SuccessResponse(result.Data!));
+		}
+
+		// Test Result Detail (L&R only - legacy endpoint)
 		[HttpGet("result/listening-reading/detail/{testResultId}")]
 		[Authorize(Roles = "Examinee")]
 		public async Task<IActionResult> GetTestResultDetail(int testResultId)

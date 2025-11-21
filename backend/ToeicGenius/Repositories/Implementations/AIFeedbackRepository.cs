@@ -67,6 +67,17 @@ namespace ToeicGenius.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public async Task<List<AIFeedback>> GetByTestResultIdAsync(int testResultId)
+        {
+            return await _context.AIFeedbacks
+                .Include(f => f.UserAnswer)
+                    .ThenInclude(ua => ua.TestQuestion)
+                        .ThenInclude(tq => tq.Part)
+                .Where(f => f.UserAnswer.TestResultId == testResultId)
+                .OrderBy(f => f.UserAnswer.TestQuestion.OrderInTest)
+                .ToListAsync();
+        }
+
         public async Task<AIFeedback> UpdateAsync(AIFeedback feedback)
         {
             feedback.UpdatedAt = Now;
