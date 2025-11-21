@@ -124,24 +124,62 @@ namespace ToeicGenius.Repositories.Implementations
 
 			return query;
 		}
-		public async Task<List<TestListResponseDto>> GetTestByType(TestType testType)
+		public async Task<List<TestListResponseDto>> GetTestByType(TestType testType, Guid? userId = null)
 		{
-			var result = await _context.Tests
-							.Where(t => t.TestType == testType && t.VisibilityStatus == TestVisibilityStatus.Published)
-							.Select(t => new TestListResponseDto
-							{
-								Id = t.TestId,
-								TestType = t.TestType,
-								TestSkill = t.TestSkill,
-								Title = t.Title,
-								QuestionQuantity = t.TotalQuestion,
-								Duration = t.Duration,
-								CreationStatus = t.CreationStatus,
-								VisibilityStatus = t.VisibilityStatus,
-								CreatedAt = t.CreatedAt,
-							})
-							.ToListAsync();
-			return result;
+			var query = _context.Tests
+							.Where(t => t.TestType == testType && t.VisibilityStatus == TestVisibilityStatus.Published);
+
+			// If user is logged in, check their test progress
+			if (userId.HasValue)
+			{
+				var result = await query
+								.GroupJoin(
+									_context.TestResults.Where(tr => tr.UserId == userId.Value && tr.Status == TestResultStatus.InProgress),
+									test => test.TestId,
+									testResult => testResult.TestId,
+									(test, testResults) => new
+									{
+										Test = test,
+										InProgressResult = testResults.FirstOrDefault()
+									})
+								.Select(t => new TestListResponseDto
+								{
+									Id = t.Test.TestId,
+									TestType = t.Test.TestType,
+									TestSkill = t.Test.TestSkill,
+									Title = t.Test.Title,
+									QuestionQuantity = t.Test.TotalQuestion,
+									IsSelectTime = t.InProgressResult != null ? t.InProgressResult.IsSelectTime : false,
+									Duration = t.Test.Duration,
+									Status = t.InProgressResult != null ? TestResultStatus.InProgress : TestResultStatus.Graded,
+									CreationStatus = t.Test.CreationStatus,
+									VisibilityStatus = t.Test.VisibilityStatus,
+									CreatedAt = t.Test.CreatedAt,
+								})
+								.ToListAsync();
+				return result;
+			}
+			else
+			{
+				// Guest user - no progress status, default values
+				var result = await query
+								.Select(t => new TestListResponseDto
+								{
+									Id = t.TestId,
+									TestType = t.TestType,
+									TestSkill = t.TestSkill,
+									Title = t.Title,
+									QuestionQuantity = t.TotalQuestion,
+									IsSelectTime = false,
+									Duration = t.Duration,
+									Status = TestResultStatus.Graded, // Default status for guest
+									CreationStatus = t.CreationStatus,
+									VisibilityStatus = t.VisibilityStatus,
+									CreatedAt = t.CreatedAt,
+								})
+								.ToListAsync();
+				return result;
+			}
 		}
 	}
 }

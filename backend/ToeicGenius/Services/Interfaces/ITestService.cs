@@ -28,7 +28,7 @@ namespace ToeicGenius.Services.Interfaces
 		#endregion
 
 		#region Examinee
-		Task<Result<List<TestListResponseDto>>> GetTestsByTypeAsync(TestType testType);
+		Task<Result<List<TestListResponseDto>>> GetTestsByTypeAsync(TestType testType, Guid? userId = null);
 		Task<Result<TestStartResponseDto>> GetTestStartAsync(TestStartRequestDto request, Guid userId);
 		Task<Result<GeneralLRResultDto>> SubmitLRTestAsync(Guid userId, SubmitLRTestRequestDto request);
 		Task<Result<List<TestHistoryDto>>> GetTestHistoryAsync(Guid userId);

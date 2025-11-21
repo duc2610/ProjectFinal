@@ -1256,7 +1256,9 @@ namespace ToeicGenius.Services.Implementations
 				Title = test.Title,
 				TestSkill = test.TestSkill,
 				TestType = test.TestType,
-				AudioUrl = test.AudioUrl,
+                IsSelectTime = testResult.IsSelectTime,
+                Status = testResult.Status,
+                AudioUrl = test.AudioUrl,
 				Duration = test.Duration,
 				QuantityQuestion = test.TotalQuestion,
 				CorrectCount = testResult.CorrectCount,
@@ -1402,7 +1404,9 @@ namespace ToeicGenius.Services.Implementations
 				WritingScore = writingSkillScore != null ? (double?)writingSkillScore.Score : null,
 				SpeakingScore = speakingSkillScore != null ? (double?)speakingSkillScore.Score : null,
 				TotalScore = (double)testResult.TotalScore,
-				PerPartFeedbacks = aiFeedbacks.Select(f => new Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto
+				IsSelectTime = testResult.IsSelectTime,
+				Status = testResult.Status,
+                PerPartFeedbacks = aiFeedbacks.Select(f => new Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto
 				{
 					TestQuestionId = f.UserAnswer?.TestQuestionId ?? 0,
 					FeedbackId = f.FeedbackId,
@@ -1432,9 +1436,9 @@ namespace ToeicGenius.Services.Implementations
 			return Result<object>.Success(response);
 		}
 
-		public async Task<Result<List<TestListResponseDto>>> GetTestsByTypeAsync(TestType testType)
+		public async Task<Result<List<TestListResponseDto>>> GetTestsByTypeAsync(TestType testType, Guid? userId = null)
 		{
-			var result = await _uow.Tests.GetTestByType(testType);
+			var result = await _uow.Tests.GetTestByType(testType, userId);
 			if (result == null || !result.Any())
 			{
 				return Result<List<TestListResponseDto>>.Failure("Not found");

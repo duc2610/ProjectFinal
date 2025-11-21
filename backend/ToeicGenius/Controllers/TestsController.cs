@@ -493,9 +493,17 @@ namespace ToeicGenius.Controllers
 
 		// Test List For Examinee or Guest: Practice
 		[HttpGet("examinee/list/practice")]
-		public async Task<IActionResult> GetPracticeTests(int testResultId)
+		public async Task<IActionResult> GetPracticeTests()
 		{
-			var tests = await _testService.GetTestsByTypeAsync(TestType.Practice);
+			// Try to get userId from token if user is logged in
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			Guid? userId = null;
+			if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+			{
+				userId = parsedUserId;
+			}
+
+			var tests = await _testService.GetTestsByTypeAsync(TestType.Practice, userId);
 			if (!tests.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(tests.ErrorMessage!));
 
@@ -506,7 +514,15 @@ namespace ToeicGenius.Controllers
 		[HttpGet("examinee/list/simulator")]
 		public async Task<IActionResult> GetSimulatorTests()
 		{
-			var tests = await _testService.GetTestsByTypeAsync(TestType.Simulator);
+			// Try to get userId from token if user is logged in
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			Guid? userId = null;
+			if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+			{
+				userId = parsedUserId;
+			}
+
+			var tests = await _testService.GetTestsByTypeAsync(TestType.Simulator, userId);
 			if (!tests.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(tests.ErrorMessage!));
 
