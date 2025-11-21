@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using ToeicGenius.Domains.DTOs.Requests.Test;
+using ToeicGenius.Domains.DTOs.Requests.TestQuestion;
 using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.DTOs.Responses.Test;
@@ -94,6 +95,7 @@ namespace ToeicGenius.Services.Implementations
 						SnapshotJson = snapshot,
 						OrderInTest = order++,
 						SourceType = QuestionSourceType.FromBank,
+						SourceQuestionId = q.QuestionId,
 						CreatedAt = Now
 					});
 				}
@@ -114,6 +116,7 @@ namespace ToeicGenius.Services.Implementations
 						SnapshotJson = snapshot,
 						OrderInTest = order++,
 						SourceType = QuestionSourceType.FromBank,
+						SourceQuestionGroupId = q.QuestionGroupId,
 						CreatedAt = Now,
 					});
 				}
@@ -201,6 +204,7 @@ namespace ToeicGenius.Services.Implementations
 								SnapshotJson = snapshot,
 								OrderInTest = order++,
 								SourceType = QuestionSourceType.FromBank,
+								SourceQuestionId = q.QuestionId,
 								CreatedAt = Now
 							});
 						}
@@ -238,6 +242,7 @@ namespace ToeicGenius.Services.Implementations
 								SnapshotJson = snapshot,
 								OrderInTest = order++,
 								SourceType = QuestionSourceType.FromBank,
+								SourceQuestionGroupId = g.QuestionGroupId,
 								CreatedAt = Now,
 							});
 						}
@@ -1275,10 +1280,41 @@ namespace ToeicGenius.Services.Implementations
 
 				foreach (var tq in group.OrderBy(q => q.OrderInTest))
 				{
+					// Get the snapshot JSON to use (version-aware)
+					string snapshotJsonToUse = tq.SnapshotJson; // Default: current/latest version
+
+					// If SnapshotVersions exists, try to get the version from user's answer
+					if (!string.IsNullOrEmpty(tq.SnapshotVersions))
+					{
+						// Find user answer for this question to get the version they saw
+						var anyUserAnswer = testResult.UserAnswers.FirstOrDefault(x => x.TestQuestionId == tq.TestQuestionId);
+						if (anyUserAnswer != null)
+						{
+							try
+							{
+								var versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionVersionHistory>(tq.SnapshotVersions);
+								if (versionHistory != null)
+								{
+									// Get snapshot from the version user answered
+									var versionSnapshot = versionHistory.GetSnapshot(anyUserAnswer.QuestionVersion);
+									if (versionSnapshot != null)
+									{
+										// Use the versioned snapshot
+										snapshotJsonToUse = System.Text.Json.JsonSerializer.Serialize(versionSnapshot);
+									}
+								}
+							}
+							catch
+							{
+								// If version lookup fails, fall back to SnapshotJson
+							}
+						}
+					}
+
 					// Với question group
 					if (tq.IsQuestionGroup)
 					{
-						var groupSnap = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(tq.SnapshotJson ?? "{}");
+						var groupSnap = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(snapshotJsonToUse ?? "{}");
 						if (groupSnap == null) continue;
 
 						for (int i = 0; i < groupSnap.QuestionSnapshots.Count; i++)
@@ -1304,7 +1340,7 @@ namespace ToeicGenius.Services.Implementations
 					else
 					{
 						// 🔹 Câu hỏi đơn
-						var questionSnap = JsonConvert.DeserializeObject<QuestionSnapshotDto>(tq.SnapshotJson ?? "{}");
+						var questionSnap = JsonConvert.DeserializeObject<QuestionSnapshotDto>(snapshotJsonToUse ?? "{}");
 						if (questionSnap == null) continue;
 
 						var userAnswer = testResult.UserAnswers.FirstOrDefault(x => x.TestQuestionId == tq.TestQuestionId);
@@ -1898,6 +1934,198 @@ namespace ToeicGenius.Services.Implementations
 			catch (Exception ex)
 			{
 				return Result<string>.Failure($"Error saving progress: {ex.Message}");
+			}
+		}
+
+		public async Task<Result<string>> UpdateTestQuestionAsync(int testQuestionId, UpdateTestQuestionDto dto)
+		{
+			await _uow.BeginTransactionAsync();
+			try
+			{
+				// Get TestQuestion with details
+				var testQuestion = await _uow.TestQuestions.GetByIdWithDetailsAsync(testQuestionId);
+				if (testQuestion == null)
+					return Result<string>.Failure("TestQuestion not found");
+
+				// Try to get version history (new format), or migrate from old format
+				QuestionVersionHistory? versionHistory = null;
+				QuestionSnapshotDto? currentSnapshot = null;
+
+				if (!string.IsNullOrEmpty(testQuestion.SnapshotVersions))
+				{
+					// New format: Use SnapshotVersions
+					try
+					{
+						versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionVersionHistory>(testQuestion.SnapshotVersions);
+					}
+					catch
+					{
+						return Result<string>.Failure("Invalid snapshot versions format");
+					}
+
+					if (versionHistory == null || !versionHistory.Versions.Any())
+						return Result<string>.Failure("Failed to deserialize version history");
+
+					currentSnapshot = versionHistory.GetLatestSnapshot();
+				}
+				else
+				{
+					// Old format: Migrate from SnapshotJson to SnapshotVersions
+					try
+					{
+						currentSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionSnapshotDto>(testQuestion.SnapshotJson);
+					}
+					catch
+					{
+						return Result<string>.Failure("Invalid snapshot JSON format");
+					}
+
+					if (currentSnapshot == null)
+						return Result<string>.Failure("Failed to deserialize snapshot");
+
+					// Initialize version history with current snapshot
+					versionHistory = QuestionVersionHistory.CreateInitial(currentSnapshot, testQuestion.CreatedAt);
+				}
+
+				if (currentSnapshot == null)
+					return Result<string>.Failure("No snapshot found");
+
+				var snapshot = currentSnapshot;
+
+				// Clone the snapshot for the new version
+				var newSnapshot = new QuestionSnapshotDto
+				{
+					QuestionId = snapshot.QuestionId,
+					PartId = snapshot.PartId,
+					Content = snapshot.Content,
+					AudioUrl = snapshot.AudioUrl,
+					ImageUrl = snapshot.ImageUrl,
+					Explanation = snapshot.Explanation,
+					Options = snapshot.Options.Select(o => new OptionSnapshotDto
+					{
+						Label = o.Label,
+						Content = o.Content,
+						IsCorrect = o.IsCorrect
+					}).ToList(),
+					UserAnswer = snapshot.UserAnswer,
+					IsCorrect = snapshot.IsCorrect
+				};
+
+				// Update new snapshot with changes
+				if (!string.IsNullOrEmpty(dto.Content))
+					newSnapshot.Content = dto.Content;
+
+				if (dto.Audio != null)
+				{
+					// Upload new audio
+					var audioUploadResult = await _fileService.UploadFileAsync(dto.Audio, "audios");
+					if (!audioUploadResult.IsSuccess)
+						return Result<string>.Failure($"Failed to upload audio: {audioUploadResult.ErrorMessage}");
+					newSnapshot.AudioUrl = audioUploadResult.Data;
+				}
+
+				if (dto.Image != null)
+				{
+					// Upload new image
+					var imageUploadResult = await _fileService.UploadFileAsync(dto.Image, "images");
+					if (!imageUploadResult.IsSuccess)
+						return Result<string>.Failure($"Failed to upload image: {imageUploadResult.ErrorMessage}");
+					newSnapshot.ImageUrl = imageUploadResult.Data;
+				}
+
+				if (!string.IsNullOrEmpty(dto.Solution))
+					newSnapshot.Explanation = dto.Solution;
+
+				if (dto.AnswerOptions != null && dto.AnswerOptions.Any())
+				{
+					newSnapshot.Options = dto.AnswerOptions.Select(o => new OptionSnapshotDto
+					{
+						Label = o.Label,
+						Content = o.Content,
+						IsCorrect = o.IsCorrect
+					}).ToList();
+				}
+
+				// Check if anyone has answered this question
+				var anyUserAnswers = (await _uow.UserAnswers.GetAllAsync())
+					.Any(ua => ua.TestQuestionId == testQuestionId);
+
+				if (anyUserAnswers)
+				{
+					// Add as new version (preserve old version)
+					versionHistory.AddVersion(newSnapshot, Now);
+					testQuestion.CurrentVersion = versionHistory.CurrentVersion;
+				}
+				else
+				{
+					// No one answered yet, update the current version directly
+					versionHistory.Versions[versionHistory.Versions.Count - 1].Snapshot = newSnapshot;
+					versionHistory.Versions[versionHistory.Versions.Count - 1].CreatedAt = Now;
+				}
+
+				// Serialize updated version history (new format)
+				testQuestion.SnapshotVersions = System.Text.Json.JsonSerializer.Serialize(versionHistory);
+
+				// Also update SnapshotJson with latest version (for backward compatibility)
+				testQuestion.SnapshotJson = System.Text.Json.JsonSerializer.Serialize(newSnapshot);
+				testQuestion.UpdatedAt = Now;
+
+				await _uow.TestQuestions.UpdateTestQuestionAsync(testQuestion);
+
+				// If requested, also update the source Question in bank
+				if (dto.AlsoUpdateSourceInBank && testQuestion.SourceQuestionId.HasValue)
+				{
+					var sourceQuestion = await _uow.Questions.GetByIdAsync(testQuestion.SourceQuestionId.Value);
+					if (sourceQuestion != null)
+					{
+						// Update Question entity
+						if (!string.IsNullOrEmpty(dto.Content))
+							sourceQuestion.Content = dto.Content;
+
+						if (dto.Audio != null && !string.IsNullOrEmpty(newSnapshot.AudioUrl))
+							sourceQuestion.AudioUrl = newSnapshot.AudioUrl;
+
+						if (dto.Image != null && !string.IsNullOrEmpty(newSnapshot.ImageUrl))
+							sourceQuestion.ImageUrl = newSnapshot.ImageUrl;
+
+						if (!string.IsNullOrEmpty(dto.Solution))
+							sourceQuestion.Explanation = dto.Solution;
+
+						sourceQuestion.UpdatedAt = Now;
+						await _uow.Questions.UpdateAsync(sourceQuestion);
+
+						// Update Options in bank
+						if (dto.AnswerOptions != null && dto.AnswerOptions.Any())
+						{
+							var existingOptions = await _uow.Options.GetOptionsByQuestionIdAsync(sourceQuestion.QuestionId);
+							_uow.Options.RemoveRange(existingOptions);
+
+							foreach (var optDto in dto.AnswerOptions)
+							{
+								await _uow.Options.AddAsync(new Option
+								{
+									QuestionId = sourceQuestion.QuestionId,
+									Label = optDto.Label,
+									Content = optDto.Content,
+									IsCorrect = optDto.IsCorrect
+								});
+							}
+						}
+					}
+				}
+
+				// Save all changes to database before committing transaction
+				await _uow.SaveChangesAsync();
+				await _uow.CommitTransactionAsync();
+				return Result<string>.Success("TestQuestion updated successfully" +
+					(dto.AlsoUpdateSourceInBank && testQuestion.SourceQuestionId.HasValue
+						? " (including source Question in bank)"
+						: ""));
+			}
+			catch (Exception ex)
+			{
+				await _uow.RollbackTransactionAsync();
+				return Result<string>.Failure($"Error updating TestQuestion: {ex.Message}");
 			}
 		}
 		#endregion

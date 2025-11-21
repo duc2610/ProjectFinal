@@ -36,6 +36,7 @@ namespace ToeicGenius.Repositories.Persistence
 		public DbSet<UserAnswer> UserAnswers => Set<UserAnswer>();
 		public DbSet<AIFeedback> AIFeedbacks => Set<AIFeedback>();
 		public DbSet<UserTestSkillScore> UserTestSkillScores => Set<UserTestSkillScore>();
+		public DbSet<QuestionReport> QuestionReports => Set<QuestionReport>();
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{

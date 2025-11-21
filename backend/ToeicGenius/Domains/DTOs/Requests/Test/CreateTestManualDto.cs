@@ -60,7 +60,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Exam
 	}
 	public class TestBuildResult
 	{
-		public List<TestQuestion> Questions { get; set; } = new();
+		public List<Entities.TestQuestion> Questions { get; set; } = new();
 		public int NextOrder { get; set; }
 	}
 }
