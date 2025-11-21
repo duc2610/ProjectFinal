@@ -12,7 +12,9 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 		public TestSkill TestSkill { get; set; }
 		public TestType TestType { get; set; }
 		public string? AudioUrl { get; set; }
-		public int Duration { get; set; }
+		public bool IsSelectTime { get; set; }
+        public TestResultStatus Status { get; set; }
+        public int Duration { get; set; }
 		public int QuantityQuestion { get; set; }
 		public int CorrectCount { get; set; }
 		public int TotalScore { get; set; }
