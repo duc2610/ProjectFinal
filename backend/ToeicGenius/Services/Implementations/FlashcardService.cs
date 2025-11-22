@@ -45,6 +45,21 @@ namespace ToeicGenius.Services.Implementations
 			return Result<IEnumerable<FlashcardSetResponseDto>>.Success(response);
 		}
 
+		public async Task<Result<PaginationResponse<FlashcardSetResponseDto>>> GetUserSetsPaginatedAsync(Guid userId, string? keyword, string sortOrder, int page, int pageSize)
+		{
+			var paginatedSets = await _uow.FlashcardSets.GetByUserIdPaginatedAsync(userId, keyword, sortOrder, page, pageSize);
+			var response = paginatedSets.DataPaginated.Select(MapToSetResponse);
+
+			var paginatedResponse = new PaginationResponse<FlashcardSetResponseDto>(
+				response,
+				paginatedSets.TotalCount,
+				paginatedSets.CurrentPage,
+				paginatedSets.PageSize
+			);
+
+			return Result<PaginationResponse<FlashcardSetResponseDto>>.Success(paginatedResponse);
+		}
+
 		public async Task<Result<FlashcardSetResponseDto>> GetSetByIdAsync(int setId, Guid? userId)
 		{
 			var set = await _uow.FlashcardSets.GetByIdAsync(setId);
