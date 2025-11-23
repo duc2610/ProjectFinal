@@ -743,17 +743,34 @@ export default function ExamManagement() {
             width: 160,
             align: "center",
             render: (_, rec) => {
-                // Chỉ hiển thị visibilityStatus (Đã công khai hoặc Đã ẩn)
-                const visibility = normalizeVisibilityStatusValue(rec?.visibilityStatus ?? rec?.VisibilityStatus);
+                const normalizedStatus = deriveStatusKey(rec);
+                const statusColorMap = {
+                    "Published": "success",
+                    "Active": "success", // Alias cho Published
+                    "Completed": "success",
+                    "InProgress": "processing",
+                    "Draft": "warning",
+                    "Hidden": "default",
+                    "Inactive": "default" // Alias cho Hidden
+                };
+                const statusLabelMap = {
+                    "Published": "Đã công khai",
+                    "Active": "Đang hoạt động",
+                    "Completed": "Hoàn thành",
+                    "InProgress": "Đang tiến hành",
+                    "Draft": "Bản nháp",
+                    "Hidden": "Đã ẩn",
+                    "Inactive": "Đã ẩn"
+                };
                 
-                if (visibility === "Published") {
-                    return <Tag color="success">Đã công khai</Tag>;
-                } else if (visibility === "Hidden") {
-                    return <Tag color="default">Đã ẩn</Tag>;
-                } else {
-                    // Nếu không có visibilityStatus, mặc định là "Đã ẩn"
-                    return <Tag color="default">Đã ẩn</Tag>;
-                }
+                const statusColor = statusColorMap[normalizedStatus] || "default";
+                const statusLabel = statusLabelMap[normalizedStatus] || normalizedStatus;
+                
+                return (
+                    <Tag color={statusColor}>
+                        {statusLabel}
+                    </Tag>
+                );
             } 
         },
         {

@@ -78,8 +78,11 @@ data reponse khi đã đăng nhập và có bài đang làm dở
             "title": "test  W",
             "questionQuantity": 9,
             "duration": 60,
-            "isSelectTime": true,
-            "status": "InProgress",
+            "resultProgress": {
+                "isSelectTime": true,
+                "status": "InProgress",
+                "createdAt": "2025-11-24T00:30:16.5746937"
+            },
             "creationStatus": "Completed",
             "visibilityStatus": "Published",
             "version": 0,
@@ -128,5 +131,3 @@ data reponse khi đã đăng nhập và có bài đang làm dở
     ],
     "success": true
 }
-
-

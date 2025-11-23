@@ -64,9 +64,9 @@ export default function PracticeLR() {
                         duration: test.duration || 0,
                         questionQuantity: test.questionQuantity || 0,
                         status: test.status,
-                        isSelectTime: test.isSelectTime,
                         version: test.version,
-                        description: test.description || "Bài luyện tập Listening & Reading"
+                        description: test.description || "Bài luyện tập Listening & Reading",
+                        resultProgress: test.resultProgress || null
                     }));
                 
                 setTests(filtered);
@@ -93,8 +93,8 @@ export default function PracticeLR() {
     };
 
     const handleContinueTest = async (test) => {
-        if (!test.id) {
-            message.error("Không tìm thấy thông tin bài test");
+        if (!test.resultProgress || test.resultProgress.status !== "InProgress") {
+            message.error("Không tìm thấy thông tin bài test đang làm dở");
             return;
         }
 
@@ -107,8 +107,8 @@ export default function PracticeLR() {
                 return;
             }
 
-            // Lấy isSelectTime từ test object (đã có trong API response)
-            const isSelectTime = test.isSelectTime !== undefined ? !!test.isSelectTime : false;
+            const isSelectTime = test.resultProgress.isSelectTime !== undefined ? !!test.resultProgress.isSelectTime : true;
+            const createdAt = test.resultProgress.createdAt;
             
             const data = await startTest(testIdNum, isSelectTime);
             
@@ -117,13 +117,11 @@ export default function PracticeLR() {
                 return;
             }
 
-            // Kiểm tra xem có parts không
             if (!data.parts || !Array.isArray(data.parts) || data.parts.length === 0) {
                 message.error({ content: "Không có câu hỏi trong bài thi. Vui lòng thử lại.", key: "continueTest" });
                 return;
             }
 
-            // Build questions từ response
             const buildQuestions = (parts = []) => {
                 const questions = [];
                 let globalIndex = 1;
@@ -180,7 +178,6 @@ export default function PracticeLR() {
                 return;
             }
 
-            // Xử lý savedAnswers để fill vào answers
             const savedAnswers = data.savedAnswers || [];
             const answersMap = new Map();
             
@@ -220,13 +217,20 @@ export default function PracticeLR() {
                 answers[key] = item.value;
             });
 
-            // Tạo payload cho bài thi
+            const testResultId = data.testResultId;
+            if (!testResultId) {
+                message.error({ content: "Không tìm thấy testResultId. Vui lòng thử lại.", key: "continueTest" });
+                return;
+            }
+
             const payload = {
                 ...data,
                 testId: testIdNum,
-                testResultId: data.testResultId,
-                testType: "Practice",
-                testSkill: test.testSkill,
+                testResultId: testResultId,
+                originalTestResultId: testResultId,
+                createdAt: createdAt,
+                testType: test.testType || "Practice",
+                testSkill: data.testSkill || test.testSkill,
                 duration: data.duration ?? test.duration ?? 0,
                 questionQuantity: data.quantityQuestion ?? data.questionQuantity ?? test.questionQuantity ?? 0,
                 questions,
@@ -238,7 +242,6 @@ export default function PracticeLR() {
                 lastBackendLoadTime: Date.now(),
             };
 
-            // Lưu vào sessionStorage và navigate đến màn hình làm bài
             sessionStorage.setItem("toeic_testData", JSON.stringify(payload));
             
             message.success({ content: "Đã tải bài thi thành công", key: "continueTest" });
@@ -326,7 +329,7 @@ export default function PracticeLR() {
                                         flexDirection: "column"
                                     }}
                                     actions={[
-                                        test.status === "InProgress" ? (
+                                        test.resultProgress?.status === "InProgress" ? (
                                             <Button
                                                 type="default"
                                                 icon={<PlayCircleOutlined />}

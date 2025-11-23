@@ -39,8 +39,11 @@ data reponse khi đã đăng nhập và có bài đang làm dở
             "title": "TOEIC Full Simulator Test 1",
             "questionQuantity": 200,
             "duration": 120,
-            "isSelectTime": true,
-            "status": "InProgress",
+            "resultProgress": {
+                "isSelectTime": true,
+                "status": "InProgress",
+                "createdAt": "2025-11-24T00:27:34.7064702"
+            },
             "creationStatus": "Completed",
             "visibilityStatus": "Published",
             "version": 0,

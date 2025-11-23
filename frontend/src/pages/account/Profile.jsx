@@ -220,6 +220,7 @@ export function TestHistoryTab() {
         totalQuestion: item.totalQuestion || item.TotalQuestion,
         correctQuestion: item.correctQuestion || item.CorrectQuestion,
         totalScore: item.totalScore || item.TotalScore,
+        isSelectTime: item.isSelectTime !== undefined ? item.isSelectTime : (item.IsSelectTime !== undefined ? item.IsSelectTime : undefined),
       }));
       
       setHistory(normalizedHistory);
@@ -371,19 +372,18 @@ export function TestHistoryTab() {
         return;
       }
 
-      // Lấy isSelectTime từ testType (Simulator = true, Practice = false mặc định)
-      // LƯU Ý: Khi tiếp tục bài Practice, giá trị này có thể không chính xác nếu user đã chọn đếm ngược khi bắt đầu
-      // Backend cần lưu và trả về isSelectTime gốc trong response để đảm bảo chế độ timer đúng
-      const defaultIsSelectTime = normalizeTestType(record.testType) === "Simulator";
+      // Chỉ lấy isSelectTime từ API get History (record.isSelectTime)
+      // Không dùng logic mặc định dựa trên testType
+      if (record.isSelectTime === undefined) {
+        message.error({ content: "Không tìm thấy thông tin isSelectTime từ lịch sử thi", key: "continueTest" });
+        return;
+      }
       
-      const data = await startTest(testIdNum, defaultIsSelectTime);
+      const isSelectTime = !!record.isSelectTime;
       
-      // Ưu tiên lấy isSelectTime từ response của backend (nếu backend lưu và trả về)
-      // Nếu không có, dùng giá trị mặc định (có thể không chính xác cho Practice với đếm ngược)
-      const isSelectTime = data.isSelectTime !== undefined ? !!data.isSelectTime : defaultIsSelectTime;
+      const data = await startTest(testIdNum, isSelectTime);
       
-      console.log("Profile - Continue test: isSelectTime from backend:", data.isSelectTime);
-      console.log("Profile - Continue test: defaultIsSelectTime:", defaultIsSelectTime);
+      console.log("Profile - Continue test: isSelectTime from history (record):", record.isSelectTime);
       console.log("Profile - Continue test: final isSelectTime:", isSelectTime);
       
       if (!data) {
