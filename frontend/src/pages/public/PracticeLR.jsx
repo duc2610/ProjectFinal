@@ -332,22 +332,26 @@ export default function PracticeLR() {
                                         test.resultProgress?.status === "InProgress" ? (
                                             <Button
                                                 type="default"
-                                                icon={<PlayCircleOutlined />}
                                                 size="middle"
                                                 onClick={() => handleContinueTest(test)}
                                                 className={styles.testStartButton}
                                             >
-                                                Chưa hoàn thành
+                                                <Space>
+                                                    <PlayCircleOutlined />
+                                                    <span>Chưa hoàn thành</span>
+                                                </Space>
                                             </Button>
                                         ) : (
                                             <Button
                                                 type="primary"
-                                                icon={<PlayCircleOutlined />}
                                                 size="middle"
                                                 onClick={() => handleStartTest(test)}
                                                 className={styles.testStartButton}
                                             >
-                                                Bắt đầu làm bài
+                                                <Space>
+                                                    <PlayCircleOutlined />
+                                                    <span>Bắt đầu làm bài</span>
+                                                </Space>
                                             </Button>
                                         )
                                     ]}

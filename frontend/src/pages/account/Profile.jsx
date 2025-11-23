@@ -648,7 +648,12 @@ export function TestHistoryTab() {
       dataIndex: "duration",
       key: "duration",
       width: 100,
-      render: (duration) => `${duration} phút`,
+      render: (duration) => {
+        if (duration === undefined || duration === null || duration === 0 || isNaN(duration)) {
+          return <span>—</span>;
+        }
+        return `${duration} phút`;
+      },
     },
     {
       title: "Ngày làm",
