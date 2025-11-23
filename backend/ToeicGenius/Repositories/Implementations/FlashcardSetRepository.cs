@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Repositories.Persistence;
+using ToeicGenius.Shared.Constants;
 using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Repositories.Implementations
@@ -16,6 +18,36 @@ namespace ToeicGenius.Repositories.Implementations
                 .Where(fs => fs.UserId == userId)
                 .OrderByDescending(fs => fs.CreatedAt)
                 .ToListAsync();
+        }
+
+        public async Task<PaginationResponse<FlashcardSet>> GetByUserIdPaginatedAsync(Guid userId, string? keyword, string sortOrder, int page, int pageSize)
+        {
+            var query = _dbSet.Where(fs => fs.UserId == userId);
+
+            // Apply keyword filter
+            if (!string.IsNullOrEmpty(keyword))
+            {
+                keyword = keyword.ToLower();
+                query = query.Where(fs => fs.Title.ToLower().Contains(keyword) ||
+                                         (fs.Description != null && fs.Description.ToLower().Contains(keyword)));
+            }
+
+            // Apply sorting
+            query = sortOrder.ToLower() == "asc"
+                ? query.OrderBy(fs => fs.CreatedAt)
+                : query.OrderByDescending(fs => fs.CreatedAt);
+
+            // Ensure valid pagination parameters
+            page = page <= 0 ? NumberConstants.DefaultFirstPage : page;
+            pageSize = pageSize <= 0 ? NumberConstants.DefaultPageSize : pageSize;
+
+            var totalRecords = await query.CountAsync();
+            var data = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PaginationResponse<FlashcardSet>(data, totalRecords, page, pageSize);
         }
 
         public async Task<FlashcardSet?> GetByIdWithCardsAsync(int setId)

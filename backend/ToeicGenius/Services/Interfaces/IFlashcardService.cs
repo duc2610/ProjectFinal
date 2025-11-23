@@ -9,6 +9,7 @@ namespace ToeicGenius.Services.Interfaces
 		// FlashcardSet operations
 		Task<Result<FlashcardSetResponseDto>> CreateSetAsync(CreateFlashcardSetDto dto, Guid userId);
 		Task<Result<IEnumerable<FlashcardSetResponseDto>>> GetUserSetsAsync(Guid userId);
+		Task<Result<PaginationResponse<FlashcardSetResponseDto>>> GetUserSetsPaginatedAsync(Guid userId, string? keyword, string sortOrder, int page, int pageSize);
 		Task<Result<FlashcardSetResponseDto>> GetSetByIdAsync(int setId, Guid? userId);
 		Task<Result<FlashcardSetResponseDto>> UpdateSetAsync(int setId, UpdateFlashcardSetDto dto, Guid userId);
 		Task<Result<bool>> DeleteSetAsync(int setId, Guid userId);
