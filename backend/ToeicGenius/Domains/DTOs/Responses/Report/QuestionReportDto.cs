@@ -10,8 +10,13 @@ namespace ToeicGenius.Domains.DTOs.Responses.Report
 
 		// Question info (from SnapshotJson)
 		public QuestionSnapshotDto? QuestionSnapshot { get; set; }
+		public string? QuestionContent { get; set; } // Nội dung câu hỏi để hiển thị
 		public int? PartId { get; set; }
 		public string? PartName { get; set; }
+
+		// Test info
+		public int? TestId { get; set; }
+		public string? TestName { get; set; }
 
 		// Source IDs (for editing)
 		public int? SourceQuestionId { get; set; }

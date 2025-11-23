@@ -141,15 +141,27 @@ namespace ToeicGenius.Services.Implementations
 		{
 			// Deserialize SnapshotJson to get full question details
 			QuestionSnapshotDto? snapshot = null;
+			string? questionContent = null;
+
 			if (!string.IsNullOrEmpty(report.TestQuestion?.SnapshotJson))
 			{
 				try
 				{
-					snapshot = JsonSerializer.Deserialize<QuestionSnapshotDto>(report.TestQuestion.SnapshotJson);
+					var options = new JsonSerializerOptions
+					{
+						PropertyNameCaseInsensitive = true
+					};
+					snapshot = JsonSerializer.Deserialize<QuestionSnapshotDto>(report.TestQuestion.SnapshotJson, options);
+					questionContent = snapshot?.Content; // Lấy nội dung câu hỏi
 				}
-				catch
+				catch (Exception ex)
 				{
-					// If deserialization fails, snapshot will be null
+					// If deserialization fails, log error and try to show raw SnapshotJson
+					Console.WriteLine($"Failed to deserialize SnapshotJson for TestQuestionId {report.TestQuestionId}: {ex.Message}");
+					// Fallback: show part of SnapshotJson as questionContent
+					questionContent = report.TestQuestion.SnapshotJson.Length > 200
+						? report.TestQuestion.SnapshotJson.Substring(0, 200) + "..."
+						: report.TestQuestion.SnapshotJson;
 				}
 			}
 
@@ -158,8 +170,11 @@ namespace ToeicGenius.Services.Implementations
 				ReportId = report.ReportId,
 				TestQuestionId = report.TestQuestionId,
 				QuestionSnapshot = snapshot,
+				QuestionContent = questionContent,
 				PartId = report.TestQuestion?.PartId,
 				PartName = report.TestQuestion?.Part?.Name,
+				TestId = report.TestQuestion?.TestId,
+				TestName = report.TestQuestion?.Test?.Title,
 				SourceQuestionId = report.TestQuestion?.SourceQuestionId,
 				SourceQuestionGroupId = report.TestQuestion?.SourceQuestionGroupId,
 				ReportedBy = report.ReportedBy,

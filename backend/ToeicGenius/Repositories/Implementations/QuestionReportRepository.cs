@@ -24,6 +24,8 @@ namespace ToeicGenius.Repositories.Implementations
 			return await _context.QuestionReports
 				.Include(r => r.TestQuestion)
 					.ThenInclude(tq => tq.Part)
+				.Include(r => r.TestQuestion)
+					.ThenInclude(tq => tq.Test)
 				.Include(r => r.Reporter)
 				.Include(r => r.Reviewer)
 				.FirstOrDefaultAsync(r => r.ReportId == reportId);
@@ -39,6 +41,8 @@ namespace ToeicGenius.Repositories.Implementations
 			var query = _context.QuestionReports
 				.Include(r => r.TestQuestion)
 					.ThenInclude(tq => tq.Part)
+				.Include(r => r.TestQuestion)
+					.ThenInclude(tq => tq.Test)
 				.Include(r => r.Reporter)
 				.Include(r => r.Reviewer)
 				.AsQueryable();
