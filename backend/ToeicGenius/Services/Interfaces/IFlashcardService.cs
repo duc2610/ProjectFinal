@@ -27,5 +27,6 @@ namespace ToeicGenius.Services.Interfaces
 		Task<Result<StudySessionResponseDto>> StartStudySessionAsync(int setId, Guid userId);
 		Task<Result<bool>> MarkCardKnowledgeAsync(MarkCardKnowledgeDto dto, Guid userId);
 		Task<Result<StudyStatsResponseDto>> GetStudyStatsAsync(int setId, Guid userId);
+		Task<Result<bool>> ResetStudyProgressAsync(int setId, Guid userId);
 	}
 }
