@@ -39,12 +39,8 @@ export default function TestList() {
                                           test.testType === TEST_TYPE.SIMULATOR || 
                                           test.testType === 1;
                         
-                        // Check status: Published = 3 (theo backend enum)
-                        // Check cả status và visibilityStatus vì API có thể trả về status="Graded" và visibilityStatus="Published"
-                        const isPublished = test.status === "Published" || 
-                                          test.status === 3 || 
-                                          test.status === "3" ||
-                                          test.visibilityStatus === "Published" ||
+                        // Chỉ check visibilityStatus để xác định test đã Published
+                        const isPublished = test.visibilityStatus === "Published" ||
                                           test.visibilityStatus === 3 ||
                                           test.visibilityStatus === "3";
                         

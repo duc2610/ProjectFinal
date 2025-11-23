@@ -136,10 +136,14 @@ export default function ExamManagement() {
         if (!exam) return;
 
         const examId = exam.id ?? exam.Id ?? exam.testId ?? exam.TestId;
-        if (examId === undefined || examId === null) return;
+        if (examId === undefined || examId === null) {
+            message.error("Không xác định được ID bài thi");
+            return;
+        }
 
         const creationStatus = normalizeCreationStatusValue(exam.creationStatus ?? exam.CreationStatus);
 
+        // Chỉ kiểm tra khi bật (publish), không cần kiểm tra khi tắt (hide)
         if (checked && creationStatus !== "Completed") {
             message.warning("Chỉ những bài thi đã hoàn tất mới có thể công khai.");
             return;
@@ -155,7 +159,8 @@ export default function ExamManagement() {
                 await hideTest(examId);
                 message.success("Đã ẩn bài thi.");
             }
-            fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus);
+            // Reload danh sách sau khi toggle thành công
+            await fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus);
         } catch (error) {
             console.error("Toggle visibility error:", error);
             const errorMsg = error?.response?.data?.message || error?.message || "Lỗi khi cập nhật trạng thái hiển thị";
@@ -186,11 +191,17 @@ export default function ExamManagement() {
                     allExams = allExams.filter(exam => exam.testType === testType);
                 }
                 
-                // Filter theo trạng thái (status)
+                // Filter theo trạng thái (status) - chỉ check visibilityStatus
                 if (status !== "all") {
                     allExams = allExams.filter(exam => {
-                        const examStatus = deriveStatusKey(exam);
-                        return examStatus === status;
+                        const visibility = normalizeVisibilityStatusValue(exam?.visibilityStatus ?? exam?.VisibilityStatus);
+                        if (status === "Published") {
+                            return visibility === "Published";
+                        }
+                        if (status === "Hidden") {
+                            return visibility === "Hidden";
+                        }
+                        return false;
                     });
                 }
                 
@@ -770,15 +781,19 @@ export default function ExamManagement() {
             render: (_, rec) => {
                 const creationStatus = normalizeCreationStatusValue(rec.creationStatus ?? rec.CreationStatus);
                 const isCompleted = creationStatus === "Completed";
-                const isPublished = deriveStatusKey(rec) === "Published";
+                // Chỉ check visibilityStatus để xác định Published
+                const visibility = normalizeVisibilityStatusValue(rec.visibilityStatus ?? rec.VisibilityStatus);
+                const isPublished = visibility === "Published";
                 const examId = rec.id ?? rec.Id ?? rec.testId ?? rec.TestId;
+                // Chỉ disable nếu test chưa completed (chưa thể publish)
+                // Nếu đã completed thì có thể toggle giữa Published và Hidden
                 return (
                     <Switch
                         checked={isPublished}
                         checkedChildren="Hiện"
                         unCheckedChildren="Ẩn"
                         loading={switchLoadingId === examId}
-                        disabled={!isCompleted && !isPublished}
+                        disabled={!isCompleted}
                         onChange={(checked) => handleVisibilityToggle(rec, checked)}
                     />
                 );
