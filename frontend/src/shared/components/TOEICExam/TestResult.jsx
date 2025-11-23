@@ -420,12 +420,16 @@ export default function ResultScreen() {
     const rows = { listening: [], reading: [], all: [] };
     let globalIndex = 1;
 
-    detailData.parts.forEach((part) => {
+    // Sắp xếp parts theo partId để đảm bảo thứ tự giống màn thi
+    const sortedParts = [...(detailData.parts || [])].sort((a, b) => (a.partId || 0) - (b.partId || 0));
+
+    sortedParts.forEach((part) => {
       part.testQuestions?.forEach((tq) => {
         // Xử lý single question
         if (!tq.isGroup && tq.questionSnapshotDto) {
           const qs = tq.questionSnapshotDto;
           const userAnswer = qs.userAnswer || "";
+          const currentGlobalIndex = globalIndex++; // Tăng globalIndex cho TẤT CẢ câu hỏi
           
           // CHỈ thêm vào danh sách nếu có userAnswer (đã trả lời)
           if (userAnswer !== null && userAnswer !== undefined && userAnswer.trim() !== "") {
@@ -435,7 +439,7 @@ export default function ResultScreen() {
             const row = {
               key: tq.testQuestionId,
               testQuestionId: tq.testQuestionId, // Thêm testQuestionId để dùng cho report
-              index: globalIndex++,
+              index: currentGlobalIndex, // Dùng globalIndex đã tính cho TẤT CẢ câu hỏi
               partId: qs.partId || part.partId,
               partTitle: part.partName || `Part ${qs.partId || part.partId}`,
               question: qs.content || "",
@@ -459,6 +463,7 @@ export default function ResultScreen() {
           const group = tq.questionGroupSnapshotDto;
           group.questionSnapshots?.forEach((qs, idx) => {
             const userAnswer = qs.userAnswer || "";
+            const currentGlobalIndex = globalIndex++; // Tăng globalIndex cho TẤT CẢ câu hỏi
             
             // CHỈ thêm vào danh sách nếu có userAnswer (đã trả lời)
             if (userAnswer !== null && userAnswer !== undefined && userAnswer.trim() !== "") {
@@ -469,7 +474,7 @@ export default function ResultScreen() {
                 key: `${tq.testQuestionId}_${idx}`,
                 testQuestionId: tq.testQuestionId, // Thêm testQuestionId để dùng cho report
                 subQuestionIndex: idx, // Lưu subQuestionIndex cho group questions
-                index: globalIndex++,
+                index: currentGlobalIndex, // Dùng globalIndex đã tính cho TẤT CẢ câu hỏi
                 partId: qs.partId || part.partId,
                 partTitle: part.partName || `Part ${qs.partId || part.partId}`,
                 question: qs.content || "",
@@ -805,7 +810,13 @@ export default function ResultScreen() {
 
   // === TABLE COLUMNS CHO L&R ===
   const columns = [
-    { title: "STT", dataIndex: "index", width: 80, align: "center" },
+    { 
+      title: "Câu hỏi", 
+      dataIndex: "index", 
+      width: 100, 
+      align: "center",
+      render: (index) => `Câu ${index}`
+    },
     {
       title: "Câu hỏi",
       dataIndex: "question",
@@ -890,7 +901,13 @@ export default function ResultScreen() {
 
   // === TABLE COLUMNS CHO WRITING/SPEAKING ===
   const swColumns = [
-    { title: "STT", dataIndex: "index", width: 80, align: "center" },
+    { 
+      title: "Câu hỏi", 
+      dataIndex: "index", 
+      width: 100, 
+      align: "center",
+      render: (index) => `Câu ${index}`
+    },
     {
       title: "Loại câu hỏi",
       dataIndex: "partType",

@@ -726,12 +726,25 @@ export function ReportTab() {
       setLoading(true);
       const response = await getMyQuestionReports(page, pageSize);
       
-      // Response structure: { data: [], pageNumber, pageSize, totalRecords, totalPages, ... }
-      const reportsData = response?.data || [];
-      const totalRecords = response?.totalRecords || 0;
-      const currentPage = response?.pageNumber || page;
+      // Response structure: { data: { data: [], pageNumber, pageSize, totalRecords, ... } }
+      const reportsData = response?.data?.data || response?.data || [];
+      const totalRecords = response?.data?.totalRecords || response?.totalRecords || 0;
+      const currentPage = response?.data?.pageNumber || response?.pageNumber || page;
       
-      setReports(reportsData);
+      // Map dữ liệu để hiển thị đúng
+      const mappedReports = reportsData.map((report) => ({
+        key: report.reportId || report.id,
+        reportId: report.reportId,
+        testQuestionId: report.testQuestionId,
+        questionContent: report.questionSnapshot?.content || report.questionContent || null,
+        description: report.description || null,
+        reportType: report.reportType,
+        status: report.status,
+        createdAt: report.createdAt,
+        updatedAt: report.reviewedAt || report.updatedAt || report.createdAt,
+      }));
+      
+      setReports(mappedReports);
       setPagination({
         current: currentPage,
         pageSize: pageSize,
@@ -764,19 +777,29 @@ export function ReportTab() {
 
   const columns = [
     {
-      title: "ID Câu hỏi",
-      dataIndex: "questionId",
-      key: "questionId",
-      width: 120,
-      render: (id) => id || "—",
-    },
-    {
       title: "Nội dung báo cáo",
-      dataIndex: "content",
-      key: "content",
+      dataIndex: "description",
+      key: "description",
       ellipsis: true,
       width: 300,
-      render: (content) => content || "—",
+      render: (description) => description || "—",
+    },
+    {
+      title: "Loại báo cáo",
+      dataIndex: "reportType",
+      key: "reportType",
+      width: 150,
+      render: (type) => {
+        const typeMap = {
+          "IncorrectAnswer": "Đáp án sai",
+          "Typo": "Lỗi chính tả",
+          "AudioIssue": "Vấn đề về âm thanh",
+          "ImageIssue": "Vấn đề về hình ảnh",
+          "Unclear": "Câu hỏi không rõ ràng",
+          "Other": "Khác",
+        };
+        return typeMap[type] || type || "—";
+      },
     },
     {
       title: "Trạng thái",
@@ -801,13 +824,6 @@ export function ReportTab() {
       width: 180,
       render: (date) => formatDate(date),
     },
-    {
-      title: "Ngày cập nhật",
-      dataIndex: "updatedAt",
-      key: "updatedAt",
-      width: 180,
-      render: (date) => formatDate(date),
-    },
   ];
 
   return (
@@ -824,7 +840,7 @@ export function ReportTab() {
             <Table
               columns={columns}
               dataSource={reports}
-              rowKey={(record, index) => record.id || record.questionId || `report-${index}`}
+              rowKey={(record, index) => record.reportId || record.key || `report-${index}`}
               loading={loading}
               pagination={{
                 current: pagination.current,
