@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getPracticeTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_LABELS } from "@services/testsService";
+import { startTest } from "@services/testExamService";
 import styles from "@shared/styles/PracticeSW.module.css";
 
 const { Title, Text, Paragraph } = Typography;
@@ -64,6 +65,7 @@ export default function PracticeSW() {
                         duration: test.duration || 0,
                         questionQuantity: test.questionQuantity || 0,
                         status: test.status,
+                        isSelectTime: test.isSelectTime,
                         version: test.version,
                         description: test.description || "Bài luyện tập Speaking"
                     }));
@@ -84,6 +86,7 @@ export default function PracticeSW() {
                         duration: test.duration || 0,
                         questionQuantity: test.questionQuantity || 0,
                         status: test.status,
+                        isSelectTime: test.isSelectTime,
                         version: test.version,
                         description: test.description || "Bài luyện tập Writing"
                     }));
@@ -112,6 +115,166 @@ export default function PracticeSW() {
 
     const handleStartTest = (test) => {
         navigate(`/toeic-exam?testId=${test.id}`, { state: { from: location.pathname, testMeta: test } });
+    };
+
+    const handleContinueTest = async (test) => {
+        if (!test.id) {
+            message.error("Không tìm thấy thông tin bài test");
+            return;
+        }
+
+        try {
+            message.loading({ content: "Đang tải bài thi...", key: "continueTest" });
+            
+            const testIdNum = Number(test.id);
+            if (Number.isNaN(testIdNum)) {
+                message.error({ content: "TestId không hợp lệ", key: "continueTest" });
+                return;
+            }
+
+            // Lấy isSelectTime từ test object (đã có trong API response)
+            const isSelectTime = test.isSelectTime !== undefined ? !!test.isSelectTime : false;
+            
+            const data = await startTest(testIdNum, isSelectTime);
+            
+            if (!data) {
+                message.error({ content: "Không thể tải bài thi. Vui lòng thử lại.", key: "continueTest" });
+                return;
+            }
+
+            // Kiểm tra xem có parts không
+            if (!data.parts || !Array.isArray(data.parts) || data.parts.length === 0) {
+                message.error({ content: "Không có câu hỏi trong bài thi. Vui lòng thử lại.", key: "continueTest" });
+                return;
+            }
+
+            // Build questions từ response (tương tự như trong Profile.jsx)
+            const buildQuestions = (parts = []) => {
+                const questions = [];
+                let globalIndex = 1;
+                const sortedParts = [...parts].sort((a, b) => (a.partId || 0) - (b.partId || 0));
+                sortedParts.forEach((part) => {
+                    part?.testQuestions?.forEach((tq) => {
+                        if (tq.isGroup && tq.questionGroupSnapshotDto) {
+                            const group = tq.questionGroupSnapshotDto;
+                            group.questionSnapshots?.forEach((qs, idx) => {
+                                questions.push({
+                                    testQuestionId: tq.testQuestionId,
+                                    subQuestionIndex: idx,
+                                    partId: part.partId,
+                                    partName: part.partName,
+                                    partDescription: part.description,
+                                    globalIndex: globalIndex++,
+                                    type: "group",
+                                    question: qs.content,
+                                    passage: group.passage,
+                                    imageUrl: qs.imageUrl,
+                                    audioUrl: qs.audioUrl,
+                                    options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+                                    correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+                                    userAnswer: qs.userAnswer,
+                                });
+                            });
+                        } else if (!tq.isGroup && tq.questionSnapshotDto) {
+                            const qs = tq.questionSnapshotDto;
+                            questions.push({
+                                testQuestionId: tq.testQuestionId,
+                                subQuestionIndex: 0,
+                                partId: part.partId,
+                                partName: part.partName,
+                                partDescription: part.description,
+                                globalIndex: globalIndex++,
+                                type: "single",
+                                question: qs.content,
+                                imageUrl: qs.imageUrl,
+                                audioUrl: qs.audioUrl,
+                                options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+                                correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+                                userAnswer: qs.userAnswer,
+                            });
+                        }
+                    });
+                });
+                return questions;
+            };
+
+            const questions = buildQuestions(data.parts);
+            
+            if (!questions || questions.length === 0) {
+                message.error({ content: "Không thể tạo danh sách câu hỏi. Vui lòng thử lại.", key: "continueTest" });
+                return;
+            }
+
+            // Xử lý savedAnswers để fill vào answers
+            const savedAnswers = data.savedAnswers || [];
+            const answersMap = new Map();
+            
+            savedAnswers.forEach((saved) => {
+                const subIndex = saved.subQuestionIndex !== undefined && saved.subQuestionIndex !== null 
+                    ? saved.subQuestionIndex 
+                    : 0;
+                
+                const testQuestionIdStr = String(saved.testQuestionId);
+                const answerKey = subIndex !== 0
+                    ? `${testQuestionIdStr}_${subIndex}`
+                    : testQuestionIdStr;
+                
+                const timestamp = saved.updatedAt 
+                    ? new Date(saved.updatedAt).getTime()
+                    : new Date(saved.createdAt || 0).getTime();
+                
+                const existing = answersMap.get(answerKey);
+                if (!existing || timestamp > existing.timestamp) {
+                    let answerValue = null;
+                    if (saved.chosenOptionLabel) {
+                        answerValue = saved.chosenOptionLabel;
+                    } else if (saved.answerText) {
+                        answerValue = saved.answerText;
+                    } else if (saved.answerAudioUrl) {
+                        answerValue = saved.answerAudioUrl;
+                    }
+                    
+                    if (answerValue !== null) {
+                        answersMap.set(answerKey, { value: answerValue, timestamp });
+                    }
+                }
+            });
+            
+            const answers = {};
+            answersMap.forEach((item, key) => {
+                answers[key] = item.value;
+            });
+
+            // Tạo payload cho bài thi
+            const payload = {
+                ...data,
+                testId: testIdNum,
+                testResultId: data.testResultId,
+                testType: "Practice",
+                testSkill: test.testSkill,
+                duration: data.duration ?? test.duration ?? 0,
+                questionQuantity: data.quantityQuestion ?? data.questionQuantity ?? test.questionQuantity ?? 0,
+                questions,
+                answers,
+                isSelectTime: isSelectTime,
+                timerMode: isSelectTime ? "countdown" : "countup",
+                startedAt: Date.now(),
+                globalAudioUrl: data.audioUrl || null,
+                lastBackendLoadTime: Date.now(),
+            };
+
+            // Lưu vào sessionStorage và navigate đến màn hình làm bài
+            sessionStorage.setItem("toeic_testData", JSON.stringify(payload));
+            
+            message.success({ content: "Đã tải bài thi thành công", key: "continueTest" });
+            navigate("/exam");
+        } catch (error) {
+            console.error("Error continuing test:", error);
+            message.error({ 
+                content: error.response?.data?.message || "Không thể tiếp tục bài test. Vui lòng thử lại.", 
+                key: "continueTest" 
+            });
+        }
     };
 
     const getSkillColor = (skill) => {
@@ -170,15 +333,27 @@ export default function PracticeSW() {
                                 flexDirection: "column"
                             }}
                             actions={[
-                                <Button
-                                    type="primary"
-                                    icon={<PlayCircleOutlined />}
-                                    size="middle"
-                                    onClick={() => handleStartTest(test)}
-                                    className={styles.testStartButton}
-                                >
-                                    Bắt đầu làm bài
-                                </Button>
+                                test.status === "InProgress" ? (
+                                    <Button
+                                        type="default"
+                                        icon={<PlayCircleOutlined />}
+                                        size="middle"
+                                        onClick={() => handleContinueTest(test)}
+                                        className={styles.testStartButton}
+                                    >
+                                        Chưa hoàn thành
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        type="primary"
+                                        icon={<PlayCircleOutlined />}
+                                        size="middle"
+                                        onClick={() => handleStartTest(test)}
+                                        className={styles.testStartButton}
+                                    >
+                                        Bắt đầu làm bài
+                                    </Button>
+                                )
                             ]}
                         >
                             <div className={styles.testTagsContainer}>
