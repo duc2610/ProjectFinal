@@ -1,0 +1,19 @@
+https://localhost:7100/api/question-reports/my-reports?page=1&pageSize=20
+
+
+data reponse
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": {
+        "data": [],
+        "pageNumber": 1,
+        "pageSize": 20,
+        "totalRecords": 0,
+        "totalPages": 0,
+        "hasPreviousPage": false,
+        "hasNextPage": false
+    },
+    "success": true
+}

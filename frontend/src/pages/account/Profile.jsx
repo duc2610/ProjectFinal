@@ -7,6 +7,7 @@ import { useAuth } from "@shared/hooks/useAuth";
 import { changePassword } from "@services/authService";
 import { getTestHistory } from "@services/testsService";
 import { startTest } from "@services/testExamService";
+import { getMyQuestionReports } from "@services/questionReportService";
 
 export default function Profile() {
   const { user } = useAuth();
@@ -30,8 +31,8 @@ export default function Profile() {
             },
             {
               key: "report",
-              label: "Báo cáo",
-              children: <div>Báo cáo</div>,
+              label: "Lịch sử báo cáo",
+              children: <ReportTab />,
             },
           ]}
         />
@@ -699,6 +700,142 @@ export function TestHistoryTab() {
                 pageSizeOptions: ["10", "20", "50"],
               }}
               scroll={{ x: 1200 }}
+            />
+          )}
+        </Col>
+      </Row>
+    </div>
+  );
+}
+
+export function ReportTab() {
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 20,
+    total: 0,
+  });
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async (page = 1, pageSize = 20) => {
+    try {
+      setLoading(true);
+      const response = await getMyQuestionReports(page, pageSize);
+      
+      // Response structure: { data: [], pageNumber, pageSize, totalRecords, totalPages, ... }
+      const reportsData = response?.data || [];
+      const totalRecords = response?.totalRecords || 0;
+      const currentPage = response?.pageNumber || page;
+      
+      setReports(reportsData);
+      setPagination({
+        current: currentPage,
+        pageSize: pageSize,
+        total: totalRecords,
+      });
+    } catch (error) {
+      console.error("Error fetching question reports:", error);
+      message.error("Không thể tải báo cáo");
+      setReports([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTableChange = (newPagination) => {
+    fetchReports(newPagination.current, newPagination.pageSize);
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const columns = [
+    {
+      title: "ID Câu hỏi",
+      dataIndex: "questionId",
+      key: "questionId",
+      width: 120,
+      render: (id) => id || "—",
+    },
+    {
+      title: "Nội dung báo cáo",
+      dataIndex: "content",
+      key: "content",
+      ellipsis: true,
+      width: 300,
+      render: (content) => content || "—",
+    },
+    {
+      title: "Trạng thái",
+      dataIndex: "status",
+      key: "status",
+      width: 120,
+      render: (status) => {
+        const statusMap = {
+          "Pending": { label: "Chờ xử lý", color: "warning" },
+          "Processing": { label: "Đang xử lý", color: "processing" },
+          "Resolved": { label: "Đã xử lý", color: "success" },
+          "Rejected": { label: "Từ chối", color: "error" },
+        };
+        const statusInfo = statusMap[status] || { label: status || "—", color: "default" };
+        return <Tag color={statusInfo.color}>{statusInfo.label}</Tag>;
+      },
+    },
+    {
+      title: "Ngày tạo",
+      dataIndex: "createdAt",
+      key: "createdAt",
+      width: 180,
+      render: (date) => formatDate(date),
+    },
+    {
+      title: "Ngày cập nhật",
+      dataIndex: "updatedAt",
+      key: "updatedAt",
+      width: 180,
+      render: (date) => formatDate(date),
+    },
+  ];
+
+  return (
+    <div className={styles.tabPane}>
+      <h2 className={styles.title}>Lịch sử báo cáo</h2>
+      <Row gutter={24} justify="center">
+        <Col xs={24} sm={24} md={24} lg={24} xl={24}>
+          {reports.length === 0 && !loading ? (
+            <Empty
+              description="Chưa có báo cáo nào"
+              style={{ marginTop: 40 }}
+            />
+          ) : (
+            <Table
+              columns={columns}
+              dataSource={reports}
+              rowKey={(record, index) => record.id || record.questionId || `report-${index}`}
+              loading={loading}
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
+                showSizeChanger: true,
+                showTotal: (total) => `Tổng ${total} báo cáo`,
+                pageSizeOptions: ["10", "20", "50"],
+              }}
+              onChange={handleTableChange}
+              scroll={{ x: 1000 }}
             />
           )}
         </Col>
