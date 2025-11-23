@@ -13,10 +13,7 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 		public int Duration { get; set; }
 
 		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-		public bool? IsSelectTime { get; set; }
-
-		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-		public TestResultStatus? Status { get; set; }
+		public ResultProgressDto? ResultProgress { get; set; }
 
 		public TestCreationStatus CreationStatus { get; set; }
 		public TestVisibilityStatus VisibilityStatus { get; set; }

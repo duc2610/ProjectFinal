@@ -2,12 +2,23 @@ import { api } from "./apiClient";
 
 const unwrap = (res) => res?.data?.data ?? res?.data;
 
-/**
- * Flashcard Set APIs
- */
-export async function getUserFlashcardSets() {
-  const res = await api.get("/api/flashcards/sets");
-  return unwrap(res);
+export async function getUserFlashcardSets(keyword = null, sortOrder = "desc", page = 1, pageSize = 100) {
+  const params = {
+    sortOrder,
+    page,
+    pageSize,
+  };
+  if (keyword) {
+    params.keyword = keyword;
+  }
+  const res = await api.get("/api/flashcards/sets", { params });
+  const data = unwrap(res);
+  // Backend trả về PaginationResponse với DataPaginated
+  if (data && data.dataPaginated) {
+    return data.dataPaginated;
+  }
+  // Fallback nếu không có pagination
+  return Array.isArray(data) ? data : [];
 }
 
 export async function getFlashcardSetById(setId) {
@@ -35,9 +46,6 @@ export async function deleteFlashcardSet(setId) {
   return unwrap(res);
 }
 
-/**
- * Flashcard Card APIs
- */
 export async function getFlashcardsBySetId(setId) {
   const res = await api.get(`/api/flashcards/sets/${setId}/cards`);
   return unwrap(res);
@@ -68,9 +76,7 @@ export async function addFlashcardFromTest(data) {
   return unwrap(res);
 }
 
-/**
- * Study Mode APIs
- */
+
 export async function startStudySession(setId) {
   const res = await api.get(`/api/flashcards/study/${setId}`);
   return unwrap(res);

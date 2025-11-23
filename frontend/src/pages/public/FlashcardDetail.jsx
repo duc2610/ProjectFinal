@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from "react";
-import { Button, Card, Space, Row, Col, message, Empty, Spin } from "antd";
+import { Button, Card, Space, Row, Col, message, Empty, Spin, Tag } from "antd";
 import {
   ArrowLeftOutlined,
   LeftOutlined,
   RightOutlined,
   PlusOutlined,
   EditOutlined,
-  SoundOutlined,
   DeleteOutlined,
   BookOutlined,
   RotateLeftOutlined,
   CheckOutlined,
+  SoundOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
-import { getFlashcardSetById, getFlashcardsBySetId, deleteFlashcard } from "@services/flashcardService";
+import { getFlashcardSetById, getFlashcardsBySetId, deleteFlashcard, startStudySession } from "@services/flashcardService";
+import { useAuth } from "@shared/hooks/useAuth";
+import { textToSpeech } from "@shared/utils/textToSpeech";
 import AddFlashcardModal from "@shared/components/Flashcard/AddFlashcardModal";
 import UpdateFlashcardSetModal from "@shared/components/Flashcard/UpdateFlashcardSetModal";
 import UpdateFlashcardModal from "@shared/components/Flashcard/UpdateFlashcardModal";
@@ -22,10 +24,12 @@ import "@shared/styles/FlashcardDetail.css";
 export default function FlashcardDetail() {
   const { setId } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [flashcardSet, setFlashcardSet] = useState(null);
   const [flashcards, setFlashcards] = useState([]);
+  const [cardStatusMap, setCardStatusMap] = useState(new Map()); // Map cardId -> status
   const [loading, setLoading] = useState(false);
   const [studyMode, setStudyMode] = useState("flashcard"); // flashcard, learn
   const [addCardModalOpen, setAddCardModalOpen] = useState(false);
@@ -37,7 +41,7 @@ export default function FlashcardDetail() {
     if (setId) {
       fetchFlashcardDetail();
     }
-  }, [setId]);
+  }, [setId, isAuthenticated]);
 
   const fetchFlashcardDetail = async () => {
     try {
@@ -49,6 +53,23 @@ export default function FlashcardDetail() {
 
       setFlashcardSet(setData);
       setFlashcards(Array.isArray(cardsData) ? cardsData : []);
+      
+      // Nếu user đã đăng nhập, lấy thông tin trạng thái học tập
+      if (isAuthenticated) {
+        try {
+          const sessionData = await startStudySession(setId);
+          if (sessionData && sessionData.cards) {
+            const statusMap = new Map();
+            sessionData.cards.forEach(card => {
+              statusMap.set(card.cardId, card.status);
+            });
+            setCardStatusMap(statusMap);
+          }
+        } catch (studyError) {
+          console.error("Error fetching study session:", studyError);
+          // Không hiển thị lỗi, chỉ không hiển thị trạng thái
+        }
+      }
     } catch (error) {
       console.error("Error fetching flashcard detail:", error);
       const errorMsg = error?.response?.data?.message || "Không thể tải chi tiết flashcard";
@@ -56,6 +77,20 @@ export default function FlashcardDetail() {
     } finally {
       setLoading(false);
     }
+  };
+  
+  const getStatusTag = (cardId) => {
+    const status = cardStatusMap.get(cardId);
+    if (!status) return null;
+    
+    if (status === "learned") {
+      return <Tag color="green" style={{ marginLeft: 8 }}>Đã học</Tag>;
+    } else if (status === "learning") {
+      return <Tag color="blue" style={{ marginLeft: 8 }}>Đang học</Tag>;
+    } else if (status === "new") {
+      return <Tag color="default" style={{ marginLeft: 8 }}>Chưa học</Tag>;
+    }
+    return null;
   };
 
   const handleCardClick = () => {
@@ -100,10 +135,33 @@ export default function FlashcardDetail() {
     }
   };
 
-  const handlePlayAudio = (e) => {
-    e.stopPropagation();
-    message.info("Tính năng đang phát triển");
+  const handlePlayAudio = (e, text, lang = 'en-US') => {
+    e?.stopPropagation();
+    
+    if (!textToSpeech.isSupported()) {
+      message.warning("Trình duyệt của bạn không hỗ trợ tính năng phát âm");
+      return;
+    }
+
+    if (!text || text.trim() === '') {
+      message.warning("Không có văn bản để phát âm");
+      return;
+    }
+
+    try {
+      if (lang.startsWith('en')) {
+        textToSpeech.speakEnglish(text);
+      } else if (lang.startsWith('vi')) {
+        textToSpeech.speakVietnamese(text);
+      } else {
+        textToSpeech.speak(text, { lang });
+      }
+    } catch (error) {
+      console.error("Error playing audio:", error);
+      message.error("Không thể phát âm");
+    }
   };
+
 
   const currentCard = flashcards[currentCardIndex];
 
@@ -117,6 +175,27 @@ export default function FlashcardDetail() {
 
   return (
     <div className="quizlet-container">
+      {/* Back Button */}
+      <div style={{ marginBottom: 24 }}>
+        <Button
+          type="default"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate("/flashcard")}
+          size="large"
+          style={{
+            borderRadius: 8,
+            height: 40,
+            paddingLeft: 20,
+            paddingRight: 20,
+            fontWeight: 500,
+            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            border: "1px solid #d9d9d9",
+          }}
+        >
+          Quay lại 
+        </Button>
+      </div>
+
       {/* Header */}
       <div className="quizlet-header">
        
@@ -217,7 +296,11 @@ export default function FlashcardDetail() {
             <Button
               type="default"
               icon={<SoundOutlined />}
-              onClick={() => message.info("Tính năng đang phát triển")}
+              onClick={() => {
+                const text = currentCard?.term || currentCard?.frontText || '';
+                const lang = flashcardSet?.language || 'en-US';
+                handlePlayAudio(null, text, lang);
+              }}
               className="quizlet-card-action-btn"
             >
               Phát âm
@@ -242,10 +325,25 @@ export default function FlashcardDetail() {
               >
                 <div className="quizlet-vocab-number">{index + 1}</div>
                 <div className="quizlet-vocab-content">
-                  <div className="quizlet-vocab-term">{card.term || card.frontText}</div>
+                  <div className="quizlet-vocab-term">
+                    {card.term || card.frontText}
+                    {isAuthenticated && getStatusTag(card.cardId)}
+                  </div>
                   <div className="quizlet-vocab-definition">{card.definition || card.backText}</div>
                 </div>
                 <div className="quizlet-vocab-actions">
+                  <Button
+                    type="text"
+                    icon={<SoundOutlined />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const text = card.term || card.frontText || '';
+                      const lang = flashcardSet?.language || 'en-US';
+                      handlePlayAudio(e, text, lang);
+                    }}
+                    className="quizlet-vocab-action-icon"
+                    title="Phát âm"
+                  />
                   <Button
                     type="text"
                     icon={<EditOutlined />}
@@ -254,12 +352,6 @@ export default function FlashcardDetail() {
                       setEditingCard(card);
                       setEditCardModalOpen(true);
                     }}
-                    className="quizlet-vocab-action-icon"
-                  />
-                  <Button
-                    type="text"
-                    icon={<SoundOutlined />}
-                    onClick={handlePlayAudio}
                     className="quizlet-vocab-action-icon"
                   />
                   <Button

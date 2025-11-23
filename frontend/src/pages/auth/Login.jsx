@@ -32,7 +32,9 @@ export default function Login() {
     return navigate("/", { replace: true });
   };
   const handleLogin = async (values) => {
-    const { email, password } = values;
+    // Normalize email: trim và lowercase
+    const email = (values.email || "").trim().toLowerCase();
+    const password = (values.password || "").trim();
     try {
       const res = await signIn(email, password);
       if (res.ok) {
@@ -129,14 +131,29 @@ export default function Login() {
             <Form.Item
               label="Email"
               name="email"
+              validateTrigger={['onBlur']}
               rules={[
                 {
                   required: true,
                   message: "Vui lòng nhập email",
                 },
+                {
+                  pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: "Email không hợp lệ",
+                },
               ]}
             >
-              <Input placeholder="Nhập email của bạn" size="large" />
+              <Input 
+                placeholder="Nhập email của bạn" 
+                size="large"
+                onChange={() => {
+                  // Xóa lỗi khi đang sửa (nếu có)
+                  const errors = form.getFieldsError(['email']);
+                  if (errors[0]?.errors?.length > 0) {
+                    form.setFields([{ name: 'email', errors: [] }]);
+                  }
+                }}
+              />
             </Form.Item>
 
             <Form.Item
@@ -149,9 +166,24 @@ export default function Login() {
                 </div>
               }
               name="password"
+              validateTrigger={['onBlur']}
               rules={[{ required: true, message: "Vui lòng nhập mật khẩu" }]}
             >
-              <Input.Password placeholder="Enter your password" size="large" />
+              <Input.Password 
+                placeholder="Nhập mật khẩu của bạn" 
+                size="large"
+                onChange={() => {
+                  // Xóa lỗi khi đang sửa (nếu có)
+                  const errors = form.getFieldsError(['password']);
+                  if (errors[0]?.errors?.length > 0) {
+                    form.setFields([{ name: 'password', errors: [] }]);
+                  }
+                }}
+                onFocus={() => {
+                  // Validate trường trước đó khi focus vào trường này
+                  form.validateFields(['email']).catch(() => {});
+                }}
+              />
             </Form.Item>
 
             <Button

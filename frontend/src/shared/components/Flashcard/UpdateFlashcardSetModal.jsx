@@ -80,11 +80,11 @@ export default function UpdateFlashcardSetModal({ open, onClose, onSuccess, setI
         <Form
           form={form}
           layout="vertical"
-          validateTrigger={[]}
         >
           <Form.Item
             name="title"
             label="Tiêu đề"
+            validateTrigger={['onBlur']}
             rules={[
               { required: true, message: "Vui lòng nhập tiêu đề" },
               { max: 255, message: "Tiêu đề tối đa 255 ký tự" },
@@ -98,27 +98,55 @@ export default function UpdateFlashcardSetModal({ open, onClose, onSuccess, setI
               },
             ]}
           >
-            <Input placeholder="Nhập tiêu đề flashcard set" />
+            <Input 
+              placeholder="Nhập tiêu đề flashcard set"
+              onChange={() => {
+                // Xóa lỗi khi đang sửa (nếu có)
+                const errors = form.getFieldsError(['title']);
+                if (errors[0]?.errors?.length > 0) {
+                  form.setFields([{ name: 'title', errors: [] }]);
+                }
+              }}
+            />
           </Form.Item>
 
           <Form.Item
             name="description"
             label="Mô tả (tùy chọn)"
+            validateTrigger={['onBlur']}
           >
             <Input.TextArea
               rows={3}
               placeholder="Nhập mô tả cho flashcard set"
               maxLength={500}
               showCount
+              onChange={() => {
+                // Xóa lỗi khi đang sửa (nếu có)
+                const errors = form.getFieldsError(['description']);
+                if (errors[0]?.errors?.length > 0) {
+                  form.setFields([{ name: 'description', errors: [] }]);
+                }
+              }}
+              onFocus={() => {
+                // Validate trường trước đó khi focus vào trường này
+                form.validateFields(['title']).catch(() => {});
+              }}
             />
           </Form.Item>
 
           <Form.Item
             name="language"
             label="Ngôn ngữ"
+            validateTrigger={['onBlur', 'onChange']}
             rules={[{ required: true, message: "Vui lòng chọn ngôn ngữ" }]}
           >
-            <Select placeholder="Chọn ngôn ngữ">
+            <Select 
+              placeholder="Chọn ngôn ngữ"
+              onFocus={() => {
+                // Validate các trường trước đó khi focus vào trường này
+                form.validateFields(['title']).catch(() => {});
+              }}
+            >
               <Select.Option value="en-US">Tiếng Anh (Mỹ)</Select.Option>
               <Select.Option value="en-GB">Tiếng Anh (Anh)</Select.Option>
               <Select.Option value="vi">Tiếng Việt</Select.Option>
