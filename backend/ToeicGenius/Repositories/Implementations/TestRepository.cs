@@ -118,7 +118,8 @@ namespace ToeicGenius.Repositories.Implementations
 					TotalQuestion = tr.TotalQuestions,
 					CorrectQuestion = tr.CorrectCount,
 					TotalScore = (int)tr.TotalScore,
-                    TestStatus = tr.Status.ToString()
+                    TestStatus = tr.Status.ToString(),
+					IsSelectTime = tr.IsSelectTime
                 })
 				.ToListAsync();
 
