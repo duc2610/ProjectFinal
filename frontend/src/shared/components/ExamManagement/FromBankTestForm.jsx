@@ -363,20 +363,58 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         <Form.Item
                             name="title"
                             label="Tiêu đề bài thi"
-                            rules={[{ required: true, message: "Vui lòng nhập tiêu đề!" }]}
+                            validateTrigger={['onBlur']}
+                            rules={[
+                                {
+                                    validator: (_, value) => {
+                                        if (!value || !String(value).trim()) {
+                                            return Promise.reject(new Error("Vui lòng nhập tiêu đề!"));
+                                        }
+                                        return Promise.resolve();
+                                    },
+                                },
+                            ]}
                         >
-                            <Input placeholder="Ví dụ: Bài Thi Luyện Tập 1" disabled={readOnly} />
+                            <Input 
+                                placeholder="Ví dụ: Bài Thi Luyện Tập 1" 
+                                disabled={readOnly}
+                                onChange={() => {
+                                    const errors = form.getFieldsError(['title']);
+                                    if (errors[0]?.errors?.length > 0) {
+                                        form.setFields([{ name: 'title', errors: [] }]);
+                                    }
+                                }}
+                            />
                         </Form.Item>
                     </Col>
                     <Col span={6}>
                         <Form.Item
                             name="skill"
                             label="Kỹ năng"
-                            rules={[{ required: true, message: "Vui lòng chọn kỹ năng!" }]}
+                            validateTrigger={['onBlur', 'onChange']}
+                            rules={[
+                                {
+                                    validator: (_, value) => {
+                                        if (!value) {
+                                            return Promise.reject(new Error("Vui lòng chọn kỹ năng!"));
+                                        }
+                                        return Promise.resolve();
+                                    },
+                                },
+                            ]}
                         >
                             <Select
                                 placeholder="Chọn kỹ năng"
-                                onChange={handleSkillChange}
+                                onChange={(value) => {
+                                    handleSkillChange(value);
+                                    const errors = form.getFieldsError(['skill']);
+                                    if (errors[0]?.errors?.length > 0) {
+                                        form.setFields([{ name: 'skill', errors: [] }]);
+                                    }
+                                }}
+                                onFocus={() => {
+                                    form.validateFields(['title']);
+                                }}
                                 disabled={readOnly || !!editingId}
                             >
                                 <Option value={TEST_SKILL.LR}>Nghe & Đọc</Option>
@@ -389,9 +427,36 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         <Form.Item
                             name="duration"
                             label="Thời lượng (phút)"
-                            rules={[{ required: true, message: "Vui lòng nhập thời lượng!" }]}
+                            validateTrigger={['onBlur']}
+                            rules={[
+                                {
+                                    validator: (_, value) => {
+                                        if (!value && value !== 0) {
+                                            return Promise.reject(new Error("Vui lòng nhập thời lượng!"));
+                                        }
+                                        if (value < 1 || value > 300) {
+                                            return Promise.reject(new Error("Thời lượng phải từ 1 đến 300 phút!"));
+                                        }
+                                        return Promise.resolve();
+                                    },
+                                },
+                            ]}
                         >
-                            <InputNumber min={1} max={300} style={{ width: "100%" }} disabled={readOnly} />
+                            <InputNumber 
+                                min={1} 
+                                max={300} 
+                                style={{ width: "100%" }} 
+                                disabled={readOnly}
+                                onChange={() => {
+                                    const errors = form.getFieldsError(['duration']);
+                                    if (errors[0]?.errors?.length > 0) {
+                                        form.setFields([{ name: 'duration', errors: [] }]);
+                                    }
+                                }}
+                                onFocus={() => {
+                                    form.validateFields(['title', 'skill']);
+                                }}
+                            />
                         </Form.Item>
                     </Col>
                 </Row>

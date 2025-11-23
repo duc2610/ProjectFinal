@@ -160,18 +160,24 @@ const AccountManagement = () => {
     try {
       const values = await form.validateFields();
 
+      // Normalize dữ liệu khi submit
+      const fullName = (values.fullName || "").replace(/\s+/g, " ").trim();
+      const email = editingAccount 
+        ? editingAccount.email 
+        : (values.email || "").trim().toLowerCase();
+
       const payload = {
-        fullName: values.fullName,
-        email: editingAccount ? editingAccount.email : values.email,
+        fullName: fullName,
+        email: email,
         roles: [values.role],
       };
 
       if (!editingAccount) {
-        payload.password = values.password;
+        payload.password = (values.password || "").trim();
       }
 
       if (editingAccount && values.newPassword) {
-        payload.password = values.newPassword;
+        payload.password = (values.newPassword || "").trim();
       }
 
       setLoading(prev => ({ ...prev, active: true }));
@@ -329,26 +335,7 @@ const AccountManagement = () => {
           >
             Sửa
           </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            size="small"
-            disabled={loading[record.isActive ? "active" : "banned"] || record.role === "Admin"}
-            onClick={() => {
-              if (record.role === "Admin") {
-                message.warning("Không thể xóa tài khoản Admin!");
-                return;
-              }
-              Modal.confirm({
-                title: "Xác nhận xóa?",
-                content: "Tính năng xóa chưa được hỗ trợ.",
-                onOk: () => message.info("Chưa có API xóa!"),
-              });
-            }}
-          >
-            Xóa
-          </Button>
+          
         </Space>
       ),
     },
@@ -477,21 +464,57 @@ const AccountManagement = () => {
             <Form.Item
               name="fullName"
               label="Tên đầy đủ"
-              rules={[{ required: true, message: "Vui lòng nhập tên!" }]}
+              validateTrigger={['onBlur']}
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (!value || !value.trim()) {
+                      return Promise.reject(new Error("Vui lòng nhập tên đầy đủ"));
+                    }
+                    return Promise.resolve();
+                  },
+                },
+              ]}
             >
-              <Input placeholder="Nhập tên đầy đủ" />
+              <Input 
+                placeholder="Nhập tên đầy đủ"
+                onChange={() => {
+                  // Xóa lỗi khi đang sửa (nếu có)
+                  const errors = form.getFieldsError(['fullName']);
+                  if (errors[0]?.errors?.length > 0) {
+                    form.setFields([{ name: 'fullName', errors: [] }]);
+                  }
+                }}
+              />
             </Form.Item>
 
             {!editingAccount && (
               <Form.Item
                 name="email"
                 label="Email"
+                validateTrigger={['onBlur']}
                 rules={[
                   { required: true, message: "Vui lòng nhập email!" },
-                  { type: "email", message: "Email không hợp lệ!" },
+                  {
+                    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                    message: "Email không hợp lệ",
+                  },
                 ]}
               >
-                <Input placeholder="Nhập email" />
+                <Input 
+                  placeholder="Nhập email"
+                  onChange={() => {
+                    // Xóa lỗi khi đang sửa (nếu có)
+                    const errors = form.getFieldsError(['email']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'email', errors: [] }]);
+                    }
+                  }}
+                  onFocus={() => {
+                    // Validate trường trước đó khi focus vào trường này
+                    form.validateFields(['fullName']).catch(() => {});
+                  }}
+                />
               </Form.Item>
             )}
 
@@ -505,12 +528,26 @@ const AccountManagement = () => {
               <Form.Item
                 name="password"
                 label="Mật khẩu"
+                validateTrigger={['onBlur']}
                 rules={[
                   { required: true, message: "Vui lòng nhập mật khẩu!" },
                   { min: 6, message: "Mật khẩu phải ít nhất 6 ký tự!" },
                 ]}
               >
-                <Input.Password placeholder="Nhập mật khẩu" />
+                <Input.Password 
+                  placeholder="Nhập mật khẩu"
+                  onChange={() => {
+                    // Xóa lỗi khi đang sửa (nếu có)
+                    const errors = form.getFieldsError(['password']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'password', errors: [] }]);
+                    }
+                  }}
+                  onFocus={() => {
+                    // Validate các trường trước đó khi focus vào trường này
+                    form.validateFields(['fullName', 'email']).catch(() => {});
+                  }}
+                />
               </Form.Item>
             )}
 
@@ -518,6 +555,7 @@ const AccountManagement = () => {
               <Form.Item
                 name="newPassword"
                 label="Mật khẩu mới (để trống nếu không đổi)"
+                validateTrigger={['onBlur']}
                 rules={[
                   ({ getFieldValue }) => ({
                     validator(_, value) {
@@ -527,16 +565,39 @@ const AccountManagement = () => {
                   }),
                 ]}
               >
-                <Input.Password placeholder="Nhập mật khẩu mới" />
+                <Input.Password 
+                  placeholder="Nhập mật khẩu mới"
+                  onChange={() => {
+                    // Xóa lỗi khi đang sửa (nếu có)
+                    const errors = form.getFieldsError(['newPassword']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'newPassword', errors: [] }]);
+                    }
+                  }}
+                  onFocus={() => {
+                    // Validate trường trước đó khi focus vào trường này
+                    form.validateFields(['fullName']).catch(() => {});
+                  }}
+                />
               </Form.Item>
             )}
 
             <Form.Item
               name="role"
               label="Quyền"
+              validateTrigger={['onBlur', 'onChange']}
               rules={[{ required: true, message: "Vui lòng chọn role!" }]}
             >
-              <Select placeholder="Chọn role">
+              <Select 
+                placeholder="Chọn role"
+                onFocus={() => {
+                  // Validate các trường trước đó khi focus vào trường này
+                  const fieldsToValidate = editingAccount 
+                    ? ['fullName'] 
+                    : ['fullName', 'email', 'password'];
+                  form.validateFields(fieldsToValidate).catch(() => {});
+                }}
+              >
                 <Option value="Admin">Admin</Option>
                 <Option value="TestCreator">TestCreator</Option>
                 <Option value="Examinee">Examinee</Option>
