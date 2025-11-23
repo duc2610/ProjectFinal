@@ -418,33 +418,31 @@ export default function QuestionCard({
             Câu {question.globalIndex}
           </Title>
           {/* Nút Report - gọn gàng, chỉ icon với tooltip, ở sau text "Câu..." */}
-          {(isIncorrect === undefined || isIncorrect === true) && (
-            <Tooltip title={isReported ? "Đã báo cáo câu hỏi này" : "Báo cáo câu hỏi"}>
-              {isReported ? (
-                <FlagOutlined 
-                  style={{ 
-                    color: "#52c41a", 
-                    fontSize: "18px", 
-                    cursor: "default" 
-                  }} 
-                />
-              ) : (
-                <Button
-                  type="text"
-                  icon={<FlagOutlined />}
-                  size="small"
-                  onClick={handleOpenReportModal}
-                  style={{ 
-                    padding: "0 4px",
-                    height: "auto",
-                    minWidth: "auto",
-                    color: "#666",
-                    fontSize: "18px"
-                  }}
-                />
-              )}
-            </Tooltip>
-          )}
+          <Tooltip title={isReported ? "Đã báo cáo câu hỏi này" : "Báo cáo câu hỏi"}>
+            {isReported ? (
+              <FlagOutlined 
+                style={{ 
+                  color: "#52c41a", 
+                  fontSize: "18px", 
+                  cursor: "default" 
+                }} 
+              />
+            ) : (
+              <Button
+                type="text"
+                icon={<FlagOutlined />}
+                size="small"
+                onClick={handleOpenReportModal}
+                style={{ 
+                  padding: "0 4px",
+                  height: "auto",
+                  minWidth: "auto",
+                  color: "#666",
+                  fontSize: "18px"
+                }}
+              />
+            )}
+          </Tooltip>
         </div>
         <div className={styles.partBadge}>
           {question.partName}

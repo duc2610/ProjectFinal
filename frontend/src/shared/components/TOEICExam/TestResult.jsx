@@ -13,6 +13,7 @@ import {
   Checkbox,
   Alert,
   Select,
+  Tooltip,
 } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -27,7 +28,7 @@ import {
   FlagOutlined,
 } from "@ant-design/icons";
 import { getTestResultDetailLR, startTest } from "../../../services/testExamService";
-import { reportQuestion, getTestResultReports } from "../../../services/questionReportService";
+import { reportQuestion as reportQuestionAPI, getTestResultReports, getMyQuestionReports } from "../../../services/questionReportService";
 import styles from "../../styles/Result.module.css";
 
 const { Title, Text } = Typography;
@@ -152,6 +153,7 @@ export default function ResultScreen() {
   const [retakeTestInfo, setRetakeTestInfo] = useState(null);
   const [practiceCountdown, setPracticeCountdown] = useState(true);
   const [reports, setReports] = useState([]); // Danh sách reports của test result
+  const [reportedQuestionIds, setReportedQuestionIds] = useState(new Set()); // Set các testQuestionId đã report
   const [reportType, setReportType] = useState("IncorrectAnswer");
   const [reportDescription, setReportDescription] = useState("");
   const [reporting, setReporting] = useState(false);
@@ -394,26 +396,21 @@ export default function ResultScreen() {
         loadDetailFromAPI(resultData.testResultId);
       }
       // Nếu chỉ có S&W, không cần load detail từ API L&R
-      
-      // Load danh sách reports
-      loadReports(resultData.testResultId);
+      // Không gọi loadReports ở đây, sẽ gọi sau khi questionRowsBySection có dữ liệu
     }
   }, [resultData, autoSubmit, navigate, loadDetailFromAPI]);
 
-  // Load danh sách reports
-  const loadReports = async (testResultId) => {
-    try {
-      const reportsData = await getTestResultReports(testResultId);
-      setReports(Array.isArray(reportsData) ? reportsData : []);
-    } catch (error) {
-      console.error("Error loading reports:", error);
-      // Không hiển thị error vì đây là tính năng phụ
-    }
-  };
 
   // Kiểm tra xem câu hỏi đã được report chưa
   const isQuestionReported = (testQuestionId) => {
-    return reports.some(report => report.testQuestionId === testQuestionId);
+    return reportedQuestionIds.has(testQuestionId);
+  };
+
+  // Callback khi report thành công
+  const handleReportSuccess = (testQuestionId) => {
+    setReportedQuestionIds(prev => new Set([...prev, testQuestionId]));
+    // Cập nhật reports array
+    setReports(prev => [...prev, { testQuestionId, status: "Pending" }]);
   };
 
   // === XỬ LÝ CÂU HỎI TỪ API DETAIL ===
@@ -437,6 +434,7 @@ export default function ResultScreen() {
 
             const row = {
               key: tq.testQuestionId,
+              testQuestionId: tq.testQuestionId, // Thêm testQuestionId để dùng cho report
               index: globalIndex++,
               partId: qs.partId || part.partId,
               partTitle: part.partName || `Part ${qs.partId || part.partId}`,
@@ -469,6 +467,8 @@ export default function ResultScreen() {
 
               const row = {
                 key: `${tq.testQuestionId}_${idx}`,
+                testQuestionId: tq.testQuestionId, // Thêm testQuestionId để dùng cho report
+                subQuestionIndex: idx, // Lưu subQuestionIndex cho group questions
                 index: globalIndex++,
                 partId: qs.partId || part.partId,
                 partTitle: part.partName || `Part ${qs.partId || part.partId}`,
@@ -504,6 +504,62 @@ export default function ResultScreen() {
     // Nếu chưa có detailData, trả về empty để đợi load từ API
     return { listening: [], reading: [], all: [] };
   }, [detailData]);
+
+  // Load danh sách reports - định nghĩa sau questionRowsBySection
+  const loadReports = useCallback(async (testResultId) => {
+    try {
+      // Lấy tất cả reports của user (bao gồm cả reports từ màn làm bài)
+      const allReportsResponse = await getMyQuestionReports(1, 1000);
+      const allReports = Array.isArray(allReportsResponse?.data) 
+        ? allReportsResponse.data 
+        : (Array.isArray(allReportsResponse) ? allReportsResponse : []);
+      
+      // Lấy danh sách testQuestionId từ test result hiện tại
+      const currentTestQuestionIds = new Set();
+      if (questionRowsBySection && typeof questionRowsBySection === 'object') {
+        const allRows = [
+          ...(questionRowsBySection.listening || []),
+          ...(questionRowsBySection.reading || []),
+          ...(questionRowsBySection.all || [])
+        ];
+        allRows.forEach(row => {
+          if (row && row.testQuestionId) {
+            currentTestQuestionIds.add(row.testQuestionId);
+          }
+        });
+      }
+      
+      // Filter chỉ lấy reports của các câu hỏi trong test result hiện tại
+      const relevantReports = allReports.filter(report => 
+        report.testQuestionId && currentTestQuestionIds.has(report.testQuestionId)
+      );
+      
+      setReports(relevantReports);
+      
+      // Tạo Set các testQuestionId đã report để check nhanh hơn
+      // Merge với state hiện tại để không mất dữ liệu đã cập nhật
+      setReportedQuestionIds(prev => {
+        const newSet = new Set(prev); // Giữ lại các ID đã có
+        relevantReports.forEach(report => {
+          if (report.testQuestionId) {
+            newSet.add(report.testQuestionId);
+          }
+        });
+        return newSet;
+      });
+      console.log("TestResult - Loaded reports:", relevantReports.length, "questions reported out of", allReports.length, "total reports");
+    } catch (error) {
+      console.error("Error loading reports:", error);
+      // Không hiển thị error vì đây là tính năng phụ
+    }
+  }, [questionRowsBySection]);
+
+  // Reload reports khi questionRowsBySection thay đổi (đã có dữ liệu câu hỏi)
+  useEffect(() => {
+    if (resultData?.testResultId && (questionRowsBySection.all.length > 0 || questionRowsBySection.listening.length > 0 || questionRowsBySection.reading.length > 0)) {
+      loadReports(resultData.testResultId);
+    }
+  }, [questionRowsBySection, resultData?.testResultId, loadReports]);
 
   // === LẤY ĐIỂM READING TỪ API - KHÔNG TỰ TÍNH ===
   const getReadingScore = useMemo(() => {
@@ -797,16 +853,36 @@ export default function ResultScreen() {
           >
             Xem
           </Button>
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => {
-              setReportQuestion(row);
-              setReportModalVisible(true);
-            }}
-          >
-            Báo cáo
-          </Button>
+          {/* Nút Báo cáo - luôn hiển thị, nếu đã báo cáo thì hiển thị trạng thái */}
+          {isQuestionReported(row.testQuestionId) ? (
+            <Tooltip title="Đã báo cáo câu hỏi này">
+              <FlagOutlined style={{ color: "#52c41a", fontSize: "16px", marginTop: "4px" }} />
+            </Tooltip>
+          ) : (
+            <Button
+              size="small"
+              icon={<FlagOutlined />}
+              onClick={() => {
+                if (!row.testQuestionId) {
+                  message.error("Không tìm thấy thông tin câu hỏi");
+                  return;
+                }
+                // Kiểm tra xem câu hỏi đã được báo cáo chưa
+                if (isQuestionReported(row.testQuestionId)) {
+                  message.info("Câu hỏi này đã được báo cáo rồi");
+                  return;
+                }
+                setReportQuestion({
+                  testQuestionId: row.testQuestionId,
+                  question: row.question,
+                  content: row.question,
+                });
+                setReportModalVisible(true);
+              }}
+            >
+              Báo cáo
+            </Button>
+          )}
         </div>
       ),
     },
@@ -1260,20 +1336,46 @@ export default function ResultScreen() {
           }
           try {
             setReporting(true);
-            await reportQuestion(reportQuestion.testQuestionId, reportType, reportDescription);
+            const reportedTestQuestionId = reportQuestion.testQuestionId;
+            await reportQuestionAPI(reportQuestion.testQuestionId, reportType, reportDescription);
             message.success("Đã gửi báo cáo thành công");
+            
+            // Cập nhật state ngay lập tức TRƯỚC KHI đóng modal
+            handleReportSuccess(reportedTestQuestionId);
+            
+            // Đóng modal và reset form
             setReportModalVisible(false);
             setReportQuestion(null);
             setReportDescription("");
             setReportType("IncorrectAnswer");
-            // Reload reports
+            
+            // Reload reports sau một chút để đảm bảo server đã xử lý xong
+            // Nhưng state đã được cập nhật rồi nên UI sẽ hiển thị ngay
             if (result?.testResultId) {
-              await loadReports(result.testResultId);
+              setTimeout(async () => {
+                await loadReports(result.testResultId);
+              }, 500);
             }
           } catch (error) {
             console.error("Error reporting question:", error);
             const errorMsg = error?.response?.data?.message || error?.message || "Không thể gửi báo cáo";
-            message.error(errorMsg);
+            // Xử lý lỗi "đã báo cáo rồi" một cách thân thiện hơn
+            if (errorMsg.includes("already reported") || errorMsg.includes("đã báo cáo")) {
+              message.warning("Câu hỏi này đã được báo cáo rồi");
+              // Cập nhật state để hiển thị trạng thái "đã báo cáo"
+              if (reportQuestion?.testQuestionId) {
+                handleReportSuccess(reportQuestion.testQuestionId);
+                if (result?.testResultId) {
+                  await loadReports(result.testResultId);
+                }
+              }
+              setReportModalVisible(false);
+              setReportQuestion(null);
+              setReportDescription("");
+              setReportType("IncorrectAnswer");
+            } else {
+              message.error(errorMsg);
+            }
           } finally {
             setReporting(false);
           }
@@ -1487,36 +1589,39 @@ export default function ResultScreen() {
             </div>
 
             {/* Nút Report - chỉ hiển thị khi câu hỏi làm sai */}
-            {!selectedQuestionDetail.isCorrect && (
-              <div style={{ 
-                marginTop: 16, 
-                padding: 12, 
-                borderTop: "1px solid #e2e8f0",
-                textAlign: "center"
-              }}>
-                {isQuestionReported(selectedQuestionDetail.testQuestionId) ? (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#52c41a" }}>
-                    <FlagOutlined />
-                    <Text type="success" strong>Đã báo cáo câu hỏi này</Text>
-                  </div>
-                ) : (
-                  <Button
-                    icon={<FlagOutlined />}
-                    onClick={() => {
-                      setReportQuestion({
-                        testQuestionId: selectedQuestionDetail.testQuestionId,
-                        question: selectedQuestionDetail.question,
-                        content: selectedQuestionDetail.question,
-                      });
-                      setReportModalVisible(true);
-                    }}
-                    size="middle"
-                  >
-                    Báo cáo câu hỏi
-                  </Button>
-                )}
-              </div>
-            )}
+            <div style={{ 
+              marginTop: 16, 
+              padding: 12, 
+              borderTop: "1px solid #e2e8f0",
+              textAlign: "center"
+            }}>
+              {isQuestionReported(selectedQuestionDetail.testQuestionId) ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#52c41a" }}>
+                  <FlagOutlined />
+                  <Text type="success" strong>Đã báo cáo câu hỏi này</Text>
+                </div>
+              ) : (
+                <Button
+                  icon={<FlagOutlined />}
+                  onClick={() => {
+                    // Kiểm tra xem câu hỏi đã được báo cáo chưa
+                    if (isQuestionReported(selectedQuestionDetail.testQuestionId)) {
+                      message.info("Câu hỏi này đã được báo cáo rồi");
+                      return;
+                    }
+                    setReportQuestion({
+                      testQuestionId: selectedQuestionDetail.testQuestionId,
+                      question: selectedQuestionDetail.question,
+                      content: selectedQuestionDetail.question,
+                    });
+                    setReportModalVisible(true);
+                  }}
+                  size="middle"
+                >
+                  Báo cáo câu hỏi
+                </Button>
+              )}
+            </div>
           </div>
         )}
       </Modal>
