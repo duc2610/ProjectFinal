@@ -29,7 +29,8 @@ export default function PracticeSW() {
         setLoading(true);
         try {
             const response = await getPracticeTests();
-            const testsData = response?.data || (Array.isArray(response) ? response : []);
+            // getPracticeTests đã normalize và trả về array hoặc object có data property
+            const testsData = Array.isArray(response) ? response : (response?.data || []);
             
             if (Array.isArray(testsData) && testsData.length > 0) {
                 // Filter chỉ lấy Practice tests
@@ -39,9 +40,13 @@ export default function PracticeSW() {
                                      test.testType === 2;
                     
                     // Check status: Published = 3 (theo backend enum)
+                    // Check cả status và visibilityStatus vì API có thể trả về status="Graded" và visibilityStatus="Published"
                     const isPublished = test.status === "Published" || 
                                       test.status === 3 || 
-                                      test.status === "3";
+                                      test.status === "3" ||
+                                      test.visibilityStatus === "Published" ||
+                                      test.visibilityStatus === 3 ||
+                                      test.visibilityStatus === "3";
                     
                     return isPractice && isPublished;
                 });
@@ -173,7 +178,6 @@ export default function PracticeSW() {
                                     type="primary"
                                     icon={<PlayCircleOutlined />}
                                     size="middle"
-                                    onClick={() => handleStartTest(test)}
                                     onClick={() => handleStartTest(test)}
                                     className={styles.testStartButton}
                                 >

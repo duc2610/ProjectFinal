@@ -29,7 +29,8 @@ export default function TestList() {
         setLoading(true);
         try {
             const response = await getSimulatorTests();
-            const testsData = response?.data || (Array.isArray(response) ? response : []);
+            // getSimulatorTests đã normalize và trả về array hoặc object có data property
+            const testsData = Array.isArray(response) ? response : (response?.data || []);
             
             if (Array.isArray(testsData) && testsData.length > 0) {
                 const processed = testsData
@@ -39,9 +40,13 @@ export default function TestList() {
                                           test.testType === 1;
                         
                         // Check status: Published = 3 (theo backend enum)
+                        // Check cả status và visibilityStatus vì API có thể trả về status="Graded" và visibilityStatus="Published"
                         const isPublished = test.status === "Published" || 
                                           test.status === 3 || 
-                                          test.status === "3";
+                                          test.status === "3" ||
+                                          test.visibilityStatus === "Published" ||
+                                          test.visibilityStatus === 3 ||
+                                          test.visibilityStatus === "3";
                         
                         return isSimulator && isPublished && test.testSkill !== 0;
                     })
