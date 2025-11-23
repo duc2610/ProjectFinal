@@ -402,7 +402,7 @@ namespace ToeicGenius.Services.Implementations
 					ReviewCount = 1,
 					CorrectCount = dto.IsKnown ? 1 : 0,
 					IncorrectCount = dto.IsKnown ? 0 : 1,
-					Status = dto.IsKnown ? "learning" : "new",
+					Status = dto.IsKnown ? "learned" : "learning",
 					LastReviewedAt = Now,
 					NextReviewAt = CalculateNextReviewDate(1, dto.IsKnown),
 					CreatedAt = Now
@@ -422,11 +422,8 @@ namespace ToeicGenius.Services.Implementations
 				progress.LastReviewedAt = Now;
 				progress.NextReviewAt = CalculateNextReviewDate(progress.ReviewCount, dto.IsKnown);
 
-				// Update status based on performance
-				if (progress.CorrectCount >= 5 && progress.IncorrectCount == 0)
-					progress.Status = "learned";
-				else if (progress.ReviewCount > 0)
-					progress.Status = "learning";
+				// Update status: Đã học = learned, Chưa học = learning
+				progress.Status = dto.IsKnown ? "learned" : "learning";
 
 				progress.UpdatedAt = Now;
 				await _uow.FlashcardProgresses.UpdateAsync(progress);
@@ -454,10 +451,6 @@ namespace ToeicGenius.Services.Implementations
 			var totalIncorrect = progressList.Sum(p => p.IncorrectCount);
 			var newCardsLearned = progressList.Count(p => p.Status == "learning" || p.Status == "learned");
 
-			var accuracyRate = (totalCorrect + totalIncorrect) > 0
-				? (double)totalCorrect / (totalCorrect + totalIncorrect) * 100
-				: 0;
-
 			var response = new StudyStatsResponseDto
 			{
 				SetId = setId,
@@ -465,7 +458,6 @@ namespace ToeicGenius.Services.Implementations
 				CardsKnown = totalCorrect,
 				CardsUnknown = totalIncorrect,
 				NewCardsLearned = newCardsLearned,
-				AccuracyRate = Math.Round(accuracyRate, 2),
 				StudyDuration = TimeSpan.Zero // Frontend sẽ tính dựa trên session time
 			};
 
