@@ -322,16 +322,115 @@ export default function FlashcardLearn() {
     );
   }
 
-  if (flashcards.length === 0) {
+  // Nếu đã hoàn thành, hiển thị màn hình completion
+  if (isCompleted && allFlashcards.length > 0) {
+    return (
+      <div className="quizlet-learn-page">
+        <div style={{ marginBottom: 20 }}>
+          <Button
+            type="default"
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate(`/flashcard/${setId}`)}
+            size="large"
+          >
+            Quay lại
+          </Button>
+        </div>
+        
+        <div className="quizlet-learn-container">
+          <div className="quizlet-learn-stats">
+            <div className="quizlet-stat-item">
+              <div className="quizlet-stat-label">Đã học</div>
+              <div className="quizlet-stat-value learned">{learnedCount}</div>
+            </div>
+            <div className="quizlet-stat-item">
+              <div className="quizlet-stat-label">Chưa học</div>
+              <div className="quizlet-stat-value not-learned">
+                {newCount + learningCount}
+              </div>
+            </div>
+            {learningCount > 0 && (
+              <div className="quizlet-stat-item">
+                <div className="quizlet-stat-label">Đang học</div>
+                <div className="quizlet-stat-value" style={{ color: "#1890ff" }}>
+                  {learningCount}
+                </div>
+              </div>
+            )}
+            {studyStats && (
+              <div className="quizlet-stat-item">
+                <div className="quizlet-stat-label">Đã ôn tập</div>
+                <div className="quizlet-stat-value">{studyStats.totalCardsStudied || 0}</div>
+              </div>
+            )}
+          </div>
+
+          <div className="quizlet-progress-container">
+            <Progress
+              percent={progress}
+              showInfo={false}
+              strokeColor="#52c41a"
+              className="quizlet-progress"
+            />
+            <div className="quizlet-progress-text">
+              <span style={{ color: "#52c41a", fontWeight: 600 }}>
+                Hoàn thành! Đã học: {learnedCount} / {totalCards}
+              </span>
+            </div>
+          </div>
+
+          <div className="quizlet-completion-screen">
+            <div className="quizlet-completion-icon">
+              <CheckOutlined />
+            </div>
+            <h2 className="quizlet-completion-title">Hoàn thành!</h2>
+            <p className="quizlet-completion-text">
+              Bạn đã học xong {learnedCount} / {totalCards} thẻ
+            </p>
+            {studyStats && (
+              <div style={{ marginTop: 16, fontSize: 14, color: "#666" }}>
+                <p>Tổng số thẻ đã ôn tập: {studyStats.totalCardsStudied || 0}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="quizlet-completion-actions">
+            <Button
+              type="default"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate(`/flashcard/${setId}`)}
+              className="quizlet-completion-btn"
+              size="large"
+            >
+              Quay trở lại
+            </Button>
+            <Button
+              type="primary"
+              icon={<RedoOutlined />}
+              onClick={handleLearnAgain}
+              className="quizlet-completion-btn quizlet-learn-again-btn"
+              size="large"
+            >
+              Học lại
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Nếu không có flashcard nào
+  if (flashcards.length === 0 && !isCompleted) {
     return (
       <div className="quizlet-learn-page">
         <div style={{ textAlign: "center", padding: "100px 0" }}>
           <Empty description="Không có thẻ flashcard nào" />
           <Button
-            type="primary"
+            type="default"
             icon={<ArrowLeftOutlined />}
             onClick={() => navigate(`/flashcard/${setId}`)}
             style={{ marginTop: 20 }}
+            size="large"
           >
             Quay trở lại
           </Button>
@@ -375,16 +474,10 @@ export default function FlashcardLearn() {
             </div>
           )}
           {studyStats && (
-            <>
-              <div className="quizlet-stat-item">
-                <div className="quizlet-stat-label">Đã ôn tập</div>
-                <div className="quizlet-stat-value">{studyStats.totalCardsStudied || 0}</div>
-              </div>
-              <div className="quizlet-stat-item">
-                <div className="quizlet-stat-label">Tỷ lệ đúng</div>
-                <div className="quizlet-stat-value">{studyStats.accuracyRate?.toFixed(1) || 0}%</div>
-              </div>
-            </>
+            <div className="quizlet-stat-item">
+              <div className="quizlet-stat-label">Đã ôn tập</div>
+              <div className="quizlet-stat-value">{studyStats.totalCardsStudied || 0}</div>
+            </div>
           )}
         </div>
 
@@ -497,7 +590,6 @@ export default function FlashcardLearn() {
             {studyStats && (
               <div style={{ marginTop: 16, fontSize: 14, color: "#666" }}>
                 <p>Tổng số thẻ đã ôn tập: {studyStats.totalCardsStudied || 0}</p>
-                <p>Tỷ lệ trả lời đúng: {studyStats.accuracyRate?.toFixed(1) || 0}%</p>
               </div>
             )}
           </div>
