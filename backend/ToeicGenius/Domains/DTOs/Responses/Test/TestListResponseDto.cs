@@ -1,4 +1,5 @@
-﻿using ToeicGenius.Domains.Enums;
+﻿using System.Text.Json.Serialization;
+using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.DTOs.Responses.Test
 {
@@ -10,9 +11,14 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 		public string? Title { get; set; }
 		public int QuestionQuantity { get; set; }
 		public int Duration { get; set; }
-		public bool IsSelectTime { get; set; }
-        public TestResultStatus Status { get; set; }
-        public TestCreationStatus CreationStatus { get; set; }
+
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		public bool? IsSelectTime { get; set; }
+
+		[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+		public TestResultStatus? Status { get; set; }
+
+		public TestCreationStatus CreationStatus { get; set; }
 		public TestVisibilityStatus VisibilityStatus { get; set; }
 		public int Version { get; set; }
 		public int? ParentTestId { get; set; }
