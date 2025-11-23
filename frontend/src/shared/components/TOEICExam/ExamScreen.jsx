@@ -6,6 +6,7 @@ import QuestionNavigator from "./QuestionNavigator";
 import QuestionCard from "./QuestionCard";
 import { submitTest, submitAssessmentBulk, saveProgress, startTest } from "../../../services/testExamService";
 import { uploadFile } from "../../../services/filesService";
+import { getMyQuestionReports } from "../../../services/questionReportService";
 import { useNavigate } from "react-router-dom";
 import { SaveOutlined } from "@ant-design/icons";
 
@@ -76,6 +77,7 @@ export default function ExamScreen() {
   const [offlineAnswers, setOfflineAnswers] = useState(null);
   const [offlineTimestamp, setOfflineTimestamp] = useState(null);
   const [showSaveInfoAlert, setShowSaveInfoAlert] = useState(true);
+  const [reportedQuestionIds, setReportedQuestionIds] = useState(new Set()); // Set các testQuestionId đã report
   const timerRef = useRef(null);
   const isSubmittingRef = useRef(false);
   const startTimestampRef = useRef(safeStartTimestamp);
@@ -203,6 +205,43 @@ export default function ExamScreen() {
     
     loadAnswersFromBackend();
   }, []); // Chỉ chạy một lần khi component mount
+
+  // Load danh sách reports để biết câu hỏi nào đã được report
+  useEffect(() => {
+    const loadReports = async () => {
+      try {
+        // Load tất cả reports (có thể cần pagination nếu có nhiều)
+        const response = await getMyQuestionReports(1, 1000); // Load nhiều để lấy hết
+        const reportsData = response?.data || [];
+        
+        // Tạo Set các testQuestionId đã report
+        const reportedIds = new Set();
+        reportsData.forEach(report => {
+          if (report.testQuestionId) {
+            reportedIds.add(report.testQuestionId);
+          }
+        });
+        
+        setReportedQuestionIds(reportedIds);
+        console.log("ExamScreen - Loaded reports:", reportedIds.size, "questions reported");
+      } catch (error) {
+        console.error("Error loading reports:", error);
+        // Không hiển thị error vì đây là tính năng phụ
+      }
+    };
+    
+    loadReports();
+  }, []);
+
+  // Function để check xem câu hỏi đã report chưa
+  const isQuestionReported = (testQuestionId) => {
+    return reportedQuestionIds.has(testQuestionId);
+  };
+
+  // Callback khi report thành công
+  const handleReportSuccess = (testQuestionId) => {
+    setReportedQuestionIds(prev => new Set([...prev, testQuestionId]));
+  };
 
   useEffect(() => {
     const handlePopState = () => {
@@ -1012,6 +1051,8 @@ export default function ExamScreen() {
               handleSubmit={() => handleSubmit(false)}
               isSubmitting={isSubmitting}
               globalAudioUrl={rawTestData.globalAudioUrl}
+              isReported={questions[currentIndex] ? isQuestionReported(questions[currentIndex].testQuestionId) : false}
+              onReportSuccess={handleReportSuccess}
             />
           </div>
         </div>

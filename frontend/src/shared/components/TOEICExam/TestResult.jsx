@@ -12,6 +12,7 @@ import {
   Spin,
   Checkbox,
   Alert,
+  Select,
 } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -23,8 +24,10 @@ import {
   FileTextOutlined,
   CustomerServiceOutlined,
   LoadingOutlined,
+  FlagOutlined,
 } from "@ant-design/icons";
 import { getTestResultDetailLR, startTest } from "../../../services/testExamService";
+import { reportQuestion, getTestResultReports } from "../../../services/questionReportService";
 import styles from "../../styles/Result.module.css";
 
 const { Title, Text } = Typography;
@@ -148,6 +151,10 @@ export default function ResultScreen() {
   const [retakeConfirmLoading, setRetakeConfirmLoading] = useState(false);
   const [retakeTestInfo, setRetakeTestInfo] = useState(null);
   const [practiceCountdown, setPracticeCountdown] = useState(true);
+  const [reports, setReports] = useState([]); // Danh sách reports của test result
+  const [reportType, setReportType] = useState("IncorrectAnswer");
+  const [reportDescription, setReportDescription] = useState("");
+  const [reporting, setReporting] = useState(false);
 
   // Hàm xử lý quay lại - quay về trang chủ hoặc test-list
   const handleGoBack = () => {
@@ -387,8 +394,27 @@ export default function ResultScreen() {
         loadDetailFromAPI(resultData.testResultId);
       }
       // Nếu chỉ có S&W, không cần load detail từ API L&R
+      
+      // Load danh sách reports
+      loadReports(resultData.testResultId);
     }
   }, [resultData, autoSubmit, navigate, loadDetailFromAPI]);
+
+  // Load danh sách reports
+  const loadReports = async (testResultId) => {
+    try {
+      const reportsData = await getTestResultReports(testResultId);
+      setReports(Array.isArray(reportsData) ? reportsData : []);
+    } catch (error) {
+      console.error("Error loading reports:", error);
+      // Không hiển thị error vì đây là tính năng phụ
+    }
+  };
+
+  // Kiểm tra xem câu hỏi đã được report chưa
+  const isQuestionReported = (testQuestionId) => {
+    return reports.some(report => report.testQuestionId === testQuestionId);
+  };
 
   // === XỬ LÝ CÂU HỎI TỪ API DETAIL ===
   const processQuestionsFromDetail = (detailData) => {
@@ -1223,24 +1249,87 @@ export default function ResultScreen() {
       <Modal
         title="Báo cáo câu hỏi"
         open={reportModalVisible}
-        onOk={handleReportSubmit}
+        onOk={async () => {
+          if (!reportDescription.trim()) {
+            message.warning("Vui lòng nhập mô tả chi tiết");
+            return;
+          }
+          if (!reportQuestion?.testQuestionId) {
+            message.error("Không tìm thấy thông tin câu hỏi");
+            return;
+          }
+          try {
+            setReporting(true);
+            await reportQuestion(reportQuestion.testQuestionId, reportType, reportDescription);
+            message.success("Đã gửi báo cáo thành công");
+            setReportModalVisible(false);
+            setReportQuestion(null);
+            setReportDescription("");
+            setReportType("IncorrectAnswer");
+            // Reload reports
+            if (result?.testResultId) {
+              await loadReports(result.testResultId);
+            }
+          } catch (error) {
+            console.error("Error reporting question:", error);
+            const errorMsg = error?.response?.data?.message || error?.message || "Không thể gửi báo cáo";
+            message.error(errorMsg);
+          } finally {
+            setReporting(false);
+          }
+        }}
         onCancel={() => {
           setReportModalVisible(false);
           setReportQuestion(null);
-          setReportText("");
+          setReportDescription("");
+          setReportType("IncorrectAnswer");
         }}
         okText="Gửi báo cáo"
         cancelText="Hủy"
+        confirmLoading={reporting}
+        width={600}
       >
-        <p>
-          <strong>Câu hỏi:</strong> {reportQuestion?.question}
-        </p>
-        <Input.TextArea
-          rows={4}
-          value={reportText}
-          onChange={(e) => setReportText(e.target.value)}
-          placeholder="Mô tả lỗi hoặc góp ý về câu hỏi này..."
-        />
+        {reportQuestion && (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ display: "block", marginBottom: 8 }}>
+                Câu hỏi:
+              </Text>
+              <Text>{reportQuestion.question || reportQuestion.content || "—"}</Text>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <Text strong style={{ display: "block", marginBottom: 8 }}>
+                Loại báo cáo:
+              </Text>
+              <Select
+                value={reportType}
+                onChange={setReportType}
+                style={{ width: "100%" }}
+                size="large"
+              >
+                <Select.Option value="IncorrectAnswer">Đáp án sai</Select.Option>
+                <Select.Option value="Typo">Lỗi chính tả</Select.Option>
+                <Select.Option value="AudioIssue">Vấn đề về âm thanh</Select.Option>
+                <Select.Option value="ImageIssue">Vấn đề về hình ảnh</Select.Option>
+                <Select.Option value="Unclear">Câu hỏi không rõ ràng</Select.Option>
+                <Select.Option value="Other">Khác</Select.Option>
+              </Select>
+            </div>
+            <div>
+              <Text strong style={{ display: "block", marginBottom: 8 }}>
+                Mô tả chi tiết:
+              </Text>
+              <Input.TextArea
+                rows={4}
+                value={reportDescription}
+                onChange={(e) => setReportDescription(e.target.value)}
+                placeholder="Vui lòng mô tả chi tiết vấn đề bạn gặp phải..."
+                maxLength={500}
+                showCount
+              />
+            </div>
+          </>
+        )}
       </Modal>
 
       {/* MODAL CHI TIẾT CÂU HỎI */}
@@ -1396,6 +1485,38 @@ export default function ResultScreen() {
                 </Text>
               </div>
             </div>
+
+            {/* Nút Report - chỉ hiển thị khi câu hỏi làm sai */}
+            {!selectedQuestionDetail.isCorrect && (
+              <div style={{ 
+                marginTop: 16, 
+                padding: 12, 
+                borderTop: "1px solid #e2e8f0",
+                textAlign: "center"
+              }}>
+                {isQuestionReported(selectedQuestionDetail.testQuestionId) ? (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#52c41a" }}>
+                    <FlagOutlined />
+                    <Text type="success" strong>Đã báo cáo câu hỏi này</Text>
+                  </div>
+                ) : (
+                  <Button
+                    icon={<FlagOutlined />}
+                    onClick={() => {
+                      setReportQuestion({
+                        testQuestionId: selectedQuestionDetail.testQuestionId,
+                        question: selectedQuestionDetail.question,
+                        content: selectedQuestionDetail.question,
+                      });
+                      setReportModalVisible(true);
+                    }}
+                    size="middle"
+                  >
+                    Báo cáo câu hỏi
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Modal>

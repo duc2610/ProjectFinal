@@ -1,8 +1,9 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Card, Typography, Radio, Button, Image, Progress, Input, message } from "antd";
-import { AudioOutlined, StopOutlined, PlayCircleOutlined } from "@ant-design/icons";
+import { Card, Typography, Radio, Button, Image, Progress, Input, message, Modal, Select, Tooltip } from "antd";
+import { AudioOutlined, StopOutlined, PlayCircleOutlined, FlagOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import { uploadFile } from "../../../services/filesService";
+import { reportQuestion } from "../../../services/questionReportService";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -113,6 +114,9 @@ export default function QuestionCard({
   handleSubmit,
   isSubmitting = false,
   globalAudioUrl,
+  isIncorrect = undefined, // Prop để xác định câu hỏi làm sai (undefined = trong quá trình làm bài, true = làm sai ở result, false = làm đúng ở result)
+  isReported = false, // Prop để xác định câu hỏi đã được report
+  onReportSuccess, // Callback khi report thành công
 }) {
   const audioRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -127,6 +131,10 @@ export default function QuestionCard({
   const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportType, setReportType] = useState("IncorrectAnswer");
+  const [reportDescription, setReportDescription] = useState("");
+  const [reporting, setReporting] = useState(false);
 
   const isListeningPart = question.partId >= 1 && question.partId <= 4;
   const isWritingPart = question.partId >= 8 && question.partId <= 10;
@@ -341,6 +349,58 @@ export default function QuestionCard({
     }
   };
 
+  // === REPORT QUESTION ===
+  const handleOpenReportModal = () => {
+    // Kiểm tra xem đã report chưa
+    if (isReported) {
+      message.info("Bạn đã báo cáo câu hỏi này rồi");
+      return;
+    }
+    setReportModalVisible(true);
+    setReportType("IncorrectAnswer");
+    setReportDescription("");
+  };
+
+  const handleCloseReportModal = () => {
+    setReportModalVisible(false);
+    setReportType("IncorrectAnswer");
+    setReportDescription("");
+  };
+
+  const handleSubmitReport = async () => {
+    if (!reportDescription.trim()) {
+      message.warning("Vui lòng nhập mô tả chi tiết");
+      return;
+    }
+
+    try {
+      setReporting(true);
+      await reportQuestion(question.testQuestionId, reportType, reportDescription);
+      message.success("Đã gửi báo cáo thành công");
+      handleCloseReportModal();
+      if (onReportSuccess) {
+        onReportSuccess(question.testQuestionId);
+      }
+    } catch (error) {
+      console.error("Error reporting question:", error);
+      let errorMsg = error?.response?.data?.message || error?.message || "Không thể gửi báo cáo";
+      
+      // Chuyển đổi thông báo lỗi tiếng Anh sang tiếng Việt
+      if (errorMsg.toLowerCase().includes("already reported") || 
+          errorMsg.toLowerCase().includes("đã báo cáo")) {
+        errorMsg = "Bạn đã báo cáo câu hỏi này rồi";
+        // Cập nhật trạng thái isReported nếu có callback
+        if (onReportSuccess) {
+          onReportSuccess(question.testQuestionId);
+        }
+      }
+      
+      message.error(errorMsg);
+    } finally {
+      setReporting(false);
+    }
+  };
+
   return (
     <Card
       style={{
@@ -353,9 +413,39 @@ export default function QuestionCard({
       bodyStyle={{ padding: "32px" }}
     >
       <div className={styles.questionHeader}>
-        <Title level={4} style={{ margin: 0, color: "#2d3748", fontSize: "24px" }}>
-          Câu {question.globalIndex}
-        </Title>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Title level={4} style={{ margin: 0, color: "#2d3748", fontSize: "24px" }}>
+            Câu {question.globalIndex}
+          </Title>
+          {/* Nút Report - gọn gàng, chỉ icon với tooltip, ở sau text "Câu..." */}
+          {(isIncorrect === undefined || isIncorrect === true) && (
+            <Tooltip title={isReported ? "Đã báo cáo câu hỏi này" : "Báo cáo câu hỏi"}>
+              {isReported ? (
+                <FlagOutlined 
+                  style={{ 
+                    color: "#52c41a", 
+                    fontSize: "18px", 
+                    cursor: "default" 
+                  }} 
+                />
+              ) : (
+                <Button
+                  type="text"
+                  icon={<FlagOutlined />}
+                  size="small"
+                  onClick={handleOpenReportModal}
+                  style={{ 
+                    padding: "0 4px",
+                    height: "auto",
+                    minWidth: "auto",
+                    color: "#666",
+                    fontSize: "18px"
+                  }}
+                />
+              )}
+            </Tooltip>
+          )}
+        </div>
         <div className={styles.partBadge}>
           {question.partName}
           {question.partDescription && ` - ${question.partDescription}`}
@@ -815,6 +905,53 @@ export default function QuestionCard({
           Nộp bài
         </Button>
       </div>
+
+      {/* Modal Report Question */}
+      <Modal
+        title="Báo cáo câu hỏi"
+        open={reportModalVisible}
+        onOk={handleSubmitReport}
+        onCancel={handleCloseReportModal}
+        okText="Gửi báo cáo"
+        cancelText="Hủy"
+        confirmLoading={reporting}
+        width={600}
+        style={{ paddingBottom: 0 }}
+        bodyStyle={{ paddingBottom: 24 }}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Loại báo cáo:
+          </Text>
+          <Select
+            value={reportType}
+            onChange={setReportType}
+            style={{ width: "100%" }}
+            size="large"
+          >
+            <Select.Option value="IncorrectAnswer">Đáp án sai</Select.Option>
+            <Select.Option value="Typo">Lỗi chính tả</Select.Option>
+            <Select.Option value="AudioIssue">Vấn đề về âm thanh</Select.Option>
+            <Select.Option value="ImageIssue">Vấn đề về hình ảnh</Select.Option>
+            <Select.Option value="Unclear">Câu hỏi không rõ ràng</Select.Option>
+            <Select.Option value="Other">Khác</Select.Option>
+          </Select>
+        </div>
+        <div style={{ marginBottom: 0 }}>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Mô tả chi tiết:
+          </Text>
+          <TextArea
+            rows={4}
+            placeholder="Vui lòng mô tả chi tiết vấn đề bạn gặp phải..."
+            value={reportDescription}
+            onChange={(e) => setReportDescription(e.target.value)}
+            maxLength={500}
+            showCount
+            style={{ marginBottom: 0 }}
+          />
+        </div>
+      </Modal>
     </Card>
   );
 }
