@@ -190,6 +190,11 @@ export function PersonalTab({ user }) {
 export function TestHistoryTab() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -218,12 +223,24 @@ export function TestHistoryTab() {
       }));
       
       setHistory(normalizedHistory);
+      setPagination(prev => ({
+        ...prev,
+        total: normalizedHistory.length,
+      }));
     } catch (error) {
       console.error("Error fetching test history:", error);
       message.error("Không thể tải lịch sử thi");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTableChange = (newPagination) => {
+    setPagination({
+      current: newPagination.current,
+      pageSize: newPagination.pageSize,
+      total: pagination.total,
+    });
   };
 
   const formatDate = (dateString) => {
@@ -562,45 +579,36 @@ export function TestHistoryTab() {
     return "Simulator";
   };
 
+  // Kiểm tra xem có bài nào đang làm không
+  const hasInProgressTest = history.some(record => {
+    const status = record.testStatus;
+    return status === "InProgress" || status === "inProgress" || status === 0 || status === "0";
+  });
+
   const columns = [
     {
       title: "Tiêu đề",
       dataIndex: "title",
       key: "title",
       ellipsis: true,
-      width: 250,
+      width: 200,
     },
     {
-      title: "Loại",
-      dataIndex: "testType",
-      key: "testType",
-      width: 120,
-      render: (type) => (
-        <Tag color={getTestTypeColor(type)}>{getTestTypeLabel(type)}</Tag>
-      ),
-    },
-    {
-      title: "Kỹ năng",
-      dataIndex: "testSkill",
-      key: "testSkill",
-      width: 150,
-      render: (skill) => (
-        <Tag color={getSkillColor(skill)}>{getSkillLabel(skill)}</Tag>
-      ),
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "testStatus",
-      key: "testStatus",
-      width: 130,
-      render: (status) => (
-        <Tag color={getStatusColor(status)}>{getStatusLabel(status)}</Tag>
+      title: "Loại / Kỹ năng / Trạng thái",
+      key: "typeSkillStatus",
+      width: 160,
+      render: (_, record) => (
+        <Space direction="vertical" size="small">
+          <Tag color={getTestTypeColor(record.testType)}>{getTestTypeLabel(record.testType)}</Tag>
+          <Tag color={getSkillColor(record.testSkill)}>{getSkillLabel(record.testSkill)}</Tag>
+          <Tag color={getStatusColor(record.testStatus)}>{getStatusLabel(record.testStatus)}</Tag>
+        </Space>
       ),
     },
     {
       title: "Kết quả",
       key: "result",
-      width: 150,
+      width: 130,
       render: (_, record) => {
         // Kiểm tra xem có phải Speaking hoặc Writing không (không có khái niệm "câu đúng")
         const testSkill = record.testSkill || "";
@@ -639,21 +647,21 @@ export function TestHistoryTab() {
       title: "Thời lượng",
       dataIndex: "duration",
       key: "duration",
-      width: 120,
+      width: 100,
       render: (duration) => `${duration} phút`,
     },
     {
       title: "Ngày làm",
       dataIndex: "createdAt",
       key: "createdAt",
-      width: 180,
+      width: 150,
       render: (date) => formatDate(date),
     },
-    {
+    // Chỉ hiển thị cột "Hành động" nếu có bài đang làm
+    ...(hasInProgressTest ? [{
       title: "Hành động",
       key: "action",
-      width: 150,
-      fixed: "right",
+      width: 120,
       render: (_, record) => {
         const isInProgress = record.testStatus === "InProgress" || 
                              record.testStatus === "inProgress" ||
@@ -674,7 +682,7 @@ export function TestHistoryTab() {
         }
         return null;
       },
-    },
+    }] : []),
   ];
 
   return (
@@ -694,12 +702,14 @@ export function TestHistoryTab() {
               rowKey={(record, index) => `${record.testId}-${record.createdAt}-${index}`}
               loading={loading}
               pagination={{
-                pageSize: 10,
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: pagination.total,
                 showSizeChanger: true,
                 showTotal: (total) => `Tổng ${total} bài thi`,
                 pageSizeOptions: ["10", "20", "50"],
               }}
-              scroll={{ x: 1200 }}
+              onChange={handleTableChange}
             />
           )}
         </Col>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Layout, Button, Modal, Typography, message, Spin, Alert } from "antd";
 import { MenuOutlined, LoadingOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
@@ -528,7 +528,7 @@ export default function ExamScreen() {
   };
 
   // Hàm lưu tiến độ làm bài (cho tất cả loại bài thi)
-  const handleSaveProgress = async () => {
+  const handleSaveProgress = useCallback(async () => {
     const testResultId = rawTestData.testResultId;
     if (!testResultId) {
       message.warning("Không tìm thấy testResultId");
@@ -577,7 +577,7 @@ export default function ExamScreen() {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [answers, rawTestData.testResultId]);
 
   // Map partId sang partType cho S&W
   const getPartType = (partId) => {
@@ -872,47 +872,115 @@ export default function ExamScreen() {
 
   // Auto-save tiến độ mỗi 5 phút (cho tất cả loại bài thi)
   useEffect(() => {
-    if (!rawTestData.testResultId) return;
+    if (!rawTestData.testResultId) {
+      console.log("ExamScreen - Auto-save: No testResultId, skipping");
+      return;
+    }
 
-    // Chỉ auto-save nếu có ít nhất 1 câu trả lời và có mạng
-    const hasAnswers = questions.some(q => {
-      const answerKey = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
-        ? `${q.testQuestionId}_${q.subQuestionIndex}`
-        : q.testQuestionId;
-      const answerValue = answers[answerKey];
-      
-      // Kiểm tra có answer hợp lệ
-      if (!answerValue) return false;
-      
-      // L&R: có chosenOptionLabel
-      if (q.partId >= 1 && q.partId <= 7) return true;
-      
-      // Writing: có answerText (string)
-      if (q.partId >= 8 && q.partId <= 10 && typeof answerValue === "string") return true;
-      
-      // Speaking: có answerAudioUrl (URL string)
-      if (q.partId >= 11 && q.partId <= 15 && typeof answerValue === "string" && answerValue.startsWith("http")) return true;
+    // Clear interval cũ nếu có
+    if (autoSaveIntervalRef.current) {
+      clearInterval(autoSaveIntervalRef.current);
+      autoSaveIntervalRef.current = null;
+    }
+
+    // Hàm kiểm tra có câu trả lời hợp lệ không
+    const checkHasAnswers = () => {
+      if (!answers || Object.keys(answers).length === 0) {
+        return false;
+      }
+
+      // Kiểm tra xem có ít nhất 1 câu trả lời hợp lệ
+      for (const [answerKey, answerValue] of Object.entries(answers)) {
+        if (!answerValue) continue;
+
+        // Parse answerKey để tìm question
+        let testQuestionId, subQuestionIndex;
+        if (answerKey.includes('_')) {
+          const parts = answerKey.split('_');
+          testQuestionId = parseInt(parts[0]);
+          subQuestionIndex = parseInt(parts[1]);
+        } else {
+          testQuestionId = parseInt(answerKey);
+          subQuestionIndex = 0;
+        }
+
+        // Tìm question tương ứng
+        const q = questions.find((q) => 
+          q.testQuestionId === testQuestionId && 
+          (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === 0 && !q.subQuestionIndex))
+        );
+        
+        if (!q) continue;
+
+        // L&R: có chosenOptionLabel (bất kỳ giá trị nào)
+        if (q.partId >= 1 && q.partId <= 7) {
+          return true;
+        }
+        
+        // Writing: có answerText (string không rỗng)
+        if (q.partId >= 8 && q.partId <= 10 && typeof answerValue === "string" && answerValue.trim() !== "") {
+          return true;
+        }
+        
+        // Speaking: có answerAudioUrl (URL string) hoặc Blob
+        if (q.partId >= 11 && q.partId <= 15) {
+          if (typeof answerValue === "string" && answerValue.startsWith("http")) {
+            return true;
+          }
+          if (answerValue instanceof Blob) {
+            return true;
+          }
+        }
+      }
       
       return false;
-    });
+    };
 
-    if (!hasAnswers || !navigator.onLine) return;
+    // Kiểm tra lần đầu
+    const hasAnswers = checkHasAnswers();
+    if (!hasAnswers) {
+      console.log("ExamScreen - Auto-save: No valid answers yet, will check again when answers change");
+      return;
+    }
+
+    if (!navigator.onLine) {
+      console.log("ExamScreen - Auto-save: Offline, will start when online");
+      return;
+    }
+
+    console.log("ExamScreen - Auto-save: Starting auto-save interval (every 5 minutes)");
 
     // Auto-save mỗi 5 phút (300000 ms)
     autoSaveIntervalRef.current = setInterval(() => {
-      if (!isSubmittingRef.current && navigator.onLine) {
-        handleSaveProgress();
+      // Kiểm tra lại trước mỗi lần save
+      const stillHasAnswers = checkHasAnswers();
+      if (!stillHasAnswers) {
+        console.log("ExamScreen - Auto-save: No valid answers, skipping this save");
+        return;
       }
+
+      if (!navigator.onLine) {
+        console.log("ExamScreen - Auto-save: Offline, skipping this save");
+        return;
+      }
+
+      if (isSubmittingRef.current) {
+        console.log("ExamScreen - Auto-save: Currently submitting, skipping this save");
+        return;
+      }
+
+      console.log("ExamScreen - Auto-save: Triggering auto-save...");
+      handleSaveProgress();
     }, 5 * 60 * 1000); // 5 phút
 
     return () => {
       if (autoSaveIntervalRef.current) {
+        console.log("ExamScreen - Auto-save: Cleaning up interval");
         clearInterval(autoSaveIntervalRef.current);
         autoSaveIntervalRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawTestData.testResultId]);
+  }, [rawTestData.testResultId, answers, questions, handleSaveProgress]);
 
   const formatTime = (value) => {
     const safeSeconds = Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
