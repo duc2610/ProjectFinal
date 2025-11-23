@@ -149,9 +149,13 @@ namespace ToeicGenius.Repositories.Implementations
 									TestSkill = t.Test.TestSkill,
 									Title = t.Test.Title,
 									QuestionQuantity = t.Test.TotalQuestion,
-									IsSelectTime = t.InProgressResult != null ? (bool?)t.InProgressResult.IsSelectTime : null,
 									Duration = t.Test.Duration,
-									Status = t.InProgressResult != null ? (TestResultStatus?)TestResultStatus.InProgress : null,
+									ResultProgress = t.InProgressResult != null ? new ResultProgressDto
+									{
+										IsSelectTime = t.InProgressResult.IsSelectTime,
+										Status = TestResultStatus.InProgress,
+										CreatedAt = t.InProgressResult.CreatedAt
+									} : null,
 									CreationStatus = t.Test.CreationStatus,
 									VisibilityStatus = t.Test.VisibilityStatus,
 									CreatedAt = t.Test.CreatedAt,
@@ -161,7 +165,7 @@ namespace ToeicGenius.Repositories.Implementations
 			}
 			else
 			{
-				// Guest user - no progress status, fields are null (will be hidden in JSON)
+				// Guest user - no progress status, ResultProgress is null (will be hidden in JSON)
 				var result = await query
 								.Select(t => new TestListResponseDto
 								{
@@ -170,9 +174,8 @@ namespace ToeicGenius.Repositories.Implementations
 									TestSkill = t.TestSkill,
 									Title = t.Title,
 									QuestionQuantity = t.TotalQuestion,
-									IsSelectTime = null,
 									Duration = t.Duration,
-									Status = null,
+									ResultProgress = null,
 									CreationStatus = t.CreationStatus,
 									VisibilityStatus = t.VisibilityStatus,
 									CreatedAt = t.CreatedAt,
