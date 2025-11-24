@@ -19,9 +19,22 @@ namespace ToeicGenius.Domains.Entities
 		public QuestionSourceType SourceType { get; set; } // Manual or FromBank
 		public bool IsQuestionGroup { get; set; } = false;
 
+		// Link to original Question/QuestionGroup in bank (nullable for manual questions)
+		public int? SourceQuestionId { get; set; }
+		public int? SourceQuestionGroupId { get; set; }
+
+		// Legacy: Old format - single snapshot (for backward compatibility)
 		[Required]
 		public string SnapshotJson { get; set; } = string.Empty;
-		public int Version { get; set; } = 1;
+
+		// New format: Version history - JSON array of all question versions
+		// Format: QuestionVersionHistory (contains list of versions)
+		[Column(TypeName = "nvarchar(max)")]
+		public string? SnapshotVersions { get; set; }
+
+		// Current version number (for quick access, used with SnapshotVersions)
+		public int CurrentVersion { get; set; } = 1;
+
 		public CommonStatus Status { get; set; } = CommonStatus.Active;
 		public DateTime CreatedAt { get; set; }
 		public DateTime? UpdatedAt { get; set; }

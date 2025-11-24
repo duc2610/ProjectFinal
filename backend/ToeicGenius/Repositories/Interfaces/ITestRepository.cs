@@ -14,7 +14,7 @@ namespace ToeicGenius.Repositories.Interfaces
 		Task<int> GetNextVersionAsync(int parentTestId);
 		Task<int> GetTotalQuestionAsync(int testId);
 		Task<List<TestHistoryDto>> GetTestHistoryAsync(Guid userId);
-		Task<List<TestListResponseDto>> GetTestByType(TestType testType);
+		Task<List<TestListResponseDto>> GetTestByType(TestType testType, Guid? userId = null);
 	}
 }
 

@@ -39,5 +39,10 @@ namespace ToeicGenius.Repositories.Interfaces
 		/// Used by background service to auto-submit expired tests
 		/// </summary>
 		Task<List<TestResult>> GetExpiredInProgressTestsAsync();
+
+		/// <summary>
+		/// Get TestResult with Test and SkillScores included
+		/// </summary>
+		Task<TestResult?> GetTestResultWithDetailsAsync(int testResultId);
 	}
 }

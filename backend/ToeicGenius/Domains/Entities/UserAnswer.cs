@@ -25,6 +25,9 @@ namespace ToeicGenius.Domains.Entities
 		public string? ChosenOptionLabel { get; set; }
 		public int? SubQuestionIndex { get; set; }
 
+		// Version of the question when user answered (for version history)
+		public int QuestionVersion { get; set; } = 1;
+
 		// Chấm điểm (nếu có)
 		public bool? IsCorrect { get; set; }
 

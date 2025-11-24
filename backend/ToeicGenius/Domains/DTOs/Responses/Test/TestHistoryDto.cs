@@ -12,6 +12,7 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 
 		public string TestStatus { get; set; } 
 
+		public bool IsSelectTime { get; set; }
         public TestType TestType { get; set; } // Mode: Simulator, Practice
 		public TestSkill TestSkill { get; set; } = TestSkill.LR; // Skill: L&R, Writing, Speaking, L&R
 		public string Title { get; set; }

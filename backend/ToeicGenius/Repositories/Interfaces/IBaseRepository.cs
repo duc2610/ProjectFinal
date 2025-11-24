@@ -1,4 +1,5 @@
-﻿using ToeicGenius.Domains.Entities;
+﻿using System.Linq.Expressions;
+using ToeicGenius.Domains.Entities;
 
 namespace ToeicGenius.Repositories.Interfaces
 {
@@ -16,5 +17,9 @@ namespace ToeicGenius.Repositories.Interfaces
 		Task DeleteAsync(T entity);
 
 		Task AddRangeAsync(IEnumerable<T> entities);
+
+		Task<int> CountAsync();
+
+		Task<int> CountAsync(Expression<Func<T, bool>> predicate);
 	}
 }

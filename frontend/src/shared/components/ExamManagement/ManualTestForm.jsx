@@ -789,24 +789,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
 
         // Nếu có lỗi, hiển thị và không cho lưu
         if (errors.length > 0) {
-            message.error({
-                content: (
-                    <div>
-                        <div style={{ marginBottom: 8, fontWeight: 'bold' }}>Có lỗi trong dữ liệu Part {partId}:</div>
-                        <ul style={{ margin: 0, paddingLeft: 20, maxHeight: 200, overflowY: 'auto' }}>
-                            {errors.slice(0, 10).map((err, idx) => (
-                                <li key={idx} style={{ marginBottom: 4 }}>{err}</li>
-                            ))}
-                        </ul>
-                        {errors.length > 10 && (
-                            <div style={{ marginTop: 8, color: '#999' }}>
-                                ... và {errors.length - 10} lỗi khác
-                            </div>
-                        )}
-                    </div>
-                ),
-                duration: 5,
-            });
+            message.error(`Có ${errors.length} lỗi trong dữ liệu Part ${partId}. Vui lòng kiểm tra lại.`);
             return;
         }
 
@@ -1019,20 +1002,58 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                         <Form.Item
                             name="title"
                             label="Tiêu đề bài thi"
-                            rules={[{ required: true, message: "Vui lòng nhập tiêu đề!" }]}
+                            validateTrigger={['onBlur']}
+                            rules={[
+                                {
+                                    validator: (_, value) => {
+                                        if (!value || !String(value).trim()) {
+                                            return Promise.reject(new Error("Vui lòng nhập tiêu đề!"));
+                                        }
+                                        return Promise.resolve();
+                                    },
+                                },
+                            ]}
                         >
-                            <Input placeholder="Ví dụ: TOEIC Simulator Test 1" disabled={readOnly} />
+                            <Input 
+                                placeholder="Ví dụ: TOEIC Simulator Test 1" 
+                                disabled={readOnly}
+                                onChange={() => {
+                                    const errors = form.getFieldsError(['title']);
+                                    if (errors[0]?.errors?.length > 0) {
+                                        form.setFields([{ name: 'title', errors: [] }]);
+                                    }
+                                }}
+                            />
                         </Form.Item>
                     </Col>
                     <Col span={6}>
                         <Form.Item
                             name="skill"
                             label="Kỹ năng"
-                            rules={[{ required: true, message: "Vui lòng chọn kỹ năng!" }]}
+                            validateTrigger={['onBlur', 'onChange']}
+                            rules={[
+                                {
+                                    validator: (_, value) => {
+                                        if (!value) {
+                                            return Promise.reject(new Error("Vui lòng chọn kỹ năng!"));
+                                        }
+                                        return Promise.resolve();
+                                    },
+                                },
+                            ]}
                         >
                             <Select
                                 placeholder="Chọn kỹ năng"
-                                onChange={handleSkillChange}
+                                onChange={(value) => {
+                                    handleSkillChange(value);
+                                    const errors = form.getFieldsError(['skill']);
+                                    if (errors[0]?.errors?.length > 0) {
+                                        form.setFields([{ name: 'skill', errors: [] }]);
+                                    }
+                                }}
+                                onFocus={() => {
+                                    form.validateFields(['title']);
+                                }}
                                 disabled={readOnly || !!editingId}
                             >
                                 <Option value={TEST_SKILL.LR}>Nghe & Đọc</Option>
@@ -1093,13 +1114,27 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 </Upload>
                             )}
                             {audioUrl && (
-                                <div style={{ marginTop: 8 }}>
+                                <div style={{ marginTop: 8, position: "relative" }}>
                                     <audio
                                         controls
                                         preload="none"
                                         src={audioUrl}
                                         style={{ width: "100%" }}
                                     />
+                                    {!readOnly && (
+                                        <Button
+                                            danger
+                                            type="primary"
+                                            icon={<DeleteOutlined />}
+                                            size="small"
+                                            onClick={() => setAudioUrl(null)}
+                                            style={{
+                                                marginTop: 8,
+                                            }}
+                                        >
+                                            Xóa audio
+                                        </Button>
+                                    )}
                                 </div>
                             )}
                         </Space>
@@ -1173,9 +1208,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                 )}
                                             </Space>
                                             <Collapse>
-                                                {(partData.questions || []).map((q, qIdx) => (
+                                                {(partData.questions || []).map((q, qIdx) => {
+                                                    const questionLabel = `Part ${part.partId}: Câu ${qIdx + 1}`;
+                                                    return (
                                                     <Panel
-                                                        header={`Câu hỏi ${qIdx + 1}`}
+                                                        header={questionLabel}
                                                         key={`q-${qIdx}`}
                                                         extra={!readOnly && (
                                                             <DeleteOutlined
@@ -1197,7 +1234,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                             showValidation={showValidation}
                                                         />
                                                     </Panel>
-                                                ))}
+                                                    );
+                                                })}
                                             </Collapse>
                                         </div>
 
@@ -1285,6 +1323,9 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
 
 // Component để edit một câu hỏi
 function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUpdateOption, readOnly, showValidation = false }) {
+    const [contentValidated, setContentValidated] = useState(false);
+    const [imageValidated, setImageValidated] = useState(false);
+    
     // Kiểm tra part nào cần ảnh
     const imageConfig = requiresImage(partId, skill);
     const requireImage = imageConfig.required;
@@ -1298,11 +1339,27 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
         return value.trim().length > 0;
     };
 
-    // Validate các fields - chỉ hiển thị lỗi khi showValidation = true
-    const contentError = showValidation && !isValidString(question.content) ? "Nội dung câu hỏi không được để trống!" : "";
-    const imageError = showValidation && showImage && requireImage && !isValidString(question.imageUrl) 
+    // Reset validation states khi showValidation thay đổi hoặc khi question content/imageUrl hợp lệ
+    useEffect(() => {
+        if (!showValidation) {
+            // Reset khi tắt showValidation
+            if (isValidString(question.content)) {
+                setContentValidated(false);
+            }
+            if (isValidString(question.imageUrl)) {
+                setImageValidated(false);
+            }
+        }
+    }, [showValidation, question.content, question.imageUrl]);
+
+    // Validate các fields - hiển thị lỗi khi showValidation = true hoặc khi đã validated
+    const shouldShowContentError = showValidation || contentValidated;
+    const contentError = shouldShowContentError && !isValidString(question.content) ? "Nội dung câu hỏi không được để trống!" : "";
+    
+    const shouldShowImageError = showValidation || imageValidated;
+    const imageError = shouldShowImageError && showImage && requireImage && !isValidString(question.imageUrl) 
         ? "Image URL là bắt buộc!" 
-        : showValidation && showImage && question.imageUrl && !isValidString(question.imageUrl)
+        : shouldShowImageError && showImage && question.imageUrl && !isValidString(question.imageUrl)
         ? "Image URL không hợp lệ!"
         : "";
     const explanationError = showValidation && question.explanation && !isValidString(question.explanation) 
@@ -1319,7 +1376,19 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
             >
                 <TextArea
                     value={question.content || ""}
-                    onChange={(e) => onUpdate("content", e.target.value)}
+                    onChange={(e) => {
+                        onUpdate("content", e.target.value);
+                        // Xóa lỗi khi đang sửa
+                        if (contentValidated && isValidString(e.target.value)) {
+                            setContentValidated(false);
+                        }
+                    }}
+                    onBlur={() => {
+                        // Validate khi blur
+                        if (!isValidString(question.content)) {
+                            setContentValidated(true);
+                        }
+                    }}
                     rows={3}
                     disabled={readOnly}
                     status={contentError ? "error" : ""}
@@ -1336,7 +1405,25 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                     <Space direction="vertical" style={{ width: "100%" }} size="small">
                         <Input
                             value={question.imageUrl || ""}
-                            onChange={(e) => onUpdate("imageUrl", e.target.value)}
+                            onChange={(e) => {
+                                onUpdate("imageUrl", e.target.value);
+                                // Xóa lỗi khi đang sửa
+                                if (imageValidated && isValidString(e.target.value)) {
+                                    setImageValidated(false);
+                                }
+                            }}
+                            onFocus={() => {
+                                // Validate trường content khi focus vào Image
+                                if (!isValidString(question.content)) {
+                                    setContentValidated(true);
+                                }
+                            }}
+                            onBlur={() => {
+                                // Validate khi blur (nếu bắt buộc)
+                                if (requireImage && !isValidString(question.imageUrl)) {
+                                    setImageValidated(true);
+                                }
+                            }}
                             placeholder={requireImage ? "URL hình ảnh (bắt buộc)" : "URL hình ảnh (nếu có)"}
                             disabled={readOnly}
                             status={imageError ? "error" : ""}
@@ -1357,8 +1444,25 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                                 }}
                                 showUploadList={false}
                                 accept="image/*"
+                                beforeUpload={() => {
+                                    // Validate trường content trước khi upload
+                                    if (!isValidString(question.content)) {
+                                        setContentValidated(true);
+                                        return false; // Prevent upload
+                                    }
+                                    return true;
+                                }}
                             >
-                                <Button icon={<PictureOutlined />} size="small">
+                                <Button 
+                                    icon={<PictureOutlined />} 
+                                    size="small"
+                                    onClick={() => {
+                                        // Validate trường content khi click vào Upload button
+                                        if (!isValidString(question.content)) {
+                                            setContentValidated(true);
+                                        }
+                                    }}
+                                >
                                     Upload ảnh
                                 </Button>
                             </Upload>
@@ -1378,6 +1482,20 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                                         background: "#fff",
                                     }}
                                 />
+                                {!readOnly && (
+                                    <Button
+                                        danger
+                                        type="primary"
+                                        icon={<DeleteOutlined />}
+                                        size="small"
+                                        onClick={() => onUpdate("imageUrl", "")}
+                                        style={{
+                                            marginTop: 8,
+                                        }}
+                                    >
+                                        Xóa ảnh
+                                    </Button>
+                                )}
                             </div>
                         )}
                     </Space>
@@ -1393,6 +1511,15 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                 <TextArea
                     value={question.explanation || ""}
                     onChange={(e) => onUpdate("explanation", e.target.value)}
+                    onFocus={() => {
+                        // Validate các trường trước đó khi focus vào Giải thích
+                        if (!isValidString(question.content)) {
+                            setContentValidated(true);
+                        }
+                        if (requireImage && !isValidString(question.imageUrl)) {
+                            setImageValidated(true);
+                        }
+                    }}
                     rows={2}
                     disabled={readOnly}
                     status={explanationError ? "error" : ""}
@@ -1418,6 +1545,15 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                                             <Input
                                                 value={option.content || ""}
                                                 onChange={(e) => onUpdateOption(oIdx, "content", e.target.value)}
+                                                onFocus={() => {
+                                                    // Validate các trường trước đó khi focus vào đáp án
+                                                    if (!isValidString(question.content)) {
+                                                        setContentValidated(true);
+                                                    }
+                                                    if (requireImage && !isValidString(question.imageUrl)) {
+                                                        setImageValidated(true);
+                                                    }
+                                                }}
                                                 placeholder={`Nhập đáp án ${option.label}`}
                                                 disabled={readOnly}
                                                 status={optionError ? "error" : ""}
@@ -1542,6 +1678,20 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
                                         background: "#fff",
                                     }}
                                 />
+                                {!readOnly && (
+                                    <Button
+                                        danger
+                                        type="primary"
+                                        icon={<DeleteOutlined />}
+                                        size="small"
+                                        onClick={() => onUpdate("imageUrl", "")}
+                                        style={{
+                                            marginTop: 8,
+                                        }}
+                                    >
+                                        Xóa ảnh
+                                    </Button>
+                                )}
                             </div>
                         )}
                     </Space>
@@ -1566,9 +1716,11 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
                 }
             >
                 <Collapse>
-                    {(group.questions || []).map((q, qIdx) => (
+                    {(group.questions || []).map((q, qIdx) => {
+                        const questionLabel = `Part ${partId}: Câu ${qIdx + 1}`;
+                        return (
                         <Panel
-                            header={`Câu ${qIdx + 1}`}
+                            header={questionLabel}
                             key={`gq-${qIdx}`}
                             extra={!readOnly && (
                                 <DeleteOutlined
@@ -1590,7 +1742,8 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
                                 showValidation={showValidation}
                             />
                         </Panel>
-                    ))}
+                        );
+                    })}
                 </Collapse>
             </Form.Item>
         </Space>

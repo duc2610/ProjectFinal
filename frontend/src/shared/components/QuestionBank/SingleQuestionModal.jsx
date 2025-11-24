@@ -11,7 +11,7 @@ import {
   Col,
   message,
 } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import { UploadOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import {
   createQuestion,
   getQuestionById,
@@ -482,20 +482,36 @@ export default function SingleQuestionModal({
       <Form 
         form={form} 
         layout="vertical"
-        validateTrigger={[]}
       >
         <Row gutter={12}>
           <Col span={8}>
             <Form.Item
               name="skill"
               label="Kỹ năng"
-              rules={[{ required: true, message: "Vui lòng chọn kỹ năng" }]}
+              validateTrigger={['onBlur', 'onChange']}
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (!value) {
+                      return Promise.reject(new Error("Vui lòng chọn kỹ năng"));
+                    }
+                    return Promise.resolve();
+                  },
+                },
+              ]}
             >
               <Select
                 options={QUESTION_SKILLS}
                 placeholder="Chọn kỹ năng"
                 allowClear
                 onChange={async (skill) => {
+                  // Nếu chọn giá trị hợp lệ, xóa lỗi
+                  if (skill) {
+                    const errors = form.getFieldsError(['skill']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'skill', errors: [] }]);
+                    }
+                  }
                   const keepAudio = form.getFieldValue("audio");
                   const keepImage = form.getFieldValue("image");
                   form.setFieldsValue({
@@ -517,7 +533,17 @@ export default function SingleQuestionModal({
             <Form.Item
               name="partId"
               label="Part"
-              rules={[{ required: true, message: "Vui lòng chọn Part" }]}
+              validateTrigger={['onBlur', 'onChange']}
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (!value) {
+                      return Promise.reject(new Error("Vui lòng chọn Part"));
+                    }
+                    return Promise.resolve();
+                  },
+                },
+              ]}
             >
               <Select
                 placeholder="Chọn Part"
@@ -527,7 +553,18 @@ export default function SingleQuestionModal({
                 }))}
                 showSearch
                 optionFilterProp="label"
+                onFocus={() => {
+                  // Validate trường trước đó khi focus vào trường này
+                  form.validateFields(['skill']).catch(() => {});
+                }}
                 onChange={async (partId) => {
+                  // Nếu chọn giá trị hợp lệ, xóa lỗi
+                  if (partId) {
+                    const errors = form.getFieldsError(['partId']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'partId', errors: [] }]);
+                    }
+                  }
                   form.setFieldsValue({
                     partId: toNum(partId),
                     questionTypeId: undefined,
@@ -555,7 +592,17 @@ export default function SingleQuestionModal({
             <Form.Item
               name="questionTypeId"
               label="Loại câu hỏi"
-              rules={[{ required: true, message: "Vui lòng chọn loại câu hỏi" }]}
+              validateTrigger={['onBlur', 'onChange']}
+              rules={[
+                {
+                  validator: (_, value) => {
+                    if (!value) {
+                      return Promise.reject(new Error("Vui lòng chọn loại câu hỏi"));
+                    }
+                    return Promise.resolve();
+                  },
+                },
+              ]}
             >
               <Select
                 placeholder="Chọn loại câu hỏi"
@@ -565,6 +612,19 @@ export default function SingleQuestionModal({
                 }))}
                 showSearch
                 optionFilterProp="label"
+                onChange={(value) => {
+                  // Nếu chọn giá trị hợp lệ, xóa lỗi
+                  if (value) {
+                    const errors = form.getFieldsError(['questionTypeId']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'questionTypeId', errors: [] }]);
+                    }
+                  }
+                }}
+                onFocus={() => {
+                  // Validate các trường trước đó khi focus vào trường này
+                  form.validateFields(['skill', 'partId']).catch(() => {});
+                }}
               />
             </Form.Item>
           </Col>
@@ -573,13 +633,15 @@ export default function SingleQuestionModal({
         <Form.Item
           name="content"
           label="Nội dung câu hỏi"
+          validateTrigger={['onBlur']}
           rules={[
-            { required: true, message: "Vui lòng nhập nội dung câu hỏi" },
-            { max: 1000, message: "Tối đa 1000 ký tự" },
             {
               validator: (_, value) => {
                 if (!value || !String(value).trim()) {
-                  return Promise.reject(new Error("Nội dung câu hỏi không được để trống hoặc chỉ có khoảng trắng"));
+                  return Promise.reject(new Error("Vui lòng nhập nội dung câu hỏi"));
+                }
+                if (String(value).length > 1000) {
+                  return Promise.reject(new Error("Tối đa 1000 ký tự"));
                 }
                 return Promise.resolve();
               },
@@ -591,6 +653,17 @@ export default function SingleQuestionModal({
             showCount
             maxLength={1000}
             placeholder="Nhập nội dung câu hỏi..."
+            onChange={(e) => {
+              // Xóa lỗi khi đang sửa (nếu có)
+              const errors = form.getFieldsError(['content']);
+              if (errors[0]?.errors?.length > 0) {
+                form.setFields([{ name: 'content', errors: [] }]);
+              }
+            }}
+            onFocus={(e) => {
+              // Validate các trường trước đó khi focus vào trường này
+              form.validateFields(['skill', 'partId', 'questionTypeId']).catch(() => {});
+            }}
           />
         </Form.Item>
 
@@ -604,6 +677,7 @@ export default function SingleQuestionModal({
                 }`}
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList}
+                validateTrigger={['onBlur']}
                 rules={[
                   () => ({
                     validator(_, value) {
@@ -631,21 +705,53 @@ export default function SingleQuestionModal({
                     showPreviewIcon: false,
                     showRemoveIcon: true,
                   }}
+                  onChange={() => {
+                    // Xóa lỗi khi chọn file (nếu có)
+                    const errors = form.getFieldsError(['audio']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'audio', errors: [] }]);
+                    }
+                  }}
                   onRemove={() => {
                     form.setFieldsValue({ audio: [] });
                     return true;
                   }}
                 >
-                  <Button icon={<UploadOutlined />}>Chọn file audio (.mp3)</Button>
+                  <Button 
+                    icon={<UploadOutlined />}
+                    onClick={() => {
+                      // Validate các trường trước đó khi click vào Upload audio
+                      form.validateFields(['skill', 'partId', 'questionTypeId', 'content']).catch(() => {});
+                    }}
+                  >
+                    Chọn file audio (.mp3)
+                  </Button>
                 </Upload>
                 {audioSrc && (
-                  <div style={{ marginTop: 8 }}>
+                  <div style={{ marginTop: 8, position: "relative" }}>
                     <audio
                       controls
                       preload="none"
                       src={audioSrc}
                       style={{ width: "100%" }}
                     />
+                    {audioList?.[0]?.url && (
+                      <Button
+                        danger
+                        type="primary"
+                        icon={<DeleteOutlined />}
+                        size="small"
+                        onClick={() => {
+                          form.setFieldsValue({ audio: [] });
+                          setAudioSrc(null);
+                        }}
+                        style={{
+                          marginTop: 8,
+                        }}
+                      >
+                        Xóa audio
+                      </Button>
+                    )}
                   </div>
                 )}
               </Form.Item>
@@ -659,6 +765,7 @@ export default function SingleQuestionModal({
                 label={`Ảnh ${isImageRequired ? "(bắt buộc)" : "(tùy chọn)"}`}
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList}
+                validateTrigger={['onBlur']}
                 rules={[
                   () => ({
                     validator(_, value) {
@@ -691,12 +798,31 @@ export default function SingleQuestionModal({
                     showPreviewIcon: false,
                     showRemoveIcon: true,
                   }}
+                  onChange={() => {
+                    // Xóa lỗi khi chọn file (nếu có)
+                    const errors = form.getFieldsError(['image']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'image', errors: [] }]);
+                    }
+                  }}
                   onRemove={() => {
                     form.setFieldsValue({ image: [] });
                     return true;
                   }}
                 >
-                  <Button icon={<UploadOutlined />}>Chọn ảnh</Button>
+                  <Button 
+                    icon={<UploadOutlined />}
+                    onClick={() => {
+                      // Validate các trường trước đó khi click vào Upload image
+                      form.validateFields(['skill', 'partId', 'questionTypeId', 'content']).catch(() => {});
+                      // Validate audio nếu bắt buộc
+                      if (isAudioRequired) {
+                        form.validateFields(['audio']).catch(() => {});
+                      }
+                    }}
+                  >
+                    Chọn ảnh
+                  </Button>
                 </Upload>
                 {imageSrc && (
                   <div style={{ marginTop: 8 }}>
@@ -713,6 +839,23 @@ export default function SingleQuestionModal({
                         background: "#fff",
                       }}
                     />
+                    {imageList?.[0]?.url && (
+                      <Button
+                        danger
+                        type="primary"
+                        icon={<DeleteOutlined />}
+                        size="small"
+                        onClick={() => {
+                          form.setFieldsValue({ image: [] });
+                          setImageSrc(null);
+                        }}
+                        style={{
+                          marginTop: 8,
+                        }}
+                      >
+                        Xóa ảnh
+                      </Button>
+                    )}
                   </div>
                 )}
               </Form.Item>
@@ -722,7 +865,7 @@ export default function SingleQuestionModal({
 
         {(Number(selectedSkill) === 3 || Number(selectedSkill) === 4) && (
           <>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>
+            <div style={{ fontWeight: 600, marginBottom: 16, fontSize: 15 }}>
               Đáp án{" "}
               {requiredOptionsCount ? `(yêu cầu: ${requiredOptionsCount} đáp án)` : ""}
             </div>
@@ -764,90 +907,129 @@ export default function SingleQuestionModal({
               {(fields, { add, remove }) => (
                 <>
                   {fields.map(({ key, ...restField }, idx) => (
-                    <Row
+                    <div
                       key={key}
-                      gutter={8}
-                      align="middle"
-                      style={{ marginBottom: 8 }}
+                      style={{
+                        marginBottom: 12,
+                        padding: 12,
+                        background: "#fafafa",
+                        border: "1px solid #e8e8e8",
+                        borderRadius: 8,
+                      }}
                     >
-                      <Col span={4}>
-                        <Form.Item
-                          {...restField}
-                          name={[restField.name, "label"]}
-                          label={idx === 0 ? "Nhãn" : ""}
-                        >
-                          <Input 
-                            disabled 
-                            readOnly
-                            value={(() => {
-                              const labels = requiredOptionsCount === 3 
-                                ? ["A", "B", "C"] 
-                                : ["A", "B", "C", "D"];
-                              return labels[idx] || "A";
-                            })()}
+                      <Row gutter={12} align="middle">
+                        <Col span={3}>
+                          <Form.Item
+                            {...restField}
+                            name={[restField.name, "label"]}
+                            style={{ marginBottom: 0 }}
+                          >
+                            <Input 
+                              disabled 
+                              readOnly
+                              value={(() => {
+                                const labels = requiredOptionsCount === 3 
+                                  ? ["A", "B", "C"] 
+                                  : ["A", "B", "C", "D"];
+                                return labels[idx] || "A";
+                              })()}
+                              style={{ 
+                                backgroundColor: "#1890ff",
+                                color: "#fff",
+                                cursor: "not-allowed",
+                                fontWeight: "bold",
+                                textAlign: "center",
+                                border: "none",
+                                height: 32,
+                              }}
+                            />
+                          </Form.Item>
+                        </Col>
+                        <Col span={17}>
+                          <Form.Item
+                            {...restField}
+                            name={[restField.name, "content"]}
+                            validateTrigger={['onBlur']}
+                            style={{ marginBottom: 0 }}
+                            rules={[
+                              {
+                                validator: (_, value) => {
+                                  if (!value || !String(value).trim()) {
+                                    return Promise.reject(new Error("Vui lòng nhập nội dung đáp án"));
+                                  }
+                                  if (String(value).length > 500) {
+                                    return Promise.reject(new Error("Tối đa 500 ký tự"));
+                                  }
+                                  return Promise.resolve();
+                                },
+                              },
+                            ]}
+                          >
+                            <Input 
+                              placeholder="Nhập nội dung đáp án"
+                              onChange={(e) => {
+                                // Xóa lỗi khi đang sửa (nếu có)
+                                const fieldName = ['answerOptions', restField.name, 'content'];
+                                const errors = form.getFieldsError(fieldName);
+                                if (errors[0]?.errors?.length > 0) {
+                                  form.setFields([{ name: fieldName, errors: [] }]);
+                                }
+                              }}
+                              onFocus={(e) => {
+                                // Validate các trường trước đó khi focus vào trường này
+                                form.validateFields(['skill', 'partId', 'questionTypeId', 'content']).catch(() => {});
+                                // Validate audio nếu bắt buộc
+                                if (isAudioRequired) {
+                                  form.validateFields(['audio']).catch(() => {});
+                                }
+                                // Validate image nếu bắt buộc
+                                if (isImageRequired) {
+                                  form.validateFields(['image']).catch(() => {});
+                                }
+                              }}
+                            />
+                          </Form.Item>
+                        </Col>
+                        <Col span={3}>
+                          <Form.Item
+                            valuePropName="checked"
+                            name={[restField.name, "isCorrect"]}
+                            style={{ marginBottom: 0 }}
+                          >
+                            <Checkbox
+                              onChange={(e) =>
+                                handleToggleCorrect(idx, e.target.checked)
+                              }
+                            >
+                              Đúng
+                            </Checkbox>
+                          </Form.Item>
+                        </Col>
+                        <Col span={1}>
+                          <Button
+                            danger
+                            type="text"
+                            icon={<DeleteOutlined />}
+                            onClick={() => remove(restField.name)}
+                            disabled={
+                              requiredOptionsCount
+                                ? fields.length <= requiredOptionsCount
+                                : fields.length <= 1
+                            }
                             style={{ 
-                              backgroundColor: "#f5f5f5",
-                              cursor: "not-allowed",
-                              fontWeight: "bold",
-                              textAlign: "center"
+                              padding: 0,
+                              height: 32,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center"
                             }}
                           />
-                        </Form.Item>
-                      </Col>
-                      <Col span={16}>
-                        <Form.Item
-                          {...restField}
-                          name={[restField.name, "content"]}
-                          rules={[
-                            {
-                              required: true,
-                              message: "Vui lòng nhập nội dung đáp án",
-                            },
-                            { max: 500, message: "Tối đa 500 ký tự" },
-                            {
-                              validator: (_, value) => {
-                                if (!value || !String(value).trim()) {
-                                  return Promise.reject(new Error("Nội dung đáp án không được để trống hoặc chỉ có khoảng trắng"));
-                                }
-                                return Promise.resolve();
-                              },
-                            },
-                          ]}
-                        >
-                          <Input placeholder="Nhập nội dung đáp án" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={3}>
-                        <Form.Item
-                          valuePropName="checked"
-                          name={[restField.name, "isCorrect"]}
-                        >
-                          <Checkbox
-                            onChange={(e) =>
-                              handleToggleCorrect(idx, e.target.checked)
-                            }
-                          >
-                            Đúng
-                          </Checkbox>
-                        </Form.Item>
-                      </Col>
-                      <Col span={1}>
-                        <Button
-                          danger
-                          type="link"
-                          onClick={() => remove(restField.name)}
-                          disabled={
-                            requiredOptionsCount
-                              ? fields.length <= requiredOptionsCount
-                              : fields.length <= 1
-                          }
-                        >
-                          X
-                        </Button>
-                      </Col>
-                    </Row>
+                        </Col>
+                      </Row>
+                    </div>
                   ))}
                   <Button
+                    type="dashed"
                     onClick={() => {
                       const labels = requiredOptionsCount === 3 
                         ? ["A", "B", "C"] 
@@ -859,13 +1041,20 @@ export default function SingleQuestionModal({
                         isCorrect: false 
                       });
                     }}
-                    style={{ marginTop: 4 }}
+                    style={{ 
+                      marginTop: 8,
+                      width: "100%",
+                      height: 40,
+                      borderStyle: "dashed",
+                      borderColor: "#d9d9d9"
+                    }}
                     disabled={
                       !!requiredOptionsCount &&
                       (answerOptions?.length || 0) >= requiredOptionsCount
                     }
+                    icon={<PlusOutlined />}
                   >
-                    + Thêm đáp án
+                    Thêm đáp án
                   </Button>
                 </>
               )}
@@ -874,7 +1063,22 @@ export default function SingleQuestionModal({
         )}
 
         <Form.Item name="solution" label="Giải thích (tùy chọn)">
-          <Input.TextArea rows={3} placeholder="Nhập giải thích / lời giải..." />
+          <Input.TextArea 
+            rows={3} 
+            placeholder="Nhập giải thích / lời giải..."
+            onFocus={() => {
+              // Validate các trường trước đó khi focus vào trường này
+              form.validateFields(['skill', 'partId', 'questionTypeId', 'content']).catch(() => {});
+              // Validate audio nếu bắt buộc
+              if (isAudioRequired) {
+                form.validateFields(['audio']).catch(() => {});
+              }
+              // Validate image nếu bắt buộc
+              if (isImageRequired) {
+                form.validateFields(['image']).catch(() => {});
+              }
+            }}
+          />
         </Form.Item>
       </Form>
     </Modal>

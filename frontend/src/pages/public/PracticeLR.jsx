@@ -29,7 +29,8 @@ export default function PracticeLR() {
         try {
             const response = await getPracticeTests();
             // Backend trả về { statusCode, message, data: [...], success }
-            const testsData = response?.data || (Array.isArray(response) ? response : []);
+            // getPracticeTests đã normalize và trả về array hoặc object có data property
+            const testsData = Array.isArray(response) ? response : (response?.data || []);
             
             if (Array.isArray(testsData) && testsData.length > 0) {
                 // Filter chỉ lấy Practice tests với skill LR (Listening & Reading)
@@ -47,10 +48,10 @@ export default function PracticeLR() {
                                      test.testSkill === 3) &&
                                      test.testSkill !== 0;
                         
-                        // Check status: Published = 3 (theo backend enum)
-                        const isPublished = test.status === "Published" || 
-                                          test.status === 3 || 
-                                          test.status === "3";
+                        // Chỉ check visibilityStatus để xác định test đã Published
+                        const isPublished = test.visibilityStatus === "Published" ||
+                                          test.visibilityStatus === 3 ||
+                                          test.visibilityStatus === "3";
                         
                         return isPractice && isLR && isPublished;
                     })

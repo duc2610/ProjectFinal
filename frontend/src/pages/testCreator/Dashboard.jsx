@@ -11,6 +11,8 @@ import {
   Avatar,
   List,
   Divider,
+  Spin,
+  message,
 } from "antd";
 import {
   FileTextOutlined,
@@ -25,142 +27,113 @@ import {
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/vi";
+import {
+  getDashboardStatistics,
+  getTestPerformanceByDay,
+  getTopPerformingTests,
+  getRecentActivities,
+} from "@services/testCreatorDashboardService";
 
 dayjs.extend(relativeTime);
 dayjs.locale("vi");
 
 const { Title, Text } = Typography;
 
-// Mock data generator for TestCreator
-const generateCreatorMockData = () => {
-  // Statistics data
-  const stats = {
-    totalTests: 45,
-    publishedTests: 32,
-    draftTests: 13,
-    totalQuestions: 1240,
-    totalTestResults: 2340,
-    newTestsToday: 2,
-    newQuestionsToday: 15,
-    averageScore: 78.5,
-  };
-
-  // Recent activities
-  const activities = [
-    {
-      id: 1,
-      type: "test",
-      action: "Tạo bài thi mới",
-      test: "TOEIC Practice Test #46",
-      time: dayjs().subtract(10, "minute"),
-      status: "info",
-    },
-    {
-      id: 2,
-      type: "question",
-      action: "Thêm câu hỏi",
-      test: "TOEIC Practice Test #45",
-      count: 5,
-      time: dayjs().subtract(30, "minute"),
-      status: "success",
-    },
-    {
-      id: 3,
-      type: "test",
-      action: "Xuất bản bài thi",
-      test: "TOEIC Full Test #44",
-      time: dayjs().subtract(2, "hour"),
-      status: "success",
-    },
-    {
-      id: 4,
-      type: "test",
-      action: "Cập nhật bài thi",
-      test: "TOEIC Practice Test #43",
-      time: dayjs().subtract(4, "hour"),
-      status: "info",
-    },
-    {
-      id: 5,
-      type: "question",
-      action: "Xóa câu hỏi",
-      test: "TOEIC Practice Test #42",
-      count: 2,
-      time: dayjs().subtract(6, "hour"),
-      status: "error",
-    },
-  ];
-
-  // Test performance data (for charts simulation)
-  const testPerformance = Array.from({ length: 7 }, (_, i) => ({
-    date: dayjs().subtract(6 - i, "day").format("DD/MM"),
-    completed: Math.floor(Math.random() * 50) + 20,
-    averageScore: Math.floor(Math.random() * 30) + 60,
-  }));
-
-  // Top performing tests
-  const topTests = [
-    {
-      id: 1,
-      name: "TOEIC Practice Test #45",
-      completed: 234,
-      averageScore: 85.5,
-      status: "published",
-    },
-    {
-      id: 2,
-      name: "TOEIC Full Test #44",
-      completed: 189,
-      averageScore: 82.3,
-      status: "published",
-    },
-    {
-      id: 3,
-      name: "TOEIC Practice Test #43",
-      completed: 156,
-      averageScore: 79.8,
-      status: "published",
-    },
-    {
-      id: 4,
-      name: "TOEIC Practice Test #42",
-      completed: 142,
-      averageScore: 77.2,
-      status: "published",
-    },
-    {
-      id: 5,
-      name: "TOEIC Full Test #41",
-      completed: 128,
-      averageScore: 75.6,
-      status: "published",
-    },
-  ];
-
-  return { stats, activities, testPerformance, topTests };
-};
-
 export default function TestCreatorDashboard() {
-  const [mockData, setMockData] = useState(null);
+  const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setMockData(generateCreatorMockData());
-      setLoading(false);
-    }, 500);
+    fetchDashboardData();
   }, []);
 
-  if (loading || !mockData) {
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch all data in parallel
+      const [statistics, performance, topTests, activities] = await Promise.all([
+        getDashboardStatistics(),
+        getTestPerformanceByDay(7),
+        getTopPerformingTests(5),
+        getRecentActivities(20),
+      ]);
+
+      // Transform statistics data
+      const stats = {
+        totalTests: statistics?.totalTests || 0,
+        publishedTests: statistics?.publishedTests || 0,
+        draftTests: statistics?.draftTests || 0,
+        totalQuestions: statistics?.totalQuestions || 0,
+        totalTestResults: statistics?.totalTestResults || 0,
+        newTestsToday: statistics?.newTestsComparedToPrevious || 0,
+        newQuestionsToday: statistics?.newQuestionsComparedToPrevious || 0,
+        averageScore: statistics?.averageScore || 0,
+      };
+
+      // Transform performance data
+      const testPerformance = (performance || []).map((item) => ({
+        date: item.date || (item.timestamp ? dayjs(item.timestamp).format("DD/MM") : ""),
+        completed: item.completedCount || 0,
+        averageScore: item.averagePercentage || item.averageScore || 0,
+      }));
+
+      // Transform top tests data
+      const transformedTopTests = (topTests || []).map((item) => ({
+        id: item.testId,
+        name: item.title,
+        completed: item.completedCount || 0,
+        averageScore: item.averagePercentage || item.averageScore || 0,
+        status: item.visibilityStatusText?.toLowerCase() || "published",
+      }));
+
+      // Transform activities data
+      const transformedActivities = (activities || []).map((item, index) => {
+        // Parse activity type to determine icon type
+        let type = "test";
+        if (item.activityType?.includes("câu hỏi") || item.activityType?.includes("question")) {
+          type = "question";
+        }
+
+        // Parse details to extract test name and count
+        const details = item.details || "";
+        const testMatch = details.match(/Bài thi:\s*(.+)/i);
+        const countMatch = details.match(/Số lượng:\s*(\d+)/i);
+
+        return {
+          id: index + 1,
+          type,
+          action: item.activityType || "",
+          test: testMatch ? testMatch[1] : null,
+          count: countMatch ? parseInt(countMatch[1]) : null,
+          time: dayjs(item.timestamp),
+          status: item.status || "info",
+        };
+      });
+
+      setDashboardData({
+        stats,
+        activities: transformedActivities,
+        testPerformance,
+        topTests: transformedTopTests,
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      message.error("Không thể tải dữ liệu dashboard. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading || !dashboardData) {
     return (
       <div style={{ textAlign: "center", padding: "50px" }}>
-        <Typography.Text>Đang tải dữ liệu...</Typography.Text>
+        <Spin size="large" tip="Đang tải dữ liệu..." />
       </div>
     );
   }
 
-  const { stats, activities, testPerformance, topTests } = mockData;
+  const { stats, activities, testPerformance, topTests } = dashboardData;
 
   // Statistic cards configuration
   const statCards = [
@@ -179,7 +152,9 @@ export default function TestCreatorDashboard() {
       title: "Bài thi đã xuất bản",
       value: stats.publishedTests,
       prefix: <CheckCircleOutlined />,
-      suffix: `${Math.round((stats.publishedTests / stats.totalTests) * 100)}%`,
+      suffix: stats.totalTests > 0 
+        ? `${Math.round((stats.publishedTests / stats.totalTests) * 100)}%`
+        : "0%",
       valueStyle: { color: "#52c41a" },
     },
     {
@@ -207,7 +182,7 @@ export default function TestCreatorDashboard() {
     },
     {
       title: "Điểm trung bình",
-      value: stats.averageScore,
+      value: parseFloat(stats.averageScore).toFixed(1),
       prefix: <BarChartOutlined />,
       suffix: "/100",
       valueStyle: { color: "#13c2c2" },
@@ -350,14 +325,14 @@ export default function TestCreatorDashboard() {
                         </Text>
                         <Divider type="vertical" />
                         <Text type="secondary">
-                          Điểm TB: {item.averageScore}%
+                          Điểm TB: {parseFloat(item.averageScore).toFixed(1)}%
                         </Text>
                       </Space>
                     }
                   />
                   <Progress
                     type="circle"
-                    percent={item.averageScore}
+                    percent={parseFloat(item.averageScore)}
                     size={60}
                     strokeColor={{
                       "0%": "#108ee9",
@@ -380,48 +355,56 @@ export default function TestCreatorDashboard() {
               </Space>
             }
           >
-            <List
-              dataSource={activities}
-              renderItem={(item) => (
-                <List.Item>
-                  <List.Item.Meta
-                    avatar={
-                      <Avatar
-                        style={{
-                          backgroundColor: getStatusColor(item.status),
-                        }}
-                        icon={getActivityIcon(item.type)}
-                      />
-                    }
-                    title={
-                      <Space>
-                        <Text strong>{item.action}</Text>
-                        <Tag color={getStatusColor(item.status)}>
-                          {item.status}
-                        </Tag>
-                      </Space>
-                    }
-                    description={
-                      <div>
-                        {item.test && (
-                          <div>
-                            <Text type="secondary">Bài thi: {item.test}</Text>
-                          </div>
-                        )}
-                        {item.count && (
-                          <Text type="secondary">Số lượng: {item.count}</Text>
-                        )}
+            <div
+              style={{
+                maxHeight: "1010px",
+                overflowY: "auto",
+                overflowX: "hidden",
+              }}
+            >
+              <List
+                dataSource={activities}
+                renderItem={(item) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      avatar={
+                        <Avatar
+                          style={{
+                            backgroundColor: getStatusColor(item.status),
+                          }}
+                          icon={getActivityIcon(item.type)}
+                        />
+                      }
+                      title={
+                        <Space>
+                          <Text strong>{item.action}</Text>
+                          <Tag color={getStatusColor(item.status)}>
+                            {item.status}
+                          </Tag>
+                        </Space>
+                      }
+                      description={
                         <div>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            {item.time.fromNow()}
-                          </Text>
+                          {item.test && (
+                            <div>
+                              <Text type="secondary">Bài thi: {item.test}</Text>
+                            </div>
+                          )}
+                          {item.count && (
+                            <Text type="secondary">Số lượng: {item.count}</Text>
+                          )}
+                          <div>
+                            <Text type="secondary" style={{ fontSize: 12 }}>
+                              {item.time.fromNow()}
+                            </Text>
+                          </div>
                         </div>
-                      </div>
-                    }
-                  />
-                </List.Item>
-              )}
-            />
+                      }
+                    />
+                  </List.Item>
+                )}
+              />
+            </div>
           </Card>
         </Col>
       </Row>

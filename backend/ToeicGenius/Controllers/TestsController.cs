@@ -4,6 +4,7 @@ using System.Security.Claims;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using ToeicGenius.Domains.DTOs.Requests.Test;
+using ToeicGenius.Domains.DTOs.Requests.TestQuestion;
 using ToeicGenius.Domains.DTOs.Responses.Test;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Services.Interfaces;
@@ -383,6 +384,21 @@ namespace ToeicGenius.Controllers
 
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
+
+		/// <summary>
+		/// Update a TestQuestion (snapshot in a specific test)
+		/// Used when fixing reported questions
+		/// </summary>
+		[HttpPut("test-questions/{testQuestionId}")]
+		[Authorize(Roles = "Admin,TestCreator")]
+		public async Task<IActionResult> UpdateTestQuestion(int testQuestionId, [FromForm] UpdateTestQuestionDto request)
+		{
+			var result = await _testService.UpdateTestQuestionAsync(testQuestionId, request);
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
+		}
 		#endregion
 
 		#region EXAMINEE
@@ -439,7 +455,25 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<List<TestHistoryDto>>.SuccessResponse(result.Data!));
 		}
 
-		// Test Result Detail
+		// Unified Test Result Detail - supports both L&R and S&W tests
+		[HttpGet("result/detail/{testResultId}")]
+		[Authorize(Roles = "Examinee")]
+		public async Task<IActionResult> GetUnifiedTestResultDetail(int testResultId)
+		{
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var result = await _testService.GetUnifiedTestResultDetailAsync(testResultId, userId);
+
+			if (!result.IsSuccess)
+				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<object>.SuccessResponse(result.Data!));
+		}
+
+		// Test Result Detail (L&R only - legacy endpoint)
 		[HttpGet("result/listening-reading/detail/{testResultId}")]
 		[Authorize(Roles = "Examinee")]
 		public async Task<IActionResult> GetTestResultDetail(int testResultId)
@@ -459,9 +493,17 @@ namespace ToeicGenius.Controllers
 
 		// Test List For Examinee or Guest: Practice
 		[HttpGet("examinee/list/practice")]
-		public async Task<IActionResult> GetPracticeTests(int testResultId)
+		public async Task<IActionResult> GetPracticeTests()
 		{
-			var tests = await _testService.GetTestsByTypeAsync(TestType.Practice);
+			// Try to get userId from token if user is logged in
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			Guid? userId = null;
+			if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+			{
+				userId = parsedUserId;
+			}
+
+			var tests = await _testService.GetTestsByTypeAsync(TestType.Practice, userId);
 			if (!tests.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(tests.ErrorMessage!));
 
@@ -472,7 +514,15 @@ namespace ToeicGenius.Controllers
 		[HttpGet("examinee/list/simulator")]
 		public async Task<IActionResult> GetSimulatorTests()
 		{
-			var tests = await _testService.GetTestsByTypeAsync(TestType.Simulator);
+			// Try to get userId from token if user is logged in
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			Guid? userId = null;
+			if (!string.IsNullOrEmpty(userIdClaim) && Guid.TryParse(userIdClaim, out var parsedUserId))
+			{
+				userId = parsedUserId;
+			}
+
+			var tests = await _testService.GetTestsByTypeAsync(TestType.Simulator, userId);
 			if (!tests.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(tests.ErrorMessage!));
 

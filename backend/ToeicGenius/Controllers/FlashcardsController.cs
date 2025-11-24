@@ -5,6 +5,7 @@ using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Flashcard;
 using ToeicGenius.Domains.DTOs.Responses.Flashcard;
 using ToeicGenius.Services.Interfaces;
+using ToeicGenius.Shared.Constants;
 
 namespace ToeicGenius.Controllers
 {
@@ -38,18 +39,22 @@ namespace ToeicGenius.Controllers
 		}
 
 		/// <summary>
-		/// Get all flashcard sets of current user
+		/// Get all flashcard sets of current user with pagination and filtering
 		/// </summary>
 		[HttpGet("sets")]
-		public async Task<IActionResult> GetUserSets()
+		public async Task<IActionResult> GetUserSets(
+			[FromQuery] string? keyword,
+			[FromQuery] string sortOrder = "desc",
+			[FromQuery] int page = NumberConstants.DefaultFirstPage,
+			[FromQuery] int pageSize = NumberConstants.DefaultPageSize)
 		{
 			var userId = GetUserId();
-			var result = await _flashcardService.GetUserSetsAsync(userId);
+			var result = await _flashcardService.GetUserSetsPaginatedAsync(userId, keyword, sortOrder, page, pageSize);
 
 			if (!result.IsSuccess)
-				return BadRequest(ApiResponse<IEnumerable<FlashcardSetResponseDto>>.ErrorResponse(result.ErrorMessage!));
+				return BadRequest(ApiResponse<PaginationResponse<FlashcardSetResponseDto>>.ErrorResponse(result.ErrorMessage!));
 
-			return Ok(ApiResponse<IEnumerable<FlashcardSetResponseDto>>.SuccessResponse(result.Data!));
+			return Ok(ApiResponse<PaginationResponse<FlashcardSetResponseDto>>.SuccessResponse(result.Data!));
 		}
 
 		/// <summary>
@@ -280,6 +285,21 @@ namespace ToeicGenius.Controllers
 				return BadRequest(ApiResponse<StudyStatsResponseDto>.ErrorResponse(result.ErrorMessage!));
 
 			return Ok(ApiResponse<StudyStatsResponseDto>.SuccessResponse(result.Data!));
+		}
+
+		/// <summary>
+		/// Reset study progress - học lại từ đầu
+		/// </summary>
+		[HttpPost("study/{setId}/reset")]
+		public async Task<IActionResult> ResetStudyProgress(int setId)
+		{
+			var userId = GetUserId();
+			var result = await _flashcardService.ResetStudyProgressAsync(setId, userId);
+
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<bool>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<bool>.SuccessResponse(true));
 		}
 
 		#endregion

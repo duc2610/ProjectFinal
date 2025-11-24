@@ -10,7 +10,6 @@ namespace ToeicGenius.Domains.DTOs.Responses.Flashcard
 		public int CardsKnown { get; set; }
 		public int CardsUnknown { get; set; }
 		public int NewCardsLearned { get; set; } // Cards that were "new" and became "learning"
-		public double AccuracyRate { get; set; } // CardsKnown / TotalCardsStudied * 100
 		public TimeSpan StudyDuration { get; set; }
 	}
 }
