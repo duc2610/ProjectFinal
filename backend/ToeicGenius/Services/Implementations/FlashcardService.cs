@@ -464,6 +464,22 @@ namespace ToeicGenius.Services.Implementations
 			return Result<StudyStatsResponseDto>.Success(response);
 		}
 
+		public async Task<Result<bool>> ResetStudyProgressAsync(int setId, Guid userId)
+		{
+			var set = await _uow.FlashcardSets.GetByIdAsync(setId);
+			if (set == null)
+				return Result<bool>.Failure("Flashcard set not found");
+
+			// Check access: owner hoặc public
+			if (set.UserId != userId && !set.IsPublic)
+				return Result<bool>.Failure("Access denied");
+
+			// Delete all progress for this set and user
+			await _uow.FlashcardProgresses.DeleteBySetAndUserAsync(setId, userId);
+
+			return Result<bool>.Success(true);
+		}
+
 		/// <summary>
 		/// Spaced Repetition Algorithm - tính ngày review tiếp theo
 		/// </summary>
