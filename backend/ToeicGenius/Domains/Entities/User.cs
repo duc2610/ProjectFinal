@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using ToeicGenius.Domains.Enums;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -22,10 +23,10 @@ namespace ToeicGenius.Domains.Entities
 
 		public UserStatus Status { get; set; } = UserStatus.Active;
 
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime CreatedAt { get; set; } = Now;
 		public DateTime? UpdatedAt { get; set; }
 		public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 		public ICollection<Role> Roles { get; set; } = new List<Role>();
-		public ICollection<UserTest> UserTests { get; set; } = new List<UserTest>();
+		public ICollection<TestResult> UserTests { get; set; } = new List<TestResult>();
 	}
 }

@@ -1,4 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -7,21 +9,31 @@ namespace ToeicGenius.Domains.Entities
 		[Key]
 		public int UserAnswerId { get; set; }
 
-		[Required]
-		public int UserTestId { get; set; }
-		public UserTest UserTest { get; set; } = null!;
+        [Required]
+        public int TestResultId { get; set; }
+        public TestResult TestResult { get; set; } = null!;
 
-		[Required]
-		public int QuestionId { get; set; }
-		public Question Question { get; set; } = null!;
+        [Required]
+        public int TestQuestionId { get; set; }
+        public TestQuestion TestQuestion { get; set; } = null!;
 
+		[Column(TypeName = "nvarchar(max)")]
+		public string? AnswerText { get; set; }
 		public string? AnswerAudioUrl { get; set; }
 
-		public int? OptionId { get; set; }
-		public Option? Option { get; set; }
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		[Column(TypeName = "nvarchar(5)")]
+		public string? ChosenOptionLabel { get; set; }
+		public int? SubQuestionIndex { get; set; }
+
+		// Version of the question when user answered (for version history)
+		public int QuestionVersion { get; set; } = 1;
+
+		// Chấm điểm (nếu có)
+		public bool? IsCorrect { get; set; }
+
+		public DateTime CreatedAt { get; set; } = Now;
 		public DateTime? UpdatedAt { get; set; }
+
+		public virtual ICollection<AIFeedback> AIFeedbacks { get; set; } = new List<AIFeedback>();
 	}
 }
-
-

@@ -18,6 +18,14 @@ namespace ToeicGenius.Repositories.Implementations
 				.ToListAsync();
 			return parts;
 		}
+
+		public async Task<Dictionary<int, QuestionSkill>> GetSkillMapByIdsAsync(List<int> partIds)
+		{
+			return await _context.Parts
+				.Where(p => partIds.Contains(p.PartId))
+				.ToDictionaryAsync(p => p.PartId, p => p.Skill);
+		}
+
 	}
 }
 

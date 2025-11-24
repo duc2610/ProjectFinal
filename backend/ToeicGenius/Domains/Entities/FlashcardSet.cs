@@ -1,26 +1,35 @@
 using System.ComponentModel.DataAnnotations;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
-	public class FlashcardSet
-	{
-		[Key]
-		public int SetId { get; set; }
+    public class FlashcardSet
+    {
+        [Key]
+        public int SetId { get; set; }
 
-		public string Title { get; set; } = string.Empty;
-		public string? Description { get; set; }
-		public bool IsPublic { get; set; }
+        [Required]
+        [MaxLength(255)]
+        public string Title { get; set; } = string.Empty;
 
-		[Required]
-		public Guid UserId { get; set; }
-		public User User { get; set; } = null!;
+        public string? Description { get; set; }
 
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-		public DateTime? UpdatedAt { get; set; }
-		public string? Status { get; set; }
+        [MaxLength(50)]
+        public string Language { get; set; } = "en-US"; 
 
-		public ICollection<Flashcard> Flashcards { get; set; } = new List<Flashcard>();
-	}
+        public bool IsPublic { get; set; } = false;
+
+        [Required]
+        public Guid UserId { get; set; }
+        public User User { get; set; } = null!;
+
+        public DateTime CreatedAt { get; set; } = Now;
+        public DateTime? UpdatedAt { get; set; }
+
+        public int TotalCards { get; set; } = 0; 
+
+        public ICollection<Flashcard> Flashcards { get; set; } = new List<Flashcard>();
+    }
 }
 
 

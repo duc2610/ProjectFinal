@@ -1,8 +1,12 @@
 ﻿using Amazon.S3;
 using Amazon.S3.Model;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using System.Text;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -20,7 +24,51 @@ namespace ToeicGenius.Services.Implementations
 			_uow = unitOfWork;
 		}
 
-		public async Task<Result<string>> DeleteFileAsync(string fileUrl)
+        public async Task<Stream> DownloadFileAsync(string fileUrl)
+        {
+            try
+            {
+                // Extract key từ CloudFront hoặc S3 URL
+                string key;
+
+                if (!string.IsNullOrEmpty(_cloudFrontDomain) && fileUrl.Contains(_cloudFrontDomain))
+                {
+                    // CloudFront URL: https://d123abc.cloudfront.net/toeic-audio/abc.mp3
+                    // Parse manually to preserve original filename (with spaces if any)
+                    var domainWithProtocol = "https://" + _cloudFrontDomain;
+                    key = fileUrl.Replace(domainWithProtocol + "/", "");
+                    // URL decode to get actual filename stored on S3
+                    key = Uri.UnescapeDataString(key);
+                }
+                else if (fileUrl.Contains(".s3"))
+                {
+                    // S3 URL: https://bucket.s3.amazonaws.com/toeic-audio/abc.mp3
+                    var uri = new Uri(fileUrl.Replace(" ", "%20"));
+                    key = uri.AbsolutePath.TrimStart('/');
+                    // URL decode to get actual filename stored on S3
+                    key = Uri.UnescapeDataString(key);
+                }
+                else
+                {
+                    throw new Exception("Invalid file URL format");
+                }
+
+                // Download từ S3
+                var request = new GetObjectRequest
+                {
+                    BucketName = _bucketName,
+                    Key = key
+                };
+
+                var response = await _s3Client.GetObjectAsync(request);
+                return response.ResponseStream;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to download file from AWS: {ex.Message}");
+            }
+        }
+        public async Task<Result<string>> DeleteFileAsync(string fileUrl)
 		{
 			try
 			{
@@ -84,7 +132,12 @@ namespace ToeicGenius.Services.Implementations
 			{
 				// Determine folder based on file type
 				var folder = fileType.ToLower() == "audio" ? "toeic-audio" : "toeic-images";
-				var key = $"{folder}/{Guid.NewGuid()}_{file.FileName}"; // Thêm GUID để tránh trùng tên
+
+				// Làm sạch tên file gốc
+				var safeFileName = GetSafeFileName(file.FileName);
+
+				// Tạo key an toàn cho CloudFront
+				var key = $"{folder}/{Guid.NewGuid()}_{safeFileName}";
 
 				// Prepare S3 upload request
 				var request = new PutObjectRequest
@@ -96,16 +149,15 @@ namespace ToeicGenius.Services.Implementations
 					CannedACL = S3CannedACL.Private // Chỉ CloudFront truy cập
 				};
 
-				// Upload to S3
 				await _s3Client.PutObjectAsync(request);
 
-				// Generate file URL (S3 hoặc CloudFront)
+				// Trả về CloudFront URL an toàn
 				var fileUrl = string.IsNullOrEmpty(_cloudFrontDomain)
 					? _s3Client.GetPreSignedURL(new GetPreSignedUrlRequest
 					{
 						BucketName = _bucketName,
 						Key = key,
-						Expires = DateTime.UtcNow.AddMinutes(30) // URL tạm thời
+						Expires = Now.AddMinutes(30)
 					})
 					: $"https://{_cloudFrontDomain}/{key}";
 
@@ -119,6 +171,34 @@ namespace ToeicGenius.Services.Implementations
 			{
 				return Result<string>.Failure($"Upload failed: {ex.Message}");
 			}
+		}
+
+		private string GetSafeFileName(string originalName)
+		{
+			if (string.IsNullOrWhiteSpace(originalName))
+				return "file";
+
+			// 1️.Bỏ dấu tiếng Việt
+			string normalized = originalName.Normalize(NormalizationForm.FormD);
+			var sb = new StringBuilder();
+			foreach (char c in normalized)
+			{
+				var uc = CharUnicodeInfo.GetUnicodeCategory(c);
+				if (uc != UnicodeCategory.NonSpacingMark)
+					sb.Append(c);
+			}
+			string noAccent = sb.ToString().Normalize(NormalizationForm.FormC);
+
+			// 2️.Chuyển thành chữ thường
+			string lower = noAccent.ToLowerInvariant();
+
+			// 3️.Thay khoảng trắng và ký tự đặc biệt bằng dấu '-'
+			string safe = Regex.Replace(lower, @"[^a-z0-9\-_.]", "-");
+
+			// 4️.Xóa trùng dấu '-'
+			safe = Regex.Replace(safe, "-{2,}", "-").Trim('-');
+
+			return safe;
 		}
 
 	}

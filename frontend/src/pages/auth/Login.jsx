@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React from "react";
 import {
   Card,
   Form,
@@ -6,7 +6,6 @@ import {
   Button,
   Typography,
   Divider,
-  message,
   notification,
 } from "antd";
 import { GoogleOutlined, ArrowRightOutlined } from "@ant-design/icons";
@@ -16,6 +15,7 @@ import { useAuth } from "@shared/hooks/useAuth";
 import logo from "@assets/images/logo.png";
 import { useGoogleLogin } from "@react-oauth/google";
 import { ROLES } from "@shared/utils/acl";
+import styles from "@shared/styles/Auth.module.css";
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -28,11 +28,13 @@ export default function Login() {
     if (roles.includes(ROLES.Admin))
       return navigate("/admin/dashboard", { replace: true });
     if (roles.includes(ROLES.TestCreator))
-      return navigate("/admin/dashboard", { replace: true });
+      return navigate("/test-creator/dashboard", { replace: true });
     return navigate("/", { replace: true });
   };
   const handleLogin = async (values) => {
-    const { email, password } = values;
+    // Normalize email: trim và lowercase
+    const email = (values.email || "").trim().toLowerCase();
+    const password = (values.password || "").trim();
     try {
       const res = await signIn(email, password);
       if (res.ok) {
@@ -44,21 +46,45 @@ export default function Login() {
         redirectAfterLogin(res.user);
       } else {
         const msg = res?.message || "Email hoặc mật khẩu không đúng";
+        
+        // Hiển thị notification error
+        notification.error({
+          message: "Đăng nhập thất bại",
+          description: msg,
+          duration: 5,
+          placement: "top",
+        });
+        
+        // Set errors vào form fields
         form.setFields([
           { name: "email", errors: [msg] },
           { name: "password", errors: [msg] },
         ]);
+        
+        // Xóa password để người dùng nhập lại
+        form.setFieldsValue({ password: "" });
       }
     } catch (error) {
       const beMsg =
         error?.response?.data?.message ||
         error?.message ||
         "Đã có lỗi xảy ra, vui lòng thử lại sau.";
+      
       notification.error({
         message: "Đăng nhập thất bại",
         description: beMsg,
         duration: 5,
+        placement: "top",
       });
+      
+      // Set errors vào form fields
+      form.setFields([
+        { name: "email", errors: [beMsg] },
+        { name: "password", errors: [beMsg] },
+      ]);
+      
+      // Xóa password để người dùng nhập lại
+      form.setFieldsValue({ password: "" });
     }
   };
   const googleLogin = useGoogleLogin({
@@ -87,62 +113,77 @@ export default function Login() {
     flow: "auth-code",
   });
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#f7f7fb",
-        padding: 16,
-      }}
-    >
-      <img src={logo} alt="Logo" style={{ height: 90, margin: 16 }} />
+    <div className={styles.authContainer}>
+      <img src={logo} alt="Logo" className={styles.authLogo} />
       <Card
-        style={{
-          width: 520,
-          borderRadius: 16,
-          padding: "32px 24px",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
-        }}
+        className={styles.authCard}
         bodyStyle={{ padding: 0 }}
       >
-        <div style={{ padding: "28px 28px 8px", textAlign: "center" }}>
+        <div className={styles.authHeader}>
           <Title level={3} style={{ marginBottom: 4 }}>
             Chào mừng trở lại
           </Title>
           <Text type="secondary">Đăng nhập vào tài khoản của bạn</Text>
         </div>
 
-        <div style={{ padding: "0 28px 24px" }}>
+        <div className={styles.authForm}>
           <Form form={form} layout="vertical" onFinish={handleLogin}>
             <Form.Item
               label="Email"
               name="email"
+              validateTrigger={['onBlur']}
               rules={[
                 {
                   required: true,
                   message: "Vui lòng nhập email",
                 },
+                {
+                  pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                  message: "Email không hợp lệ",
+                },
               ]}
             >
-              <Input placeholder="Nhập email của bạn" size="large" />
+              <Input 
+                placeholder="Nhập email của bạn" 
+                size="large"
+                onChange={() => {
+                  // Xóa lỗi khi đang sửa (nếu có)
+                  const errors = form.getFieldsError(['email']);
+                  if (errors[0]?.errors?.length > 0) {
+                    form.setFields([{ name: 'email', errors: [] }]);
+                  }
+                }}
+              />
             </Form.Item>
 
             <Form.Item
               label={
                 <div
-                  style={{ display: "flex", justifyContent: "space-between" }}
+                  style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}
                 >
-                  <span style={{ marginRight: 230 }}>Mật khẩu</span>
+                  <span>Mật khẩu</span>
                   <a href="/forgot-password">Quên mật khẩu?</a>
                 </div>
               }
               name="password"
+              validateTrigger={['onBlur']}
               rules={[{ required: true, message: "Vui lòng nhập mật khẩu" }]}
             >
-              <Input.Password placeholder="Enter your password" size="large" />
+              <Input.Password 
+                placeholder="Nhập mật khẩu của bạn" 
+                size="large"
+                onChange={() => {
+                  // Xóa lỗi khi đang sửa (nếu có)
+                  const errors = form.getFieldsError(['password']);
+                  if (errors[0]?.errors?.length > 0) {
+                    form.setFields([{ name: 'password', errors: [] }]);
+                  }
+                }}
+                onFocus={() => {
+                  // Validate trường trước đó khi focus vào trường này
+                  form.validateFields(['email']).catch(() => {});
+                }}
+              />
             </Form.Item>
 
             <Button
@@ -150,12 +191,7 @@ export default function Login() {
               htmlType="submit"
               block
               size="large"
-              style={{
-                height: 44,
-                border: "none",
-                background: "linear-gradient(90deg, #7b61ff 0%, #3ea1ff 100%)",
-                fontWeight: 600,
-              }}
+              className={styles.authButton}
               icon={<ArrowRightOutlined />}
               loading={loading}
               iconPosition="end"
@@ -171,15 +207,7 @@ export default function Login() {
               block
               size="large"
               icon={<GoogleOutlined />}
-              style={{
-                height: 44,
-                background: "#fff",
-                borderColor: "#eee",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
+              className={styles.googleButton}
               onClick={() => googleLogin()}
             >
               Tiếp tục với Google

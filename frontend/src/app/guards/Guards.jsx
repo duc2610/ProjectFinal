@@ -3,6 +3,7 @@ import { useAuth } from "@shared/hooks/useAuth";
 import Splash from "@shared/components/Splash";
 import { message } from "antd";
 import { hasRole, ROLES } from "@shared/utils/acl";
+import { hasCookie } from "@shared/utils/cookie";
 
 export function PrivateRoute() {
   const { isAuthenticated, loading } = useAuth();
@@ -11,7 +12,7 @@ export function PrivateRoute() {
   if (loading) return <Splash />;
 
   if (!isAuthenticated) {
-    if (localStorage.getItem("tg_access_token")) {
+    if (hasCookie("tg_access_token")) {
       message.warning("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
     }
     return (

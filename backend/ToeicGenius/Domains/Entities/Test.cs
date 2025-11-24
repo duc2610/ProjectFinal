@@ -1,5 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using ToeicGenius.Domains.Enums;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -8,15 +9,28 @@ namespace ToeicGenius.Domains.Entities
 		[Key]
 		public int TestId { get; set; }
 
-		public string? TestMode { get; set; }
-		public string? Title { get; set; }
+
+		[Required]
+		[MaxLength(50)]
+		public TestType TestType { get; set; } // Mode: Simulator, Practice
+		public TestSkill TestSkill { get; set; } = TestSkill.LR; // Skill: L&R, Writing, Speaking, L&R
+		public string Title { get; set; }
 		public string? Description { get; set; }
+		public string? AudioUrl { get; set; }
+		[Required]
 		public int Duration { get; set; }
-		public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+		public DateTime CreatedAt { get; set; } = Now;
 		public DateTime? UpdatedAt { get; set; }
-		public CommonStatus Status { get; set; }
-		public ICollection<Part> Parts { get; set; } = new List<Part>();
-		public ICollection<UserTest> UserTests { get; set; } = new List<UserTest>();
+		public TestCreationStatus CreationStatus { get; set; } = TestCreationStatus.Draft;
+		public TestVisibilityStatus VisibilityStatus { get; set; } = TestVisibilityStatus.Hidden;
+		public int Version { get; set; } = 1;  //  Version control
+		public int? ParentTestId { get; set; } // Liên kết test gốc (nếu là bản clone)
+		public Test? ParentTest { get; set; }
+		public int TotalQuestion { get; set; }
+		public Guid? CreatedById { get; set; }
+		public User? CreatedBy { get; set; }
+		public ICollection<TestQuestion> TestQuestions { get; set; } = new List<TestQuestion>();
+		public ICollection<TestResult> TestResults { get; set; } = new List<TestResult>();
 	}
 }
 

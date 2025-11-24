@@ -12,7 +12,9 @@ import {
   loginWithGoogle as svcGoogle,
   getProfile as svcGetProfile,
 } from "@services/authService";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ROLES } from "@shared/utils/acl";
+import { getCookie, setCookie, removeCookie, hasCookie } from "@shared/utils/cookie";
 
 const AuthContext = createContext(null);
 
@@ -20,41 +22,45 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     (async () => {
       try {
-        const hasToken = !!localStorage.getItem("tg_access_token");
+        const hasToken = hasCookie("tg_access_token");
         if (hasToken) {
           const profile = await svcGetProfile();
           setUser(profile);
-          localStorage.setItem("user", JSON.stringify(profile));
+          setCookie("user", JSON.stringify(profile), 7, { sameSite: 'strict' });
+          
+          const currentPath = location.pathname;
+          if (currentPath === "/") {
+            const roles = Array.isArray(profile?.roles) ? profile.roles : [];
+            if (roles.includes(ROLES.Admin)) {
+              navigate("/admin/dashboard", { replace: true });
+            } else if (roles.includes(ROLES.TestCreator)) {
+              navigate("/test-creator/dashboard", { replace: true });
+            }
+          }
         } else {
-          localStorage.removeItem("user");
+          removeCookie("user");
           setUser(null);
         }
       } catch (e) {
-        localStorage.removeItem("tg_access_token");
-        localStorage.removeItem("tg_refresh_token");
-        localStorage.removeItem("user");
+        removeCookie("tg_access_token");
+        removeCookie("tg_refresh_token");
+        removeCookie("user");
         setUser(null);
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
-
-  const persistTokens = (data) => {
-    if (data && data.accessToken)
-      localStorage.setItem("tg_access_token", data.accessToken);
-    if (data && data.refreshToken)
-      localStorage.setItem("tg_refresh_token", data.refreshToken);
-  };
+  }, [navigate, location.pathname]);
 
   const refreshProfile = useCallback(async () => {
     const profile = await svcGetProfile();
     setUser(profile);
-    localStorage.setItem("user", JSON.stringify(profile));
+    setCookie("user", JSON.stringify(profile), 7, { sameSite: 'strict' });
     return profile;
   }, []);
 
@@ -63,7 +69,6 @@ export function AuthProvider({ children }) {
       setLoading(true);
       try {
         const data = await svcLogin({ email, password });
-        persistTokens(data);
         const profile = await refreshProfile();
         return { ok: true, user: profile };
       } catch (err) {
@@ -81,7 +86,6 @@ export function AuthProvider({ children }) {
       setLoading(true);
       try {
         const data = await svcGoogle(code);
-        persistTokens(data);
         const profile = await refreshProfile();
         return { ok: true, user: profile };
       } catch (err) {
@@ -98,14 +102,14 @@ export function AuthProvider({ children }) {
   const signOut = () => {
     svcLogout();
     setUser(null);
-    localStorage.removeItem("user");
+    removeCookie("user");
   };
 
   const value = useMemo(
     () => ({
       user,
       loading,
-      isAuthenticated: !!localStorage.getItem("tg_access_token"),
+      isAuthenticated: !!user, 
       signIn,
       signInWithGoogle,
       signOut,
@@ -113,6 +117,7 @@ export function AuthProvider({ children }) {
     }),
     [user, loading, signIn, signInWithGoogle, signOut, refreshProfile]
   );
+  
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

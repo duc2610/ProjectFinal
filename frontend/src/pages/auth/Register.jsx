@@ -22,11 +22,15 @@ export default function Register() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
 
-  const collapseSpaces = (s) =>
-    typeof s === "string" ? s.replace(/\s+/g, " ").trim() : s;
+  const collapseSpaces = (s) => {
+    if (typeof s !== "string") return s;
+    // Chỉ collapse nhiều khoảng trắng thành một, không trim khi đang gõ
+    return s.replace(/\s+/g, " ");
+  };
 
   const onFinish = async (values) => {
-    const fullName = collapseSpaces(values.fullName || "");
+    // Chỉ normalize và trim khi submit
+    const fullName = (values.fullName || "").replace(/\s+/g, " ").trim();
     const email = (values.email || "").trim().toLowerCase();
     const password = (values.password || "").trim();
 
@@ -81,7 +85,7 @@ export default function Register() {
               <Form.Item
                 label="Họ và tên"
                 name="fullName"
-                normalize={collapseSpaces}
+                validateTrigger={['onBlur']}
                 rules={[
                   { required: true, message: "Vui lòng nhập họ và tên" },
                   {
@@ -94,7 +98,17 @@ export default function Register() {
                   },
                 ]}
               >
-                <Input placeholder="Nhập họ và tên" size="large" />
+                <Input 
+                  placeholder="Nhập họ và tên" 
+                  size="large"
+                  onChange={() => {
+                    // Xóa lỗi khi đang sửa (nếu có)
+                    const errors = form.getFieldsError(['fullName']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'fullName', errors: [] }]);
+                    }
+                  }}
+                />
               </Form.Item>
             </Col>
 
@@ -103,6 +117,7 @@ export default function Register() {
                 label="Email"
                 name="email"
                 normalize={(v) => (v ? v.trim() : v)}
+                validateTrigger={['onBlur']}
                 rules={[
                   { required: true, message: "Vui lòng nhập email" },
                   {
@@ -111,7 +126,21 @@ export default function Register() {
                   },
                 ]}
               >
-                <Input placeholder="Nhập email" size="large" />
+                <Input 
+                  placeholder="Nhập email" 
+                  size="large"
+                  onChange={() => {
+                    // Xóa lỗi khi đang sửa (nếu có)
+                    const errors = form.getFieldsError(['email']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'email', errors: [] }]);
+                    }
+                  }}
+                  onFocus={() => {
+                    // Validate trường trước đó khi focus vào trường này
+                    form.validateFields(['fullName']).catch(() => {});
+                  }}
+                />
               </Form.Item>
             </Col>
           </Row>
@@ -123,6 +152,7 @@ export default function Register() {
                 label="Mật khẩu"
                 name="password"
                 normalize={(v) => (v ? v.trim() : v)}
+                validateTrigger={['onBlur']}
                 rules={[
                   { required: true, message: "Vui lòng nhập mật khẩu" },
                   { min: 8, message: "Mật khẩu tối thiểu 8 ký tự" },
@@ -133,7 +163,26 @@ export default function Register() {
                   },
                 ]}
               >
-                <Input.Password placeholder="Nhập mật khẩu" size="large" />
+                <Input.Password 
+                  placeholder="Nhập mật khẩu" 
+                  size="large"
+                  onChange={() => {
+                    // Xóa lỗi khi đang sửa (nếu có)
+                    const errors = form.getFieldsError(['password']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'password', errors: [] }]);
+                    }
+                    // Xóa lỗi của confirmPassword nếu có (vì password thay đổi)
+                    const confirmErrors = form.getFieldsError(['confirmPassword']);
+                    if (confirmErrors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'confirmPassword', errors: [] }]);
+                    }
+                  }}
+                  onFocus={() => {
+                    // Validate các trường trước đó khi focus vào trường này
+                    form.validateFields(['fullName', 'email']).catch(() => {});
+                  }}
+                />
               </Form.Item>
             </Col>
 
@@ -142,6 +191,7 @@ export default function Register() {
                 label="Xác nhận mật khẩu"
                 name="confirmPassword"
                 dependencies={["password"]}
+                validateTrigger={['onBlur']}
                 rules={[
                   { required: true, message: "Vui lòng nhập lại mật khẩu" },
                   ({ getFieldValue }) => ({
@@ -154,7 +204,21 @@ export default function Register() {
                   }),
                 ]}
               >
-                <Input.Password placeholder="Nhập lại mật khẩu" size="large" />
+                <Input.Password 
+                  placeholder="Nhập lại mật khẩu" 
+                  size="large"
+                  onChange={() => {
+                    // Xóa lỗi khi đang sửa (nếu có)
+                    const errors = form.getFieldsError(['confirmPassword']);
+                    if (errors[0]?.errors?.length > 0) {
+                      form.setFields([{ name: 'confirmPassword', errors: [] }]);
+                    }
+                  }}
+                  onFocus={() => {
+                    // Validate các trường trước đó khi focus vào trường này
+                    form.validateFields(['fullName', 'email', 'password']).catch(() => {});
+                  }}
+                />
               </Form.Item>
             </Col>
           </Row>

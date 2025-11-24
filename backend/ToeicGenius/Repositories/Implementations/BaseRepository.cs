@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Repositories.Persistence;
 
@@ -44,6 +45,16 @@ namespace ToeicGenius.Repositories.Implementations
 		{
 			_dbSet.Update(entity);
 			return entity;
+		}
+
+		public async Task<int> CountAsync()
+		{
+			return await _dbSet.CountAsync();
+		}
+
+		public async Task<int> CountAsync(Expression<Func<T, bool>> predicate)
+		{
+			return await _dbSet.CountAsync(predicate);
 		}
 	}
 }

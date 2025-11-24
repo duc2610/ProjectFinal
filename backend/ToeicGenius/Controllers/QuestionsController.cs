@@ -87,7 +87,7 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 
-		// Get all: single + group question
+		// Get list: single question
 		[HttpGet("questions")]
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> FilterQuestions(
@@ -99,7 +99,7 @@ namespace ToeicGenius.Controllers
 			[FromQuery] int page = NumberConstants.DefaultFirstPage,
 			[FromQuery] int pageSize = NumberConstants.DefaultPageSize)
 		{
-			var result = await _questionService.FilterAllAsync(part, questionType, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Active);
+			var result = await _questionService.FilterSingleQuestionAsync(part, questionType, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Active);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
 			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));
@@ -117,7 +117,7 @@ namespace ToeicGenius.Controllers
 			[FromQuery] int page = NumberConstants.DefaultFirstPage,
 			[FromQuery] int pageSize = NumberConstants.DefaultPageSize)
 		{
-			var result = await _questionService.FilterAllAsync(part, questionType, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Inactive);
+			var result = await _questionService.FilterSingleQuestionAsync(part, questionType, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Inactive);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
 			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));

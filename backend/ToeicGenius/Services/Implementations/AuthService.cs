@@ -8,6 +8,7 @@ using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
 using ToeicGenius.Shared.Helpers;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -54,7 +55,7 @@ namespace ToeicGenius.Services.Implementations
             if (string.IsNullOrEmpty(user.PasswordHash))
             {
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(changePasswordRequest.NewPassword);
-                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedAt = Now;
                 await _unitOfWork.Users.UpdateAsync(user);
                 await _unitOfWork.SaveChangesAsync();
                 return "";
@@ -64,7 +65,7 @@ namespace ToeicGenius.Services.Implementations
                 return ErrorMessages.OldPasswordMismatch;
 
             user.PasswordHash = SecurityHelper.HashPassword(changePasswordRequest.NewPassword);
-            user.UpdatedAt = DateTime.UtcNow;
+            user.UpdatedAt = Now;
             await _unitOfWork.Users.UpdateAsync(user);
             await _unitOfWork.SaveChangesAsync();
             return "";
@@ -78,7 +79,7 @@ namespace ToeicGenius.Services.Implementations
                 if (user == null) return ErrorMessages.UserNotFound;
 
                 user.PasswordHash = SecurityHelper.HashPassword(resetPasswordConfirmDto.NewPassword);
-                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedAt = Now;
                 await _unitOfWork.Users.UpdateAsync(user);
                 await _unitOfWork.SaveChangesAsync();
                 return "";
@@ -91,38 +92,47 @@ namespace ToeicGenius.Services.Implementations
 
         public async Task<User?> GetUserByIdAsync(Guid userId) => await _unitOfWork.Users.GetByIdAsync(userId);
 
-        public async Task<Result<LoginResponseDto>> LoginAsync(LoginRequestDto loginDto, string ipAddress)
-        {
-            var user = await _unitOfWork.Users.GetByEmailAsync(loginDto.Email);
+		public async Task<Result<LoginResponseDto>> LoginAsync(LoginRequestDto loginDto, string ipAddress)
+		{
+			var user = await _unitOfWork.Users.GetByEmailAsync(loginDto.Email);
 
-            if (user == null || user.Status != UserStatus.Active || user.PasswordHash == null)
-                return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
+			// Không để lộ thông tin người dùng tồn tại hay không
+			if (user == null || user.PasswordHash == null)
+				return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
 
-            if (!SecurityHelper.VerifyPassword(loginDto.Password, user.PasswordHash))
-                return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
+			// Kiểm tra trạng thái tài khoản
+			if (user.Status == UserStatus.Banned)
+				return Result<LoginResponseDto>.Failure(ErrorMessages.AccountBanned);
 
-            // Issue tokens
-            var token = _jwtService.GenerateAccessToken(user);
-            var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
+			if (user.Status != UserStatus.Active)
+				return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
 
-            user.RefreshTokens.Add(refreshToken);
-            await _unitOfWork.Users.UpdateAsync(user);
-            await _unitOfWork.SaveChangesAsync();
+			// Kiểm tra mật khẩu
+			if (!SecurityHelper.VerifyPassword(loginDto.Password, user.PasswordHash))
+				return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
 
-            var response = new LoginResponseDto
-            {
-                Token = token,
-                RefreshToken = refreshToken.Token,
-                Fullname = user.FullName,
-                Email = user.Email,
-                UserId = user.Id,
-                ExpireAt = DateTime.UtcNow.AddMinutes(30)
-            };
+			// Issue tokens
+			var token = _jwtService.GenerateAccessToken(user);
+			var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
 
-            return Result<LoginResponseDto>.Success(response);
-        }
+			user.RefreshTokens.Add(refreshToken);
+			await _unitOfWork.Users.UpdateAsync(user);
+			await _unitOfWork.SaveChangesAsync();
 
-        public async Task<LoginResponseDto> LoginWithGoogleAsync(string code, string ipAddress)
+			var response = new LoginResponseDto
+			{
+				Token = token,
+				RefreshToken = refreshToken.Token,
+				Fullname = user.FullName,
+				Email = user.Email,
+				UserId = user.Id,
+				ExpireAt = Now.AddMinutes(30)
+			};
+
+			return Result<LoginResponseDto>.Success(response);
+		}
+
+		public async Task<LoginResponseDto> LoginWithGoogleAsync(string code, string ipAddress)
         {
             // 1) Exchange code -> tokens (redirect_uri = "postmessage")
             var tokens = await _googleAuthService.ExchangeCodeForTokensAsync(code);
@@ -145,10 +155,10 @@ namespace ToeicGenius.Services.Implementations
                     FullName = payload.Name ?? payload.Email,
                     GoogleId = payload.Subject,
                     Status = UserStatus.Active,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = Now
                 };
 
-                var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.User);
+                var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.Examinee);
                 if (defaultRole != null)
                     user.Roles.Add(defaultRole);
 
@@ -161,7 +171,7 @@ namespace ToeicGenius.Services.Implementations
                 if (string.IsNullOrEmpty(user.GoogleId))
                     user.GoogleId = payload.Subject;
 
-                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedAt = Now;
                 await _unitOfWork.Users.UpdateAsync(user);
                 await _unitOfWork.SaveChangesAsync();
             }
@@ -182,7 +192,7 @@ namespace ToeicGenius.Services.Implementations
                 Email = user.Email,
                 Token = accessToken,
                 RefreshToken = refreshToken.Token,
-                ExpireAt = DateTime.UtcNow.AddMinutes(30)
+                ExpireAt = Now.AddMinutes(30)
             };
         }
 
@@ -218,11 +228,11 @@ namespace ToeicGenius.Services.Implementations
                     Email = registerDto.Email,
                     FullName = registerDto.FullName,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = Now,
                     Status = UserStatus.Active,
                 };
 
-                var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.User);
+                var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.Examinee);
                 if (defaultRole != null) user.Roles.Add(defaultRole);
 
                 await _unitOfWork.Users.AddAsync(user);
@@ -270,7 +280,7 @@ namespace ToeicGenius.Services.Implementations
                 if (user == null) return ErrorMessages.UserNotFound;
 
                 user.PasswordHash = SecurityHelper.HashPassword(newPassword);
-                user.UpdatedAt = DateTime.UtcNow;
+                user.UpdatedAt = Now;
                 await _unitOfWork.Users.UpdateAsync(user);
                 await _unitOfWork.SaveChangesAsync();
                 return "";
@@ -288,10 +298,10 @@ namespace ToeicGenius.Services.Implementations
                 return Result<RefreshTokenResponseDto>.Failure("Invalid refresh token");
 
             var existingToken = user.RefreshTokens.FirstOrDefault(rt => rt.Token == refreshToken);
-            if (existingToken == null || existingToken.ExpiresAt <= DateTime.UtcNow || existingToken.RevokeAt != null)
+            if (existingToken == null || existingToken.ExpiresAt <= Now || existingToken.RevokeAt != null)
                 return Result<RefreshTokenResponseDto>.Failure("Refresh token expired or revoked");
 
-            existingToken.RevokeAt = DateTime.UtcNow;
+            existingToken.RevokeAt = Now;
             existingToken.RevokeByIp = ipAddress;
 
             var newAccessToken = _jwtService.GenerateAccessToken(user);
@@ -324,7 +334,7 @@ namespace ToeicGenius.Services.Implementations
             if (existingToken.RevokeAt != null)
                 return Result<string>.Failure("Refresh token đã bị hủy trước đó");
 
-            existingToken.RevokeAt = DateTime.UtcNow;
+            existingToken.RevokeAt = Now;
             existingToken.RevokeByIp = ipAddress;
 
             await _unitOfWork.Users.UpdateAsync(user);
@@ -342,8 +352,8 @@ namespace ToeicGenius.Services.Implementations
                 Email = email,
                 OtpCodeHash = hashed,
                 Type = type,
-                CreatedAt = DateTime.UtcNow,
-                ExpiresAt = DateTime.UtcNow.AddMinutes(10)
+                CreatedAt = Now,
+                ExpiresAt = Now.AddMinutes(10)
             };
             await _unitOfWork.UserOtps.AddAsync(entity);
             await _unitOfWork.SaveChangesAsync();
@@ -362,7 +372,7 @@ namespace ToeicGenius.Services.Implementations
             var record = await _unitOfWork.UserOtps.GetOtpByEmailAsync(email, type);
             if (record != null)
             {
-                record.UsedAt = DateTime.UtcNow;
+                record.UsedAt = Now;
                 await _unitOfWork.UserOtps.UpdateAsync(record);
                 await _unitOfWork.SaveChangesAsync();
             }

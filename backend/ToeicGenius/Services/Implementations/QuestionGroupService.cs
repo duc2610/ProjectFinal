@@ -1,19 +1,14 @@
-using Amazon.Runtime.Internal;
-using Azure.Core;
-using Humanizer;
-using Microsoft.Extensions.Options;
-using System.ComponentModel.DataAnnotations;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.GroupQuestion;
-using ToeicGenius.Domains.DTOs.Requests.Question;
 using ToeicGenius.Domains.DTOs.Requests.QuestionGroup;
+using ToeicGenius.Domains.DTOs.Responses.Question;
 using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
-using ToeicGenius.Repositories.Implementations;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 using ToeicGenius.Shared.Validators;
 
 namespace ToeicGenius.Services.Implementations
@@ -36,9 +31,17 @@ namespace ToeicGenius.Services.Implementations
 		}
 
 
-		public async Task<QuestionGroupResponseDto?> GetDetailAsync(int id)
+		public async Task<Result<QuestionGroupResponseDto?>> GetDetailAsync(int id)
 		{
-			return await _uow.QuestionGroups.GetGroupWithQuestionsAsync(id);
+			try
+			{
+				var result = await _uow.QuestionGroups.GetGroupWithQuestionsAsync(id);
+				return Result<QuestionGroupResponseDto?>.Success(result);
+			}
+			catch (Exception ex)
+			{
+				return Result<QuestionGroupResponseDto?>.Failure(ex.Message);
+			}
 		}
 
 		/// <summary>
@@ -53,16 +56,16 @@ namespace ToeicGenius.Services.Implementations
 			if (quantityQuestion > NumberConstants.MaxQuantityQuestionInGroup
 				|| quantityQuestion < NumberConstants.MinQuantityQuestionInGroup)
 			{
-				return Result<string>.Failure("Quantity of question in group must be between 2 and 5.");
+				return Result<string>.Failure("Một nhóm câu hỏi phải có từ 2 đến 5 câu hỏi đơn.");
 			}
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(request.PartId);
-			if(part != null && part.Skill == QuestionSkill.Listening)
+			if (part != null && part.Skill == QuestionSkill.Listening)
 			{
 				if (request.Audio == null || request.Audio.Length == 0)
 				{
-					return Result<string>.Failure("Audio file is required for Listening part.");
+					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
 
@@ -145,7 +148,7 @@ namespace ToeicGenius.Services.Implementations
 						Content = opt.Content,
 						Label = opt.Label,
 						IsCorrect = opt.IsCorrect,
-						Question=question
+						Question = question
 					}).ToList();
 					await _uow.Questions.AddAsync(question);
 					await _uow.Options.AddRangeAsync(options);
@@ -164,17 +167,17 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<Result<PaginationResponse<QuestionGroupListItemDto>>> FilterAsync(int? part, string? keyWord, int? skill, int page, int pageSize, CommonStatus status)
+		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterQuestionGroupAsync(int? partId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
 		{
-			var result = await _uow.QuestionGroups.FilterGroupsAsync(part, keyWord, skill, page, pageSize, status);
-			return Result<PaginationResponse<QuestionGroupListItemDto>>.Success(result);
+			var result = await _uow.QuestionGroups.FilterGroupAsync(partId, keyWord, skill, sortOrder, page, pageSize, status);
+			return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
 		}
 
 		public async Task<Result<string>> UpdateAsync(int questionGroupId, UpdateQuestionGroupDto dto)
 		{
 			// Check exist question
 			var currentQuestionGroup = await _uow.QuestionGroups.GetByIdAndStatusAsync(questionGroupId, CommonStatus.Active);
-			if (currentQuestionGroup == null) return Result<string>.Failure("Not found question group to update");
+			if (currentQuestionGroup == null) return Result<string>.Failure("Không tìm thấy nhóm câu hỏi");
 
 			// Check valid quantity
 			var quantityQuestion = dto.Questions.Count();
@@ -188,7 +191,10 @@ namespace ToeicGenius.Services.Implementations
 			var part = await _uow.Parts.GetByIdAsync(dto.PartId);
 			if (part != null && part.Skill == QuestionSkill.Listening)
 			{
-				if (dto.Audio == null || dto.Audio.Length == 0)
+				// FIX: only require audio when neither new file is provided nor question already has audio
+				var hasExistingAudio = !string.IsNullOrEmpty(currentQuestionGroup.AudioUrl);
+				var hasNewAudio = dto.Audio != null && dto.Audio.Length > 0;
+				if (!hasExistingAudio && !hasNewAudio)
 				{
 					return Result<string>.Failure("Audio file is required for Listening part.");
 				}
@@ -241,7 +247,7 @@ namespace ToeicGenius.Services.Implementations
 				// Update question 
 				currentQuestionGroup.PartId = dto.PartId;
 				currentQuestionGroup.PassageContent = dto.PassageContent;
-				currentQuestionGroup.UpdatedAt = DateTime.UtcNow;
+				currentQuestionGroup.UpdatedAt = Now;
 
 				// Chỉ thay khi có file mới
 				if (!string.IsNullOrEmpty(newAudioUrl)) currentQuestionGroup.AudioUrl = newAudioUrl;
@@ -256,31 +262,33 @@ namespace ToeicGenius.Services.Implementations
 						q.Content = qDto.Content;
 						q.Explanation = qDto.Solution;
 						q.QuestionTypeId = qDto.QuestionTypeId;
-						q.UpdatedAt = DateTime.UtcNow;
+						q.UpdatedAt = Now;
 
 						// Xử lý option
 						// Update options
 						var existingOpts = q.Options.ToDictionary(o => o.OptionId, o => o);
-						var keepIds = new HashSet<int>(qDto.AnswerOptions.Where(o => o.OptionId.HasValue)
-																		 .Select(o => o.OptionId!.Value));
+						// build keepIds from DTO but only positive ids (ids <= 0 are treated as "new")
+						var keepIds = new HashSet<int>(qDto.AnswerOptions
+							.Where(d => d.Id.HasValue && d.Id.Value > 0)
+							.Select(d => d.Id!.Value));
 
 						// Soft delete removed
 						foreach (var old in q.Options.Where(o => !keepIds.Contains(o.OptionId)))
 						{
 							old.Status = CommonStatus.Inactive;
-							old.UpdatedAt = DateTime.UtcNow;
+							old.UpdatedAt = Now;
 						}
 
 						// Upsert
 						foreach (var oDto in qDto.AnswerOptions)
 						{
-							if (oDto.OptionId.HasValue && existingOpts.TryGetValue(oDto.OptionId.Value, out var opt))
+							if (oDto.Id.HasValue && existingOpts.TryGetValue(oDto.Id.Value, out var opt))
 							{
 								opt.Label = oDto.Label;
 								opt.Content = oDto.Content;
 								opt.IsCorrect = oDto.IsCorrect;
 								opt.Status = CommonStatus.Active;
-								opt.UpdatedAt = DateTime.UtcNow;
+								opt.UpdatedAt = Now;
 							}
 							else
 							{
@@ -290,7 +298,7 @@ namespace ToeicGenius.Services.Implementations
 									Content = oDto.Content,
 									IsCorrect = oDto.IsCorrect,
 									Status = CommonStatus.Active,
-									CreatedAt = DateTime.UtcNow
+									CreatedAt = Now
 								});
 							}
 						}
@@ -316,14 +324,14 @@ namespace ToeicGenius.Services.Implementations
 							Content = qDto.Content,
 							Explanation = qDto.Solution,
 							Status = CommonStatus.Active,
-							CreatedAt = DateTime.UtcNow,
+							CreatedAt = Now,
 							Options = qDto.AnswerOptions.Select(o => new Option
 							{
 								Label = o.Label,
 								Content = o.Content,
 								IsCorrect = o.IsCorrect,
 								Status = CommonStatus.Active,
-								CreatedAt = DateTime.UtcNow
+								CreatedAt = Now
 							}).ToList()
 						};
 

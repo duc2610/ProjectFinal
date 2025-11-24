@@ -11,24 +11,23 @@ namespace ToeicGenius.Shared.Validators
 			// Kiểm tra số lượng đáp án
 			if (options.Count != quantityOptions)
 			{
-				return (false, $"Answer options must have {quantityOptions} items.");
+				return (false, $"Số lượng đáp án phải đúng bằng {quantityOptions}.");
 			}
 
 			// Kiểm tra ít nhất một đáp án đúng
-			if (!options.Any(opt => opt.IsCorrect))
+			if (!options.Any(opt => opt.IsCorrect) || options.Where(opt => opt.IsCorrect == true).Count() != 1)
 			{
-				return (false, "Only one answer option must be marked as correct.");
+				return (false, "Cần có duy nhất một đáp án đúng.");
 			}
-
+			
 			// Kiểm tra tính duy nhất của Label và OptionOrder
 			var labels = options.Select(opt => opt.Label).ToList();
 			if (labels.Distinct().Count() != labels.Count)
 			{
-				return (false, "Answer option labels must be unique.");
+				return (false, "Các nhãn (label) của đáp án phải là duy nhất, không được trùng nhau.");
 			}
 
 			return (true, string.Empty);
 		}
-
 	}
 }

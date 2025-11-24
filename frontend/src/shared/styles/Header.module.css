@@ -1,62 +1,353 @@
 .header {
-  background: #fff !important;
-  padding: 0 16px;
-  height: 64px;
+  background: #ffffff !important;
+  padding: 0 32px;
+  height: 72px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid #e8eaed;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  overflow: hidden !important;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
 }
 
 .inner {
   height: 100%;
   display: flex;
   align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  gap: 16px;
+  overflow: hidden;
 }
 
 .logoWrap {
   display: flex;
   align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  min-width: 0;
 }
+
+.logoWrap:hover {
+  transform: translateY(-1px);
+}
+
 .logo {
-  height: 50px;
+  height: 48px;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .right {
   margin-left: auto;
   display: flex;
   align-items: center;
-  column-gap: 12px;
+  gap: 16px;
+  flex-shrink: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .navRight {
   display: flex;
   align-items: center;
-  column-gap: 24px;
+  gap: 8px;
+  overflow: hidden;
 }
 
 .link {
-  color: #2d2d2d;
+  color: #64748b;
   font-weight: 500;
+  font-size: 14px;
   text-decoration: none;
-  transition: color 0.15s ease;
+  padding: 10px 20px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: transparent;
 }
+
 .link:hover {
-  color: #ff6f61;
+  color: #1e3a8a;
+  background: rgba(30, 58, 138, 0.08);
 }
+
 .active {
-  color: #ff6f61;
+  color: #ffffff;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(30, 58, 138, 0.2);
+}
+
+.active::after {
+  display: none;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-left: 16px;
+  border-left: 1px solid #e8eaed;
+  flex-shrink: 0;
+}
+
+.badge {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.badge:hover {
+  transform: scale(1.1);
 }
 
 .bell {
   font-size: 20px;
-}
-.avatar {
-  background: #9aa0a6;
+  color: #64748b;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
-.avatar {
-  background: #9aa0a6;
+.bell:hover {
+  color: #1e3a8a;
+  background: rgba(30, 58, 138, 0.08);
+}
+
+.fullname {
+  color: #1e293b;
+  font-weight: 500;
+  font-size: 14px;
+  max-width: 120px;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+}
+
+.avatarWrapper {
   cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.avatarWrapper:hover {
+  background: #f1f5f9;
+}
+
+.dropdownIcon {
+  color: #64748b;
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+.avatarWrapper:hover .dropdownIcon {
+  transform: translateY(1px);
 }
 
 .ddItem {
-  display: inline-block;
-  min-width: 120px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  min-width: 140px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.ddItem:hover {
+  color: #1e3a8a;
+}
+
+.userInfo {
+  padding: 4px 0;
+}
+
+.dropdownMenu {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  padding: 8px 0 !important;
+  min-width: 180px !important;
+  background: #ffffff !important;
+  border: none !important;
+}
+
+.dropdownMenu :global(.ant-dropdown) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.dropdownMenu :global(.ant-dropdown-menu) {
+  background: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  border-radius: 12px !important;
+  padding: 8px 0 !important;
+}
+
+.dropdownMenu :global(.ant-dropdown-wrap) {
+  background: transparent !important;
+}
+
+.dropdownMenu :global(.ant-dropdown-menu-item) {
+  padding: 8px 16px;
+  transition: all 0.2s ease;
+}
+
+.dropdownMenu :global(.ant-dropdown-menu-item:hover) {
+  background: #f1f5f9;
+}
+
+.dropdownMenu :global(.ant-dropdown-menu-item-icon) {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.dropdownMenu :global(.ant-dropdown-menu-item-divider) {
+  margin: 4px 0;
+}
+
+/* Remove gray background overlay from dropdown */
+:global(.ant-dropdown) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:global(.ant-dropdown::before),
+:global(.ant-dropdown::after) {
+  display: none !important;
+  content: none !important;
+}
+
+/* Remove any backdrop overlay */
+:global(.ant-dropdown-mask) {
+  display: none !important;
+  background: transparent !important;
+}
+
+:global(.ant-dropdown-wrap) {
+  background: transparent !important;
+}
+
+:global(.ant-dropdown-placement-bottomRight) {
+  background: transparent !important;
+}
+
+:global(.ant-dropdown-placement-bottomRight .ant-dropdown-menu) {
+  background: #ffffff !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Hide scrollbar for Ant Design Layout Header */
+.header :global(.ant-layout-header) {
+  overflow: hidden !important;
+}
+
+.header :global(*) {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.header :global(*)::-webkit-scrollbar {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .header {
+    padding: 0 24px;
+  }
+  
+  .inner {
+    gap: 12px;
+  }
+  
+  .right {
+    gap: 12px;
+  }
+  
+  .navRight {
+    gap: 6px;
+  }
+  
+  .link {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+  
+  .logoText {
+    font-size: 18px;
+  }
+  
+  .logo {
+    height: 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 16px;
+    height: 64px;
+  }
+  
+  .logoText {
+    display: none;
+  }
+  
+  .logo {
+    height: 36px;
+  }
+  
+  .navRight {
+    gap: 4px;
+  }
+  
+  .link {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .fullname {
+    display: none;
+  }
+  
+  .actions {
+    gap: 8px;
+    padding-left: 12px;
+  }
+  
+  .inner {
+    gap: 8px;
+  }
+  
+  .right {
+    gap: 8px;
+  }
 }

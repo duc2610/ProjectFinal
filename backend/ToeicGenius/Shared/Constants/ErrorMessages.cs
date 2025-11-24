@@ -16,7 +16,9 @@
 		public const string ConfirmNewPasswordMismatch = "Xác nhận mật khẩu phải trùng với mật khẩu mới";
 
 		// Login / registration errors
-		public const string InvalidCredentials = "Email hoặc mật khẩu không đúng.";
+		public const string InvalidCredentials = "Email hoặc mật khẩu không đúng";
+		public const string AccountBanned = "Tài khoản của bạn đã bị cấm! Liên hệ admin để biết thêm chi tiết";
+		public const string AccountDeleted = "Tài khoản của bạn đã bị xóa";
 		public const string EmailAlreadyExists = "Email đã được sử dụng.";
 		public const string EmailRequired = "Email không được để trống";
 		public const string EmailInvalid = "Định dạng email không hợp lệ";
@@ -32,6 +34,7 @@
 		// OTP
 		public const string OtpRequired = "Mã OTP không được để trống";
 		public const string OtpInvalid = "Mã OTP không hợp lệ hoặc đã hết hạn";
+		public const string ResendOtpTooSoon = "Bạn vừa yêu cầu OTP, vui lòng chờ 30 giây trước khi gửi lại";
 
 		// AUTH - End
 

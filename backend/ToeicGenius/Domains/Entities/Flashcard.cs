@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Domains.Entities
 {
@@ -11,10 +12,27 @@ namespace ToeicGenius.Domains.Entities
 		public int SetId { get; set; }
 		public FlashcardSet FlashcardSet { get; set; } = null!;
 
-		public string? FrontText { get; set; }
-		public string? BackText { get; set; }
+        [Required]
+        [MaxLength(500)]
+        public string Term { get; set; } = string.Empty; 
+
+        public string? Definition { get; set; } 
+        [MaxLength(255)]
+        public string? Pronunciation { get; set; } 
+
+        public string? ImageUrl { get; set; } 
+
+        [MaxLength(50)]
+        public string? WordType { get; set; } 
+
+        public string? Examples { get; set; } 
+
+        public string? Notes { get; set; } 
+
 		public string? AudioUrl { get; set; }
-		public string? MediaUrl { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAt { get; set; }
 
 		public ICollection<FlashcardProgress> Progresses { get; set; } = new List<FlashcardProgress>();
 	}

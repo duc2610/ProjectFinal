@@ -1,4 +1,5 @@
 import { api, tokenStore } from "./apiClient";
+import { setCookie, removeCookie } from "@shared/utils/cookie";
 
 const unwrap = (res) => res?.data?.data ?? res?.data;
 
@@ -9,19 +10,35 @@ export async function login({ email, password }) {
   if (data?.token) tokenStore.access = data.token;
   if (data?.refreshToken) tokenStore.refresh = data.refreshToken;
   if (data?.userId) {
-    "user",
+    setCookie(
+      "user",
       JSON.stringify({
         id: data.userId,
         fullname: data.fullName,
         email: data.email,
-      });
+      }),
+      7,
+      { sameSite: 'strict' }
+    );
   }
   return data;
 }
 
-export function logout() {
+export async function logout() {
+  const refreshTokenValue = tokenStore.refresh;
+  
+  if (refreshTokenValue) {
+    try {
+      await api.post("/api/Auth/logout", JSON.stringify(refreshTokenValue), {
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }
+  
   tokenStore.clear();
-  localStorage.removeItem("user");
+  removeCookie("user");
 }
 
 export async function register({ fullName, email, password }) {
@@ -71,13 +88,15 @@ export async function loginWithGoogle(code) {
   if (data?.refreshToken) tokenStore.refresh = data.refreshToken;
 
   if (data?.userId) {
-    localStorage.setItem(
+    setCookie(
       "user",
       JSON.stringify({
         id: data.userId,
         fullname: data.fullName,
         email: data.email,
-      })
+      }),
+      7,
+      { sameSite: 'strict' }
     );
   }
 

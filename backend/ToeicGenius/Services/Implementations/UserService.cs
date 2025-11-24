@@ -1,13 +1,13 @@
 ﻿using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.User;
 using ToeicGenius.Domains.DTOs.Responses.User;
+using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
-using ToeicGenius.Domains.Entities;
 using ToeicGenius.Shared.Helpers;
-using System.Text;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -15,7 +15,7 @@ namespace ToeicGenius.Services.Implementations
 	{
 		private readonly IUnitOfWork _uow;
 		private readonly IEmailService _emailService;
-		
+
 		public UserService(IUnitOfWork unitOfWork, IEmailService emailService)
 		{
 			_uow = unitOfWork;
@@ -24,43 +24,72 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<Result<string>> UpdateStatus(Guid userId, UserStatus userStatus)
 		{
-			var user = await _uow.Users.GetByIdAsync(userId);
-			if (user == null)
+			try
 			{
-				return Result<string>.Failure(ErrorMessages.UserNotFound);
+				var user = await _uow.Users.GetByIdAsync(userId);
+				if (user == null)
+				{
+					return Result<string>.Failure(ErrorMessages.UserNotFound);
+				}
+				user.Status = userStatus;
+				await _uow.Users.UpdateAsync(user);
+				await _uow.SaveChangesAsync();
+				string subject = userStatus == UserStatus.Banned
+					? "TOEIC GENIUS - Tài khoản bị khóa"
+					: "TOEIC GENIUS - Tài khoản đã mở khóa";
+
+				string body = userStatus == UserStatus.Banned
+					? EmailTemplates.BuildAccountBannedEmail(user.FullName)
+					: EmailTemplates.BuildAccountUnbannedEmail(user.FullName);
+
+				await _emailService.SendMail(user.Email, subject, body);
+				return Result<string>.Success(SuccessMessages.UserStatusUpdated);
 			}
-			user.Status = userStatus;
-			await _uow.Users.UpdateAsync(user);
-			await _uow.SaveChangesAsync();
-			return Result<string>.Success(SuccessMessages.UserStatusUpdated);
+			catch (Exception ex)
+			{
+				return Result<string>.Failure(ErrorMessages.OperationFailed + ": " + ex);
+			}
 		}
 
 		public async Task<Result<UserResponseDto?>> GetUserByIdAsync(Guid userId)
 		{
-			var user = await _uow.Users.GetByIdAsync(userId);
-			if (user == null)
+			try
 			{
-				return Result<UserResponseDto>.Failure(ErrorMessages.UserNotFound);
+				var user = await _uow.Users.GetByIdAsync(userId);
+				if (user == null)
+				{
+					return Result<UserResponseDto?>.Failure(ErrorMessages.UserNotFound);
+				}
+				var roles = await _uow.Roles.GetRolesByUserIdAsync(userId);
+				var result = new UserResponseDto
+				{
+					Id = userId,
+					Email = user.Email,
+					FullName = user.FullName,
+					CreatedAt = user.CreatedAt,
+					Status = user.Status,
+					Roles = roles.Select(x => x.RoleName).ToList(),
+				};
+				return Result<UserResponseDto?>.Success(result);
 			}
-			var roles = await _uow.Roles.GetRolesByUserIdAsync(userId);
-			var result = new UserResponseDto
+			catch (Exception ex)
 			{
-				Id = userId,
-				Email = user.Email,
-				FullName = user.FullName,
-				CreatedAt = user.CreatedAt,
-				Status = user.Status,
-				Roles = roles.Select(x => x.RoleName).ToList(),
-			};
-
-			return Result<UserResponseDto>.Success(result);
+				return Result<UserResponseDto?>.Failure(ErrorMessages.OperationFailed + ": " + ex);
+			}
 		}
 
 		// Get list user with filters
 		public async Task<Result<PaginationResponse<UserResponseDto>>> GetUsersAsync(UserResquestDto request)
 		{
-			var result = await _uow.Users.GetUsersAsync(request);
-			return Result<PaginationResponse<UserResponseDto>>.Success(result);
+			try
+			{
+				var result = await _uow.Users.GetUsersAsync(request);
+				return Result<PaginationResponse<UserResponseDto>>.Success(result);
+			}
+			catch (Exception ex)
+			{
+				return Result<PaginationResponse<UserResponseDto>>.Failure(ErrorMessages.OperationFailed + ": " + ex);
+			}
 		}
 
 		// Get statistic (about user)
@@ -96,7 +125,7 @@ namespace ToeicGenius.Services.Implementations
 				FullName = dto.FullName,
 				PasswordHash = SecurityHelper.HashPassword(plainPassword),
 				Status = UserStatus.Active,
-				CreatedAt = DateTime.UtcNow
+				CreatedAt = Now
 			};
 
 			await _uow.Users.AddAsync(user);
@@ -131,31 +160,55 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<Result<UserResponseDto>> UpdateUserAsync(Guid userId, UpdateUserDto dto)
 		{
-			var user = await _uow.Users.GetByIdAsync(userId);
+			var user = await _uow.Users.GetUserAndRoleByUserIdAsync(userId);
 			if (user == null)
-			{
 				return Result<UserResponseDto>.Failure(ErrorMessages.UserNotFound);
-			}
 
+			// Cập nhật thông tin cơ bản
 			user.FullName = dto.FullName;
+			user.UpdatedAt = Now;
+
+			// Cập nhật mật khẩu nếu có
 			if (!string.IsNullOrWhiteSpace(dto.Password))
 			{
+				var (isValid, error) = SecurityHelper.ValidatePassword(dto.Password);
+				if (!isValid)
+					return Result<UserResponseDto>.Failure(error);
+
 				user.PasswordHash = SecurityHelper.HashPassword(dto.Password);
 			}
-			user.UpdatedAt = DateTime.UtcNow;
 
-			await _uow.Users.UpdateAsync(user);
-
-			// Update roles if provided
+			// ✅ Cập nhật roles nếu có
 			if (dto.Roles != null)
 			{
-				var rolesToAssign = await _uow.Roles.GetRolesByNamesAsync(dto.Roles);
-				user.Roles = rolesToAssign;
-				await _uow.Users.UpdateAsync(user);
+				// Lấy danh sách role hợp lệ từ DB
+				var validRoles = await _uow.Roles.GetRolesByNamesAsync(dto.Roles);
+
+				if (!validRoles.Any())
+					return Result<UserResponseDto>.Failure("No valid roles found.");
+
+				// Xóa các role cũ không còn trong danh sách mới
+				var rolesToRemove = user.Roles
+					.Where(r => !validRoles.Any(v => v.Id == r.Id))
+					.ToList();
+
+				foreach (var role in rolesToRemove)
+					user.Roles.Remove(role);
+
+				// Thêm các role mới chưa có
+				foreach (var role in validRoles)
+				{
+					if (!user.Roles.Any(r => r.Id == role.Id))
+						user.Roles.Add(role);
+				}
 			}
 
+			await _uow.Users.UpdateAsync(user);
 			await _uow.SaveChangesAsync();
-			var roles = await _uow.Roles.GetRolesByUserIdAsync(user.Id);
+
+			// Load lại roles sau khi cập nhật
+			var updatedRoles = await _uow.Roles.GetRolesByUserIdAsync(user.Id);
+
 			var response = new UserResponseDto
 			{
 				Id = user.Id,
@@ -163,11 +216,13 @@ namespace ToeicGenius.Services.Implementations
 				FullName = user.FullName,
 				Status = user.Status,
 				CreatedAt = user.CreatedAt,
-				Roles = roles.Select(r => r.RoleName).ToList()
+				Roles = updatedRoles.Select(r => r.RoleName).ToList()
 			};
 
 			return Result<UserResponseDto>.Success(response);
 		}
+
+
 
 		// Generate password
 		private static string GenerateTemporaryPassword(int length = NumberConstants.MinPasswordLength)

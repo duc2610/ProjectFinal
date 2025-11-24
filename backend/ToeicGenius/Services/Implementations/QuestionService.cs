@@ -1,15 +1,13 @@
-﻿using ToeicGenius.Repositories.Interfaces;
-using ToeicGenius.Services.Interfaces;
-using ToeicGenius.Domains.Entities;
-using ToeicGenius.Domains.DTOs.Responses.Question;
+﻿using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Question;
-using ToeicGenius.Domains.DTOs.Common;
-using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
-using ToeicGenius.Shared.Constants;
-using ToeicGenius.Shared.Validators;
+using ToeicGenius.Domains.DTOs.Responses.Question;
+using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
-using Azure.Core;
-using Amazon.Runtime.Internal;
+using ToeicGenius.Repositories.Interfaces;
+using ToeicGenius.Services.Interfaces;
+using ToeicGenius.Shared.Constants;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
+using ToeicGenius.Shared.Validators;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -26,7 +24,14 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<QuestionResponseDto> GetByIdAsync(int id)
 		{
-			return await _uow.Questions.GetQuestionResponseByIdAsync(id);
+			try
+			{
+				return await _uow.Questions.GetQuestionResponseByIdAsync(id);
+			}
+			catch (Exception ex)
+			{
+				throw;
+			}
 		}
 
 		public async Task<IEnumerable<Question>> GetAllAsync()
@@ -42,7 +47,7 @@ namespace ToeicGenius.Services.Implementations
 			{
 				if (request.Audio == null || request.Audio.Length == 0)
 				{
-					return Result<string>.Failure("Audio file is required for Listening part.");
+					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
 
@@ -132,15 +137,18 @@ namespace ToeicGenius.Services.Implementations
 			// Check question
 			var currentQuestion = await _uow.Questions.GetQuestionByIdAndStatus(questionId, CommonStatus.Active);
 			if (currentQuestion == null)
-				return Result<string>.Failure("Not found question to update");
+				return Result<string>.Failure("Không tìm thấy câu hỏi để cập nhật.");
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(dto.PartId);
 			if (part != null && part.Skill == QuestionSkill.Listening)
 			{
-				if (dto.Audio == null || dto.Audio.Length == 0)
+				// FIX: only require audio when neither new file is provided nor question already has audio
+				var hasExistingAudio = !string.IsNullOrEmpty(currentQuestion.AudioUrl);
+				var hasNewAudio = dto.Audio != null && dto.Audio.Length > 0;
+				if (!hasExistingAudio && !hasNewAudio)
 				{
-					return Result<string>.Failure("Audio file is required for Listening part.");
+					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
 			await _uow.BeginTransactionAsync();
@@ -159,7 +167,7 @@ namespace ToeicGenius.Services.Implementations
 					if (!ok) return Result<string>.Failure(err);
 
 					var up = await _fileService.UploadFileAsync(dto.Image, "image");
-					if (!up.IsSuccess) return Result<string>.Failure("Failed to upload image file.");
+					if (!up.IsSuccess) return Result<string>.Failure("Lỗi khi tải lên file ảnh.");
 
 					newImageUrl = up.Data;
 					uploadedFiles.Add(newImageUrl);
@@ -174,7 +182,7 @@ namespace ToeicGenius.Services.Implementations
 					if (!ok) return Result<string>.Failure(err);
 
 					var up = await _fileService.UploadFileAsync(dto.Audio, "audio");
-					if (!up.IsSuccess) return Result<string>.Failure("Failed to upload audio file.");
+					if (!up.IsSuccess) return Result<string>.Failure("Lỗi khi tải lên file âm thanh.");
 
 					newAudioUrl = up.Data;
 					uploadedFiles.Add(newAudioUrl);
@@ -188,7 +196,7 @@ namespace ToeicGenius.Services.Implementations
 				currentQuestion.QuestionTypeId = dto.QuestionTypeId;
 				currentQuestion.Content = dto.Content;
 				currentQuestion.Explanation = dto.Solution;
-				currentQuestion.UpdatedAt = DateTime.UtcNow;
+				currentQuestion.UpdatedAt = Now;
 
 				// Chỉ thay khi có file mới
 				if (!string.IsNullOrEmpty(newAudioUrl)) currentQuestion.AudioUrl = newAudioUrl;
@@ -205,14 +213,14 @@ namespace ToeicGenius.Services.Implementations
 						foreach (var opt in currentQuestion.Options)
 						{
 							opt.Status = CommonStatus.Inactive;
-							opt.UpdatedAt = DateTime.UtcNow;
+							opt.UpdatedAt = Now;
 						}
 					}
 					else
 					{
 						// đúng 1 đáp án đúng
 						if (dto.AnswerOptions.Count(o => o.IsCorrect) != 1)
-							return Result<string>.Failure("Exactly one answer must be marked correct.");
+							return Result<string>.Failure("Cần có duy nhất một đáp án đúng.");
 
 						// rule số lượng theo Part (LR Part 2 = 3; còn lại = 4)
 						var isLR = Convert.ToInt32(part.Skill) == (int)TestSkill.LR;
@@ -223,40 +231,45 @@ namespace ToeicGenius.Services.Implementations
 						// map hiện có
 						var existing = currentQuestion.Options.ToDictionary(o => o.OptionId, o => o);
 
+						// build keepIds from DTO but only positive ids (ids <= 0 are treated as "new")
+						var keepIds = new HashSet<int>(dto.AnswerOptions
+							.Where(d => d.Id.HasValue && d.Id.Value > 0)
+							.Select(d => d.Id!.Value));
+
 						// soft-delete những option cũ không còn trong payload
-						var keepIds = new HashSet<int>(dto.AnswerOptions.Where(d => d.OptionId.HasValue)
-																		.Select(d => d.OptionId!.Value));
 						foreach (var old in currentQuestion.Options.Where(o => !keepIds.Contains(o.OptionId)))
 						{
 							old.Status = CommonStatus.Inactive;
-							old.UpdatedAt = DateTime.UtcNow;
+							old.UpdatedAt = Now;
 						}
 
-						// upsert: update nếu có Id, còn lại thêm mới
+						// upsert: update nếu có Id (>0 và tồn tại), còn lại thêm mới
 						foreach (var d in dto.AnswerOptions)
 						{
 							var label = (d.Label ?? "").Trim();
 							var content = (d.Content ?? "").Trim();
 							if (string.IsNullOrEmpty(label) || string.IsNullOrEmpty(content))
-								return Result<string>.Failure("Answer label/content is required.");
+								return Result<string>.Failure("Các nhãn dán (label) và nội dung câu hỏi là bắt buộc.");
 
-							if (d.OptionId.HasValue && existing.TryGetValue(d.OptionId.Value, out var opt))
+							if (d.Id.HasValue && existing.TryGetValue(d.Id.Value, out var opt))
 							{
+								// update existing option
 								opt.Label = label;
 								opt.Content = content;
 								opt.IsCorrect = d.IsCorrect;
 								opt.Status = CommonStatus.Active;
-								opt.UpdatedAt = DateTime.UtcNow;
+								opt.UpdatedAt = Now;
 							}
 							else
 							{
+								// create new option
 								currentQuestion.Options.Add(new Option
 								{
 									Label = label,
 									Content = content,
 									IsCorrect = d.IsCorrect,
 									Status = CommonStatus.Active,
-									CreatedAt = DateTime.UtcNow,
+									CreatedAt = Now,
 									// QuestionId sẽ được EF set qua navigation 'Question'
 									Question = currentQuestion
 								});
@@ -281,12 +294,12 @@ namespace ToeicGenius.Services.Implementations
 					if (!string.IsNullOrEmpty(f))
 						await _fileService.DeleteFileAsync(f);
 
-				return Result<string>.Success($"Question {questionId} updated successfully.");
+				return Result<string>.Success($"Câu hỏi {questionId} cập nhật thành công.");
 			}
 			catch (Exception ex)
 			{
 				await _fileService.RollbackAndCleanupAsync(uploadedFiles);
-				return Result<string>.Failure($"Operation failed: {ex.Message}");
+				return Result<string>.Failure(ex.Message);
 			}
 		}
 
@@ -307,17 +320,17 @@ namespace ToeicGenius.Services.Implementations
 					if (question == null)
 					{
 						string notFoundType = isRestore ? "Inactive" : "Active";
-						return Result<string>.Failure($"Question with ID {id} not found or already in {targetStatus} state.");
+						return Result<string>.Failure($"Không tìm thấy câu hỏi có ID {id} hoặc câu hỏi đã ở trạng thái {targetStatus}.");
 					}
 
 					// Cập nhật trạng thái
 					question.Status = targetStatus;
-					question.UpdatedAt = DateTime.UtcNow;
+					question.UpdatedAt = Now;
 
 					foreach (var option in question.Options)
 					{
 						option.Status = targetStatus;
-						option.UpdatedAt = DateTime.UtcNow;
+						option.UpdatedAt = Now;
 					}
 				}
 				else
@@ -328,21 +341,21 @@ namespace ToeicGenius.Services.Implementations
 					if (group == null)
 					{
 						string notFoundType = isRestore ? "Inactive" : "Active";
-						return Result<string>.Failure($"Question group with ID {id} not found or already in {targetStatus} state.");
+						return Result<string>.Failure($"Không tìm thấy nhóm câu hỏi có ID {id} hoặc nhóm đã ở trạng thái {targetStatus}.");
 					}
 
 					group.Status = targetStatus;
-					group.UpdatedAt = DateTime.UtcNow;
+					group.UpdatedAt = Now;
 
 					foreach (var question in group.Questions)
 					{
 						question.Status = targetStatus;
-						question.UpdatedAt = DateTime.UtcNow;
+						question.UpdatedAt = Now;
 
 						foreach (var option in question.Options)
 						{
 							option.Status = targetStatus;
-							option.UpdatedAt = DateTime.UtcNow;
+							option.UpdatedAt = Now;
 						}
 					}
 				}
@@ -350,14 +363,14 @@ namespace ToeicGenius.Services.Implementations
 				await _uow.SaveChangesAsync();
 				await _uow.CommitTransactionAsync();
 
-				string actionName = isRestore ? "Restored" : "Deleted";
-				return Result<string>.Success($"{actionName} successfully.");
+				string actionName = isRestore ? "Khôi phục" : "Xóa";
+				return Result<string>.Success($"{actionName} thành công.");
 			}
 			catch (Exception ex)
 			{
 				await _uow.RollbackTransactionAsync();
-				string actionName = isRestore ? "Restore" : "Delete";
-				return Result<string>.Failure($"{actionName} operation failed: {ex.Message}");
+				string actionName = isRestore ? "Khôi phục" : "Xóa";
+				return Result<string>.Failure($"{actionName} thất bại: {ex.Message}");
 			}
 		}
 
@@ -366,19 +379,19 @@ namespace ToeicGenius.Services.Implementations
 			return await _uow.Questions.GetQuestionResponseByIdAsync(id);
 		}
 
-		public async Task<Result<PaginationResponse<QuestionResponseDto>>> FilterQuestionsAsync(
-			int? partId, int? questionTypeId, string? keyWord, int? skill, int page, int pageSize, CommonStatus status)
-		{
-			var result = await _uow.Questions.FilterQuestionsAsync(partId, questionTypeId, keyWord, skill, page, pageSize, status);
-			return Result<PaginationResponse<QuestionResponseDto>>.Success(result);
-		}
-
-
-		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterAllAsync(
+		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterSingleQuestionAsync(
 			int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
 		{
-			var result = await _uow.Questions.FilterAllAsync(partId, questionTypeId, keyWord, skill, sortOrder, page, pageSize, status);
-			return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
+			try
+			{
+				var result = await _uow.Questions.FilterSingleAsync(partId, questionTypeId, keyWord, skill, sortOrder, page, pageSize, status);
+				return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
+			}
+			catch (Exception ex)
+			{
+				return Result<PaginationResponse<QuestionListItemDto>>.Failure(ex.Message);
+			}
+
 		}
 	}
 }
