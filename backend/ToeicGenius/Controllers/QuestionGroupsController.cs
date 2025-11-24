@@ -53,9 +53,13 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> GetQuestionGroup(int id)
 		{
-			var group = await _questionGroupService.GetDetailAsync(id);
-			if (group == null) return NotFound(ApiResponse<QuestionGroupResponseDto>.NotFoundResponse());
-			return Ok(ApiResponse<QuestionGroupResponseDto>.SuccessResponse(group));
+			var result = await _questionGroupService.GetDetailAsync(id);
+			if (!result.IsSuccess)
+			{
+				return BadRequest(ApiResponse<QuestionGroupResponseDto>.ErrorResponse(result.ErrorMessage));
+			}
+			if (result.Data == null) return NotFound(ApiResponse<QuestionGroupResponseDto>.NotFoundResponse());
+			return Ok(ApiResponse<QuestionGroupResponseDto>.SuccessResponse(result.Data));
 		}
 
 		// GET: api/question-group?part=&page=&pageSize=
