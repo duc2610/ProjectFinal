@@ -9,7 +9,7 @@ namespace ToeicGenius.Services.Interfaces
 {
 	public interface IQuestionGroupService
 	{
-		Task<QuestionGroupResponseDto?> GetDetailAsync(int id);
+		Task<Result<QuestionGroupResponseDto?>> GetDetailAsync(int id);
 		Task<Result<string>> CreateAsync(QuestionGroupRequestDto request);
 		Task<Result<PaginationResponse<QuestionListItemDto>>> FilterQuestionGroupAsync(int? partId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status);
 		Task<Result<string>> UpdateAsync(int questionGroupId, UpdateQuestionGroupDto request);

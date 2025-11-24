@@ -24,7 +24,14 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<QuestionResponseDto> GetByIdAsync(int id)
 		{
-			return await _uow.Questions.GetQuestionResponseByIdAsync(id);
+			try
+			{
+				return await _uow.Questions.GetQuestionResponseByIdAsync(id);
+			}
+			catch (Exception ex)
+			{
+				throw;
+			}
 		}
 
 		public async Task<IEnumerable<Question>> GetAllAsync()
@@ -40,7 +47,7 @@ namespace ToeicGenius.Services.Implementations
 			{
 				if (request.Audio == null || request.Audio.Length == 0)
 				{
-					return Result<string>.Failure("Audio file is required for Listening part.");
+					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
 
@@ -130,7 +137,7 @@ namespace ToeicGenius.Services.Implementations
 			// Check question
 			var currentQuestion = await _uow.Questions.GetQuestionByIdAndStatus(questionId, CommonStatus.Active);
 			if (currentQuestion == null)
-				return Result<string>.Failure("Not found question to update");
+				return Result<string>.Failure("Không tìm thấy câu hỏi để cập nhật.");
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(dto.PartId);
@@ -141,7 +148,7 @@ namespace ToeicGenius.Services.Implementations
 				var hasNewAudio = dto.Audio != null && dto.Audio.Length > 0;
 				if (!hasExistingAudio && !hasNewAudio)
 				{
-					return Result<string>.Failure("Audio file is required for Listening part.");
+					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
 			await _uow.BeginTransactionAsync();
@@ -160,7 +167,7 @@ namespace ToeicGenius.Services.Implementations
 					if (!ok) return Result<string>.Failure(err);
 
 					var up = await _fileService.UploadFileAsync(dto.Image, "image");
-					if (!up.IsSuccess) return Result<string>.Failure("Failed to upload image file.");
+					if (!up.IsSuccess) return Result<string>.Failure("Lỗi khi tải lên file ảnh.");
 
 					newImageUrl = up.Data;
 					uploadedFiles.Add(newImageUrl);
@@ -175,7 +182,7 @@ namespace ToeicGenius.Services.Implementations
 					if (!ok) return Result<string>.Failure(err);
 
 					var up = await _fileService.UploadFileAsync(dto.Audio, "audio");
-					if (!up.IsSuccess) return Result<string>.Failure("Failed to upload audio file.");
+					if (!up.IsSuccess) return Result<string>.Failure("Lỗi khi tải lên file âm thanh.");
 
 					newAudioUrl = up.Data;
 					uploadedFiles.Add(newAudioUrl);
@@ -213,7 +220,7 @@ namespace ToeicGenius.Services.Implementations
 					{
 						// đúng 1 đáp án đúng
 						if (dto.AnswerOptions.Count(o => o.IsCorrect) != 1)
-							return Result<string>.Failure("Exactly one answer must be marked correct.");
+							return Result<string>.Failure("Cần có duy nhất một đáp án đúng.");
 
 						// rule số lượng theo Part (LR Part 2 = 3; còn lại = 4)
 						var isLR = Convert.ToInt32(part.Skill) == (int)TestSkill.LR;
@@ -242,7 +249,7 @@ namespace ToeicGenius.Services.Implementations
 							var label = (d.Label ?? "").Trim();
 							var content = (d.Content ?? "").Trim();
 							if (string.IsNullOrEmpty(label) || string.IsNullOrEmpty(content))
-								return Result<string>.Failure("Answer label/content is required.");
+								return Result<string>.Failure("Các nhãn dán (label) và nội dung câu hỏi là bắt buộc.");
 
 							if (d.Id.HasValue && existing.TryGetValue(d.Id.Value, out var opt))
 							{
@@ -287,12 +294,12 @@ namespace ToeicGenius.Services.Implementations
 					if (!string.IsNullOrEmpty(f))
 						await _fileService.DeleteFileAsync(f);
 
-				return Result<string>.Success($"Question {questionId} updated successfully.");
+				return Result<string>.Success($"Câu hỏi {questionId} cập nhật thành công.");
 			}
 			catch (Exception ex)
 			{
 				await _fileService.RollbackAndCleanupAsync(uploadedFiles);
-				return Result<string>.Failure($"Operation failed: {ex.Message}");
+				return Result<string>.Failure(ex.Message);
 			}
 		}
 
@@ -313,7 +320,7 @@ namespace ToeicGenius.Services.Implementations
 					if (question == null)
 					{
 						string notFoundType = isRestore ? "Inactive" : "Active";
-						return Result<string>.Failure($"Question with ID {id} not found or already in {targetStatus} state.");
+						return Result<string>.Failure($"Không tìm thấy câu hỏi có ID {id} hoặc câu hỏi đã ở trạng thái {targetStatus}.");
 					}
 
 					// Cập nhật trạng thái
@@ -334,7 +341,7 @@ namespace ToeicGenius.Services.Implementations
 					if (group == null)
 					{
 						string notFoundType = isRestore ? "Inactive" : "Active";
-						return Result<string>.Failure($"Question group with ID {id} not found or already in {targetStatus} state.");
+						return Result<string>.Failure($"Không tìm thấy nhóm câu hỏi có ID {id} hoặc nhóm đã ở trạng thái {targetStatus}.");
 					}
 
 					group.Status = targetStatus;
@@ -356,14 +363,14 @@ namespace ToeicGenius.Services.Implementations
 				await _uow.SaveChangesAsync();
 				await _uow.CommitTransactionAsync();
 
-				string actionName = isRestore ? "Restored" : "Deleted";
-				return Result<string>.Success($"{actionName} successfully.");
+				string actionName = isRestore ? "Khôi phục" : "Xóa";
+				return Result<string>.Success($"{actionName} thành công.");
 			}
 			catch (Exception ex)
 			{
 				await _uow.RollbackTransactionAsync();
-				string actionName = isRestore ? "Restore" : "Delete";
-				return Result<string>.Failure($"{actionName} operation failed: {ex.Message}");
+				string actionName = isRestore ? "Khôi phục" : "Xóa";
+				return Result<string>.Failure($"{actionName} thất bại: {ex.Message}");
 			}
 		}
 
@@ -375,8 +382,16 @@ namespace ToeicGenius.Services.Implementations
 		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterSingleQuestionAsync(
 			int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
 		{
-			var result = await _uow.Questions.FilterSingleAsync(partId, questionTypeId, keyWord, skill, sortOrder, page, pageSize, status);
-			return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
+			try
+			{
+				var result = await _uow.Questions.FilterSingleAsync(partId, questionTypeId, keyWord, skill, sortOrder, page, pageSize, status);
+				return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
+			}
+			catch (Exception ex)
+			{
+				return Result<PaginationResponse<QuestionListItemDto>>.Failure(ex.Message);
+			}
+
 		}
 	}
 }

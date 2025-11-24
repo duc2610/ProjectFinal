@@ -92,38 +92,47 @@ namespace ToeicGenius.Services.Implementations
 
         public async Task<User?> GetUserByIdAsync(Guid userId) => await _unitOfWork.Users.GetByIdAsync(userId);
 
-        public async Task<Result<LoginResponseDto>> LoginAsync(LoginRequestDto loginDto, string ipAddress)
-        {
-            var user = await _unitOfWork.Users.GetByEmailAsync(loginDto.Email);
+		public async Task<Result<LoginResponseDto>> LoginAsync(LoginRequestDto loginDto, string ipAddress)
+		{
+			var user = await _unitOfWork.Users.GetByEmailAsync(loginDto.Email);
 
-            if (user == null || user.Status != UserStatus.Active || user.PasswordHash == null)
-                return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
+			// Không để lộ thông tin người dùng tồn tại hay không
+			if (user == null || user.PasswordHash == null)
+				return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
 
-            if (!SecurityHelper.VerifyPassword(loginDto.Password, user.PasswordHash))
-                return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
+			// Kiểm tra trạng thái tài khoản
+			if (user.Status == UserStatus.Banned)
+				return Result<LoginResponseDto>.Failure(ErrorMessages.AccountBanned);
 
-            // Issue tokens
-            var token = _jwtService.GenerateAccessToken(user);
-            var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
+			if (user.Status != UserStatus.Active)
+				return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
 
-            user.RefreshTokens.Add(refreshToken);
-            await _unitOfWork.Users.UpdateAsync(user);
-            await _unitOfWork.SaveChangesAsync();
+			// Kiểm tra mật khẩu
+			if (!SecurityHelper.VerifyPassword(loginDto.Password, user.PasswordHash))
+				return Result<LoginResponseDto>.Failure(ErrorMessages.InvalidCredentials);
 
-            var response = new LoginResponseDto
-            {
-                Token = token,
-                RefreshToken = refreshToken.Token,
-                Fullname = user.FullName,
-                Email = user.Email,
-                UserId = user.Id,
-                ExpireAt = Now.AddMinutes(30)
-            };
+			// Issue tokens
+			var token = _jwtService.GenerateAccessToken(user);
+			var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
 
-            return Result<LoginResponseDto>.Success(response);
-        }
+			user.RefreshTokens.Add(refreshToken);
+			await _unitOfWork.Users.UpdateAsync(user);
+			await _unitOfWork.SaveChangesAsync();
 
-        public async Task<LoginResponseDto> LoginWithGoogleAsync(string code, string ipAddress)
+			var response = new LoginResponseDto
+			{
+				Token = token,
+				RefreshToken = refreshToken.Token,
+				Fullname = user.FullName,
+				Email = user.Email,
+				UserId = user.Id,
+				ExpireAt = Now.AddMinutes(30)
+			};
+
+			return Result<LoginResponseDto>.Success(response);
+		}
+
+		public async Task<LoginResponseDto> LoginWithGoogleAsync(string code, string ipAddress)
         {
             // 1) Exchange code -> tokens (redirect_uri = "postmessage")
             var tokens = await _googleAuthService.ExchangeCodeForTokensAsync(code);

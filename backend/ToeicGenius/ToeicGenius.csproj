@@ -10,6 +10,10 @@
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.3.4" />
     <PackageReference Include="AWSSDK.S3" Version="4.0.7.7" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="EPPlus" Version="7.5.2" />
     <PackageReference Include="FluentAssertions" Version="8.7.1" />
     <PackageReference Include="Google.Apis.Auth" Version="1.71.0" />
@@ -38,7 +42,6 @@
   <ItemGroup>
     <Folder Include="Migrations\" />
     <Folder Include="Tests\IntegrationTests\" />
-    <Folder Include="Tests\UnitTests\" />
   </ItemGroup>
 
   <ItemGroup>

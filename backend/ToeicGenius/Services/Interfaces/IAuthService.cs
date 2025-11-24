@@ -31,13 +31,6 @@ namespace ToeicGenius.Services.Interfaces
 		// Confirm new password after OTP verification.
 		Task<string> ConfirmResetPasswordAsync(ResetPasswordConfirmDto resetPasswordConfirmDto);
 
-		/// <summary>
-		/// Get user details by Id.
-		/// </summary>
-		/// <param name="userId">Unique identifier of the user.</param>
-		/// <returns>User entity if found, otherwise null.</returns>
-		Task<User?> GetUserByIdAsync(Guid userId);
-
 		// Change password for a logged-in user.
 		Task<string> ChangePasswordAsync(ChangePasswordDto changePasswordRequest, string userId);
 
