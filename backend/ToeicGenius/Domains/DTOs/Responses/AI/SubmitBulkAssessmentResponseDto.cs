@@ -10,8 +10,6 @@ namespace ToeicGenius.Domains.DTOs.Responses.AI
         public double? SpeakingScore { get; set; }
         public double TotalScore { get; set; }
 
-        public bool? IsSelectTime { get; set; }
-        public TestResultStatus? Status { get; set; }
         public List<PerPartAssessmentFeedbackDto> PerPartFeedbacks { get; set; } = new();
     }
 }
