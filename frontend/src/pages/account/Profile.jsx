@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Tabs, Form, Input, Button, Row, Col, Modal, notification, Table, Tag, Space, Empty, message } from "antd";
+import { Tabs, Form, Input, Button, Row, Col, Modal, notification, Table, Tag, Space, Empty, message, Spin } from "antd";
 import { PlayCircleOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import styles from "@shared/styles/Profile.module.css";
 import { useAuth } from "@shared/hooks/useAuth";
 import { changePassword } from "@services/authService";
 import { getTestHistory } from "@services/testsService";
-import { startTest } from "@services/testExamService";
+import { startTest, getTestResultDetail } from "@services/testExamService";
+
+const EMPTY_LR_MESSAGE =
+  "Không có câu trả lời cho phần này. Có thể bạn chưa làm hoặc dữ liệu chưa được ghi nhận.";
 import { getMyQuestionReports } from "@services/questionReportService";
 
 export default function Profile() {
@@ -195,6 +198,13 @@ export function TestHistoryTab() {
     pageSize: 10,
     total: 0,
   });
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailMode, setDetailMode] = useState(null); // LR hoặc SW
+  const [lrDetail, setLrDetail] = useState({ questions: [] });
+  const [swDetail, setSwDetail] = useState([]);
+  const [detailSummary, setDetailSummary] = useState({});
+  const [selectedHistory, setSelectedHistory] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -354,6 +364,114 @@ export function TestHistoryTab() {
       return "success";
     }
     return "default";
+  };
+
+  const getSkillGroupFromValue = (skill) => {
+    if (!skill && skill !== 0) return null;
+    if (typeof skill === "string") {
+      const upper = skill.toUpperCase();
+      if (upper.includes("LISTENING") || upper.includes("READING") || upper.includes("L&R") || upper === "LR") {
+        return "lr";
+      }
+      if (
+        upper.includes("WRITING") ||
+        upper.includes("SPEAKING") ||
+        upper.includes("S&W") ||
+        upper === "SW"
+      ) {
+        return "sw";
+      }
+    } else if (typeof skill === "number") {
+      if (skill === 3) return "lr";
+      if ([1, 2, 4].includes(skill)) return "sw";
+    }
+    return null;
+  };
+
+  const buildLRQuestionsFromDetail = (detailData = {}) => {
+    const rows = [];
+    let globalIndex = 1;
+    const sortedParts = [...(detailData.parts || [])].sort(
+      (a, b) => (a.partId || 0) - (b.partId || 0)
+    );
+
+    const getOptionText = (options = [], label) =>
+      options?.find((opt) => opt.label === label)?.content || "";
+
+    const hasUserAnswer = (value) =>
+      value !== null && value !== undefined && String(value).trim() !== "";
+
+    sortedParts.forEach((part) => {
+      part?.testQuestions?.forEach((tq) => {
+        if (tq.isGroup && tq.questionGroupSnapshotDto) {
+          const group = tq.questionGroupSnapshotDto;
+          group.questionSnapshots?.forEach((qs, idx) => {
+            const options = qs.options || [];
+            const correct = options.find((opt) => opt.isCorrect);
+            const userAnswerText =
+              qs.userAnswer && getOptionText(options, qs.userAnswer);
+            if (hasUserAnswer(qs.userAnswer)) {
+              rows.push({
+                key: `${tq.testQuestionId}_${idx}`,
+                order: globalIndex++,
+                partId: part.partId || 0,
+                partName: part.partName || `Part ${part.partId}`,
+                passage: group.passage || null,
+                question: qs.content || "",
+                imageUrl: qs.imageUrl || group.imageUrl || null,
+                audioUrl: qs.audioUrl || group.audioUrl || null,
+                options,
+                userAnswerLabel: qs.userAnswer || null,
+                userAnswerText: userAnswerText || null,
+                correctAnswerLabel: correct?.label || null,
+                correctAnswerText: correct?.content || null,
+                isCorrect:
+                  typeof qs.isCorrect === "boolean"
+                    ? qs.isCorrect
+                    : qs.userAnswer && correct
+                    ? qs.userAnswer === correct.label
+                    : null,
+              });
+            } else {
+              globalIndex++;
+            }
+          });
+        } else if (!tq.isGroup && tq.questionSnapshotDto) {
+          const qs = tq.questionSnapshotDto;
+          const options = qs.options || [];
+          const correct = options.find((opt) => opt.isCorrect);
+          const userAnswerText =
+            qs.userAnswer && getOptionText(options, qs.userAnswer);
+          if (hasUserAnswer(qs.userAnswer)) {
+            rows.push({
+              key: tq.testQuestionId,
+              order: globalIndex++,
+              partId: part.partId || 0,
+              partName: part.partName || `Part ${part.partId}`,
+              passage: null,
+              question: qs.content || "",
+              imageUrl: qs.imageUrl || null,
+              audioUrl: qs.audioUrl || null,
+              options,
+              userAnswerLabel: qs.userAnswer || null,
+              userAnswerText: userAnswerText || null,
+              correctAnswerLabel: correct?.label || null,
+              correctAnswerText: correct?.content || null,
+              isCorrect:
+                typeof qs.isCorrect === "boolean"
+                  ? qs.isCorrect
+                  : qs.userAnswer && correct
+                  ? qs.userAnswer === correct.label
+                  : null,
+            });
+          } else {
+            globalIndex++;
+          }
+        }
+      });
+    });
+
+    return rows;
   };
 
   const handleContinueTest = async (record) => {
@@ -569,6 +687,539 @@ export function TestHistoryTab() {
     }
   };
 
+  const handleViewDetail = async (record) => {
+    if (!record?.testResultId) {
+      message.error("Không tìm thấy testResultId của bài thi");
+      return;
+    }
+    const skillGroup = getSkillGroupFromValue(record.testSkill);
+    if (!skillGroup) {
+      message.error("Không xác định được loại bài thi để hiển thị chi tiết");
+      return;
+    }
+
+    setDetailModalVisible(true);
+    setDetailLoading(true);
+    setDetailMode(skillGroup === "lr" ? "LR" : "SW");
+    setSelectedHistory(record);
+
+    try {
+      const data = await getTestResultDetail(record.testResultId);
+      
+      if (skillGroup === "lr") {
+        setLrDetail({
+          questions: buildLRQuestionsFromDetail(data || {}),
+        });
+        setDetailSummary({
+          totalScore: data?.totalScore ?? record.totalScore ?? null,
+          listeningScore: data?.listeningScore ?? null,
+          readingScore: data?.readingScore ?? null,
+        });
+      } else {
+        setSwDetail(data?.perPartFeedbacks || []);
+        setDetailSummary({
+          totalScore: data?.totalScore ?? record.totalScore ?? null,
+          writingScore: data?.writingScore ?? null,
+          speakingScore: data?.speakingScore ?? null,
+        });
+      }
+    } catch (error) {
+      console.error("Error loading test detail:", error);
+      message.error(
+        error?.response?.data?.message || "Không thể tải chi tiết bài thi"
+      );
+      setDetailModalVisible(false);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const closeDetailModal = () => {
+    setDetailModalVisible(false);
+    setDetailLoading(false);
+    setDetailMode(null);
+    setLrDetail({ questions: [] });
+    setSwDetail([]);
+    setDetailSummary({});
+    setSelectedHistory(null);
+  };
+
+  const lrDetailColumns = [
+    {
+      title: "Câu",
+      dataIndex: "order",
+      width: 70,
+      align: "center",
+      render: (value) => <strong>{value}</strong>,
+    },
+    {
+      title: "Nội dung",
+      dataIndex: "question",
+      render: (_, row) => (
+        <div style={{ maxWidth: 500 }}>
+          {row.passage && (
+            <div
+              style={{
+                fontStyle: "italic",
+                marginBottom: 8,
+                color: "#666",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {row.passage}
+            </div>
+          )}
+          <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            {row.question || "—"}
+          </div>
+          {row.imageUrl && (
+            <div style={{ marginTop: 8 }}>
+              <img
+                src={row.imageUrl}
+                alt="question"
+                style={{ maxWidth: "100%", borderRadius: 4 }}
+              />
+            </div>
+          )}
+          {row.audioUrl && (
+            <div style={{ marginTop: 8 }}>
+              <audio controls src={row.audioUrl} style={{ width: "100%" }}>
+                Trình duyệt của bạn không hỗ trợ audio.
+              </audio>
+            </div>
+          )}
+          {row.options?.length > 0 && (
+            <ul style={{ marginTop: 8, paddingLeft: 18 }}>
+              {row.options.map((opt) => (
+                <li key={opt.label}>
+                  <strong>{opt.label}.</strong> {opt.content}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ),
+    },
+    {
+      title: "Đáp án của bạn",
+      dataIndex: "userAnswerLabel",
+      width: 170,
+      render: (_, row) =>
+        row.userAnswerLabel ? (
+          <span style={{ color: row.isCorrect ? "#52c41a" : "#f5222d" }}>
+            {row.userAnswerLabel}
+            {row.userAnswerText ? ` - ${row.userAnswerText}` : ""}
+          </span>
+        ) : (
+          "—"
+        ),
+    },
+    {
+      title: "Đáp án đúng",
+      dataIndex: "correctAnswerLabel",
+      width: 170,
+      render: (_, row) =>
+        row.correctAnswerLabel ? (
+          <span style={{ color: "#52c41a" }}>
+            {row.correctAnswerLabel}
+            {row.correctAnswerText ? ` - ${row.correctAnswerText}` : ""}
+          </span>
+        ) : (
+          "—"
+        ),
+    },
+    {
+      title: "Kết quả",
+      dataIndex: "isCorrect",
+      width: 110,
+      render: (val) => {
+        if (val === null || val === undefined) {
+          return <Tag color="default">Không xác định</Tag>;
+        }
+        return (
+          <Tag color={val ? "success" : "error"}>{val ? "Đúng" : "Sai"}</Tag>
+        );
+      },
+    },
+  ];
+
+  const renderLRDetailByParts = () => {
+    if (!lrDetail.questions || lrDetail.questions.length === 0) {
+      return (
+        <Empty
+          description={EMPTY_LR_MESSAGE}
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
+      );
+    }
+
+    // Nhóm questions theo partId
+    const questionsByPart = {};
+    lrDetail.questions.forEach((q) => {
+      const partId = q.partId || 0;
+      if (!questionsByPart[partId]) {
+        questionsByPart[partId] = {
+          partId,
+          partName: q.partName || `Part ${partId}`,
+          questions: [],
+        };
+      }
+      questionsByPart[partId].questions.push(q);
+    });
+
+    // Sắp xếp theo partId
+    const sortedParts = Object.values(questionsByPart).sort(
+      (a, b) => a.partId - b.partId
+    );
+
+    return (
+      <Space direction="vertical" size="large" style={{ width: "100%" }}>
+        {sortedParts.map((part) => (
+          <div key={part.partId}>
+            <div
+              style={{
+                padding: "12px 16px",
+                background: "#f0f2f5",
+                borderRadius: "8px 8px 0 0",
+                border: "1px solid #d9d9d9",
+                borderBottom: "none",
+                marginBottom: 0,
+              }}
+            >
+              <strong style={{ fontSize: 16 }}>{part.partName}</strong>
+              <span style={{ marginLeft: 8, color: "#666" }}>
+                ({part.questions.length} câu)
+              </span>
+            </div>
+            <Table
+              columns={lrDetailColumns}
+              dataSource={part.questions}
+              rowKey="key"
+              pagination={false}
+              scroll={{ x: 900 }}
+              style={{
+                border: "1px solid #d9d9d9",
+                borderTop: "none",
+                borderRadius: "0 0 8px 8px",
+              }}
+            />
+          </div>
+        ))}
+      </Space>
+    );
+  };
+
+  const renderSWDetailByParts = () => {
+    if (!swDetail || swDetail.length === 0) {
+      return (
+        <Empty
+          description="Không có dữ liệu chi tiết cho bài thi này"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+        />
+      );
+    }
+
+    // Nhóm SW items theo partId
+    const itemsByPart = {};
+    swDetail.forEach((item) => {
+      const partId = item.partId || 0;
+      if (!itemsByPart[partId]) {
+        itemsByPart[partId] = {
+          partId,
+          partName: item.partName || `Part ${partId}`,
+          items: [],
+        };
+      }
+      itemsByPart[partId].items.push(item);
+    });
+
+    // Sắp xếp theo partId
+    const sortedParts = Object.values(itemsByPart).sort(
+      (a, b) => a.partId - b.partId
+    );
+
+    return (
+      <Space direction="vertical" size="large" style={{ width: "100%" }}>
+        {sortedParts.map((part) => (
+          <div key={part.partId}>
+            <div
+              style={{
+                padding: "12px 16px",
+                background: "#f0f2f5",
+                borderRadius: "8px",
+                marginBottom: 16,
+              }}
+            >
+              <strong style={{ fontSize: 16 }}>{part.partName}</strong>
+              <span style={{ marginLeft: 8, color: "#666" }}>
+                ({part.items.length} câu)
+              </span>
+            </div>
+            <Space direction="vertical" size="large" style={{ width: "100%" }}>
+              {part.items.map((item, index) => {
+                const scores = item.detailedScores || {};
+                const analysis = item.detailedAnalysis || {};
+                return (
+                  <div
+                    key={item.feedbackId || item.testQuestionId || index}
+                    style={{
+                      border: "1px solid #f0f0f0",
+                      borderRadius: 12,
+                      padding: 16,
+                      background: "#fff",
+                    }}
+                  >
+                    {renderSWItemContent(item, scores, analysis)}
+                  </div>
+                );
+              })}
+            </Space>
+          </div>
+        ))}
+      </Space>
+    );
+  };
+
+  const renderSWItemContent = (item, scores, analysis) => {
+    return (
+      <Space direction="vertical" size="small" style={{ width: "100%" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <Space size="small">
+            <Tag color="purple">
+              Điểm: {scores.overall ?? item.score ?? 0}/100
+            </Tag>
+          </Space>
+          {scores.word_count !== undefined && (
+            <Tag color="default">Số từ: {scores.word_count}</Tag>
+          )}
+        </div>
+
+        {item.questionContent?.content && (
+          <div>
+            <strong>Đề bài:</strong>
+            <div
+              style={{
+                marginTop: 4,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {item.questionContent.content}
+            </div>
+          </div>
+        )}
+
+        {item.questionContent?.imageUrl && (
+          <div>
+            <img
+              src={item.questionContent.imageUrl}
+              alt="question"
+              style={{ maxWidth: "100%", borderRadius: 8, marginTop: 8 }}
+            />
+          </div>
+        )}
+
+        {item.answerAudioUrl && (
+          <div>
+            <strong>Âm thanh trả lời:</strong>
+            <audio
+              controls
+              src={item.answerAudioUrl}
+              style={{ width: "100%", marginTop: 4 }}
+            >
+              Trình duyệt không hỗ trợ audio.
+            </audio>
+          </div>
+        )}
+
+        {item.answerText && (
+          <div>
+            <strong>Bài làm:</strong>
+            <div
+              style={{
+                marginTop: 4,
+                background: "#fafafa",
+                borderRadius: 8,
+                padding: 12,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {item.answerText}
+            </div>
+          </div>
+        )}
+
+        {item.correctedText && (
+          <div>
+            <strong>Phiên bản gợi ý:</strong>
+            <div
+              style={{
+                marginTop: 4,
+                background: "#fffbe6",
+                borderRadius: 8,
+                padding: 12,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {item.correctedText}
+            </div>
+          </div>
+        )}
+
+        {analysis.grammar_errors?.length > 0 && (
+          <div>
+            <strong>Lỗi ngữ pháp:</strong>
+            <ul style={{ marginTop: 4, paddingLeft: 18 }}>
+              {analysis.grammar_errors.map((err, idx) => (
+                <li key={idx}>
+                  ✗ {err.wrong} → ✓ {err.correct}
+                  {err.rule ? ` (${err.rule})` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {analysis.vocabulary_issues?.length > 0 && (
+          <div>
+            <strong>Gợi ý từ vựng:</strong>
+            <ul style={{ marginTop: 4, paddingLeft: 18 }}>
+              {analysis.vocabulary_issues.map((issue, idx) => (
+                <li key={idx}>
+                  "{issue.word}" → "{issue.better}"
+                  {issue.example ? ` (Ví dụ: ${issue.example})` : ""}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {analysis.missing_points?.length > 0 && (
+          <div>
+            <strong>Ý còn thiếu:</strong>
+            <ul style={{ marginTop: 4, paddingLeft: 18 }}>
+              {analysis.missing_points.map((point, idx) => (
+                <li key={idx}>{point}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {analysis.matched_points?.length > 0 && (
+          <div>
+            <strong>Ý đã đáp ứng:</strong>
+            <ul style={{ marginTop: 4, paddingLeft: 18 }}>
+              {analysis.matched_points.map((point, idx) => (
+                <li key={idx}>{point}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {analysis.opinion_support_issues?.length > 0 && (
+          <div>
+            <strong>Lưu ý bổ sung:</strong>
+            <ul style={{ marginTop: 4, paddingLeft: 18 }}>
+              {analysis.opinion_support_issues.map((point, idx) => (
+                <li key={idx}>{point}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {analysis.image_description && (
+          <div>
+            <strong>Mô tả hình ảnh:</strong>
+            <div
+              style={{
+                marginTop: 4,
+                background: "#fafafa",
+                borderRadius: 8,
+                padding: 12,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              {analysis.image_description}
+            </div>
+          </div>
+        )}
+
+        {Array.isArray(item.recommendations) && item.recommendations.length > 0 && (
+          <div>
+            <strong>Khuyến nghị:</strong>
+            <div
+              style={{
+                marginTop: 4,
+                whiteSpace: "pre-wrap",
+                background: "#fafafa",
+                borderRadius: 8,
+                padding: 12,
+                wordBreak: "break-word",
+              }}
+            >
+              {item.recommendations.join("\n")}
+            </div>
+          </div>
+        )}
+      </Space>
+    );
+  };
+
+  const renderSummaryChips = () => {
+    const chips = [];
+    if (detailSummary.listeningScore !== undefined && detailSummary.listeningScore !== null) {
+      chips.push(
+        <Tag color="purple" key="listening">
+          Nghe: {detailSummary.listeningScore}/495
+        </Tag>
+      );
+    }
+    if (detailSummary.readingScore !== undefined && detailSummary.readingScore !== null) {
+      chips.push(
+        <Tag color="blue" key="reading">
+          Đọc: {detailSummary.readingScore}/495
+        </Tag>
+      );
+    }
+    if (detailSummary.writingScore !== undefined && detailSummary.writingScore !== null) {
+      chips.push(
+        <Tag color="green" key="writing">
+          Viết: {detailSummary.writingScore}/200
+        </Tag>
+      );
+    }
+    if (detailSummary.speakingScore !== undefined && detailSummary.speakingScore !== null) {
+      chips.push(
+        <Tag color="cyan" key="speaking">
+          Nói: {detailSummary.speakingScore}/200
+        </Tag>
+      );
+    }
+    if (detailSummary.totalScore !== undefined && detailSummary.totalScore !== null) {
+      chips.push(
+        <Tag color="gold" key="total">
+          Tổng: {detailSummary.totalScore}
+        </Tag>
+      );
+    }
+
+    if (chips.length === 0) return null;
+    return (
+      <Space wrap style={{ marginBottom: 16 }}>
+        {chips}
+      </Space>
+    );
+  };
+
+
   const normalizeTestType = (value) => {
     if (typeof value === "string") {
       const lower = value.toLowerCase();
@@ -662,6 +1313,20 @@ export function TestHistoryTab() {
       width: 150,
       render: (date) => formatDate(date),
     },
+    {
+      title: "Chi tiết",
+      key: "detail",
+      width: 110,
+      render: (_, record) => (
+        <Button
+          size="small"
+          onClick={() => handleViewDetail(record)}
+          disabled={!record.testResultId}
+        >
+          Xem chi tiết
+        </Button>
+      ),
+    },
     // Chỉ hiển thị cột "Hành động" nếu có bài đang làm
     ...(hasInProgressTest ? [{
       title: "Hành động",
@@ -691,6 +1356,7 @@ export function TestHistoryTab() {
   ];
 
   return (
+    <>
     <div className={styles.tabPane}>
       <h2 className={styles.title}>Lịch sử luyện thi</h2>
       <Row gutter={24} justify="center">
@@ -720,12 +1386,51 @@ export function TestHistoryTab() {
         </Col>
       </Row>
     </div>
+
+    <Modal
+      title={
+        <span>
+          Chi tiết bài thi{" "}
+          {selectedHistory?.title ? `- ${selectedHistory.title}` : ""}
+        </span>
+      }
+      open={detailModalVisible}
+      onCancel={closeDetailModal}
+      footer={null}
+      width={detailMode === "SW" ? 960 : 1200}
+      destroyOnClose
+    >
+      {detailLoading ? (
+        <div style={{ textAlign: "center", padding: 40 }}>
+          <Spin />
+          <div style={{ marginTop: 12 }}>Đang tải dữ liệu...</div>
+        </div>
+      ) : detailMode === "LR" ? (
+        <>
+          {renderSummaryChips()}
+          <div style={{ marginTop: 16 }}>
+            {renderLRDetailByParts()}
+          </div>
+        </>
+      ) : detailMode === "SW" ? (
+        <>
+          {renderSummaryChips()}
+          <div style={{ marginTop: 16 }}>
+            {renderSWDetailByParts()}
+          </div>
+        </>
+      ) : (
+        <Empty description="Chưa có dữ liệu chi tiết" />
+      )}
+    </Modal>
+    </>
   );
 }
 
 export function ReportTab() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [expandedReports, setExpandedReports] = useState(new Set());
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 20,
@@ -735,6 +1440,18 @@ export function ReportTab() {
   useEffect(() => {
     fetchReports();
   }, []);
+
+  const toggleExpand = (reportId) => {
+    setExpandedReports((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(reportId)) {
+        newSet.delete(reportId);
+      } else {
+        newSet.add(reportId);
+      }
+      return newSet;
+    });
+  };
 
   const partLabelMap = {
     1: "L-Part 1",
@@ -825,19 +1542,63 @@ export function ReportTab() {
       title: "Chi tiết câu hỏi",
       key: "questionDetail",
       width: 320,
-      render: (_, record) => (
-        <Space direction="vertical" size="small">
-          <span>
-            <strong>Bài thi:</strong> {record.testName || "—"}
-          </span>
-          <span>
-            <strong>Phần:</strong> {record.partName || "—"}
-          </span>
-          <span>
-            <strong>Câu hỏi:</strong> {record.questionContent || "—"}
-          </span>
-        </Space>
-      ),
+      render: (_, record) => {
+        const isExpanded = expandedReports.has(record.reportId);
+        const questionText = record.questionContent || "—";
+        const hasLongText = questionText.length > 150; // Ước tính text dài
+        
+        return (
+          <Space direction="vertical" size="small" style={{ width: "100%" }}>
+            <span>
+              <strong>Bài thi:</strong> {record.testName || "—"}
+            </span>
+            <span>
+              <strong>Phần:</strong> {record.partName || "—"}
+            </span>
+            <div>
+              <strong>Câu hỏi:</strong>
+              <div
+                style={{
+                  marginTop: 4,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  maxHeight: isExpanded ? "none" : "100px",
+                  overflow: isExpanded ? "visible" : "hidden",
+                  position: "relative",
+                }}
+              >
+                {questionText}
+                {!isExpanded && hasLongText && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      height: "30px",
+                      background: "linear-gradient(to bottom, transparent, #fff)",
+                      display: "flex",
+                      alignItems: "flex-end",
+                      justifyContent: "center",
+                      paddingBottom: 4,
+                    }}
+                  />
+                )}
+              </div>
+              {hasLongText && (
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={() => toggleExpand(record.reportId)}
+                  style={{ padding: 0, height: "auto", marginTop: 4 }}
+                >
+                  {isExpanded ? "Thu gọn" : "Xem thêm..."}
+                </Button>
+              )}
+            </div>
+          </Space>
+        );
+      },
     },
     {
       title: "Nội dung báo cáo",
@@ -845,7 +1606,16 @@ export function ReportTab() {
       key: "description",
       ellipsis: true,
       width: 300,
-      render: (description) => description || "—",
+      render: (description) => (
+        <div
+          style={{
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-word",
+          }}
+        >
+          {description || "—"}
+        </div>
+      ),
     },
     {
       title: "Loại báo cáo",

@@ -10,8 +10,8 @@ https://localhost:7100/api/tests/result/detail/134
         "writingScore": 75,
         "speakingScore": null,
         "totalScore": 75,
-        "isSelectTime": null,
-        "status": null,
+        "isSelectTime": true,
+        "status": "Graded",
         "perPartFeedbacks": [
             {
                 "testQuestionId": 110,
@@ -196,7 +196,287 @@ https://localhost:7100/api/tests/result/detail/134
                 "transcription": "",
                 "correctedText": "My hometown is a small city on the south coast of the country, where I have lived since I was born. It's a very peaceful place, which is why I love it much. The city has many old, beautiful buildings from the colonial time, and near the center is a big park where people do morning exercise. The best feature is the long beach, where you can see the perfect sunset every day. Most people work in the fish market or for the tourism industry, like hotels and small guest houses. Traffic is not good because many motorbikes always go very fast and ignore red lights. The food is the best I think! There are many restaurants where you can buy fresh seafood for a cheap price, especially the grilled fish. I like my hometown very much, even if it is slow sometimes and there are not many new jobs. It is a good place for relaxing and not stressing like a big city, and I hope to live here for all my life. The weather is always hot, which I prefer, and the people are very friendly and always smile to everyone they meet in the street. I am very proud of my little town's history and its lovely nature.",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:03:56.5319654"
+                "createdAt": "2025-11-25T00:03:56.5319654",
+                "partId": 9,
+                "partName": "W-Part 2",
+                "questionContent": {
+                    "questionId": 7,
+                    "partId": 9,
+                    "content": "Write a short essay about your hometown.",
+                    "audioUrl": null,
+                    "imageUrl": null,
+                    "explanation": null,
+                    "options": [],
+                    "userAnswer": null,
+                    "isCorrect": null
+                }
+            },
+            {
+                "testQuestionId": 111,
+                "feedbackId": 121,
+                "userAnswerId": 371,
+                "answerText": "The two woman is talk and laugh to each other while they holding coffee cups in office.",
+                "answerAudioUrl": null,
+                "score": 15,
+                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 17,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "organization": 0,
+                    "relevance": 0,
+                    "sentence_variety": 0,
+                    "opinion_support": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [],
+                    "vocabulary_issues": [],
+                    "missing_points": [
+                        "a man",
+                        "reading a newspaper",
+                        "formal attire",
+                        "seated indoors"
+                    ],
+                    "matched_points": [],
+                    "corrected_text": null,
+                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
+                    "opinion_support_issues": []
+                },
+                "recommendations": [
+                    "❌ FAIL: Sentence doesn't describe the picture",
+                    "",
+                    "What the picture shows:",
+                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
+                    "",
+                    "What you wrote about:",
+                    "  Elements NOT in picture: two woman, talk and laugh, coffee cups",
+                    "",
+                    "How to fix:",
+                    "1. Look at the picture carefully",
+                    "2. Describe what you actually see",
+                    "3. Use present continuous for actions (is/are + verb-ing)"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": null,
+                "createdAt": "2025-11-25T00:05:24.8713574",
+                "partId": 8,
+                "partName": "W-Part 1",
+                "questionContent": {
+                    "questionId": 23,
+                    "partId": 8,
+                    "content": "Write a sentence based on a picture",
+                    "audioUrl": "",
+                    "imageUrl": "https://daksgci46xjpr.cloudfront.net/toeic-images/6e13be96-6718-4297-a2d7-942c960992fd_image17.png",
+                    "explanation": null,
+                    "options": [],
+                    "userAnswer": null,
+                    "isCorrect": null
+                }
+            },
+            {
+                "testQuestionId": 112,
+                "feedbackId": 122,
+                "userAnswerId": 372,
+                "answerText": "Man standing on ladder painting the walls of the building using a big roller.",
+                "answerAudioUrl": null,
+                "score": 15,
+                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 14,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "organization": 0,
+                    "relevance": 0,
+                    "sentence_variety": 0,
+                    "opinion_support": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [],
+                    "vocabulary_issues": [],
+                    "missing_points": [
+                        "woman",
+                        "shopping",
+                        "supermarket aisle",
+                        "shopping cart",
+                        "groceries",
+                        "shelves",
+                        "products"
+                    ],
+                    "matched_points": [],
+                    "corrected_text": null,
+                    "image_description": "This black and white photograph depicts a woman shopping in a supermarket aisle.\n\nThe main subject is a young adult woman, positioned slightly to the right of the frame's center. She has light-colored hair, pulled back, and is smiling as she looks down at an item she holds in her right hand. She is wearing a long-sleeved, buttoned cardigan over another garment, and a shoulder bag hangs from her left arm. The item she is holding appears to be a jar or container with a dark lid.\n\nIn front of her is a metal shopping cart, partially filled with groceries. Visible items in the cart include a baguette (long loaf of bread), a carton of eggs, a bottle (possibly milk or juice), and some green vegetables, which appear to be broccoli. Other packaged goods, including a bag that resembles M&M's, are also visible further down in the cart.\n\nThe background shows a typical supermarket aisle, with tall shelves extending into the distance on both sides. These shelves are fully stocked with various packaged products, though specific details and labels are indistinct due to the distance and monochrome nature of the image. Overhead lighting fixtures are visible at the top of the frame, illuminating the aisle. The overall scene captures an everyday activity of grocery shopping.",
+                    "opinion_support_issues": []
+                },
+                "recommendations": [
+                    "❌ FAIL: Sentence doesn't describe the picture",
+                    "",
+                    "What the picture shows:",
+                    "  This black and white photograph depicts a woman shopping in a supermarket aisle.\n\nThe main subject is a young adult woman, positioned slightly to the right of the frame's center. She has light-colored",
+                    "",
+                    "What you wrote about:",
+                    "  Elements NOT in picture: Man, standing on ladder, painting the walls",
+                    "",
+                    "How to fix:",
+                    "1. Look at the picture carefully",
+                    "2. Describe what you actually see",
+                    "3. Use present continuous for actions (is/are + verb-ing)"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": null,
+                "createdAt": "2025-11-25T00:05:53.6697983",
+                "partId": 8,
+                "partName": "W-Part 1",
+                "questionContent": {
+                    "questionId": 24,
+                    "partId": 8,
+                    "content": "Write a sentence based on a picture",
+                    "audioUrl": "",
+                    "imageUrl": "https://daksgci46xjpr.cloudfront.net/toeic-images/f6e97f58-1cca-4677-8b5d-5856608196a5_image3.png",
+                    "explanation": null,
+                    "options": [],
+                    "userAnswer": null,
+                    "isCorrect": null
+                }
+            },
+            {
+                "testQuestionId": 113,
+                "feedbackId": 123,
+                "userAnswerId": 373,
+                "answerText": "The customer is buying many vegetable at market stand and lady selling is look at her phone.",
+                "answerAudioUrl": null,
+                "score": 15,
+                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 17,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "organization": 0,
+                    "relevance": 0,
+                    "sentence_variety": 0,
+                    "opinion_support": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [],
+                    "vocabulary_issues": [],
+                    "missing_points": [
+                        "a man",
+                        "reading a newspaper",
+                        "indoors",
+                        "formal attire",
+                        "seated"
+                    ],
+                    "matched_points": [],
+                    "corrected_text": null,
+                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
+                    "opinion_support_issues": []
+                },
+                "recommendations": [
+                    "❌ FAIL: Sentence doesn't describe the picture",
+                    "",
+                    "What the picture shows:",
+                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
+                    "",
+                    "What you wrote about:",
+                    "  Elements NOT in picture: The customer, buying many vegetable, at market stand",
+                    "",
+                    "How to fix:",
+                    "1. Look at the picture carefully",
+                    "2. Describe what you actually see",
+                    "3. Use present continuous for actions (is/are + verb-ing)"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": null,
+                "createdAt": "2025-11-25T00:06:12.4131764",
+                "partId": 8,
+                "partName": "W-Part 1",
+                "questionContent": {
+                    "questionId": 25,
+                    "partId": 8,
+                    "content": "Write a sentence based on a picture",
+                    "audioUrl": "",
+                    "imageUrl": "https://daksgci46xjpr.cloudfront.net/toeic-images/d38f804a-baab-48ca-8700-144f1eeba909_image17.png",
+                    "explanation": null,
+                    "options": [],
+                    "userAnswer": null,
+                    "isCorrect": null
+                }
+            },
+            {
+                "testQuestionId": 114,
+                "feedbackId": 124,
+                "userAnswerId": 374,
+                "answerText": "A bicycle lean against a tree near the sidewalk and some trees is behind it.",
+                "answerAudioUrl": null,
+                "score": 15,
+                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 15,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "organization": 0,
+                    "relevance": 0,
+                    "sentence_variety": 0,
+                    "opinion_support": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [],
+                    "vocabulary_issues": [],
+                    "missing_points": [
+                        "man",
+                        "newspaper",
+                        "reading",
+                        "indoors",
+                        "formal attire",
+                        "desk/table",
+                        "thoughtful posture"
+                    ],
+                    "matched_points": [],
+                    "corrected_text": null,
+                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
+                    "opinion_support_issues": []
+                },
+                "recommendations": [
+                    "❌ FAIL: Sentence doesn't describe the picture",
+                    "",
+                    "What the picture shows:",
+                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
+                    "",
+                    "What you wrote about:",
+                    "  Elements NOT in picture: bicycle, tree, sidewalk",
+                    "",
+                    "How to fix:",
+                    "1. Look at the picture carefully",
+                    "2. Describe what you actually see",
+                    "3. Use present continuous for actions (is/are + verb-ing)"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": null,
+                "createdAt": "2025-11-25T00:06:32.2713987",
+                "partId": 8,
+                "partName": "W-Part 1",
+                "questionContent": {
+                    "questionId": 27,
+                    "partId": 8,
+                    "content": "Write a sentence based on a picture",
+                    "audioUrl": "",
+                    "imageUrl": "https://daksgci46xjpr.cloudfront.net/toeic-images/91877504-f367-4b1d-9586-02494137cf09_image17.png",
+                    "explanation": null,
+                    "options": [],
+                    "userAnswer": null,
+                    "isCorrect": null
+                }
             },
             {
                 "testQuestionId": 115,
@@ -324,7 +604,20 @@ https://localhost:7100/api/tests/result/detail/134
                 "transcription": "",
                 "correctedText": "Dear Mr. Kramer,\n\nI am writing to you to express my strong interest in the Experienced Accountant vacancy at Marleyhome Inc. that I see in the Daily Jobseeker update email. I think this job is a perfect match for my professional background because I have a very good degree in Accounting from the National University, and I currently work in financial audit with four years of experience in a big international company. I am also very expert in using all accounting software like QuickBooks and SAP, which I think will be important for your vacancy.\n\nBefore sending my complete CV and a letter, I have to ask two very important things about this job. First, can you tell me exactly what are the working hours for this job and if it is possible for some remote work from home, maybe one or two days per week, because I have family commitment in the afternoon? Second, please inform me of the expected salary pay range for this position, including any bonus or insurance benefit, because I need to make sure it matches my current pay grade before I move to a new company and spend time for interview process.\n\nThank you very much for your time and help. I am waiting for your quick reply so that I can send my documents.\n\nSincerely,\nAnna Billings",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:04:32.325125"
+                "createdAt": "2025-11-25T00:04:32.325125",
+                "partId": 9,
+                "partName": "W-Part 2",
+                "questionContent": {
+                    "questionId": 28,
+                    "partId": 9,
+                    "content": "Respond to an email\r\n\r\nFrom: update@dailyjobseeker.com\r\n\r\nTo: Anna Billings\r\n\r\nSubject: Daily Jobseeker update\r\n\r\nSent: March 14, 20—\r\n\r\nDear Daily Jobseeker subscriber,\r\n\r\nHere is the most recent job opening:\r\n\r\nMarleyhome Inc. is looking for an experienced accountant to fill a vacancy in its Accounting Department. The company needs someone with an accounting degree and at least three years of experience. Contact Ralph Kramer, r_kramer@marleyhome.com.\r\n\r\nDirections: Respond to the e-mail as if you are interested in applying for the position. Make ONE statement about your professional background and TWO requests for information about the job.",
+                    "audioUrl": "",
+                    "imageUrl": "",
+                    "explanation": null,
+                    "options": [],
+                    "userAnswer": null,
+                    "isCorrect": null
+                }
             },
             {
                 "testQuestionId": 116,
@@ -558,222 +851,20 @@ https://localhost:7100/api/tests/result/detail/134
                 "transcription": "",
                 "correctedText": "Dear Elisa Hays,\n\nI received your email about problems with the reservation system, and I want to compile the list of issues I always see at the front desk for you. Many agents are unhappy with the system, and it makes our work very difficult and slow when we have a big rush hour with many guests.\n\nHere is the list of THREE problems with the reservation system that I see every day:\n\n1. System Freeze Often: The computer system for booking always freezes and crashes very often when I try to process group check-ins for more than ten people, especially when I try to process all the credit cards at once. This freezing makes very long queues in the lobby, and guests become angry, which is bad for the hotel's reputation.\n\n2. Credit Card Processing Slow: The machine to take payment with cards is extremely slow; it takes at least three minutes for one person to finalize the transaction. Sometimes it fails, and I have to retry many times. This is not efficient at all and makes me worry about the payment being collected correctly from all guests.\n\n3. Guest Profile Mix-up: Sometimes the system shows the wrong guest profile for the room they book, or it erases their special requests, like extra towels or a non-smoking room on a high floor. Once, a guest was given a room with two beds when she requested one big bed, and she was furious. The system needs to be more stable so the information is correct and not lost; it is causing big trouble for our service.\n\nI hope this information helps you fix these problems soon, and the IT department can work on this issue very quickly.\n\nSincerely,\nA Front Desk Agent",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:05:11.1170984"
-            },
-            {
-                "testQuestionId": 111,
-                "feedbackId": 121,
-                "userAnswerId": 371,
-                "answerText": "The two woman is talk and laugh to each other while they holding coffee cups in office.",
-                "answerAudioUrl": null,
-                "score": 15,
-                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
-                "aiScorer": "writing",
-                "detailedScores": {
-                    "word_count": 17,
-                    "grammar": 0,
-                    "vocabulary": 0,
-                    "organization": 0,
-                    "relevance": 0,
-                    "sentence_variety": 0,
-                    "opinion_support": 0,
-                    "overall": 0
-                },
-                "detailedAnalysis": {
-                    "grammar_errors": [],
-                    "vocabulary_issues": [],
-                    "missing_points": [
-                        "a man",
-                        "reading a newspaper",
-                        "formal attire",
-                        "seated indoors"
-                    ],
-                    "matched_points": [],
-                    "corrected_text": null,
-                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
-                    "opinion_support_issues": []
-                },
-                "recommendations": [
-                    "❌ FAIL: Sentence doesn't describe the picture",
-                    "",
-                    "What the picture shows:",
-                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
-                    "",
-                    "What you wrote about:",
-                    "  Elements NOT in picture: two woman, talk and laugh, coffee cups",
-                    "",
-                    "How to fix:",
-                    "1. Look at the picture carefully",
-                    "2. Describe what you actually see",
-                    "3. Use present continuous for actions (is/are + verb-ing)"
-                ],
-                "transcription": "",
-                "correctedText": "",
-                "audioDuration": null,
-                "createdAt": "2025-11-25T00:05:24.8713574"
-            },
-            {
-                "testQuestionId": 112,
-                "feedbackId": 122,
-                "userAnswerId": 372,
-                "answerText": "Man standing on ladder painting the walls of the building using a big roller.",
-                "answerAudioUrl": null,
-                "score": 15,
-                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
-                "aiScorer": "writing",
-                "detailedScores": {
-                    "word_count": 14,
-                    "grammar": 0,
-                    "vocabulary": 0,
-                    "organization": 0,
-                    "relevance": 0,
-                    "sentence_variety": 0,
-                    "opinion_support": 0,
-                    "overall": 0
-                },
-                "detailedAnalysis": {
-                    "grammar_errors": [],
-                    "vocabulary_issues": [],
-                    "missing_points": [
-                        "woman",
-                        "shopping",
-                        "supermarket aisle",
-                        "shopping cart",
-                        "groceries",
-                        "shelves",
-                        "products"
-                    ],
-                    "matched_points": [],
-                    "corrected_text": null,
-                    "image_description": "This black and white photograph depicts a woman shopping in a supermarket aisle.\n\nThe main subject is a young adult woman, positioned slightly to the right of the frame's center. She has light-colored hair, pulled back, and is smiling as she looks down at an item she holds in her right hand. She is wearing a long-sleeved, buttoned cardigan over another garment, and a shoulder bag hangs from her left arm. The item she is holding appears to be a jar or container with a dark lid.\n\nIn front of her is a metal shopping cart, partially filled with groceries. Visible items in the cart include a baguette (long loaf of bread), a carton of eggs, a bottle (possibly milk or juice), and some green vegetables, which appear to be broccoli. Other packaged goods, including a bag that resembles M&M's, are also visible further down in the cart.\n\nThe background shows a typical supermarket aisle, with tall shelves extending into the distance on both sides. These shelves are fully stocked with various packaged products, though specific details and labels are indistinct due to the distance and monochrome nature of the image. Overhead lighting fixtures are visible at the top of the frame, illuminating the aisle. The overall scene captures an everyday activity of grocery shopping.",
-                    "opinion_support_issues": []
-                },
-                "recommendations": [
-                    "❌ FAIL: Sentence doesn't describe the picture",
-                    "",
-                    "What the picture shows:",
-                    "  This black and white photograph depicts a woman shopping in a supermarket aisle.\n\nThe main subject is a young adult woman, positioned slightly to the right of the frame's center. She has light-colored",
-                    "",
-                    "What you wrote about:",
-                    "  Elements NOT in picture: Man, standing on ladder, painting the walls",
-                    "",
-                    "How to fix:",
-                    "1. Look at the picture carefully",
-                    "2. Describe what you actually see",
-                    "3. Use present continuous for actions (is/are + verb-ing)"
-                ],
-                "transcription": "",
-                "correctedText": "",
-                "audioDuration": null,
-                "createdAt": "2025-11-25T00:05:53.6697983"
-            },
-            {
-                "testQuestionId": 113,
-                "feedbackId": 123,
-                "userAnswerId": 373,
-                "answerText": "The customer is buying many vegetable at market stand and lady selling is look at her phone.",
-                "answerAudioUrl": null,
-                "score": 15,
-                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
-                "aiScorer": "writing",
-                "detailedScores": {
-                    "word_count": 17,
-                    "grammar": 0,
-                    "vocabulary": 0,
-                    "organization": 0,
-                    "relevance": 0,
-                    "sentence_variety": 0,
-                    "opinion_support": 0,
-                    "overall": 0
-                },
-                "detailedAnalysis": {
-                    "grammar_errors": [],
-                    "vocabulary_issues": [],
-                    "missing_points": [
-                        "a man",
-                        "reading a newspaper",
-                        "indoors",
-                        "formal attire",
-                        "seated"
-                    ],
-                    "matched_points": [],
-                    "corrected_text": null,
-                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
-                    "opinion_support_issues": []
-                },
-                "recommendations": [
-                    "❌ FAIL: Sentence doesn't describe the picture",
-                    "",
-                    "What the picture shows:",
-                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
-                    "",
-                    "What you wrote about:",
-                    "  Elements NOT in picture: The customer, buying many vegetable, at market stand",
-                    "",
-                    "How to fix:",
-                    "1. Look at the picture carefully",
-                    "2. Describe what you actually see",
-                    "3. Use present continuous for actions (is/are + verb-ing)"
-                ],
-                "transcription": "",
-                "correctedText": "",
-                "audioDuration": null,
-                "createdAt": "2025-11-25T00:06:12.4131764"
-            },
-            {
-                "testQuestionId": 114,
-                "feedbackId": 124,
-                "userAnswerId": 374,
-                "answerText": "A bicycle lean against a tree near the sidewalk and some trees is behind it.",
-                "answerAudioUrl": null,
-                "score": 15,
-                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
-                "aiScorer": "writing",
-                "detailedScores": {
-                    "word_count": 15,
-                    "grammar": 0,
-                    "vocabulary": 0,
-                    "organization": 0,
-                    "relevance": 0,
-                    "sentence_variety": 0,
-                    "opinion_support": 0,
-                    "overall": 0
-                },
-                "detailedAnalysis": {
-                    "grammar_errors": [],
-                    "vocabulary_issues": [],
-                    "missing_points": [
-                        "man",
-                        "newspaper",
-                        "reading",
-                        "indoors",
-                        "formal attire",
-                        "desk/table",
-                        "thoughtful posture"
-                    ],
-                    "matched_points": [],
-                    "corrected_text": null,
-                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
-                    "opinion_support_issues": []
-                },
-                "recommendations": [
-                    "❌ FAIL: Sentence doesn't describe the picture",
-                    "",
-                    "What the picture shows:",
-                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
-                    "",
-                    "What you wrote about:",
-                    "  Elements NOT in picture: bicycle, tree, sidewalk",
-                    "",
-                    "How to fix:",
-                    "1. Look at the picture carefully",
-                    "2. Describe what you actually see",
-                    "3. Use present continuous for actions (is/are + verb-ing)"
-                ],
-                "transcription": "",
-                "correctedText": "",
-                "audioDuration": null,
-                "createdAt": "2025-11-25T00:06:32.2713987"
+                "createdAt": "2025-11-25T00:05:11.1170984",
+                "partId": 9,
+                "partName": "W-Part 2",
+                "questionContent": {
+                    "questionId": 29,
+                    "partId": 9,
+                    "content": "Respond to an email\r\n\r\nFrom: Elisa Hays, Front Desk Supervisor\r\n\r\nTo: Front desk agents, Hotel Mediterraneo\r\n\r\nSubject: Reservation system\r\nSent: December 1, 20—\r\n\r\nIt has come to my attention that several of you have experienced problems with the reservation system recently. In order to address these problems, we need to compile a complete list of the issues that each of you have encountered. Please send me this list at your earliest convenience.\r\n\r\nSincerely,\r\nElisa Hays\r\nFront Desk Supervisor\r\n\r\nDirections: Respond to the e-mail as if you are a front desk agent at Hotel Mediterraneo. In your e-mail, describe THREE problems with the reservation system.",
+                    "audioUrl": "",
+                    "imageUrl": "",
+                    "explanation": null,
+                    "options": [],
+                    "userAnswer": null,
+                    "isCorrect": null
+                }
             },
             {
                 "testQuestionId": 117,
@@ -1111,7 +1202,20 @@ https://localhost:7100/api/tests/result/detail/134
                 "transcription": "",
                 "correctedText": "Many people all over the world enjoy sports very much, no matter if they are playing on a field or watching on TV in their home. They spend a lot of time and money on this activity, and I think that sports are very important to all people for three important things in life. These important things are physical health, learning life lessons, and building strong friendships and a sense of community. People need to know why sports are great to have a good and happy life because the benefits are more than just a game.\n\nThe first thing is that sports are good for physical health and mental well-being. If you always sit at your desk and don't move, you will become fat and maybe sick many times, especially with problems like high blood pressure or diabetes, which are common in today's world. Sports activities are like running, playing soccer or basketball, or even just going to the gym. These exercises make your body strong and your heart work better, and they also help you to sleep better at night. For example, my brother plays tennis every week, and he is never sick and always feels positive and full of energy; he is happy and his mind is clear. This is important for health for a long time and for living a quality life.\n\nSecond, sports teach you life lessons that are important for you later when you are an adult in your work life. You learn to cooperate with all your team members, even if you don't like them very much as people, because you must work together to win. If you don't cooperate, you lose the game, which teaches the importance of teamwork. Also, when the game is very difficult and you feel bad and want to cry, you must not give up the fight. This skill is called perseverance, and I use this skill every day at my work when my project is hard and I think I cannot finish it. Sports make me know how to work with a group and not quit easily when something is challenging.\n\nFinally, many people like to watch sports because it makes many friends and a feeling of belonging. When my country's team plays in an international game, all people go to the same bar or pub and shout very loud for the team. We don't know other people, but we are friends that night because we share the same passion and the same hope for victory. This makes the community very strong and people feel happy together, which is important for mental health. The feeling of belonging is important for everyone's life to not feel lonely.\n\nFor these reasons, I think sports are super important to people's lives. They make our bodies good/healthy, teach us good things for our career, and give us friendship and a strong community feeling, making life more fulfilled and healthy for all.",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:07:02.7607656"
+                "createdAt": "2025-11-25T00:07:02.7607656",
+                "partId": 10,
+                "partName": "W-Part 3",
+                "questionContent": {
+                    "questionId": 30,
+                    "partId": 10,
+                    "content": "Many people enjoy spending time playing and watching sports. Why do you think sports are important to people? Give specific reasons and examples to support your opinion.",
+                    "audioUrl": "",
+                    "imageUrl": "",
+                    "explanation": null,
+                    "options": [],
+                    "userAnswer": null,
+                    "isCorrect": null
+                }
             }
         ]
     },

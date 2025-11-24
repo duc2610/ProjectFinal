@@ -27,7 +27,7 @@ import {
   LoadingOutlined,
   FlagOutlined,
 } from "@ant-design/icons";
-import { getTestResultDetailLR, startTest } from "../../../services/testExamService";
+import { getTestResultDetail, startTest } from "../../../services/testExamService";
 import { reportQuestion as reportQuestionAPI, getTestResultReports, getMyQuestionReports } from "../../../services/questionReportService";
 import styles from "../../styles/Result.module.css";
 
@@ -419,7 +419,7 @@ export default function ResultScreen() {
 
     setLoadingDetail(true);
     try {
-      const data = await getTestResultDetailLR(testResultId);
+      const data = await getTestResultDetail(testResultId);
       setDetailData(data);
       // Không hiển thị message success khi auto load
     } catch (error) {

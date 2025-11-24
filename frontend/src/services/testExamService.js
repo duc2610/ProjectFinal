@@ -24,31 +24,24 @@ export async function submitTest(payload) {
     throw error;
   }
 }
-
-// Lấy chi tiết kết quả bài thi cả Listening & Reading và Speaking & Writing
 export async function getTestResultDetail(testResultId) {
   const url = `/api/tests/result/detail/${testResultId}`;
   try {
     const res = await api.get(url);
-    // Backend trả: { statusCode: 200, data: { ... } }
     return res?.data?.data ?? res?.data;
   } catch (error) {
-    console.error(`Error fetching result ${testResultId}:`, error.response?.data || error);
+    console.error(`Error fetching test result detail ${testResultId}:`, error.response?.data || error);
     throw error;
   }
 }
 
-// Lấy chi tiết kết quả Listening & Reading
+// Alias functions để tương thích với code cũ (deprecated - sẽ xóa sau)
 export async function getTestResultDetailLR(testResultId) {
-  const url = `/api/tests/result/listening-reading/detail/${testResultId}`;
-  try {
-    const res = await api.get(url);
-    // Backend trả: { statusCode: 200, data: { ... } }
-    return res?.data?.data ?? res?.data;
-  } catch (error) {
-    console.error(`Error fetching LR result detail ${testResultId}:`, error.response?.data || error);
-    throw error;
-  }
+  return getTestResultDetail(testResultId);
+}
+
+export async function getTestResultDetailSW(testResultId) {
+  return getTestResultDetail(testResultId);
 }
 
 // Submit Speaking & Writing với API assessment/bulk
