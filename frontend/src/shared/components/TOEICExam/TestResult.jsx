@@ -63,6 +63,69 @@ const normalizeNumber = (value) => {
   return Number.isNaN(num) ? 0 : num;
 };
 
+const EMPTY_LR_MESSAGE =
+  "Không có câu trả lời cho phần này. Có thể bạn chưa làm hoặc dữ liệu chưa được ghi nhận.";
+
+const SCORE_META = [
+  {
+    key: "listening",
+    label: "Nghe",
+    resultKey: "listeningScore",
+    max: 495,
+    color: "#1890ff",
+    icon: <SoundOutlined />,
+  },
+  {
+    key: "reading",
+    label: "Đọc",
+    resultKey: "readingScore",
+    max: 495,
+    color: "#fa8c16",
+    icon: <ReadOutlined />,
+  },
+  {
+    key: "writing",
+    label: "Viết",
+    resultKey: "writingScore",
+    max: 200,
+    color: "#722ed1",
+    icon: <FileTextOutlined />,
+  },
+  {
+    key: "speaking",
+    label: "Nói",
+    resultKey: "speakingScore",
+    max: 200,
+    color: "#13c2c2",
+    icon: <CustomerServiceOutlined />,
+  },
+];
+
+const inferSkillGroup = (skill) => {
+  if (skill === undefined || skill === null) return null;
+
+  if (typeof skill === "string") {
+    const upper = skill.toUpperCase();
+    if (upper.includes("LISTENING") || upper.includes("READING") || upper === "LR") {
+      return "lr";
+    }
+    if (
+      upper.includes("S&W") ||
+      upper === "SW" ||
+      upper === "SPEAKING" ||
+      upper === "WRITING" ||
+      upper.includes("SPEAKING") ||
+      upper.includes("WRITING")
+    ) {
+      return "sw";
+    }
+  } else if (typeof skill === "number") {
+    if (skill === 3) return "lr";
+    if ([1, 2, 4].includes(skill)) return "sw";
+  }
+  return null;
+};
+
 const buildQuestions = (parts = []) => {
   const questions = [];
   let globalIndex = 1;
@@ -158,67 +221,93 @@ export default function ResultScreen() {
   const [reportDescription, setReportDescription] = useState("");
   const [reporting, setReporting] = useState(false);
 
+  const getSavedTestData = useCallback(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+    } catch (e) {
+      console.error("Error reading test data from sessionStorage:", e);
+      return {};
+    }
+  }, []);
+
+  const resolveBackPath = useCallback(() => {
+    const savedTestData = getSavedTestData();
+    const normalizedType = normalizeTestType(result?.testType || savedTestData?.testType);
+    if (normalizedType === "Practice") {
+      const skillGroup = inferSkillGroup(result?.testSkill ?? savedTestData?.testSkill);
+      if (skillGroup === "sw") return "/practice-sw";
+      if (skillGroup === "lr") return "/practice-lr";
+    }
+    return "/test-list";
+  }, [getSavedTestData, result]);
+
   // Hàm xử lý quay lại - quay về trang chủ hoặc test-list
   const handleGoBack = () => {
-    navigate("/test-list");
+    const path = resolveBackPath() || "/test-list";
+
+    const navigationEntries = window.performance?.getEntriesByType("navigation");
+    const hasReloaded =
+      Array.isArray(navigationEntries) &&
+      navigationEntries.length > 0 &&
+      navigationEntries[navigationEntries.length - 1].type === "reload";
+
+    if (hasReloaded) {
+      window.location.replace(path);
+      return;
+    }
+
+    navigate(path, { replace: true });
   };
 
   // Hàm xử lý làm lại bài thi - hiển thị modal confirm
   const handleRetakeTest = () => {
-    // Lấy testId từ resultData hoặc từ sessionStorage
-    let currentTestId = testId;
-    
-    if (!currentTestId) {
-      // Thử lấy từ sessionStorage
-      try {
-        const savedTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
-        currentTestId = savedTestData.testId;
-      } catch (e) {
-        console.error("Error reading testId from sessionStorage:", e);
-      }
-    }
-    
+    const savedTestData = getSavedTestData();
+    // Ưu tiên state đã lưu, sau đó tới sessionStorage, cuối cùng fallback result
+    let currentTestId = testId || savedTestData.testId || result?.testId;
+
     if (!currentTestId) {
       message.warning("Không tìm thấy thông tin bài test. Vui lòng chọn lại từ danh sách.");
-      navigate("/test-list");
+      navigate(resolveBackPath());
       return;
     }
 
-    // Lấy thông tin test từ result hoặc sessionStorage (không cần gọi API)
+    // Lấy thông tin test từ sessionStorage nếu có, nếu không dùng result
     let testInfo = null;
-    try {
-      const savedTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
-      if (savedTestData.testId) {
-        testInfo = {
-          testId: savedTestData.testId,
-          title: savedTestData.title || result?.testTitle,
-          testType: savedTestData.testType || result?.testType,
-          testSkill: savedTestData.testSkill || result?.testSkill,
-          duration: savedTestData.duration || result?.duration,
-          questionQuantity: savedTestData.questionQuantity || result?.questionQuantity,
-        };
-      }
-    } catch (e) {
-      console.error("Error reading test data from sessionStorage:", e);
-    }
-
-    // Nếu không có từ sessionStorage, dùng từ result
-    if (!testInfo && result) {
+    if (savedTestData.testId) {
       testInfo = {
-        testId: currentTestId,
+        testId: savedTestData.testId,
+        title: savedTestData.title || result?.testTitle,
+        testType: savedTestData.testType || result?.testType,
+        testSkill: savedTestData.testSkill || result?.testSkill,
+        duration: savedTestData.duration || result?.duration,
+        questionQuantity: savedTestData.questionQuantity || result?.questionQuantity,
+        isSelectTime: savedTestData.isSelectTime ?? result?.isSelectTime,
+      };
+    } else if (result) {
+      testInfo = {
+        testId: result.testId || currentTestId,
         title: result.testTitle,
         testType: result.testType,
         testSkill: result.testSkill,
         duration: result.duration,
         questionQuantity: result.questionQuantity,
+        isSelectTime: result.isSelectTime,
       };
+    }
+
+    if (!testInfo) {
+      message.error("Không thể xác định thông tin bài thi để làm lại.");
+      return;
     }
 
     setRetakeTestInfo(testInfo);
     
     // Nếu là practice, mặc định bật countdown
     const isPractice = normalizeTestType(testInfo?.testType || result?.testType) === "Practice";
-    setPracticeCountdown(isPractice ? true : false);
+    const defaultSelectTime = testInfo?.isSelectTime ?? result?.isSelectTime;
+    setPracticeCountdown(
+      isPractice ? (defaultSelectTime === undefined ? true : !!defaultSelectTime) : true
+    );
     
     setRetakeModalVisible(true);
   };
@@ -232,11 +321,9 @@ export default function ResultScreen() {
     
     // Nếu vẫn không có, thử lấy từ sessionStorage
     if (!currentTestId) {
-      try {
-        const savedTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+      const savedTestData = getSavedTestData();
+      if (savedTestData.testId) {
         currentTestId = savedTestData.testId;
-      } catch (e) {
-        console.error("Error reading testId from sessionStorage:", e);
       }
     }
 
@@ -252,7 +339,11 @@ export default function ResultScreen() {
     }
 
     const isSimulator = normalizeTestType(retakeTestInfo?.testType || result?.testType) === "Simulator";
-    const finalSelectTime = isSimulator ? true : !!practiceCountdown;
+    const finalSelectTime = isSimulator
+      ? true
+      : practiceCountdown !== undefined && practiceCountdown !== null
+      ? !!practiceCountdown
+      : !!retakeTestInfo?.isSelectTime;
 
     setRetakeConfirmLoading(true);
     try {
@@ -361,7 +452,7 @@ export default function ResultScreen() {
         console.error("Error reading resultData from sessionStorage:", e);
       }
       message.error("Không có dữ liệu kết quả.");
-      navigate("/test-list");
+      navigate(resolveBackPath());
       return;
     }
 
@@ -398,7 +489,7 @@ export default function ResultScreen() {
       // Nếu chỉ có S&W, không cần load detail từ API L&R
       // Không gọi loadReports ở đây, sẽ gọi sau khi questionRowsBySection có dữ liệu
     }
-  }, [resultData, autoSubmit, navigate, loadDetailFromAPI]);
+  }, [resultData, autoSubmit, navigate, loadDetailFromAPI, resolveBackPath]);
 
 
   // Kiểm tra xem câu hỏi đã được report chưa
@@ -634,63 +725,87 @@ export default function ResultScreen() {
     return { writing, speaking };
   }, [result]);
 
+  const listeningReadingPresence = useMemo(() => {
+    const presence = { listening: false, reading: false };
+
+    const markPresenceByPartId = (partId, testQuestionsLength = 0) => {
+      if (!testQuestionsLength || testQuestionsLength === 0) return;
+      if (partId >= 1 && partId <= 4) {
+        presence.listening = true;
+      } else if (partId >= 5 && partId <= 7) {
+        presence.reading = true;
+      }
+    };
+
+    (detailData?.parts || []).forEach((part) => {
+      markPresenceByPartId(part.partId, part.testQuestions?.length || 0);
+    });
+
+    if ((!presence.listening || !presence.reading) && Array.isArray(result?.questions)) {
+      result.questions.forEach((question) => {
+        if (question?.partId) {
+          markPresenceByPartId(question.partId, 1);
+        }
+      });
+    }
+
+    return presence;
+  }, [detailData, result?.questions]);
+
+  const scoreConfigs = useMemo(
+    () =>
+      SCORE_META.map((meta) => ({
+        ...meta,
+        score: result ? result[meta.resultKey] : undefined,
+      })),
+    [result]
+  );
+
+  const skillPresenceMap = useMemo(
+    () => ({
+      listening: listeningReadingPresence.listening,
+      reading: listeningReadingPresence.reading,
+      writing: swFeedbacks.writing.length > 0,
+      speaking: swFeedbacks.speaking.length > 0,
+    }),
+    [listeningReadingPresence, swFeedbacks]
+  );
+
+  const availableScoreConfigs = useMemo(
+    () =>
+      scoreConfigs.filter((cfg) => {
+        const hasScore = cfg.score !== undefined && cfg.score !== null;
+        if (!hasScore) return false;
+        const presence = skillPresenceMap[cfg.key];
+        if (presence === undefined) return true;
+        return presence;
+      }),
+    [scoreConfigs, skillPresenceMap]
+  );
+
   // === LẤY ĐIỂM TỔNG TỪ API ===
   const getTotalScore = useMemo(() => {
     if (!result) return 0;
-    
-    // Nếu API trả về totalScore, dùng nó
+
     if (result.totalScore !== undefined && result.totalScore !== null) {
       return result.totalScore;
     }
-    
-    // Nếu API không trả totalScore, tính từ các điểm API trả về (vẫn là dữ liệu từ API)
-    let total = 0;
-    if (result.listeningScore !== undefined && result.listeningScore !== null) {
-      total += result.listeningScore;
-    }
-    if (result.readingScore !== undefined && result.readingScore !== null) {
-      total += result.readingScore;
-    }
-    if (result.writingScore !== undefined && result.writingScore !== null) {
-      total += result.writingScore;
-    }
-    if (result.speakingScore !== undefined && result.speakingScore !== null) {
-      total += result.speakingScore;
-    }
-    
-    return total;
-  }, [result]);
-  
+
+    return availableScoreConfigs.reduce((sum, cfg) => sum + (Number(cfg.score) || 0), 0);
+  }, [result, availableScoreConfigs]);
+
   // === TÍNH MAX ĐIỂM DỰA TRÊN CÁC PHẦN CÓ TRONG BÀI TEST ===
   const getMaxScore = useMemo(() => {
-    if (!result) return 990;
-    
-    // Nếu API trả về maxScore hoặc totalMaxScore, dùng nó
-    if (result.maxScore !== undefined && result.maxScore !== null) {
-      return result.maxScore;
+    if (availableScoreConfigs.length === 0) {
+      return 990;
     }
-    if (result.totalMaxScore !== undefined && result.totalMaxScore !== null) {
-      return result.totalMaxScore;
-    }
-    
-    // Tính max điểm dựa trên các phần có trong bài test
-    let maxScore = 0;
-    
-    // Kiểm tra các phần có điểm
-    const hasListening = result.listeningScore !== undefined && result.listeningScore !== null;
-    const hasReading = result.readingScore !== undefined && result.readingScore !== null;
-    const hasWriting = result.writingScore !== undefined && result.writingScore !== null;
-    const hasSpeaking = result.speakingScore !== undefined && result.speakingScore !== null;
-    
-    // Tính tổng max điểm của các phần có trong bài test
-    if (hasListening) maxScore += 495;
-    if (hasReading) maxScore += 495;
-    if (hasWriting) maxScore += 200;
-    if (hasSpeaking) maxScore += 200;
-    
-    // Nếu không có phần nào, trả về giá trị mặc định
-    return maxScore > 0 ? maxScore : 990;
-  }, [result]);
+    return availableScoreConfigs.reduce((sum, cfg) => sum + cfg.max, 0);
+  }, [availableScoreConfigs]);
+
+  const selectedScoreConfig = useMemo(
+    () => availableScoreConfigs.find((cfg) => cfg.key === selectedSection),
+    [availableScoreConfigs, selectedSection]
+  );
 
   // === ANIMATION ĐIỂM SỐ ===
   useEffect(() => {
@@ -699,14 +814,10 @@ export default function ResultScreen() {
     let target = 0;
     if (selectedSection === "overall") {
       target = getTotalScore;
-    } else if (selectedSection === "listening") {
-      target = result.listeningScore || 0;
     } else if (selectedSection === "reading") {
       target = getReadingScore;
-    } else if (selectedSection === "writing") {
-      target = result.writingScore || 0;
-    } else if (selectedSection === "speaking") {
-      target = result.speakingScore || 0;
+    } else {
+      target = selectedScoreConfig?.score || 0;
     }
 
     let curr = 0;
@@ -721,7 +832,7 @@ export default function ResultScreen() {
       }
     }, 20);
     return () => clearInterval(id);
-  }, [selectedSection, result, getReadingScore, getTotalScore]);
+  }, [selectedSection, result, getReadingScore, getTotalScore, selectedScoreConfig]);
 
   // === KIỂM TRA CÓ TRẢ LỜI KHÔNG ===
   // Kiểm tra cả L&R (detailData) và S&W (perPartFeedbacks)
@@ -747,6 +858,8 @@ export default function ResultScreen() {
     return hasLRAnswers || hasSWAnswers;
   }, [detailData, result]);
 
+  const displayedTotalScore = result?.totalScore ?? getTotalScore;
+
   // === SIDEBAR SECTIONS - CHỈ LẤY TỪ API, KHÔNG TỰ SUY LUẬN ===
   const sections = result
     ? [
@@ -757,54 +870,13 @@ export default function ResultScreen() {
           max: getMaxScore,
           icon: <CheckCircleTwoTone twoToneColor="#52c41a" />,
         },
-        // CHỈ hiển thị Listening nếu có listeningScore trong API response
-        ...(result.listeningScore !== undefined && result.listeningScore !== null
-          ? [
-              {
-                key: "listening",
-                title: "Nghe",
-                score: result.listeningScore,
-                max: 495,
-                icon: <SoundOutlined />,
-              },
-            ]
-          : []),
-        // CHỈ hiển thị Reading nếu có readingScore trong API response
-        ...(result.readingScore !== undefined && result.readingScore !== null
-          ? [
-              {
-                key: "reading",
-                title: "Đọc",
-                score: result.readingScore,
-                max: 495,
-                icon: <ReadOutlined />,
-              },
-            ]
-          : []),
-        // CHỈ hiển thị Writing nếu có writingScore trong API response
-        ...(result.writingScore !== undefined && result.writingScore !== null
-          ? [
-              {
-                key: "writing",
-                title: "Viết",
-                score: result.writingScore,
-                max: 200,
-                icon: <FileTextOutlined />,
-              },
-            ]
-          : []),
-        // CHỈ hiển thị Speaking nếu có speakingScore trong API response
-        ...(result.speakingScore !== undefined && result.speakingScore !== null
-          ? [
-              {
-                key: "speaking",
-                title: "Nói",
-                score: result.speakingScore,
-                max: 200,
-                icon: <CustomerServiceOutlined />,
-              },
-            ]
-          : []),
+        ...availableScoreConfigs.map((cfg) => ({
+          key: cfg.key,
+          title: cfg.label,
+          score: cfg.score,
+          max: cfg.max,
+          icon: cfg.icon,
+        })),
       ]
     : [];
 
@@ -1012,7 +1084,7 @@ export default function ResultScreen() {
     );
   }
 
-  // === CHƯA TRẢ LỜI GÌ ===
+  // === KHÔNG TẢI ĐƯỢC TRẢ LỜI (COI NHƯ LỖI HỆ THỐNG) ===
   if (!hasAnswered) {
     return (
       <div className={styles.resultPage}>
@@ -1031,26 +1103,51 @@ export default function ResultScreen() {
                 Kết quả bài thi TOEIC
               </Title>
             </div>
-            <Button onClick={handleRetakeTest} ghost>
-              Làm lại bài thi
-            </Button>
           </div>
           <div className={styles.content} style={{ textAlign: "center", padding: 60 }}>
-            <Title level={1} style={{ color: "#fa8c16", margin: 0 }}>
-              0
+            <Title level={3} style={{ color: "#fa541c", marginBottom: 12 }}>
+              Không thể hiển thị kết quả
             </Title>
-            <Text strong style={{ fontSize: 18 }}>
-              Bạn chưa trả lời câu nào
+            <Text strong style={{ fontSize: 16 }}>
+              Có thể đang có lỗi khi chấm bài hoặc đồng bộ dữ liệu.
             </Text>
-            <br />
-            <Text type="secondary">
-              Hệ thống không tính điểm khi chưa chọn đáp án.
+            <div style={{ marginTop: 12 }}>
+              <Text type="secondary">
+                Vui lòng thử tải lại hoặc quay lại danh sách bài thi. Nếu tình trạng tiếp diễn hãy liên hệ hỗ trợ.
+              </Text>
+            </div>
+            <div
+              style={{
+                marginTop: 32,
+                display: "flex",
+                justifyContent: "center",
+                gap: 16,
+                flexWrap: "wrap",
+              }}
+            >
+              <Button
+                type="primary"
+                size="large"
+                style={{ backgroundColor: "#177ddc", borderColor: "#177ddc" }}
+                onClick={() => window.location.reload()}
+              >
+                Thử tải lại kết quả
+              </Button>
+              <Button
+                size="large"
+                style={{
+                  backgroundColor: "#f0f5ff",
+                  borderColor: "#adc6ff",
+                  color: "#1d39c4",
+                }}
+                onClick={handleGoBack}
+              >
+                Về danh sách bài thi
+              </Button>
+            </div>
+            <Text type="secondary" style={{ display: "block", marginTop: 16 }}>
+              Nếu bạn đã báo cáo hoặc cần hỗ trợ gấp, vui lòng gửi thông tin tới đội ngũ kỹ thuật.
             </Text>
-            <br />
-            <br />
-            <Button type="primary" size="large" onClick={handleRetakeTest}>
-              Quay lại làm bài
-            </Button>
           </div>
         </div>
       </div>
@@ -1120,10 +1217,14 @@ export default function ResultScreen() {
               Quay lại
             </Button>
             <Title level={3} style={{ color: "#fff", margin: 0 }}>
-              TOEIC Test Results
+              Kết quả bài thi TOEIC
             </Title>
           </div>
-          <Button onClick={handleRetakeTest} ghost>
+          <Button
+            ghost
+            style={{ borderColor: "#fff", color: "#fff" }}
+            onClick={handleRetakeTest}
+          >
             Làm lại bài thi
           </Button>
         </div>
@@ -1137,31 +1238,139 @@ export default function ResultScreen() {
 
           <Card className={styles.scoreCard}>
             <div className={styles.scoreDisplay}>
-              <Title level={1} style={{ color: "#fa8c16", margin: 0 }}>
-                {displayScore}
-              </Title>
-              <Text strong>
-                {selectedSection === "overall"
-                  ? "Tổng điểm"
-                  : selectedSection === "listening"
-                  ? "Điểm nghe"
-                  : selectedSection === "reading"
-                  ? "Điểm đọc"
-                  : selectedSection === "writing"
-                  ? "Điểm viết"
-                  : "Điểm nói"}
-              </Text>
-              <br />
-              <Text type="secondary">
-                Trên tổng{" "}
-                {selectedSection === "overall"
-                  ? getMaxScore
-                  : selectedSection === "writing" || selectedSection === "speaking"
-                  ? 200
-                  : 495}{" "}
-                điểm
-              </Text>
-              {/* ĐÃ XÓA: AI Evaluation */}
+              {selectedSection === "overall" ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 24,
+                    width: "100%",
+                  }}
+                >
+                  <div
+                    style={{
+                      flex: "1 1 280px",
+                      minWidth: 260,
+                      background: "linear-gradient(135deg, #1d39c4, #2f54eb)",
+                      borderRadius: 16,
+                      padding: 24,
+                      color: "#fff",
+                      boxShadow: "0 15px 35px rgba(47, 84, 235, 0.25)",
+                    }}
+                  >
+                    <Text strong style={{ color: "rgba(255,255,255,0.85)" }}>
+                      Kết quả tổng quan
+                    </Text>
+                    <Title level={1} style={{ color: "#fff", margin: "12px 0 0" }}>
+                      {displayScore}
+                    </Title>
+                    <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 16 }}>
+                      Trên tổng {getMaxScore} điểm
+                    </Text>
+                    <div style={{ marginTop: 16 }}>
+                      <Tag
+                        color={
+                          displayedTotalScore >= 785
+                            ? "green"
+                            : displayedTotalScore >= 600
+                            ? "orange"
+                            : "default"
+                        }
+                        style={{ padding: "4px 12px", borderRadius: 999 }}
+                      >
+                        {displayedTotalScore >= 785
+                          ? "Nâng cao"
+                          : displayedTotalScore >= 600
+                          ? "Trung bình"
+                          : "Cơ bản"}
+                      </Tag>
+                    </div>
+                    <div style={{ marginTop: 12, fontSize: 14, color: "rgba(255,255,255,0.9)" }}>
+                      Ngày thi:{" "}
+                      {result.createdAt
+                        ? new Date(result.createdAt).toLocaleDateString("vi-VN")
+                        : new Date().toLocaleDateString("vi-VN")}
+                      <br />
+                      Thời lượng: {result.duration || retakeTestInfo?.duration || 0} phút
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      flex: "1 1 260px",
+                      minWidth: 260,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 16,
+                    }}
+                  >
+                    {availableScoreConfigs.length === 0 ? (
+                      <div
+                        style={{
+                          padding: 24,
+                          borderRadius: 12,
+                          border: "1px dashed #d9d9d9",
+                          background: "#fafafa",
+                          textAlign: "center",
+                        }}
+                      >
+                        <Text type="secondary">Không có dữ liệu điểm chi tiết</Text>
+                      </div>
+                    ) : (
+                      availableScoreConfigs.map((item) => {
+                        const percent = Math.min(
+                          100,
+                          Math.round(((Number(item.score) || 0) / item.max) * 100)
+                        );
+                        return (
+                          <div
+                            key={item.key}
+                            style={{
+                              padding: 16,
+                              borderRadius: 12,
+                              border: "1px solid #f0f0f0",
+                              background: "#fff",
+                              boxShadow: "0 4px 12px rgba(0,0,0,0.04)",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: 8,
+                              }}
+                            >
+                              <Text strong>{item.label}</Text>
+                              <Text style={{ color: item.color, fontWeight: 600 }}>
+                                {item.score}/{item.max}
+                              </Text>
+                            </div>
+                            <Progress
+                              percent={percent}
+                              strokeColor={item.color}
+                              showInfo={false}
+                              size="small"
+                              trailColor="#f5f5f5"
+                            />
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Title level={1} style={{ color: "#fa8c16", margin: 0 }}>
+                    {displayScore}
+                  </Title>
+                  <Text strong>{selectedScoreConfig?.label || "Điểm phần thi"}</Text>
+                  <br />
+                  <Text type="secondary">
+                    Trên tổng {selectedScoreConfig?.max || 0} điểm
+                  </Text>
+                </>
+              )}
             </div>
 
             {/* BẢNG CÂU HỎI L&R */}
@@ -1176,6 +1385,7 @@ export default function ResultScreen() {
                 rowKey="key"
                 pagination={{ pageSize: 10 }}
                 style={{ marginTop: 20 }}
+                locale={{ emptyText: EMPTY_LR_MESSAGE }}
               />
             )}
 
@@ -1274,39 +1484,19 @@ export default function ResultScreen() {
 
             {/* OVERALL */}
             {selectedSection === "overall" && (
-              <div style={{ marginTop: 12, fontSize: 16 }}>
-                {result.listeningScore !== undefined && result.listeningScore !== null && (
-                  <p>
-                    <strong>Nghe:</strong> {result.listeningScore} / 495
-                  </p>
-                )}
-                {result.readingScore !== undefined && result.readingScore !== null && (
-                  <p>
-                    <strong>Đọc:</strong> {getReadingScore} / 495
-                  </p>
-                )}
-                {result.writingScore !== undefined && result.writingScore !== null && (
-                  <p>
-                    <strong>Viết:</strong> {result.writingScore} / 200
-                  </p>
-                )}
-                {result.speakingScore !== undefined && result.speakingScore !== null && (
-                  <p>
-                    <strong>Nói:</strong> {result.speakingScore} / 200
-                  </p>
-                )}
-                {(result.listeningScore !== undefined || result.readingScore !== undefined) && (
-                  <div style={{ marginTop: 16 }}>
-                    <Button
-                      onClick={() => openDetailForSection("overall")}
-                      type="primary"
-                      loading={loadingDetail}
-                    >
-                      Xem tất cả câu hỏi L&R
-                    </Button>
-                  </div>
-                )}
-              </div>
+              (result.listeningScore !== undefined || result.readingScore !== undefined) && (
+                <div style={{ marginTop: 24, display: "flex", justifyContent: "center" }}>
+                  <Button
+                    onClick={() => openDetailForSection("overall")}
+                    type="primary"
+                    loading={loadingDetail}
+                    size="large"
+                    style={{ minWidth: 220, borderRadius: 999 }}
+                  >
+                    Xem tất cả câu hỏi L&R
+                  </Button>
+                </div>
+              )
             )}
           </Card>
         </div>
@@ -1334,6 +1524,7 @@ export default function ResultScreen() {
             rowKey="key"
             pagination={{ pageSize: 10 }}
             scroll={{ x: 1000 }}
+            locale={{ emptyText: EMPTY_LR_MESSAGE }}
           />
         )}
       </Modal>

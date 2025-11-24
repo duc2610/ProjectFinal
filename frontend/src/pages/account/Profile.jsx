@@ -1,5 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { Tabs, Form, Input, Button, Row, Col, Modal, notification, Table, Tag, Space, Empty, message } from "antd";
+import {
+  Tabs,
+  Form,
+  Input,
+  Button,
+  Row,
+  Col,
+  Modal,
+  notification,
+  Table,
+  Tag,
+  Space,
+  Empty,
+  message,
+  Descriptions,
+  Divider,
+  Progress,
+  Typography,
+  Collapse,
+  Spin,
+} from "antd";
 import { PlayCircleOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import styles from "@shared/styles/Profile.module.css";
@@ -736,6 +756,24 @@ export function ReportTab() {
     fetchReports();
   }, []);
 
+  const partLabelMap = {
+    1: "L-Part 1",
+    2: "L-Part 2",
+    3: "L-Part 3",
+    4: "L-Part 4",
+    5: "L-Part 5",
+    6: "L-Part 6",
+    7: "L-Part 7",
+    8: "R-Part 1",
+    9: "R-Part 2",
+  };
+
+  const resolvePartLabel = (partId, fallback) => {
+    if (!partId && !fallback) return undefined;
+    if (fallback) return fallback;
+    return partLabelMap[partId] || `Part ${partId}`;
+  };
+
   const fetchReports = async (page = 1, pageSize = 20) => {
     try {
       setLoading(true);
@@ -747,17 +785,29 @@ export function ReportTab() {
       const currentPage = response?.data?.pageNumber || response?.pageNumber || page;
       
       // Map dữ liệu để hiển thị đúng
-      const mappedReports = reportsData.map((report) => ({
-        key: report.reportId || report.id,
-        reportId: report.reportId,
-        testQuestionId: report.testQuestionId,
-        questionContent: report.questionSnapshot?.content || report.questionContent || null,
-        description: report.description || null,
-        reportType: report.reportType,
-        status: report.status,
-        createdAt: report.createdAt,
-        updatedAt: report.reviewedAt || report.updatedAt || report.createdAt,
-      }));
+      const mappedReports = reportsData.map((report) => {
+        const snapshot = report.questionSnapshot || {};
+        const questionContent = snapshot.content || report.questionContent || null;
+        const partLabel = resolvePartLabel(
+          snapshot.partId || report.partId,
+          snapshot.partName || report.partName
+        );
+
+        return {
+          key: report.reportId || report.id,
+          reportId: report.reportId,
+          testQuestionId: report.testQuestionId,
+          questionContent,
+          description: report.description || null,
+          reportType: report.reportType,
+          status: report.status,
+          createdAt: report.createdAt,
+          updatedAt: report.reviewedAt || report.updatedAt || report.createdAt,
+          partName: partLabel,
+          testName: report.testName || snapshot.testName || null,
+          testTitle: report.testName || snapshot.testName || null,
+        };
+      });
       
       setReports(mappedReports);
       setPagination({
@@ -791,6 +841,24 @@ export function ReportTab() {
   };
 
   const columns = [
+    {
+      title: "Chi tiết câu hỏi",
+      key: "questionDetail",
+      width: 320,
+      render: (_, record) => (
+        <Space direction="vertical" size="small">
+          <span>
+            <strong>Bài thi:</strong> {record.testName || "—"}
+          </span>
+          <span>
+            <strong>Phần:</strong> {record.partName || "—"}
+          </span>
+          <span>
+            <strong>Câu hỏi:</strong> {record.questionContent || "—"}
+          </span>
+        </Space>
+      ),
+    },
     {
       title: "Nội dung báo cáo",
       dataIndex: "description",

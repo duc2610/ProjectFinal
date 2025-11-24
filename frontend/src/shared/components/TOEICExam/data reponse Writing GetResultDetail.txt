@@ -1,0 +1,733 @@
+https://localhost:7100/api/tests/result/detail/134
+
+ data response for writing
+
+
+ {
+    "statusCode": 200,
+    "message": "Success",
+    "data": {
+        "writingScore": 55,
+        "speakingScore": null,
+        "totalScore": 55,
+        "isSelectTime": true,
+        "status": "Graded",
+        "perPartFeedbacks": [
+            {
+                "testQuestionId": 110,
+                "feedbackId": 110,
+                "userAnswerId": 359,
+                "answerText": "My hometown is a city small in coast. I live there since my born. The city is have many old buildings and a big beach, which is nice to see sunset. Most people work with fish or tourism. Traffic is not good because many motorbikes always. The food is best! There are many restaurant where you can buy fresh sea food. I like my hometown much, even if it is slow sometime. It is a good place for relax and not stress.",
+                "answerAudioUrl": null,
+                "score": 15,
+                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 82,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "organization": 0,
+                    "relevance": 0,
+                    "sentence_variety": 0,
+                    "opinion_support": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [],
+                    "vocabulary_issues": [],
+                    "missing_points": [
+                        "Word count: 82 < 150 minimum"
+                    ],
+                    "matched_points": [],
+                    "corrected_text": null,
+                    "image_description": null,
+                    "opinion_support_issues": []
+                },
+                "recommendations": [
+                    "❌ FAIL: Too short (82 words < 150 minimum)",
+                    "",
+                    "Essay structure needed:",
+                    "  1. Introduction (state your opinion)",
+                    "  2. Body paragraph 1 (reason + specific example)",
+                    "  3. Body paragraph 2 (reason + specific example)",
+                    "  4. Conclusion (restate opinion)",
+                    "",
+                    "Recommended length: 300+ words for good score"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": null,
+                "createdAt": "2025-11-24T22:26:25.5590711"
+            },
+            {
+                "testQuestionId": 111,
+                "feedbackId": 113,
+                "userAnswerId": 362,
+                "answerText": "The two woman is talk and laugh to each other.",
+                "answerAudioUrl": null,
+                "score": 15,
+                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 10,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "organization": 0,
+                    "relevance": 0,
+                    "sentence_variety": 0,
+                    "opinion_support": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [],
+                    "vocabulary_issues": [],
+                    "missing_points": [
+                        "a man",
+                        "reading a newspaper",
+                        "seated indoors",
+                        "formal attire"
+                    ],
+                    "matched_points": [],
+                    "corrected_text": null,
+                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
+                    "opinion_support_issues": []
+                },
+                "recommendations": [
+                    "❌ FAIL: Sentence doesn't describe the picture",
+                    "",
+                    "What the picture shows:",
+                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
+                    "",
+                    "What you wrote about:",
+                    "  Elements NOT in picture: two woman, talk, laugh",
+                    "",
+                    "How to fix:",
+                    "1. Look at the picture carefully",
+                    "2. Describe what you actually see",
+                    "3. Use present continuous for actions (is/are + verb-ing)"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": null,
+                "createdAt": "2025-11-24T22:27:30.2472078"
+            },
+            {
+                "testQuestionId": 112,
+                "feedbackId": 114,
+                "userAnswerId": 363,
+                "answerText": "Man standing on ladder painting the walls of building.",
+                "answerAudioUrl": null,
+                "score": 15,
+                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 9,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "organization": 0,
+                    "relevance": 0,
+                    "sentence_variety": 0,
+                    "opinion_support": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [],
+                    "vocabulary_issues": [],
+                    "missing_points": [
+                        "woman",
+                        "shopping",
+                        "supermarket aisle",
+                        "shopping cart",
+                        "groceries",
+                        "shelves",
+                        "packaged products",
+                        "overhead lighting"
+                    ],
+                    "matched_points": [],
+                    "corrected_text": null,
+                    "image_description": "This black and white photograph depicts a woman shopping in a supermarket aisle.\n\nThe main subject is a young adult woman, positioned slightly to the right of the frame's center. She has light-colored hair, pulled back, and is smiling as she looks down at an item she holds in her right hand. She is wearing a long-sleeved, buttoned cardigan over another garment, and a shoulder bag hangs from her left arm. The item she is holding appears to be a jar or container with a dark lid.\n\nIn front of her is a metal shopping cart, partially filled with groceries. Visible items in the cart include a baguette (long loaf of bread), a carton of eggs, a bottle (possibly milk or juice), and some green vegetables, which appear to be broccoli. Other packaged goods, including a bag that resembles M&M's, are also visible further down in the cart.\n\nThe background shows a typical supermarket aisle, with tall shelves extending into the distance on both sides. These shelves are fully stocked with various packaged products, though specific details and labels are indistinct due to the distance and monochrome nature of the image. Overhead lighting fixtures are visible at the top of the frame, illuminating the aisle. The overall scene captures an everyday activity of grocery shopping.",
+                    "opinion_support_issues": []
+                },
+                "recommendations": [
+                    "❌ FAIL: Sentence doesn't describe the picture",
+                    "",
+                    "What the picture shows:",
+                    "  This black and white photograph depicts a woman shopping in a supermarket aisle.\n\nThe main subject is a young adult woman, positioned slightly to the right of the frame's center. She has light-colored",
+                    "",
+                    "What you wrote about:",
+                    "  Elements NOT in picture: man, ladder, painting",
+                    "",
+                    "How to fix:",
+                    "1. Look at the picture carefully",
+                    "2. Describe what you actually see",
+                    "3. Use present continuous for actions (is/are + verb-ing)"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": null,
+                "createdAt": "2025-11-24T22:28:00.5282073"
+            },
+            {
+                "testQuestionId": 113,
+                "feedbackId": 115,
+                "userAnswerId": 364,
+                "answerText": "The customer is buying many vegetable at market stand.",
+                "answerAudioUrl": null,
+                "score": 15,
+                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 9,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "organization": 0,
+                    "relevance": 0,
+                    "sentence_variety": 0,
+                    "opinion_support": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [],
+                    "vocabulary_issues": [],
+                    "missing_points": [
+                        "man",
+                        "reading",
+                        "newspaper",
+                        "indoors",
+                        "formal attire",
+                        "office environment"
+                    ],
+                    "matched_points": [],
+                    "corrected_text": null,
+                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
+                    "opinion_support_issues": []
+                },
+                "recommendations": [
+                    "❌ FAIL: Sentence doesn't describe the picture",
+                    "",
+                    "What the picture shows:",
+                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
+                    "",
+                    "What you wrote about:",
+                    "  Elements NOT in picture: customer, buying, vegetable",
+                    "",
+                    "How to fix:",
+                    "1. Look at the picture carefully",
+                    "2. Describe what you actually see",
+                    "3. Use present continuous for actions (is/are + verb-ing)"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": null,
+                "createdAt": "2025-11-24T22:28:17.9877032"
+            },
+            {
+                "testQuestionId": 114,
+                "feedbackId": 116,
+                "userAnswerId": 365,
+                "answerText": "A bicycle lean against tree near sidewalk.",
+                "answerAudioUrl": null,
+                "score": 15,
+                "content": "Score: 0/100. Grammar: 0, Vocabulary: 0, Organization: 0",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 7,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "organization": 0,
+                    "relevance": 0,
+                    "sentence_variety": 0,
+                    "opinion_support": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [],
+                    "vocabulary_issues": [],
+                    "missing_points": [
+                        "a man",
+                        "a newspaper",
+                        "an indoor setting",
+                        "formal attire",
+                        "a desk or table"
+                    ],
+                    "matched_points": [],
+                    "corrected_text": null,
+                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
+                    "opinion_support_issues": []
+                },
+                "recommendations": [
+                    "❌ FAIL: Sentence doesn't describe the picture",
+                    "",
+                    "What the picture shows:",
+                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
+                    "",
+                    "What you wrote about:",
+                    "  Elements NOT in picture: a bicycle, a tree, a sidewalk",
+                    "",
+                    "How to fix:",
+                    "1. Look at the picture carefully",
+                    "2. Describe what you actually see",
+                    "3. Use present continuous for actions (is/are + verb-ing)"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": null,
+                "createdAt": "2025-11-24T22:28:30.6971956"
+            },
+            {
+                "testQuestionId": 115,
+                "feedbackId": 111,
+                "userAnswerId": 360,
+                "answerText": "Dear Mr. Kramer,\n\nI interested in this vacancy for Accountant. I have a good degree in Accounting and I work in financial audit for four year experience.\n\nI need to ask two thing. First, can you tell me what is the exact working hours for this job, is it possible for some remote work? Second, please inform me of the expected salary pay before I send my CV.\n\nThank you very much. I waiting for your quick reply.\n\nSincerely, Anna Billings",
+                "answerAudioUrl": null,
+                "score": 150,
+                "content": "Score: 77/100. Grammar: 55, Vocabulary: 65, Organization: 85",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 81,
+                    "grammar": 55,
+                    "vocabulary": 65,
+                    "organization": 85,
+                    "relevance": 95,
+                    "sentence_variety": 70,
+                    "opinion_support": 0,
+                    "overall": 77
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [
+                        {
+                            "wrong": "I interested",
+                            "correct": "I am interested",
+                            "rule": "Missing auxiliary verb 'to be' in present simple passive/adjective construction.",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "I work in financial audit for four year experience",
+                            "correct": "I have four years of experience in financial audit",
+                            "rule": "Incorrect phrasing and article usage. 'Experience' is a noun, not a verb, and requires 'years of' for duration.",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "two thing",
+                            "correct": "two things",
+                            "rule": "Incorrect pluralization of noun after a number.",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "what is the exact working hours for this job, is it possible for some remote work?",
+                            "correct": "what the exact working hours are for this job, and if remote work is possible?",
+                            "rule": "Incorrect word order in an indirect question ('what the hours are' not 'what are the hours'). Also, better conjunction and phrasing for the second part of the question.",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "salary pay",
+                            "correct": "salary",
+                            "rule": "Redundancy; 'salary' already implies 'pay'.",
+                            "severity": "low"
+                        },
+                        {
+                            "wrong": "I waiting for your quick reply",
+                            "correct": "I am waiting for your quick reply",
+                            "rule": "Missing auxiliary verb 'to be' in present continuous tense.",
+                            "severity": "high"
+                        }
+                    ],
+                    "vocabulary_issues": [
+                        {
+                            "word": "good",
+                            "better": "strong, relevant, solid",
+                            "example": "I have a strong degree in Accounting."
+                        },
+                        {
+                            "word": "work in financial audit for four year experience",
+                            "better": "have four years of experience in financial audit",
+                            "example": "I have four years of experience in financial audit."
+                        },
+                        {
+                            "word": "need to ask two thing",
+                            "better": "have two questions, would like to ask two things",
+                            "example": "I have two questions."
+                        },
+                        {
+                            "word": "salary pay",
+                            "better": "salary, remuneration",
+                            "example": "Please inform me of the expected salary."
+                        },
+                        {
+                            "word": "I waiting for your quick reply",
+                            "better": "I look forward to your prompt reply",
+                            "example": "I look forward to your prompt reply."
+                        }
+                    ],
+                    "missing_points": [],
+                    "matched_points": [
+                        "Expresses interest in applying for the position.",
+                        "Makes one statement about professional background.",
+                        "Makes two requests for information about the job."
+                    ],
+                    "corrected_text": "Dear Mr. Kramer,\nI am interested in this vacancy for Accountant. I have a good degree in Accounting and I have four years of experience in financial audit.\nI need to ask two things. First, can you tell me what the exact working hours are for this job, and if remote work is possible? Second, please inform me of the expected salary before I send my CV.\nThank you very much. I am waiting for your quick reply.\nSincerely, Anna Billings",
+                    "image_description": null,
+                    "opinion_support_issues": []
+                },
+                "recommendations": [
+                    "✅ Good response! (Overall: 77/100)",
+                    "",
+                    "📐 Sentence variety: 70/100",
+                    "",
+                    "📝 Grammar: 55/100",
+                    "  1. ✗ 'I interested' → ✓ 'I am interested'",
+                    "     Rule: Missing auxiliary verb 'to be' in present simple passive/adjective construction.",
+                    "  2. ✗ 'I work in financial audit for four year experience' → ✓ 'I have four years of experience in financial audit'",
+                    "     Rule: Incorrect phrasing and article usage. 'Experience' is a noun, not a verb, and requires 'years of' for duration.",
+                    "  3. ✗ 'two thing' → ✓ 'two things'",
+                    "     Rule: Incorrect pluralization of noun after a number.",
+                    "",
+                    "📚 Vocabulary: 65/100",
+                    "  1. 'good' → 'strong, relevant, solid'",
+                    "     Example: I have a strong degree in Accounting.",
+                    "  2. 'work in financial audit for four year experience' → 'have four years of experience in financial audit'",
+                    "     Example: I have four years of experience in financial audit.",
+                    ""
+                ],
+                "transcription": "",
+                "correctedText": "Dear Mr. Kramer,\nI am interested in this vacancy for Accountant. I have a good degree in Accounting and I have four years of experience in financial audit.\nI need to ask two things. First, can you tell me what the exact working hours are for this job, and if remote work is possible? Second, please inform me of the expected salary before I send my CV.\nThank you very much. I am waiting for your quick reply.\nSincerely, Anna Billings",
+                "audioDuration": null,
+                "createdAt": "2025-11-24T22:26:42.0441306"
+            },
+            {
+                "testQuestionId": 116,
+                "feedbackId": 112,
+                "userAnswerId": 361,
+                "answerText": "Dear Elisa Hays,\n\nI receive your email about system reservation bad problems. Here is the list of issue I see at front desk always:\n\nSystem Freeze Often: The computer system for booking always freeze when I try to process group check-in, making long queue very much.\n\nCredit Card Processing Slow: The machine to take payment with card is slow, take three minute for one person. It is not efficient.\n\nGuest Profile Mix-up: Sometimes the system show the wrong guest profile for the room they book, or it erase their special request, like extra towel or non-smoking room.\n\nI hope these information help you fix it soon.\n\nSincerely, A Front Desk Agent",
+                "answerAudioUrl": null,
+                "score": 150,
+                "content": "Score: 72/100. Grammar: 25, Vocabulary: 45, Organization: 95",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 111,
+                    "grammar": 25,
+                    "vocabulary": 45,
+                    "organization": 95,
+                    "relevance": 100,
+                    "sentence_variety": 65,
+                    "opinion_support": 0,
+                    "overall": 72
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [
+                        {
+                            "wrong": "I receive your email",
+                            "correct": "I received your email",
+                            "rule": "Incorrect verb tense (should be past tense for a completed action).",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "system reservation bad problems",
+                            "correct": "bad problems with the reservation system",
+                            "rule": "Incorrect word order and adjective placement. 'Bad' should modify 'problems', and 'reservation system' is a noun phrase.",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "list of issue",
+                            "correct": "list of issues",
+                            "rule": "Incorrect singular/plural noun. 'Issues' is required after 'list of'.",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "at front desk always",
+                            "correct": "always at the front desk",
+                            "rule": "Incorrect adverb placement and missing article. 'Always' should precede the prepositional phrase, and 'the' is needed before 'front desk'.",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "always freeze",
+                            "correct": "always freezes",
+                            "rule": "Subject-verb agreement. 'System' is singular, so the verb should be 'freezes'.",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "making long queue very much",
+                            "correct": "resulting in very long queues",
+                            "rule": "Awkward phrasing, missing article, and incorrect singular/plural noun. 'Making' is less formal, 'queue' should be plural, and 'very much' is not idiomatic here.",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "take three minute for one person",
+                            "correct": "takes three minutes for one person",
+                            "rule": "Subject-verb agreement (implied 'it' for 'machine') and incorrect singular/plural noun ('minute' should be 'minutes').",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "the system show the wrong guest profile",
+                            "correct": "the system shows the wrong guest profile",
+                            "rule": "Subject-verb agreement. 'System' is singular, so the verb should be 'shows'.",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "it erase their special request",
+                            "correct": "it erases their special requests",
+                            "rule": "Subject-verb agreement ('it' is singular) and incorrect singular/plural noun ('request' should be 'requests').",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "these information",
+                            "correct": "this information",
+                            "rule": "Incorrect demonstrative pronoun. 'Information' is an uncountable noun and takes 'this'.",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "help you fix it soon",
+                            "correct": "helps you fix it soon",
+                            "rule": "Subject-verb agreement. 'Information' (singular) requires 'helps'.",
+                            "severity": "high"
+                        }
+                    ],
+                    "vocabulary_issues": [
+                        {
+                            "word": "bad problems",
+                            "better": "significant problems",
+                            "example": "I received your email about significant problems with the reservation system."
+                        },
+                        {
+                            "word": "issue I see at front desk always",
+                            "better": "issues I consistently observe at the front desk",
+                            "example": "Here is the list of issues I consistently observe at the front desk:"
+                        },
+                        {
+                            "word": "making long queue very much",
+                            "better": "resulting in very long queues",
+                            "example": "making long queue very much -> resulting in very long queues"
+                        },
+                        {
+                            "word": "machine to take payment with card",
+                            "better": "credit card processing machine",
+                            "example": "The credit card processing machine is slow."
+                        },
+                        {
+                            "word": "take three minute for one person",
+                            "better": "takes three minutes per transaction",
+                            "example": "it takes three minutes per transaction."
+                        },
+                        {
+                            "word": "erase their special request",
+                            "better": "deletes their special requests",
+                            "example": "or it deletes their special requests."
+                        },
+                        {
+                            "word": "help you fix it soon",
+                            "better": "assist you in resolving these issues promptly",
+                            "example": "I hope this information helps you in resolving these issues promptly."
+                        }
+                    ],
+                    "missing_points": [],
+                    "matched_points": [
+                        "Acknowledges receipt of email",
+                        "Describes three problems with the reservation system"
+                    ],
+                    "corrected_text": "Dear Elisa Hays,\n\nI received your email about problems with the reservation system. Here is the list of issues I always see at the front desk:\n\nSystem Freezes Often: The computer system for booking always freezes when I try to process group check-ins, resulting in very long queues.\n\nCredit Card Processing Slow: The machine to take payment with cards is slow; it takes three minutes for one person. It is not efficient.\n\nGuest Profile Mix-up: Sometimes the system shows the wrong guest profile for the room they book, or it erases their special requests, like extra towels or non-smoking rooms.\n\nI hope this information helps you fix it soon.\n\nSincerely, A Front Desk Agent",
+                    "image_description": null,
+                    "opinion_support_issues": []
+                },
+                "recommendations": [
+                    "Score: 72/100",
+                    "",
+                    "📐 Sentence variety: 65/100",
+                    "",
+                    "📝 Grammar: 25/100",
+                    "  1. ✗ 'I receive your email' → ✓ 'I received your email'",
+                    "     Rule: Incorrect verb tense (should be past tense for a completed action).",
+                    "  2. ✗ 'system reservation bad problems' → ✓ 'bad problems with the reservation system'",
+                    "     Rule: Incorrect word order and adjective placement. 'Bad' should modify 'problems', and 'reservation system' is a noun phrase.",
+                    "  3. ✗ 'list of issue' → ✓ 'list of issues'",
+                    "     Rule: Incorrect singular/plural noun. 'Issues' is required after 'list of'.",
+                    "",
+                    "📚 Vocabulary: 45/100",
+                    "  1. 'bad problems' → 'significant problems'",
+                    "     Example: I received your email about significant problems with the reservation system.",
+                    "  2. 'issue I see at front desk always' → 'issues I consistently observe at the front desk'",
+                    "     Example: Here is the list of issues I consistently observe at the front desk:",
+                    ""
+                ],
+                "transcription": "",
+                "correctedText": "Dear Elisa Hays,\n\nI received your email about problems with the reservation system. Here is the list of issues I always see at the front desk:\n\nSystem Freezes Often: The computer system for booking always freezes when I try to process group check-ins, resulting in very long queues.\n\nCredit Card Processing Slow: The machine to take payment with cards is slow; it takes three minutes for one person. It is not efficient.\n\nGuest Profile Mix-up: Sometimes the system shows the wrong guest profile for the room they book, or it erases their special requests, like extra towels or non-smoking rooms.\n\nI hope this information helps you fix it soon.\n\nSincerely, A Front Desk Agent",
+                "audioDuration": null,
+                "createdAt": "2025-11-24T22:27:03.9430372"
+            },
+            {
+                "testQuestionId": 117,
+                "feedbackId": 117,
+                "userAnswerId": 366,
+                "answerText": "Many people enjoy sport very much. They spend time watching or playing, both is popular. I think that sports are very important to all peoples for three important thing. These things is health, learn, and friend. People need to know why sports are great to have good life.\n\nFirst thing is that sports is good for health physical. If you always sitting and not move, you will become fat and maybe sick many time. Sport activity is like running or playing soccer or basketball. These exercise make your body strong and your heart work better. For example, my brother play tennis every week, and he is never sick. This is important for health for long time.\n\nSecond, sports teach you lessons life what is important for you later. You learn for cooperate with all your team members, even if you don't like they. If you don't cooperate, you lose the game. Also, when the game is difficult and you feel bad, you must not give up. This is call perseverance. I use this skill at work when my project is hard. The sport make me know how to work with group and not quit easy.\n\nFinally, many people like to watch sport because it make many friend. When my country team play, all people go to same bar and shout. We don't know other person, but we are friend that night. This make community very much strong and people feel happy together. The feeling of belong is important for everyone life.\n\nFor these reasons, I think sport is super important to people life. It make our body good, teach us good thing, and give us friend time always.",
+                "answerAudioUrl": null,
+                "score": 120,
+                "content": "Score: 63/100. Grammar: 40, Vocabulary: 35, Organization: 75",
+                "aiScorer": "writing",
+                "detailedScores": {
+                    "word_count": 278,
+                    "grammar": 40,
+                    "vocabulary": 35,
+                    "organization": 75,
+                    "relevance": 85,
+                    "sentence_variety": 0,
+                    "opinion_support": 80,
+                    "overall": 63
+                },
+                "detailedAnalysis": {
+                    "grammar_errors": [
+                        {
+                            "wrong": "both is popular",
+                            "correct": "both are popular",
+                            "rule": "Subject-verb agreement (plural subject 'both' requires plural verb 'are')",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "three important thing",
+                            "correct": "three important things",
+                            "rule": "Noun pluralization (after a number like 'three', the noun should be plural)",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "These things is health, learn, and friend.",
+                            "correct": "These things are health, learning, and friendship.",
+                            "rule": "Subject-verb agreement (plural subject 'things' requires plural verb 'are'); Noun form (gerund 'learning' and abstract noun 'friendship' are more appropriate here).",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "sports is good for health physical",
+                            "correct": "sports are good for physical health",
+                            "rule": "Subject-verb agreement (plural 'sports' requires 'are'); Adjective placement (adjective 'physical' should precede the noun 'health').",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "If you always sitting and not move",
+                            "correct": "If you are always sitting and not moving",
+                            "rule": "Verb tense/form (present continuous 'are sitting' and parallel structure 'not moving' are needed).",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "sick many time",
+                            "correct": "sick many times",
+                            "rule": "Noun pluralization ('many' requires a plural noun).",
+                            "severity": "low"
+                        },
+                        {
+                            "wrong": "my brother play tennis every week",
+                            "correct": "my brother plays tennis every week",
+                            "rule": "Subject-verb agreement (third-person singular subject 'brother' requires '-s' on the verb in simple present).",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "sports teach you lessons life what is important for you later.",
+                            "correct": "sports teach you life lessons that are important for you later.",
+                            "rule": "Word order (compound noun 'life lessons'); Relative pronoun ('what' should be 'that' or 'which' for non-restrictive clause).",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "even if you don't like they.",
+                            "correct": "even if you don't like them.",
+                            "rule": "Pronoun case (object pronoun 'them' is required after a verb).",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "This is call perseverance.",
+                            "correct": "This is called perseverance.",
+                            "rule": "Passive voice (past participle 'called' is needed to form the passive voice).",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "The sport make me know how to work with group and not quit easy.",
+                            "correct": "Sports make me know how to work with a group and not quit easily.",
+                            "rule": "Subject-verb agreement (plural 'Sports' requires 'make'); Article ('a group'); Adverb ('easily' to modify 'quit').",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "it make many friend.",
+                            "correct": "it makes many friends.",
+                            "rule": "Subject-verb agreement (third-person singular 'it' requires '-s' on the verb); Noun pluralization ('many' requires a plural noun).",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "We don't know other person",
+                            "correct": "We don't know other people",
+                            "rule": "Noun form ('other' typically precedes a plural noun or a collective noun like 'people').",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "This make community very much strong",
+                            "correct": "This makes community very strong",
+                            "rule": "Subject-verb agreement (third-person singular 'This' requires '-s' on the verb); Adverb usage ('very' is sufficient, 'very much' is redundant here).",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "everyone life.",
+                            "correct": "everyone's life.",
+                            "rule": "Possessive form (apostrophe 's' is needed to show possession).",
+                            "severity": "medium"
+                        }
+                    ],
+                    "vocabulary_issues": [
+                        {
+                            "word": "thing",
+                            "better": "aspect, benefit, element",
+                            "example": "three important thing"
+                        },
+                        {
+                            "word": "good",
+                            "better": "beneficial, positive, excellent",
+                            "example": "sports is good for health"
+                        },
+                        {
+                            "word": "very",
+                            "better": "extremely, highly, significantly",
+                            "example": "enjoy sport very much"
+                        },
+                        {
+                            "word": "bad",
+                            "better": "discouraged, disheartened, difficult",
+                            "example": "you feel bad"
+                        },
+                        {
+                            "word": "super",
+                            "better": "extremely, highly, profoundly",
+                            "example": "sport is super important"
+                        }
+                    ],
+                    "missing_points": [],
+                    "matched_points": [],
+                    "corrected_text": "Many people enjoy sports very much. They spend time watching or playing; both are popular. I think that sports are very important to all people for three important things. These things are health, learning, and friendship. People need to know why sports are great to have a good life.\n\nFirst, sports are good for physical health. If you are always sitting and not moving, you will become fat and maybe sick many times. Sport activities are like running or playing soccer or basketball. These exercises make your body strong and your heart work better. For example, my brother plays tennis every week, and he is never sick. This is important for health for a long time.\n\nSecond, sports teach you life lessons that are important for you later. You learn to cooperate with all your team members, even if you don't like them. If you don't cooperate, you lose the game. Also, when the game is difficult and you feel bad, you must not give up. This is called perseverance. I use this skill at work when my project is hard. Sports make me know how to work with a group and not quit easily.\n\nFinally, many people like to watch sports because it makes many friends. When my country's team plays, all people go to the same bar and shout. We don't know other people, but we are friends that night. This makes community very strong and people feel happy together. The feeling of belonging is important for everyone's life.\n\nFor these reasons, I think sports are super important to people's lives. They make our body good, teach us good things, and always give us time with friends.",
+                    "image_description": null,
+                    "opinion_support_issues": [
+                        "Examples could be further developed with more descriptive details and deeper analysis of the results."
+                    ]
+                },
+                "recommendations": [
+                    "✅ Strong essay! (Overall: 63/100)",
+                    "",
+                    "💭 Opinion support: 80/100",
+                    "  1. Examples could be further developed with more descriptive details and deeper analysis of the results.",
+                    "",
+                    "📝 Grammar: 40/100",
+                    "  1. ✗ 'both is popular' → ✓ 'both are popular'",
+                    "     Rule: Subject-verb agreement (plural subject 'both' requires plural verb 'are')",
+                    "  2. ✗ 'three important thing' → ✓ 'three important things'",
+                    "     Rule: Noun pluralization (after a number like 'three', the noun should be plural)",
+                    "  3. ✗ 'These things is health, learn, and friend.' → ✓ 'These things are health, learning, and friendship.'",
+                    "     Rule: Subject-verb agreement (plural subject 'things' requires plural verb 'are'); Noun form (gerund 'learning' and abstract noun 'friendship' are more appropriate here).",
+                    "",
+                    "📚 Vocabulary: 35/100",
+                    "  1. 'thing' → 'aspect, benefit, element'",
+                    "     Example: three important thing",
+                    "  2. 'good' → 'beneficial, positive, excellent'",
+                    "     Example: sports is good for health",
+                    "",
+                    "⚠️  Overused words:"
+                ],
+                "transcription": "",
+                "correctedText": "Many people enjoy sports very much. They spend time watching or playing; both are popular. I think that sports are very important to all people for three important things. These things are health, learning, and friendship. People need to know why sports are great to have a good life.\n\nFirst, sports are good for physical health. If you are always sitting and not moving, you will become fat and maybe sick many times. Sport activities are like running or playing soccer or basketball. These exercises make your body strong and your heart work better. For example, my brother plays tennis every week, and he is never sick. This is important for health for a long time.\n\nSecond, sports teach you life lessons that are important for you later. You learn to cooperate with all your team members, even if you don't like them. If you don't cooperate, you lose the game. Also, when the game is difficult and you feel bad, you must not give up. This is called perseverance. I use this skill at work when my project is hard. Sports make me know how to work with a group and not quit easily.\n\nFinally, many people like to watch sports because it makes many friends. When my country's team plays, all people go to the same bar and shout. We don't know other people, but we are friends that night. This makes community very strong and people feel happy together. The feeling of belonging is important for everyone's life.\n\nFor these reasons, I think sports are super important to people's lives. They make our body good, teach us good things, and always give us time with friends.",
+                "audioDuration": null,
+                "createdAt": "2025-11-24T22:28:51.8225675"
+            }
+        ]
+    },
+    "success": true
+}
