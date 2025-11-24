@@ -31,9 +31,17 @@ namespace ToeicGenius.Services.Implementations
 		}
 
 
-		public async Task<QuestionGroupResponseDto?> GetDetailAsync(int id)
+		public async Task<Result<QuestionGroupResponseDto?>> GetDetailAsync(int id)
 		{
-			return await _uow.QuestionGroups.GetGroupWithQuestionsAsync(id);
+			try
+			{
+				var result = await _uow.QuestionGroups.GetGroupWithQuestionsAsync(id);
+				return Result<QuestionGroupResponseDto?>.Success(result);
+			}
+			catch (Exception ex)
+			{
+				return Result<QuestionGroupResponseDto?>.Failure(ex.Message);
+			}
 		}
 
 		/// <summary>
@@ -48,7 +56,7 @@ namespace ToeicGenius.Services.Implementations
 			if (quantityQuestion > NumberConstants.MaxQuantityQuestionInGroup
 				|| quantityQuestion < NumberConstants.MinQuantityQuestionInGroup)
 			{
-				return Result<string>.Failure("Quantity of question in group must be between 2 and 5.");
+				return Result<string>.Failure("Một nhóm câu hỏi phải có từ 2 đến 5 câu hỏi đơn.");
 			}
 
 			// check valid listening part
@@ -57,7 +65,7 @@ namespace ToeicGenius.Services.Implementations
 			{
 				if (request.Audio == null || request.Audio.Length == 0)
 				{
-					return Result<string>.Failure("Audio file is required for Listening part.");
+					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
 
@@ -169,7 +177,7 @@ namespace ToeicGenius.Services.Implementations
 		{
 			// Check exist question
 			var currentQuestionGroup = await _uow.QuestionGroups.GetByIdAndStatusAsync(questionGroupId, CommonStatus.Active);
-			if (currentQuestionGroup == null) return Result<string>.Failure("Not found question group to update");
+			if (currentQuestionGroup == null) return Result<string>.Failure("Không tìm thấy nhóm câu hỏi");
 
 			// Check valid quantity
 			var quantityQuestion = dto.Questions.Count();

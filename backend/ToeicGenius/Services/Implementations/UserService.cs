@@ -24,43 +24,72 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<Result<string>> UpdateStatus(Guid userId, UserStatus userStatus)
 		{
-			var user = await _uow.Users.GetByIdAsync(userId);
-			if (user == null)
+			try
 			{
-				return Result<string>.Failure(ErrorMessages.UserNotFound);
+				var user = await _uow.Users.GetByIdAsync(userId);
+				if (user == null)
+				{
+					return Result<string>.Failure(ErrorMessages.UserNotFound);
+				}
+				user.Status = userStatus;
+				await _uow.Users.UpdateAsync(user);
+				await _uow.SaveChangesAsync();
+				string subject = userStatus == UserStatus.Banned
+					? "TOEIC GENIUS - Tài khoản bị khóa"
+					: "TOEIC GENIUS - Tài khoản đã mở khóa";
+
+				string body = userStatus == UserStatus.Banned
+					? EmailTemplates.BuildAccountBannedEmail(user.FullName)
+					: EmailTemplates.BuildAccountUnbannedEmail(user.FullName);
+
+				await _emailService.SendMail(user.Email, subject, body);
+				return Result<string>.Success(SuccessMessages.UserStatusUpdated);
 			}
-			user.Status = userStatus;
-			await _uow.Users.UpdateAsync(user);
-			await _uow.SaveChangesAsync();
-			return Result<string>.Success(SuccessMessages.UserStatusUpdated);
+			catch (Exception ex)
+			{
+				return Result<string>.Failure(ErrorMessages.OperationFailed + ": " + ex);
+			}
 		}
 
 		public async Task<Result<UserResponseDto?>> GetUserByIdAsync(Guid userId)
 		{
-			var user = await _uow.Users.GetByIdAsync(userId);
-			if (user == null)
+			try
 			{
-				return Result<UserResponseDto>.Failure(ErrorMessages.UserNotFound);
+				var user = await _uow.Users.GetByIdAsync(userId);
+				if (user == null)
+				{
+					return Result<UserResponseDto?>.Failure(ErrorMessages.UserNotFound);
+				}
+				var roles = await _uow.Roles.GetRolesByUserIdAsync(userId);
+				var result = new UserResponseDto
+				{
+					Id = userId,
+					Email = user.Email,
+					FullName = user.FullName,
+					CreatedAt = user.CreatedAt,
+					Status = user.Status,
+					Roles = roles.Select(x => x.RoleName).ToList(),
+				};
+				return Result<UserResponseDto?>.Success(result);
 			}
-			var roles = await _uow.Roles.GetRolesByUserIdAsync(userId);
-			var result = new UserResponseDto
+			catch (Exception ex)
 			{
-				Id = userId,
-				Email = user.Email,
-				FullName = user.FullName,
-				CreatedAt = user.CreatedAt,
-				Status = user.Status,
-				Roles = roles.Select(x => x.RoleName).ToList(),
-			};
-
-			return Result<UserResponseDto>.Success(result);
+				return Result<UserResponseDto?>.Failure(ErrorMessages.OperationFailed + ": " + ex);
+			}
 		}
 
 		// Get list user with filters
 		public async Task<Result<PaginationResponse<UserResponseDto>>> GetUsersAsync(UserResquestDto request)
 		{
-			var result = await _uow.Users.GetUsersAsync(request);
-			return Result<PaginationResponse<UserResponseDto>>.Success(result);
+			try
+			{
+				var result = await _uow.Users.GetUsersAsync(request);
+				return Result<PaginationResponse<UserResponseDto>>.Success(result);
+			}
+			catch (Exception ex)
+			{
+				return Result<PaginationResponse<UserResponseDto>>.Failure(ErrorMessages.OperationFailed + ": " + ex);
+			}
 		}
 
 		// Get statistic (about user)
