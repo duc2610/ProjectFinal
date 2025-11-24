@@ -287,6 +287,21 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<StudyStatsResponseDto>.SuccessResponse(result.Data!));
 		}
 
+		/// <summary>
+		/// Reset study progress - học lại từ đầu
+		/// </summary>
+		[HttpPost("study/{setId}/reset")]
+		public async Task<IActionResult> ResetStudyProgress(int setId)
+		{
+			var userId = GetUserId();
+			var result = await _flashcardService.ResetStudyProgressAsync(setId, userId);
+
+			if (!result.IsSuccess)
+				return BadRequest(ApiResponse<bool>.ErrorResponse(result.ErrorMessage!));
+
+			return Ok(ApiResponse<bool>.SuccessResponse(true));
+		}
+
 		#endregion
 
 		#region Helper Methods

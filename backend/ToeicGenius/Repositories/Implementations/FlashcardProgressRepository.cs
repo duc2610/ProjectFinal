@@ -29,6 +29,20 @@ namespace ToeicGenius.Repositories.Implementations
                 .Where(fp => fp.Flashcard.SetId == setId && fp.UserId == userId)
                 .ToListAsync();
         }
+
+        public async Task DeleteBySetAndUserAsync(int setId, Guid userId)
+        {
+            var progresses = await _dbSet
+                .Include(fp => fp.Flashcard)
+                .Where(fp => fp.Flashcard.SetId == setId && fp.UserId == userId)
+                .ToListAsync();
+
+            if (progresses.Any())
+            {
+                _dbSet.RemoveRange(progresses);
+                await _context.SaveChangesAsync();
+            }
+        }
     }
 }
 
