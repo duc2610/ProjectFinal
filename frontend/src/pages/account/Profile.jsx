@@ -1,25 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Tabs,
-  Form,
-  Input,
-  Button,
-  Row,
-  Col,
-  Modal,
-  notification,
-  Table,
-  Tag,
-  Space,
-  Empty,
-  message,
-  Descriptions,
-  Divider,
-  Progress,
-  Typography,
-  Collapse,
-  Spin,
-} from "antd";
+import { Tabs, Form, Input, Button, Row, Col, Modal, notification, Table, Tag, Space, Empty, message } from "antd";
 import { PlayCircleOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import styles from "@shared/styles/Profile.module.css";

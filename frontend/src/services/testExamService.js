@@ -24,8 +24,10 @@ export async function submitTest(payload) {
     throw error;
   }
 }
+
+// Lấy chi tiết kết quả bài thi cả Listening & Reading và Speaking & Writing
 export async function getTestResultDetail(testResultId) {
-  const url = `/api/tests/result/${testResultId}`;
+  const url = `/api/tests/result/detail/${testResultId}`;
   try {
     const res = await api.get(url);
     // Backend trả: { statusCode: 200, data: { ... } }
