@@ -8,6 +8,7 @@ namespace ToeicGenius.Repositories.Interfaces
 		void RemoveRange(IEnumerable<TestQuestion> entities);
 		Task<List<TestQuestion>> GetByTestAndPartAsync(int testId, int partId);
 		Task<TestQuestion?> GetByIdWithDetailsAsync(int testQuestionId);
+		Task<List<TestQuestion>> GetByIdsWithPartAsync(List<int> testQuestionIds);
 		Task UpdateTestQuestionAsync(TestQuestion testQuestion);
 	}
 }

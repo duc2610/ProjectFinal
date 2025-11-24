@@ -1397,8 +1397,18 @@ namespace ToeicGenius.Services.Implementations
 			var writingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Writing");
 			var speakingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Speaking");
 
-			// Map sang SubmitBulkAssessmentResponseDto
-			var response = new Domains.DTOs.Responses.AI.SubmitBulkAssessmentResponseDto
+			// Lấy tất cả TestQuestionId từ feedbacks
+			var testQuestionIds = aiFeedbacks
+				.Select(f => f.UserAnswer?.TestQuestionId ?? 0)
+				.Where(id => id > 0)
+				.Distinct()
+				.ToList();
+
+			// Lấy TestQuestions với Part
+			var testQuestions = await _uow.TestQuestions.GetByIdsWithPartAsync(testQuestionIds);
+
+			// Map sang TestResultDetailSWDto
+			var response = new Domains.DTOs.Responses.Test.TestResultDetailSWDto
 			{
 				// Lấy điểm từ SkillScores (TOEIC scale: 0-200)
 				WritingScore = writingSkillScore != null ? (double?)writingSkillScore.Score : null,
@@ -1406,30 +1416,61 @@ namespace ToeicGenius.Services.Implementations
 				TotalScore = (double)testResult.TotalScore,
 				IsSelectTime = testResult.IsSelectTime,
 				Status = testResult.Status,
-                PerPartFeedbacks = aiFeedbacks.Select(f => new Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto
+                PerPartFeedbacks = aiFeedbacks.Select(f =>
 				{
-					TestQuestionId = f.UserAnswer?.TestQuestionId ?? 0,
-					FeedbackId = f.FeedbackId,
-					UserAnswerId = f.UserAnswerId,
-					// User's original answer
-					AnswerText = f.UserAnswer?.AnswerText,
-					AnswerAudioUrl = f.UserAnswer?.AnswerAudioUrl,
-					Score = (double)f.Score,  // Raw score 0-100 cho từng câu
-					Content = f.Content ?? string.Empty,
-					AIScorer = f.AIScorer ?? string.Empty,
-					DetailedScores = string.IsNullOrEmpty(f.DetailedScoresJson)
-						? new Dictionary<string, object>()
-						: System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.DetailedScoresJson) ?? new Dictionary<string, object>(),
-					DetailedAnalysis = string.IsNullOrEmpty(f.DetailedAnalysisJson)
-						? new Dictionary<string, object>()
-						: System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.DetailedAnalysisJson) ?? new Dictionary<string, object>(),
-					Recommendations = string.IsNullOrEmpty(f.RecommendationsJson)
-						? new List<string>()
-						: System.Text.Json.JsonSerializer.Deserialize<List<string>>(f.RecommendationsJson) ?? new List<string>(),
-					Transcription = f.Transcription ?? string.Empty,
-					CorrectedText = f.CorrectedText ?? string.Empty,
-					AudioDuration = f.AudioDuration,
-					CreatedAt = f.CreatedAt
+					var testQuestionId = f.UserAnswer?.TestQuestionId ?? 0;
+					var testQuestion = testQuestions.FirstOrDefault(tq => tq.TestQuestionId == testQuestionId);
+
+					// Deserialize QuestionContent
+					object? questionContent = null;
+					if (testQuestion != null && !string.IsNullOrEmpty(testQuestion.SnapshotJson))
+					{
+						try
+						{
+							if (testQuestion.IsQuestionGroup)
+							{
+								questionContent = System.Text.Json.JsonSerializer.Deserialize<Domains.DTOs.Responses.QuestionGroup.QuestionGroupSnapshotDto>(testQuestion.SnapshotJson);
+							}
+							else
+							{
+								questionContent = System.Text.Json.JsonSerializer.Deserialize<Domains.DTOs.Responses.Question.QuestionSnapshotDto>(testQuestion.SnapshotJson);
+							}
+						}
+						catch
+						{
+							// If deserialization fails, keep questionContent as null
+						}
+					}
+
+					return new Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto
+					{
+						TestQuestionId = testQuestionId,
+						FeedbackId = f.FeedbackId,
+						UserAnswerId = f.UserAnswerId,
+						// User's original answer
+						AnswerText = f.UserAnswer?.AnswerText,
+						AnswerAudioUrl = f.UserAnswer?.AnswerAudioUrl,
+						Score = (double)f.Score,  // Raw score 0-100 cho từng câu
+						Content = f.Content ?? string.Empty,
+						AIScorer = f.AIScorer ?? string.Empty,
+						DetailedScores = string.IsNullOrEmpty(f.DetailedScoresJson)
+							? new Dictionary<string, object>()
+							: System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.DetailedScoresJson) ?? new Dictionary<string, object>(),
+						DetailedAnalysis = string.IsNullOrEmpty(f.DetailedAnalysisJson)
+							? new Dictionary<string, object>()
+							: System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.DetailedAnalysisJson) ?? new Dictionary<string, object>(),
+						Recommendations = string.IsNullOrEmpty(f.RecommendationsJson)
+							? new List<string>()
+							: System.Text.Json.JsonSerializer.Deserialize<List<string>>(f.RecommendationsJson) ?? new List<string>(),
+						Transcription = f.Transcription ?? string.Empty,
+						CorrectedText = f.CorrectedText ?? string.Empty,
+						AudioDuration = f.AudioDuration,
+						CreatedAt = f.CreatedAt,
+						// Question content
+						PartId = testQuestion?.PartId ?? 0,
+						PartName = testQuestion?.Part?.Name,
+						QuestionContent = questionContent
+					};
 				}).ToList()
 			};
 
