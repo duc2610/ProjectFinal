@@ -34,6 +34,7 @@
 		// OTP
 		public const string OtpRequired = "Mã OTP không được để trống";
 		public const string OtpInvalid = "Mã OTP không hợp lệ hoặc đã hết hạn";
+		public const string ResendOtpTooSoon = "Bạn vừa yêu cầu OTP, vui lòng chờ 30 giây trước khi gửi lại";
 
 		// AUTH - End
 

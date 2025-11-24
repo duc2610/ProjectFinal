@@ -34,6 +34,15 @@ namespace ToeicGenius.Services.Implementations
 				user.Status = userStatus;
 				await _uow.Users.UpdateAsync(user);
 				await _uow.SaveChangesAsync();
+				string subject = userStatus == UserStatus.Banned
+					? "TOEIC GENIUS - Tài khoản bị khóa"
+					: "TOEIC GENIUS - Tài khoản đã mở khóa";
+
+				string body = userStatus == UserStatus.Banned
+					? EmailTemplates.BuildAccountBannedEmail(user.FullName)
+					: EmailTemplates.BuildAccountUnbannedEmail(user.FullName);
+
+				await _emailService.SendMail(user.Email, subject, body);
 				return Result<string>.Success(SuccessMessages.UserStatusUpdated);
 			}
 			catch (Exception ex)
