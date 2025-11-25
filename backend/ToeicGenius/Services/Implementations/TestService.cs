@@ -1423,7 +1423,8 @@ namespace ToeicGenius.Services.Implementations
 				TestType = testResult.Test?.TestType ?? TestType.Practice,
 				TestSkill = testResult.Test?.TestSkill ?? TestSkill.LR,
 				Duration = testResult.Test?.Duration ?? 0,
-				QuantityQuestion = testResult.Test?.TotalQuestion ?? 0,
+                TimeResuilt = testResult.Duration,
+                QuantityQuestion = testResult.Test?.TotalQuestion ?? 0,
 
 				// Lấy điểm từ SkillScores (TOEIC scale: 0-200)
 				WritingScore = writingSkillScore != null ? (double?)writingSkillScore.Score : null,
