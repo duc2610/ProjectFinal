@@ -4,7 +4,13 @@ import { MenuOutlined, LoadingOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import QuestionNavigator from "./QuestionNavigator";
 import QuestionCard from "./QuestionCard";
-import { submitTest, submitAssessmentBulk, saveProgress, startTest } from "../../../services/testExamService";
+import {
+  submitTest,
+  submitAssessmentBulk,
+  saveProgress,
+  startTest,
+  getTestResultDetail,
+} from "../../../services/testExamService";
 import { uploadFile } from "../../../services/filesService";
 import { getMyQuestionReports } from "../../../services/questionReportService";
 import { translateErrorMessage } from "@shared/utils/translateError";
@@ -789,29 +795,66 @@ export default function ExamScreen() {
         return;
       }
 
-      // Merge kết quả: ưu tiên L&R result vì nó có đầy đủ thông tin
-      // Nếu tiếp tục từ history, dùng testResultId từ history, không phải từ response
-      const fullResult = {
-        ...(lrResult || {}),
-        ...(swResult || {}),
+      // Chỉ lấy testResultId từ response để gọi API detail sau
+      // Tất cả thông tin chi tiết sẽ được lấy từ API getTestResultDetail
+      const resultPayload = {
         testResultId: finalTestResultId, // Dùng testResultId từ history nếu tiếp tục test, nếu không thì dùng từ response
         testId: rawTestData.testId, // Lưu testId để có thể làm lại bài thi
-        questions: questions,
-        answers: finalAnswers, // Lưu answers để hiển thị câu trả lời gốc trong result
         duration: durationMinutes,
         testType,
+        testSkill: rawTestData.testSkill,
         isSelectTime,
+        // Lưu thông tin cơ bản từ submit response để hiển thị tạm thời trong khi load detail
+        totalScore: lrResult?.totalScore || swResult?.totalScore || null,
+        listeningScore: lrResult?.listeningScore || null,
+        readingScore: lrResult?.readingScore || null,
+        writingScore: swResult?.writingScore || null,
+        speakingScore: swResult?.speakingScore || null,
       };
       
-      console.log("ExamScreen - Final result testResultId:", fullResult.testResultId);
+      console.log(
+        "ExamScreen - Final result testResultId:",
+        resultPayload.testResultId
+      );
       if (isContinueFromHistory) {
-        console.log("ExamScreen - Final result: Using testResultId from history for continue test");
+        console.log(
+          "ExamScreen - Final result: Using testResultId from history for continue test"
+        );
       }
 
-      setTimeout(() => {
+      let detailData = null;
+      try {
+        detailData = await waitForResultDetail(finalTestResultId);
+      } catch (error) {
+        console.error("Error waiting for result detail:", error);
+        message.error(
+          error.message ||
+            "Kết quả vẫn đang được chấm. Vui lòng thử lại sau ít phút."
+        );
         setShowSubmitModal(false);
-        navigate("/result", { state: { resultData: fullResult, autoSubmit: auto } });
-      }, 900);
+        setIsSubmitting(false);
+        return;
+      }
+
+      try {
+        sessionStorage.setItem(
+          "toeic_resultData",
+          JSON.stringify(resultPayload)
+        );
+        sessionStorage.setItem(
+          "toeic_resultDetail",
+          JSON.stringify(detailData)
+        );
+        sessionStorage.setItem(
+          "toeic_resultAutoSubmit",
+          JSON.stringify(!!auto)
+        );
+      } catch (e) {
+        console.error("Error saving result data to sessionStorage:", e);
+      }
+
+      setShowSubmitModal(false);
+      window.location.replace("/result");
     } catch (error) {
       message.error("Nộp bài thất bại: " + translateErrorMessage(error.response?.data?.message || error.message));
       setShowSubmitModal(false);
@@ -993,6 +1036,42 @@ export default function ExamScreen() {
   const totalCount = questions.length;
 
   const loadingIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
+
+  const waitForResultDetail = useCallback(
+    async (testResultId, { delayMs = 2000 } = {}) => {
+      let attempt = 1;
+      while (true) {
+        try {
+          const detail = await getTestResultDetail(testResultId);
+          if (detail) {
+            const writingReady =
+              detail.perPartFeedbacks && detail.perPartFeedbacks.length > 0;
+            const lrReady =
+              detail.parts && detail.parts.length > 0 && detail.totalScore !== null;
+            if (writingReady || lrReady || detail.status === "Graded") {
+              return detail;
+            }
+          }
+        } catch (error) {
+          const status = error?.response?.status;
+          if (status && ![400, 404, 409].includes(status)) {
+            throw error;
+          }
+        }
+
+        if (attempt % 30 === 0) {
+          message.info(
+            "AI vẫn đang chấm bài, vui lòng chờ thêm ít phút...",
+            2
+          );
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        attempt += 1;
+      }
+    },
+    []
+  );
 
   if (questions.length === 0) {
     return (

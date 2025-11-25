@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { Card, Typography, Radio, Button, Image, Progress, Input, message, Modal, Select, Tooltip } from "antd";
 import { AudioOutlined, StopOutlined, PlayCircleOutlined, FlagOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
@@ -143,6 +143,27 @@ export default function QuestionCard({
   const isLrPart = question.partId >= 1 && question.partId <= 7;
   const hasGlobalAudio = globalAudioUrl && globalAudioUrl.trim() !== "";
   const hasImage = question.imageUrl && question.imageUrl.trim() !== "";
+
+  const writingAnswerInfo = useMemo(() => {
+    if (!isWritingPart) return null;
+    const subIndex =
+      question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+        ? question.subQuestionIndex
+        : 0;
+    const testQuestionIdStr = String(question.testQuestionId);
+    const answerKey =
+      subIndex !== 0 ? `${testQuestionIdStr}_${subIndex}` : testQuestionIdStr;
+    const answerValue =
+      typeof answers[answerKey] === "string" ? answers[answerKey] : "";
+    const trimmed = answerValue.trim();
+    const wordCount = trimmed ? trimmed.split(/\s+/).length : 0;
+    return {
+      answerKey,
+      answerValue,
+      charCount: answerValue.length,
+      wordCount,
+    };
+  }, [answers, isWritingPart, question.subQuestionIndex, question.testQuestionId]);
 
   useEffect(() => {
     let previousUrl = recordedAudioUrl;
@@ -582,33 +603,10 @@ export default function QuestionCard({
             <TextArea
               rows={8}
               placeholder="Nhập câu trả lời của bạn..."
-              value={(() => {
-                // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
-                // Chuẩn hóa: null/undefined = 0, nhưng nếu là 0 thì không thêm vào key
-                const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
-                  ? question.subQuestionIndex
-                  : 0;
-                // Đảm bảo testQuestionId là string để tránh type mismatch
-                const testQuestionIdStr = String(question.testQuestionId);
-                const answerKey = subIndex !== 0
-                  ? `${testQuestionIdStr}_${subIndex}`
-                  : testQuestionIdStr;
-                const answerValue = typeof answers[answerKey] === "string" ? answers[answerKey] : "";
-                console.log(`QuestionCard Writing - Question ${question.globalIndex} (testQuestionId: ${question.testQuestionId}, subQuestionIndex: ${question.subQuestionIndex}): answerKey="${answerKey}", answerValue="${answerValue}"`);
-                return answerValue;
-              })()}
+              value={writingAnswerInfo?.answerValue || ""}
               onChange={(e) => {
-                // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
-                // Chuẩn hóa: null/undefined = 0, nhưng nếu là 0 thì không thêm vào key
-                const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
-                  ? question.subQuestionIndex
-                  : 0;
-                // Đảm bảo testQuestionId là string để tránh type mismatch
-                const testQuestionIdStr = String(question.testQuestionId);
-                const answerKey = subIndex !== 0
-                  ? `${testQuestionIdStr}_${subIndex}`
-                  : testQuestionIdStr;
-                onAnswer(answerKey, e.target.value);
+                if (!writingAnswerInfo) return;
+                onAnswer(writingAnswerInfo.answerKey, e.target.value);
               }}
               style={{
                 fontSize: 14,
@@ -616,6 +614,13 @@ export default function QuestionCard({
                 border: "2px solid #e2e8f0"
               }}
             />
+            {writingAnswerInfo && (
+              <div style={{ marginTop: 8, textAlign: "right" }}>
+                <Text type="secondary" style={{ fontSize: 13 }}>
+                  {writingAnswerInfo.charCount} ký tự • {writingAnswerInfo.wordCount} từ
+                </Text>
+              </div>
+            )}
           </div>
         </div>
       ) : isSpeakingPart ? (

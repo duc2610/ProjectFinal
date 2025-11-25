@@ -183,19 +183,16 @@ const buildQuestions = (parts = []) => {
 export default function ResultScreen() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { resultData, autoSubmit } = state || {};
-
-  // Chặn back ở màn hình kết quả
-  useEffect(() => {
-    const handlePopState = () => {
-      history.go(1);
-    };
-    window.history.pushState(null, "", window.location.href);
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
+  const { resultData, autoSubmit, detailData: initialDetailData } = state || {};
+  const autoSubmitFlag = useMemo(() => {
+    if (typeof autoSubmit === "boolean") return autoSubmit;
+    try {
+      const saved = sessionStorage.getItem("toeic_resultAutoSubmit");
+      return saved ? JSON.parse(saved) : false;
+    } catch (e) {
+      return false;
+    }
+  }, [autoSubmit]);
 
   const [result, setResult] = useState(null);
   const [selectedSection, setSelectedSection] = useState("overall");
@@ -221,6 +218,37 @@ export default function ResultScreen() {
   const [reportType, setReportType] = useState("IncorrectAnswer");
   const [reportDescription, setReportDescription] = useState("");
   const [reporting, setReporting] = useState(false);
+
+  const handleDetailLoaded = useCallback((detail, metaSource) => {
+    if (!detail) return;
+    let meta = metaSource;
+    if (!meta) {
+      try {
+        meta = JSON.parse(sessionStorage.getItem("toeic_resultData") || "null");
+      } catch (e) {
+        meta = null;
+      }
+    }
+
+    const mergedResult = {
+      ...detail,
+      testId: meta?.testId || detail.testId,
+      testType: meta?.testType || detail.testType,
+      testSkill: meta?.testSkill || detail.testSkill,
+      duration: meta?.duration ?? detail.duration,
+      isSelectTime: meta?.isSelectTime ?? detail.isSelectTime,
+      createdAt: detail.createdAt || meta?.createdAt,
+    };
+
+    setDetailData(detail);
+    setResult(mergedResult);
+
+    try {
+      sessionStorage.setItem("toeic_resultDetail", JSON.stringify(detail));
+    } catch (e) {
+      console.error("Error saving result detail to sessionStorage:", e);
+    }
+  }, []);
 
   const getSavedTestData = useCallback(() => {
     try {
@@ -263,8 +291,9 @@ export default function ResultScreen() {
   // Hàm xử lý làm lại bài thi - hiển thị modal confirm
   const handleRetakeTest = () => {
     const savedTestData = getSavedTestData();
-    // Ưu tiên state đã lưu, sau đó tới sessionStorage, cuối cùng fallback result
-    let currentTestId = testId || savedTestData.testId || result?.testId;
+    const sourceResult = result || savedTestData || {};
+    // Ưu tiên dữ liệu từ API detail (result), sau đó đến sessionStorage
+    let currentTestId = sourceResult.testId || testId || savedTestData.testId;
 
     if (!currentTestId) {
       message.warning("Không tìm thấy thông tin bài test. Vui lòng chọn lại từ danh sách.");
@@ -274,25 +303,18 @@ export default function ResultScreen() {
 
     // Lấy thông tin test từ sessionStorage nếu có, nếu không dùng result
     let testInfo = null;
-    if (savedTestData.testId) {
+    if (sourceResult && (sourceResult.testId || currentTestId)) {
       testInfo = {
-        testId: savedTestData.testId,
-        title: savedTestData.title || result?.testTitle,
-        testType: savedTestData.testType || result?.testType,
-        testSkill: savedTestData.testSkill || result?.testSkill,
-        duration: savedTestData.duration || result?.duration,
-        questionQuantity: savedTestData.questionQuantity || result?.questionQuantity,
-        isSelectTime: savedTestData.isSelectTime ?? result?.isSelectTime,
-      };
-    } else if (result) {
-      testInfo = {
-        testId: result.testId || currentTestId,
-        title: result.testTitle,
-        testType: result.testType,
-        testSkill: result.testSkill,
-        duration: result.duration,
-        questionQuantity: result.questionQuantity,
-        isSelectTime: result.isSelectTime,
+        testId: sourceResult.testId || currentTestId,
+        title: sourceResult.testTitle || sourceResult.title || result?.testTitle,
+        testType: sourceResult.testType || result?.testType,
+        testSkill: sourceResult.testSkill || result?.testSkill,
+        duration: sourceResult.duration ?? result?.duration,
+        questionQuantity: sourceResult.questionQuantity ?? result?.questionQuantity,
+        isSelectTime:
+          sourceResult.isSelectTime ??
+          result?.isSelectTime ??
+          savedTestData?.isSelectTime,
       };
     }
 
@@ -304,11 +326,9 @@ export default function ResultScreen() {
     setRetakeTestInfo(testInfo);
     
     // Nếu là practice, mặc định bật countdown
-    const isPractice = normalizeTestType(testInfo?.testType || result?.testType) === "Practice";
-    const defaultSelectTime = testInfo?.isSelectTime ?? result?.isSelectTime;
-    setPracticeCountdown(
-      isPractice ? (defaultSelectTime === undefined ? true : !!defaultSelectTime) : true
-    );
+    const defaultSelectTime =
+      testInfo?.isSelectTime ?? result?.isSelectTime ?? true;
+    setPracticeCountdown(!!defaultSelectTime);
     
     setRetakeModalVisible(true);
   };
@@ -339,12 +359,12 @@ export default function ResultScreen() {
       return;
     }
 
-    const isSimulator = normalizeTestType(retakeTestInfo?.testType || result?.testType) === "Simulator";
+    const isSimulator =
+      normalizeTestType(retakeTestInfo?.testType || result?.testType) ===
+      "Simulator";
     const finalSelectTime = isSimulator
       ? true
-      : practiceCountdown !== undefined && practiceCountdown !== null
-      ? !!practiceCountdown
-      : !!retakeTestInfo?.isSelectTime;
+      : !!(retakeTestInfo?.isSelectTime ?? practiceCountdown ?? true);
 
     setRetakeConfirmLoading(true);
     try {
@@ -408,7 +428,8 @@ export default function ResultScreen() {
   };
 
   // === LOAD DETAIL TỪ API ===
-  const loadDetailFromAPI = useCallback(async (testResultId) => {
+  const loadDetailFromAPI = useCallback(
+    async (testResultId, meta) => {
     if (!testResultId) {
       return;
     }
@@ -421,33 +442,67 @@ export default function ResultScreen() {
     setLoadingDetail(true);
     try {
       const data = await getTestResultDetail(testResultId);
-      setDetailData(data);
+
+      handleDetailLoaded(data, meta);
+      console.log("TestResult - Loaded full detail from API:", data);
+
       // Không hiển thị message success khi auto load
     } catch (error) {
       console.error("Error loading detail:", error);
-      message.error("Không thể tải chi tiết câu hỏi: " + translateErrorMessage(error.response?.data?.message || error.message));
+      message.error("Không thể tải chi tiết kết quả: " + translateErrorMessage(error.response?.data?.message || error.message));
+      
+      // Nếu không load được detail, vẫn hiển thị thông tin cơ bản từ sessionStorage
+      try {
+        const savedResultData = JSON.parse(sessionStorage.getItem("toeic_resultData") || "null");
+        if (savedResultData) {
+          setResult(savedResultData);
+        }
+      } catch (e) {
+        console.error("Error reading resultData from sessionStorage:", e);
+      }
     } finally {
       setLoadingDetail(false);
     }
-  }, [detailData]);
+    },
+    [detailData, handleDetailLoaded]
+  );
 
   // === XỬ LÝ DỮ LIỆU TỪ SUBMIT ===
   useEffect(() => {
-    if (autoSubmit) {
+    if (autoSubmitFlag) {
       message.info("Hết thời gian! Bài thi đã được nộp tự động.");
     }
 
     // Nếu không có resultData từ router state, thử lấy từ sessionStorage (fallback khi refresh trang)
     if (!resultData) {
       try {
-        const savedResultData = JSON.parse(sessionStorage.getItem("toeic_resultData") || "null");
+        const savedResultData = JSON.parse(
+          sessionStorage.getItem("toeic_resultData") || "null"
+        );
         if (savedResultData) {
           setResult(savedResultData);
           if (savedResultData?.testId) setTestId(savedResultData.testId);
-          if (savedResultData?.testResultId) {
-            loadDetailFromAPI(savedResultData.testResultId);
+
+          const savedDetail = JSON.parse(
+            sessionStorage.getItem("toeic_resultDetail") || "null"
+          );
+          if (
+            savedDetail &&
+            savedResultData?.testResultId &&
+            savedDetail.testResultId === savedResultData.testResultId
+          ) {
+            handleDetailLoaded(savedDetail, savedResultData);
+            return;
           }
-          return;
+
+          if (savedResultData?.testResultId) {
+            loadDetailFromAPI(savedResultData.testResultId, savedResultData);
+            return;
+          } else {
+            message.error("Không tìm thấy testResultId trong dữ liệu đã lưu.");
+            navigate(resolveBackPath());
+            return;
+          }
         }
       } catch (e) {
         console.error("Error reading resultData from sessionStorage:", e);
@@ -457,8 +512,7 @@ export default function ResultScreen() {
       return;
     }
 
-    setResult(resultData);
-    // Lưu lại resultData để hỗ trợ refresh trang kết quả
+    // Lưu lại resultData cơ bản để hỗ trợ refresh trang kết quả
     try {
       sessionStorage.setItem("toeic_resultData", JSON.stringify(resultData));
     } catch (e) {
@@ -480,17 +534,28 @@ export default function ResultScreen() {
       }
     }
     
-    // Tự động load detail từ API khi có testResultId (CHỈ CHO L&R)
-    // Nếu chỉ có S&W thì không cần load detail từ API L&R
+    // Set result tạm thời từ resultData để hiển thị loading
+    // Sau đó sẽ được cập nhật từ API detail
+    setResult(resultData);
+    
+    // QUAN TRỌNG: Gọi API detail ngay lập tức với testResultId để lấy TẤT CẢ thông tin
     if (resultData?.testResultId) {
-      // Chỉ load detail nếu có listeningScore hoặc readingScore (có L&R)
-      if (resultData.listeningScore !== undefined || resultData.readingScore !== undefined) {
-        loadDetailFromAPI(resultData.testResultId);
+      if (!initialDetailData) {
+        loadDetailFromAPI(resultData.testResultId, resultData);
       }
-      // Nếu chỉ có S&W, không cần load detail từ API L&R
-      // Không gọi loadReports ở đây, sẽ gọi sau khi questionRowsBySection có dữ liệu
+    } else {
+      message.error("Không tìm thấy testResultId. Không thể tải chi tiết kết quả.");
+      navigate(resolveBackPath());
     }
-  }, [resultData, autoSubmit, navigate, loadDetailFromAPI, resolveBackPath]);
+  }, [
+    resultData,
+    autoSubmitFlag,
+    navigate,
+    loadDetailFromAPI,
+    resolveBackPath,
+    initialDetailData,
+    handleDetailLoaded,
+  ]);
 
 
   // Kiểm tra xem câu hỏi đã được report chưa
@@ -505,6 +570,31 @@ export default function ResultScreen() {
     setReports(prev => [...prev, { testQuestionId, status: "Pending" }]);
   };
 
+  const questionOrderMap = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(result?.questions)) {
+      result.questions.forEach((q) => {
+        if (!q?.testQuestionId) return;
+        const subIndex =
+          q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
+            ? q.subQuestionIndex
+            : null;
+        const key = subIndex !== null ? `${q.testQuestionId}_${subIndex}` : `${q.testQuestionId}`;
+        const orderValue =
+          q.globalIndex ??
+          q.index ??
+          q.order ??
+          q.displayOrder ??
+          q.questionNumber ??
+          null;
+        if (orderValue !== null && orderValue !== undefined) {
+          map.set(key, Number(orderValue));
+        }
+      });
+    }
+    return map;
+  }, [result?.questions]);
+
   // === XỬ LÝ CÂU HỎI TỪ API DETAIL ===
   const processQuestionsFromDetail = (detailData) => {
     if (!detailData?.parts) return { listening: [], reading: [], all: [] };
@@ -512,81 +602,107 @@ export default function ResultScreen() {
     const rows = { listening: [], reading: [], all: [] };
     let globalIndex = 1;
 
+    const normalizeOptions = (options = []) =>
+      options.map((option) => ({
+        label: option?.label,
+        content: option?.content,
+        isCorrect: option?.isCorrect,
+      }));
+
     // Sắp xếp parts theo partId để đảm bảo thứ tự giống màn thi
     const sortedParts = [...(detailData.parts || [])].sort((a, b) => (a.partId || 0) - (b.partId || 0));
 
     sortedParts.forEach((part) => {
       part.testQuestions?.forEach((tq) => {
+        const pushRow = (qs, extra = {}) => {
+          const options = normalizeOptions(qs.options || []);
+          const optionTextMap = options.reduce((map, option) => {
+            if (option?.label) {
+              map[option.label] = option.content || "";
+            }
+            return map;
+          }, {});
+
+          const baseIndex = globalIndex++;
+          const userAnswerRaw = typeof qs.userAnswer === "string" ? qs.userAnswer.trim() : qs.userAnswer || "";
+          const hasUserAnswer = !!userAnswerRaw;
+          if (!hasUserAnswer) {
+            return;
+          }
+          const correctOption = options.find((o) => o.isCorrect);
+          const correctAnswerLabel = correctOption?.label || "";
+          const normalizedSubIndex =
+            extra.subQuestionIndex !== undefined && extra.subQuestionIndex !== null
+              ? extra.subQuestionIndex
+              : null;
+          const orderKey =
+            normalizedSubIndex !== null ? `${tq.testQuestionId}_${normalizedSubIndex}` : `${tq.testQuestionId}`;
+          const mappedIndex = questionOrderMap.get(orderKey);
+          const displayIndex = mappedIndex || baseIndex;
+
+          const row = {
+            key: extra.key || tq.testQuestionId,
+            testQuestionId: tq.testQuestionId,
+            subQuestionIndex: extra.subQuestionIndex,
+            index: displayIndex,
+            sortOrder: baseIndex,
+            partId: qs.partId || part.partId,
+            partTitle: part.partName || `Part ${qs.partId || part.partId}`,
+            partDescription: part.description,
+            question: qs.content || "",
+            passage: extra.passage || null,
+            userAnswer: userAnswerRaw,
+            userAnswerText: optionTextMap[userAnswerRaw] || "",
+            correctAnswer: correctAnswerLabel,
+            correctAnswerText: correctOption?.content || "",
+            isCorrect:
+              qs.isCorrect !== null && qs.isCorrect !== undefined
+                ? qs.isCorrect
+                : userAnswerRaw === correctAnswerLabel,
+            imageUrl: qs.imageUrl || extra.imageUrl || null,
+            explanation: qs.explanation,
+            options,
+            hasAnswer: true,
+          };
+
+          rows.all.push(row);
+          if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
+          if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
+        };
+
         // Xử lý single question
         if (!tq.isGroup && tq.questionSnapshotDto) {
-          const qs = tq.questionSnapshotDto;
-          const userAnswer = qs.userAnswer || "";
-          const currentGlobalIndex = globalIndex++; // Tăng globalIndex cho TẤT CẢ câu hỏi
-          
-          // CHỈ thêm vào danh sách nếu có userAnswer (đã trả lời)
-          if (userAnswer !== null && userAnswer !== undefined && userAnswer.trim() !== "") {
-            const correctAnswer = qs.options?.find((o) => o.isCorrect)?.label || "";
-            const isCorrect = qs.isCorrect !== null ? qs.isCorrect : userAnswer === correctAnswer;
-
-            const row = {
-              key: tq.testQuestionId,
-              testQuestionId: tq.testQuestionId, // Thêm testQuestionId để dùng cho report
-              index: currentGlobalIndex, // Dùng globalIndex đã tính cho TẤT CẢ câu hỏi
-              partId: qs.partId || part.partId,
-              partTitle: part.partName || `Part ${qs.partId || part.partId}`,
-              question: qs.content || "",
-              passage: null,
-              userAnswer,
-              correctAnswer,
-              isCorrect,
-              imageUrl: qs.imageUrl,
-              explanation: qs.explanation,
-              options: qs.options || [], // Lưu tất cả các options để hiển thị
-            };
-
-            rows.all.push(row);
-            if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
-            if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
-          }
+          pushRow(tq.questionSnapshotDto);
         }
 
         // Xử lý group question
         if (tq.isGroup && tq.questionGroupSnapshotDto) {
           const group = tq.questionGroupSnapshotDto;
           group.questionSnapshots?.forEach((qs, idx) => {
-            const userAnswer = qs.userAnswer || "";
-            const currentGlobalIndex = globalIndex++; // Tăng globalIndex cho TẤT CẢ câu hỏi
-            
-            // CHỈ thêm vào danh sách nếu có userAnswer (đã trả lời)
-            if (userAnswer !== null && userAnswer !== undefined && userAnswer.trim() !== "") {
-              const correctAnswer = qs.options?.find((o) => o.isCorrect)?.label || "";
-              const isCorrect = qs.isCorrect !== null ? qs.isCorrect : userAnswer === correctAnswer;
-
-              const row = {
-                key: `${tq.testQuestionId}_${idx}`,
-                testQuestionId: tq.testQuestionId, // Thêm testQuestionId để dùng cho report
-                subQuestionIndex: idx, // Lưu subQuestionIndex cho group questions
-                index: currentGlobalIndex, // Dùng globalIndex đã tính cho TẤT CẢ câu hỏi
-                partId: qs.partId || part.partId,
-                partTitle: part.partName || `Part ${qs.partId || part.partId}`,
-                question: qs.content || "",
-                passage: group.passage || null,
-                userAnswer,
-                correctAnswer,
-                isCorrect,
-                imageUrl: qs.imageUrl || group.imageUrl,
-                explanation: qs.explanation,
-                options: qs.options || [], // Lưu tất cả các options để hiển thị
-              };
-
-              rows.all.push(row);
-              if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
-              if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
-            }
+            pushRow(qs, {
+              key: `${tq.testQuestionId}_${idx}`,
+              subQuestionIndex: idx,
+              passage: group.passage || null,
+              imageUrl: group.imageUrl,
+            });
           });
         }
       });
     });
+
+    const compare = (a, b) => {
+      const partA = a.partId ?? Number.MAX_SAFE_INTEGER;
+      const partB = b.partId ?? Number.MAX_SAFE_INTEGER;
+      if (partA !== partB) return partA - partB;
+      const orderA = a.sortOrder ?? a.index ?? 0;
+      const orderB = b.sortOrder ?? b.index ?? 0;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.index || 0) - (b.index || 0);
+    };
+
+    rows.all.sort(compare);
+    rows.listening.sort(compare);
+    rows.reading.sort(compare);
 
     return rows;
   };
@@ -600,7 +716,7 @@ export default function ResultScreen() {
 
     // Nếu chưa có detailData, trả về empty để đợi load từ API
     return { listening: [], reading: [], all: [] };
-  }, [detailData]);
+  }, [detailData, questionOrderMap]);
 
   // Load danh sách reports - định nghĩa sau questionRowsBySection
   const loadReports = useCallback(async (testResultId) => {
@@ -704,14 +820,29 @@ export default function ResultScreen() {
       }
 
       if (isWriting || isSpeaking) {
+        const baseIndex = index++;
+        const orderKey = `${feedback.testQuestionId}`;
+        const mappedIndex = questionOrderMap.get(orderKey);
+        const displayIndex = mappedIndex || baseIndex;
+
+        const hasMappedIndex = mappedIndex !== undefined && mappedIndex !== null;
         const row = {
-          key: feedback.testQuestionId || index,
-          index: index++,
+          key: feedback.testQuestionId || displayIndex,
+          index: hasMappedIndex ? Number(displayIndex) : null,
+          sortOrder: hasMappedIndex
+            ? Number(displayIndex)
+            : Number(feedback.order ?? feedback.testQuestionId ?? baseIndex),
           testQuestionId: feedback.testQuestionId,
+          partId: feedback.partId,
           partType: partType,
           score: feedback.score || 0,
           overallScore: feedback.detailedScores?.overall || 0,
           content: feedback.content || "",
+          partName: feedback.partName || (feedback.partId ? `Part ${feedback.partId}` : ""),
+          questionPrompt: feedback.questionContent?.content || "",
+          answerText: feedback.answerText || "",
+          answerAudioUrl: feedback.answerAudioUrl,
+          hasMappedIndex,
           feedback: feedback, // Lưu toàn bộ feedback để hiển thị chi tiết
         };
 
@@ -723,8 +854,40 @@ export default function ResultScreen() {
       }
     });
 
-    return { writing, speaking };
-  }, [result]);
+    const compare = (a, b) => {
+      const partA = a.partId ?? Number.MAX_SAFE_INTEGER;
+      const partB = b.partId ?? Number.MAX_SAFE_INTEGER;
+      if (partA !== partB) return partA - partB;
+      const orderA = a.sortOrder ?? a.index ?? 0;
+      const orderB = b.sortOrder ?? b.index ?? 0;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.index || 0) - (b.index || 0);
+    };
+
+    const applySequentialIndexIfNeeded = (items) => {
+      const hasMapped = items.some((item) => item.hasMappedIndex && typeof item.index === "number");
+      if (hasMapped) {
+        return items.map((item) => ({
+          ...item,
+          index: Number(item.index ?? item.sortOrder ?? 0),
+          sortOrder: Number(item.sortOrder ?? item.index ?? 0),
+          hasMappedIndex: undefined,
+        }));
+      }
+
+      return items.map((item, idx) => ({
+        ...item,
+        index: idx + 1,
+        sortOrder: idx + 1,
+        hasMappedIndex: undefined,
+      }));
+    };
+
+    return {
+      writing: applySequentialIndexIfNeeded(writing.sort(compare)),
+      speaking: applySequentialIndexIfNeeded(speaking.sort(compare)),
+    };
+  }, [result, questionOrderMap]);
 
   const listeningReadingPresence = useMemo(() => {
     const presence = { listening: false, reading: false };
@@ -808,9 +971,12 @@ export default function ResultScreen() {
     [availableScoreConfigs, selectedSection]
   );
 
-  // === ANIMATION ĐIỂM SỐ ===
+  // === CẬP NHẬT ĐIỂM SỐ HIỂN THỊ ===
   useEffect(() => {
-    if (!result) return;
+    if (!result) {
+      setDisplayScore(0);
+      return;
+    }
 
     let target = 0;
     if (selectedSection === "overall") {
@@ -821,18 +987,7 @@ export default function ResultScreen() {
       target = selectedScoreConfig?.score || 0;
     }
 
-    let curr = 0;
-    const step = Math.max(1, Math.floor(target / 40));
-    const id = setInterval(() => {
-      curr += step;
-      if (curr >= target) {
-        setDisplayScore(target);
-        clearInterval(id);
-      } else {
-        setDisplayScore(curr);
-      }
-    }, 20);
-    return () => clearInterval(id);
+    setDisplayScore(Math.max(0, Number(target) || 0));
   }, [selectedSection, result, getReadingScore, getTotalScore, selectedScoreConfig]);
 
   // === KIỂM TRA CÓ TRẢ LỜI KHÔNG ===
@@ -859,7 +1014,7 @@ export default function ResultScreen() {
     return hasLRAnswers || hasSWAnswers;
   }, [detailData, result]);
 
-  const displayedTotalScore = result?.totalScore ?? getTotalScore;
+  const displayedTotalScore = getTotalScore;
 
   // === SIDEBAR SECTIONS - CHỈ LẤY TỪ API, KHÔNG TỰ SUY LUẬN ===
   const sections = result
@@ -886,42 +1041,78 @@ export default function ResultScreen() {
     { 
       title: "Câu hỏi", 
       dataIndex: "index", 
-      width: 100, 
-      align: "center",
-      render: (index) => `Câu ${index}`
-    },
-    {
-      title: "Câu hỏi",
-      dataIndex: "question",
-      render: (text, row) => (
-        <div>
-          {row.passage && (
-            <div style={{ fontStyle: "italic", color: "#666", marginBottom: 6 }}>
-              {row.passage}
+      width: 320, 
+      render: (_, row) => {
+        const questionIndex = row.index ?? row.sortOrder ?? "—";
+        return (
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 6, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span>Câu {questionIndex}</span>
+              <Tag color="geekblue" style={{ marginBottom: 0 }}>
+                {row.partTitle || `Part ${row.partId}`}
+              </Tag>
             </div>
-          )}
-          <div>{text}</div>
-        </div>
-      ),
+            {row.partDescription && (
+              <Text type="secondary" style={{ display: "block", fontSize: 12, marginBottom: 6 }}>
+                {row.partDescription}
+              </Text>
+            )}
+            {row.passage && (
+              <div style={{ fontStyle: "italic", color: "#666", marginBottom: 6 }}>
+                {row.passage}
+              </div>
+            )}
+            <div>{row.question}</div>
+          </div>
+        );
+      }
     },
     {
       title: "Đáp án của bạn",
       dataIndex: "userAnswer",
       width: 160,
-      render: (v, row) => (
-        <Text style={{ color: row.isCorrect ? "#52c41a" : "#f5222d", fontWeight: "bold" }}>
-          {v || "—"}
-        </Text>
+      render: (_, row) => {
+        if (!row.hasAnswer) {
+          return <Text type="secondary">Chưa trả lời</Text>;
+        }
+        return (
+          <div>
+            <Text style={{ color: row.isCorrect ? "#52c41a" : "#f5222d", fontWeight: "bold" }}>
+              {row.userAnswer || "—"}
+            </Text>
+            {row.userAnswerText && (
+              <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>{row.userAnswerText}</div>
+            )}
+          </div>
+        );
+      },
+    },
+    { 
+      title: "Đáp án đúng", 
+      dataIndex: "correctAnswer", 
+      width: 180,
+      render: (_, row) => (
+        <div>
+          <Text strong>{row.correctAnswer || "—"}</Text>
+          {row.correctAnswerText && (
+            <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>{row.correctAnswerText}</div>
+          )}
+        </div>
       ),
     },
-    { title: "Đáp án đúng", dataIndex: "correctAnswer", width: 140 },
     {
       title: "Kết quả",
       dataIndex: "isCorrect",
       width: 120,
-      render: (val) => (
-        <Tag color={val ? "success" : "error"}>{val ? "Đúng" : "Sai"}</Tag>
-      ),
+      render: (val) => {
+        if (val === true) {
+          return <Tag color="success">Đúng</Tag>;
+        }
+        if (val === false) {
+          return <Tag color="error">Sai</Tag>;
+        }
+        return <Tag color="default">Chưa trả lời</Tag>;
+      },
     },
     {
       title: "Thao tác",
@@ -1425,9 +1616,14 @@ export default function ResultScreen() {
                           </Button>,
                         ]}
                       >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                              {item.partName && (
+                                <Tag color="geekblue" style={{ fontSize: 13, padding: "4px 10px" }}>
+                                  {item.partName}
+                                </Tag>
+                              )}
                               <Tag color="blue" style={{ fontSize: 14, padding: "4px 12px" }}>
                                 Câu {item.index}
                               </Tag>
@@ -1451,9 +1647,45 @@ export default function ResultScreen() {
                                   : item.partType}
                               </Text>
                             </div>
+                            {item.questionPrompt && (
+                              <div style={{ marginBottom: 8 }}>
+                                <Text strong style={{ display: "block", marginBottom: 4 }}>Đề bài:</Text>
+                                <Text style={{ fontSize: 13 }}>{item.questionPrompt}</Text>
+                              </div>
+                            )}
                             <div style={{ marginBottom: 8 }}>
-                              <Text type="secondary" style={{ fontSize: 13 }}>
-                                {item.content || "Không có tóm tắt"}
+                              <Text strong style={{ display: "block", marginBottom: 4 }}>Câu trả lời của bạn:</Text>
+                              <div
+                                style={{
+                                  padding: 12,
+                                  backgroundColor: "#f7f7f7",
+                                  borderRadius: 6,
+                                  border: "1px solid #e6e6e6",
+                                  maxHeight: 140,
+                                  overflowY: "auto",
+                                  whiteSpace: "pre-wrap",
+                                  fontSize: 13,
+                                }}
+                              >
+                                {item.answerText ? (
+                                  <Text>{item.answerText}</Text>
+                                ) : (
+                                  <Text type="secondary">Chưa có câu trả lời</Text>
+                                )}
+                              </div>
+                              {item.answerAudioUrl && (
+                                <audio
+                                  controls
+                                  src={item.answerAudioUrl}
+                                  style={{ width: "100%", marginTop: 8 }}
+                                >
+                                  Your browser does not support the audio element.
+                                </audio>
+                              )}
+                            </div>
+                            <div style={{ marginBottom: 8 }}>
+                              <Text type="secondary" style={{ fontSize: 13, fontStyle: "italic" }}>
+                                {item.content || "Không có nhận xét"}
                               </Text>
                             </div>
                           </div>
@@ -1626,7 +1858,7 @@ export default function ResultScreen() {
                 <Select.Option value="Other">Khác</Select.Option>
               </Select>
             </div>
-            <div>
+            <div style={{ position: "relative", paddingBottom: 24 }}>
               <Text strong style={{ display: "block", marginBottom: 8 }}>
                 Mô tả chi tiết:
               </Text>
@@ -1636,8 +1868,18 @@ export default function ResultScreen() {
                 onChange={(e) => setReportDescription(e.target.value)}
                 placeholder="Vui lòng mô tả chi tiết vấn đề bạn gặp phải..."
                 maxLength={500}
-                showCount
               />
+              <div
+                style={{
+                  position: "absolute",
+                  right: 0,
+                  bottom: 4,
+                  fontSize: 12,
+                  color: "#999",
+                }}
+              >
+                {reportDescription.length}/500
+              </div>
             </div>
           </>
         )}
@@ -1675,6 +1917,13 @@ export default function ResultScreen() {
               }}>
                 <Text strong>Đoạn văn:</Text>
                 <div style={{ marginTop: 8 }}>{selectedQuestionDetail.passage}</div>
+              </div>
+            )}
+
+            {/* Part info */}
+            {selectedQuestionDetail.partTitle && (
+              <div style={{ marginBottom: 12 }}>
+                <Tag color="geekblue">{selectedQuestionDetail.partTitle}</Tag>
               </div>
             )}
 
@@ -1788,12 +2037,22 @@ export default function ResultScreen() {
                 <Text strong style={{ color: selectedQuestionDetail.isCorrect ? "#52c41a" : "#f5222d" }}>
                   {selectedQuestionDetail.userAnswer || "—"}
                 </Text>
+                {selectedQuestionDetail.userAnswerText && (
+                  <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>
+                    {selectedQuestionDetail.userAnswerText}
+                  </div>
+                )}
               </div>
               <div>
                 <Text>Đáp án đúng: </Text>
                 <Text strong style={{ color: "#52c41a" }}>
                   {selectedQuestionDetail.correctAnswer}
                 </Text>
+                {selectedQuestionDetail.correctAnswerText && (
+                  <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>
+                    {selectedQuestionDetail.correctAnswerText}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1870,6 +2129,15 @@ export default function ResultScreen() {
       >
         {selectedSwFeedback && (
           <div>
+            <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              {selectedSwFeedback.partName && (
+                <Tag color="geekblue">{selectedSwFeedback.partName}</Tag>
+              )}
+              {selectedSwFeedback.partType && (
+                <Tag color="blue">{selectedSwFeedback.partType}</Tag>
+              )}
+            </div>
+
             {/* Điểm số tổng quan */}
             <div
               style={{
@@ -1928,10 +2196,28 @@ export default function ResultScreen() {
               </div>
             </div>
 
+            {/* Câu hỏi gốc */}
+            {selectedSwFeedback.questionContent?.content && (
+              <div style={{ marginBottom: 16 }}>
+                <Title level={5}>Đề bài:</Title>
+                <div
+                  style={{
+                    padding: 12,
+                    backgroundColor: "#fff",
+                    border: "1px solid #d9d9d9",
+                    borderRadius: 4,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  <Text>{selectedSwFeedback.questionContent.content}</Text>
+                </div>
+              </div>
+            )}
+
             {/* Câu trả lời gốc của bạn - tìm từ questions hoặc answers */}
             {(() => {
               // Tìm câu trả lời gốc từ result.questions hoặc result.answers
-              let originalAnswer = null;
+              let originalAnswer = selectedSwFeedback.answerText || null;
               
               // Thử tìm từ questions (nếu có cấu trúc với answerText hoặc userAnswer)
               if (result?.questions) {
@@ -1948,24 +2234,42 @@ export default function ResultScreen() {
                 originalAnswer = result.answers[selectedSwFeedback.testQuestionId];
               }
 
-              return originalAnswer ? (
+              const hasAudio = !!selectedSwFeedback.answerAudioUrl;
+              const hasText = !!originalAnswer;
+
+              if (!hasText && !hasAudio) {
+                return null;
+              }
+
+              return (
                 <div style={{ marginBottom: 16 }}>
                   <Title level={5}>Câu trả lời của bạn:</Title>
-                  <div
-                    style={{
-                      padding: 12,
-                      backgroundColor: "#fff",
-                      border: "1px solid #d9d9d9",
-                      borderRadius: 4,
-                      whiteSpace: "pre-wrap",
-                      maxHeight: 200,
-                      overflowY: "auto",
-                    }}
-                  >
-                    <Text>{originalAnswer}</Text>
-                  </div>
+                  {hasText && (
+                    <div
+                      style={{
+                        padding: 12,
+                        backgroundColor: "#fff",
+                        border: "1px solid #d9d9d9",
+                        borderRadius: 4,
+                        whiteSpace: "pre-wrap",
+                        maxHeight: 200,
+                        overflowY: "auto",
+                      }}
+                    >
+                      <Text>{originalAnswer}</Text>
+                    </div>
+                  )}
+                  {hasAudio && (
+                    <audio
+                      controls
+                      src={selectedSwFeedback.answerAudioUrl}
+                      style={{ width: "100%", marginTop: 12 }}
+                    >
+                      Your browser does not support the audio element.
+                    </audio>
+                  )}
                 </div>
-              ) : null;
+              );
             })()}
 
             {/* Câu trả lời đã chỉnh sửa */}
@@ -2183,86 +2487,50 @@ export default function ResultScreen() {
       >
         <div>
           <div style={{ marginBottom: 16 }}>
-            <Text strong style={{ display: "block", marginBottom: 4 }}>
-              Thông tin bài thi
+            <Text>
+              Bạn sắp làm lại bài thi{" "}
+              <strong>{retakeTestInfo?.title || result?.testTitle || "TOEIC"}</strong>.
+              Bài thi sẽ được khởi tạo lại với những chế độ bạn đã chọn trước đó.
             </Text>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <Text>
-                <strong>Loại bài thi:</strong>{" "}
-                {normalizeTestType(retakeTestInfo?.testType || result?.testType)}
-              </Text>
-              {retakeTestInfo?.testSkill && (
-                <Text>
-                  <strong>Kỹ năng:</strong> {normalizeTestSkill(retakeTestInfo.testSkill)}
-                </Text>
-              )}
-              <Text>
-                <strong>Thời lượng đề:</strong>{" "}
-                {normalizeNumber(retakeTestInfo?.duration || result?.duration) > 0
-                  ? `${normalizeNumber(retakeTestInfo?.duration || result?.duration)} phút`
-                  : "Không giới hạn"}
-              </Text>
-              <Text>
-                <strong>Số lượng câu hỏi:</strong>{" "}
-                {normalizeNumber(retakeTestInfo?.questionQuantity || result?.questionQuantity) || "Không rõ"}
-              </Text>
-            </div>
           </div>
 
-          {normalizeTestType(retakeTestInfo?.testType || result?.testType) === "Simulator" ? (
-            <Alert
-              type="info"
-              showIcon
-              message="Chế độ Simulator"
-              description="Bài thi sẽ tự động đếm ngược theo thời lượng chuẩn của đề và tự nộp khi hết giờ."
-              style={{ marginBottom: 16 }}
-            />
-          ) : (
-            <>
-              <Alert
-                type="info"
-                showIcon
-                message="Chế độ Practice"
-                description="Bạn có thể luyện tập với chế độ đếm ngược theo thời gian đề (nếu bật) hoặc luyện tự do đếm thời gian lên từ 00:00."
-                style={{ marginBottom: 16 }}
-              />
-              <div style={{ marginBottom: 12 }}>
-                <Checkbox
-                  checked={practiceCountdown}
-                  onChange={(e) => setPracticeCountdown(e.target.checked)}
-                  disabled={retakeConfirmLoading}
-                >
-                  Bật đếm ngược theo thời gian của đề
-                </Checkbox>
-                <Text type="secondary" style={{ display: "block", marginTop: 4 }}>
-                  Nếu không chọn, thời gian sẽ đếm lên từ 00:00 và bạn có thể nộp bài bất cứ lúc nào.
-                </Text>
-              </div>
-            </>
-          )}
-
-          <Alert
-            type="info"
-            showIcon
-            message="Tính năng lưu tiến độ"
-            description={
-              <div>
-                <div style={{ marginBottom: 8 }}>
-                  Hệ thống sẽ tự động lưu tiến độ làm bài của bạn mỗi 5 phút. Bạn cũng có thể nhấn nút <strong>"Lưu"</strong> trên thanh công cụ để lưu thủ công bất cứ lúc nào.
-                </div>
-                <div style={{ fontSize: 12, color: "#666" }}>
-                  💡 Lưu ý: Nếu mất kết nối mạng, hệ thống sẽ lưu tạm thời các câu trả lời của bạn. Khi kết nối lại, tiến độ sẽ được lưu tự động.
-                </div>
-              </div>
-            }
-            style={{ marginBottom: 16 }}
-          />
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              padding: 16,
+              borderRadius: 8,
+              background: "#f5f5f5",
+              marginBottom: 16,
+            }}
+          >
+            <Text>
+              <strong>Loại bài thi:</strong>{" "}
+              {normalizeTestType(retakeTestInfo?.testType || result?.testType)}
+            </Text>
+            {retakeTestInfo?.testSkill && (
+              <Text>
+                <strong>Kỹ năng:</strong>{" "}
+                {normalizeTestSkill(retakeTestInfo.testSkill)}
+              </Text>
+            )}
+            <Text>
+              <strong>Chế độ thời gian:</strong>{" "}
+              {normalizeTestType(retakeTestInfo?.testType || result?.testType) ===
+              "Simulator"
+                ? "Đếm ngược theo đề (Simulator)"
+                : retakeTestInfo?.isSelectTime
+                ? "Đếm ngược theo đề"
+                : "Tự do (đếm thời gian lên)"}
+            </Text>
+          </div>
 
           <Alert
             type="warning"
             showIcon
-            message="Lưu ý"
-            description="Ngay sau khi xác nhận, đề thi sẽ bắt đầu và thời gian làm bài được ghi nhận."
+            message="Bạn có chắc chắn muốn làm lại bài thi?"
+            description="Nếu bạn đồng ý, bài thi sẽ bắt đầu lại ngay với các chế độ bạn đã chọn trước đó."
           />
         </div>
       </Modal>
