@@ -1410,6 +1410,15 @@ namespace ToeicGenius.Services.Implementations
 			// Map sang TestResultDetailSWDto
 			var response = new Domains.DTOs.Responses.Test.TestResultDetailSWDto
 			{
+				// Test basic info
+				TestResultId = testResult.TestResultId,
+				TestId = testResult.TestId,
+				Title = testResult.Test?.Title ?? string.Empty,
+				TestType = testResult.Test?.TestType ?? TestType.Practice,
+				TestSkill = testResult.Test?.TestSkill ?? TestSkill.LR,
+				Duration = testResult.Test?.Duration ?? 0,
+				QuantityQuestion = testResult.Test?.TotalQuestion ?? 0,
+
 				// Lấy điểm từ SkillScores (TOEIC scale: 0-200)
 				WritingScore = writingSkillScore != null ? (double?)writingSkillScore.Score : null,
 				SpeakingScore = speakingSkillScore != null ? (double?)speakingSkillScore.Score : null,
