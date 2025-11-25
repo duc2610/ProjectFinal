@@ -255,6 +255,8 @@ namespace ToeicGenius.Services.Implementations
             await _uow.SaveChangesAsync();
 
             // Set response values
+            response.TestId = testResult.TestId;
+            response.TestResultId = testResult.TestResultId;
             response.WritingScore = writingToeicScore;
             response.SpeakingScore = speakingToeicScore;
             response.TotalScore = (double)testResult.TotalScore;
