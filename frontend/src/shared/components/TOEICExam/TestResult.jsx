@@ -280,6 +280,8 @@ export default function ResultScreen() {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailData, setDetailData] = useState(null);
   const [testId, setTestId] = useState(null);
+  const [apiError, setApiError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [questionDetailModalVisible, setQuestionDetailModalVisible] = useState(false);
   const [selectedQuestionDetail, setSelectedQuestionDetail] = useState(null);
   const [swDetailModalVisible, setSwDetailModalVisible] = useState(false);
@@ -527,6 +529,7 @@ export default function ResultScreen() {
         setResult(mergedResult);
         setDetailData(data);
         setTestId(mergedResult.testId || null);
+        setApiError(null); // Clear any previous errors
 
         const nextMeta = {
           testResultId: targetTestResultId,
@@ -542,10 +545,20 @@ export default function ResultScreen() {
         sessionStorage.setItem("toeic_resultMeta", JSON.stringify(nextMeta));
       } catch (error) {
         console.error("Error loading detail:", error);
-        message.error(
-          "Không thể tải chi tiết câu hỏi: " +
-            translateErrorMessage(error.response?.data?.message || error.message)
-        );
+        
+        // Set API error instead of showing message.error
+        setApiError({
+          type: 'api_failed',
+          message: error.response?.data?.message || error.message,
+          statusCode: error.response?.status,
+          details: error.response?.data
+        });
+        
+        // Don't show message.error to avoid batch notifications
+        // message.error(
+        //   "Không thể tải chi tiết câu hỏi: " +
+        //     translateErrorMessage(error.response?.data?.message || error.message)
+        // );
       } finally {
         setLoadingDetail(false);
       }
@@ -588,7 +601,9 @@ export default function ResultScreen() {
       }
     }
 
-    loadDetailFromAPI(targetTestResultId, meta);
+    loadDetailFromAPI(targetTestResultId, meta).finally(() => {
+      setIsLoading(false);
+    });
   }, [
     autoSubmit,
     stateTestResultId,
@@ -1248,7 +1263,8 @@ export default function ResultScreen() {
   // === LOADING ===
   const loadingIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
   
-  if (!result) {
+  // Show loading only when still loading and no error
+  if (isLoading && !apiError) {
     return (
       <div style={{ textAlign: "center", padding: 100 }}>
         <Spin indicator={loadingIcon} size="large" />
@@ -1259,8 +1275,8 @@ export default function ResultScreen() {
     );
   }
 
-  // === KHÔNG TẢI ĐƯỢC TRẢ LỜI (COI NHƯ LỖI HỆ THỐNG) ===
-  if (!hasAnswered) {
+  // Show API error screen if there's an error
+  if (apiError) {
     return (
       <div className={styles.resultPage}>
         <div className={styles.mainContent}>
@@ -1280,20 +1296,170 @@ export default function ResultScreen() {
             </div>
           </div>
           <div className={styles.content} style={{ textAlign: "center", padding: 60 }}>
-            <Title level={3} style={{ color: "#fa541c", marginBottom: 12 }}>
-              Không thể hiển thị kết quả
-            </Title>
-            <Text strong style={{ fontSize: 16 }}>
-              Có thể đang có lỗi khi chấm bài hoặc đồng bộ dữ liệu.
-            </Text>
-            <div style={{ marginTop: 12 }}>
-              <Text type="secondary">
-                Vui lòng thử tải lại hoặc quay lại danh sách bài thi. Nếu tình trạng tiếp diễn hãy liên hệ hỗ trợ.
-              </Text>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
+              <Title level={2} style={{ color: "#ff4d4f", marginBottom: 16 }}>
+                Lỗi kết nối API chấm bài
+              </Title>
             </div>
+            
+            <Alert
+              type="error"
+              showIcon
+              message="Không thể kết nối đến hệ thống chấm bài"
+              description={
+                <div style={{ textAlign: "left" }}>
+                  <p style={{ marginBottom: 8 }}>
+                    <strong>Chi tiết lỗi:</strong>
+                  </p>
+                  <div style={{ 
+                    backgroundColor: "#fff2f0", 
+                    padding: 12, 
+                    borderRadius: 4, 
+                    marginBottom: 16,
+                    fontFamily: "monospace",
+                    fontSize: 13
+                  }}>
+                    {apiError.statusCode && <div>Mã lỗi: {apiError.statusCode}</div>}
+                    <div>Thông báo: {translateErrorMessage(apiError.message)}</div>
+                  </div>
+                  <p style={{ marginBottom: 8 }}>
+                    <strong>Nguyên nhân có thể:</strong>
+                  </p>
+                  <ul style={{ marginBottom: 16, paddingLeft: 20 }}>
+                    <li>Hệ thống AI chấm bài đang bảo trì hoặc quá tải</li>
+                    <li>Kết quả chưa được xử lý xong (cần thêm thời gian)</li>
+                    <li>Lỗi mạng hoặc server tạm thời</li>
+                    <li>Bài thi chưa được nộp đúng cách</li>
+                  </ul>
+                  <p style={{ marginBottom: 0 }}>
+                    <strong>Giải pháp:</strong> Vui lòng thử lại sau 5-10 phút hoặc liên hệ hỗ trợ kỹ thuật nếu vấn đề vẫn tiếp diễn.
+                  </p>
+                </div>
+              }
+              style={{ 
+                marginBottom: 32, 
+                textAlign: "left",
+                maxWidth: 700,
+                margin: "0 auto 32px auto"
+              }}
+            />
+
             <div
               style={{
-                marginTop: 32,
+                display: "flex",
+                justifyContent: "center",
+                gap: 16,
+                flexWrap: "wrap",
+              }}
+            >
+              <Button
+                type="primary"
+                size="large"
+                style={{ backgroundColor: "#177ddc", borderColor: "#177ddc" }}
+                onClick={() => {
+                  setApiError(null);
+                  setIsLoading(true);
+                  window.location.reload();
+                }}
+              >
+                Thử lại
+              </Button>
+              <Button
+                size="large"
+                style={{
+                  backgroundColor: "#f0f5ff",
+                  borderColor: "#adc6ff",
+                  color: "#1d39c4",
+                }}
+                onClick={handleGoBack}
+              >
+                Về danh sách bài thi
+              </Button>
+            </div>
+            
+            <div style={{ marginTop: 24, padding: 16, backgroundColor: "#f6f6f6", borderRadius: 8 }}>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                💡 <strong>Lưu ý:</strong> Nếu bạn vừa nộp bài, hãy đợi 5-10 phút để hệ thống AI xử lý kết quả. 
+                Đối với bài Writing/Speaking, thời gian chấm có thể lâu hơn.
+              </Text>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show no data error if no result after loading
+  if (!result) {
+    return (
+      <div style={{ textAlign: "center", padding: 100 }}>
+        <Spin indicator={loadingIcon} size="large" />
+        <div style={{ marginTop: 16 }}>
+          <Text>Đang xử lý kết quả...</Text>
+        </div>
+      </div>
+    );
+  }
+
+  // === KHÔNG TẢI ĐƯỢC TRẢ LỜI (COI NHƯ LỖI HỆ THỐNG) ===
+  if (!hasAnswered && !apiError && !isLoading) {
+    return (
+      <div className={styles.resultPage}>
+        <div className={styles.mainContent}>
+          <div className={styles.header}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+              <Button 
+                icon={<ArrowLeftOutlined />} 
+                onClick={handleGoBack}
+                type="text"
+                style={{ color: "#fff", padding: 0 }}
+              >
+                Quay lại
+              </Button>
+              <Title level={3} style={{ color: "#fff", margin: 0 }}>
+                Kết quả bài thi TOEIC
+              </Title>
+            </div>
+          </div>
+          <div className={styles.content} style={{ textAlign: "center", padding: 60 }}>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+              <Title level={2} style={{ color: "#ff4d4f", marginBottom: 16 }}>
+                Lỗi hệ thống chấm bài
+              </Title>
+            </div>
+            
+            <Alert
+              type="error"
+              showIcon
+              message="Không thể tải kết quả bài thi"
+              description={
+                <div style={{ textAlign: "left" }}>
+                  <p style={{ marginBottom: 8 }}>
+                    <strong>Nguyên nhân có thể:</strong>
+                  </p>
+                  <ul style={{ marginBottom: 16, paddingLeft: 20 }}>
+                    <li>Hệ thống AI đang gặp sự cố khi chấm bài</li>
+                    <li>Dữ liệu bài thi chưa được xử lý hoàn tất</li>
+                    <li>Lỗi đồng bộ dữ liệu giữa các hệ thống</li>
+                    <li>Bài thi chưa được nộp thành công</li>
+                  </ul>
+                  <p style={{ marginBottom: 0 }}>
+                    <strong>Giải pháp:</strong> Vui lòng thử tải lại trang sau vài phút hoặc liên hệ bộ phận hỗ trợ kỹ thuật để được trợ giúp.
+                  </p>
+                </div>
+              }
+              style={{ 
+                marginBottom: 32, 
+                textAlign: "left",
+                maxWidth: 600,
+                margin: "0 auto 32px auto"
+              }}
+            />
+
+            <div
+              style={{
                 display: "flex",
                 justifyContent: "center",
                 gap: 16,
@@ -1320,9 +1486,12 @@ export default function ResultScreen() {
                 Về danh sách bài thi
               </Button>
             </div>
-            <Text type="secondary" style={{ display: "block", marginTop: 16 }}>
-              Nếu bạn đã báo cáo hoặc cần hỗ trợ gấp, vui lòng gửi thông tin tới đội ngũ kỹ thuật.
-            </Text>
+            <div style={{ marginTop: 24, padding: 16, backgroundColor: "#f6f6f6", borderRadius: 8 }}>
+              <Text type="secondary" style={{ fontSize: 13 }}>
+                💡 <strong>Lưu ý:</strong> Nếu vấn đề vẫn tiếp diễn sau 10-15 phút, có thể hệ thống AI đang bảo trì. 
+                Vui lòng liên hệ bộ phận hỗ trợ kỹ thuật để được trợ giúp nhanh nhất.
+              </Text>
+            </div>
           </div>
         </div>
       </div>
