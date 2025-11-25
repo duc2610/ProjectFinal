@@ -5,6 +5,7 @@ import styles from "../../styles/Exam.module.css";
 import { startTest } from "../../../services/testExamService";
 import { getTestById } from "../../../services/testsService";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { translateErrorMessage } from "@shared/utils/translateError";
 
 const { Title, Text } = Typography;
 
@@ -265,7 +266,7 @@ export default function ExamSelection() {
       navigate("/exam");
     } catch (error) {
       console.error("Error starting test:", error);
-      message.error(error.response?.data?.message || "Không thể bắt đầu bài thi. Vui lòng thử lại.");
+      message.error(translateErrorMessage(error.response?.data?.message) || "Không thể bắt đầu bài thi. Vui lòng thử lại.");
     } finally {
       setConfirmLoading(false);
     }

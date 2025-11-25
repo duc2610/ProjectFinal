@@ -1,4 +1,4 @@
-https://localhost:7100/api/tests/result/detail/134
+https://localhost:7100/api/tests/result/detail/146
 
  data response for writing
 
@@ -7,6 +7,13 @@ https://localhost:7100/api/tests/result/detail/134
     "statusCode": 200,
     "message": "Success",
     "data": {
+        "testResultId": 146,
+        "testId": 3,
+        "title": "testw",
+        "testType": "Practice",
+        "testSkill": "Writing",
+        "duration": 60,
+        "quantityQuestion": 8,
         "writingScore": 75,
         "speakingScore": null,
         "totalScore": 75,
@@ -15,36 +22,42 @@ https://localhost:7100/api/tests/result/detail/134
         "perPartFeedbacks": [
             {
                 "testQuestionId": 110,
-                "feedbackId": 118,
-                "userAnswerId": 368,
+                "feedbackId": 142,
+                "userAnswerId": 411,
                 "answerText": "My hometown is a city small in the south coast of the country, where I live since I am born. It's a very peaceful place, which is why I love it much. The city have many old, beautiful buildings from the colonial time, and near the center is a big park where people do morning exercise. The best feature is the long beach, where you can see the perfect sunset every day. Most of people work in the fish market or for the tourism industry, like hotels and small guest house. Traffic is not good because many motorbikes always go very fast and ignore the red light. The food is the best I think! There are many restaurant where you can buy fresh sea food for cheap price, especialy the grilled fish. I like my hometown very much, even if it is slow sometime and there are not many new job. It is a good place for relax and not stress like a big city, and I hope to live here for all my life. The weather is always hot, which I prefer, and the people is very friend and always smile to everyone they meet in the street. I am very proud of my little town history and its lovely nature.",
                 "answerAudioUrl": null,
                 "score": 150,
-                "content": "Score: 71/100. Grammar: 60, Vocabulary: 65, Organization: 60",
+                "content": "Score: 70/100. Grammar: 55, Vocabulary: 60, Organization: 65",
                 "aiScorer": "writing",
                 "detailedScores": {
                     "word_count": 212,
-                    "grammar": 60,
-                    "vocabulary": 65,
-                    "organization": 60,
+                    "grammar": 55,
+                    "vocabulary": 60,
+                    "organization": 65,
                     "relevance": 90,
                     "sentence_variety": 0,
                     "opinion_support": 80,
-                    "overall": 71
+                    "overall": 70
                 },
                 "detailedAnalysis": {
                     "grammar_errors": [
                         {
-                            "wrong": "city small in the south coast",
-                            "correct": "small city on the south coast",
-                            "rule": "Word order and preposition usage",
+                            "wrong": "a city small",
+                            "correct": "a small city",
+                            "rule": "Adjective order",
                             "severity": "medium"
                         },
                         {
                             "wrong": "where I live since I am born",
                             "correct": "where I have lived since I was born",
-                            "rule": "Verb tense (present perfect for duration, past simple for birth)",
+                            "rule": "Present perfect tense with 'since', past tense for 'born'",
                             "severity": "high"
+                        },
+                        {
+                            "wrong": "I love it much",
+                            "correct": "I love it so much",
+                            "rule": "Adverb usage ('much' vs 'so much')",
+                            "severity": "medium"
                         },
                         {
                             "wrong": "The city have many old",
@@ -53,28 +66,40 @@ https://localhost:7100/api/tests/result/detail/134
                             "severity": "high"
                         },
                         {
+                            "wrong": "the colonial time",
+                            "correct": "colonial times",
+                            "rule": "Article usage/Pluralization",
+                            "severity": "medium"
+                        },
+                        {
                             "wrong": "Most of people work",
                             "correct": "Most people work",
-                            "rule": "Article usage (superfluous 'of')",
+                            "rule": "Article/Preposition usage",
                             "severity": "medium"
                         },
                         {
                             "wrong": "ignore the red light",
                             "correct": "ignore red lights",
-                            "rule": "Article usage (general plural)",
+                            "rule": "Article/Pluralization",
                             "severity": "medium"
                         },
                         {
                             "wrong": "many restaurant where you can buy",
                             "correct": "many restaurants where you can buy",
                             "rule": "Plural noun",
-                            "severity": "high"
+                            "severity": "medium"
                         },
                         {
                             "wrong": "especialy the grilled fish",
                             "correct": "especially the grilled fish",
                             "rule": "Spelling",
                             "severity": "low"
+                        },
+                        {
+                            "wrong": "for cheap price",
+                            "correct": "for a cheap price",
+                            "rule": "Article usage",
+                            "severity": "medium"
                         },
                         {
                             "wrong": "slow sometime",
@@ -86,117 +111,133 @@ https://localhost:7100/api/tests/result/detail/134
                             "wrong": "not many new job",
                             "correct": "not many new jobs",
                             "rule": "Plural noun",
-                            "severity": "high"
+                            "severity": "medium"
                         },
                         {
-                            "wrong": "for relax and not stress",
-                            "correct": "for relaxing and not stressing",
-                            "rule": "Gerund after preposition",
+                            "wrong": "not stress like a big city",
+                            "correct": "not stressful like a big city",
+                            "rule": "Adjective vs. Noun",
                             "severity": "high"
                         },
                         {
                             "wrong": "the people is very friend",
                             "correct": "the people are very friendly",
-                            "rule": "Subject-verb agreement and adjective form",
+                            "rule": "Subject-verb agreement, Adjective form",
                             "severity": "high"
+                        },
+                        {
+                            "wrong": "my little town history",
+                            "correct": "my little town's history",
+                            "rule": "Possessive form",
+                            "severity": "medium"
                         }
                     ],
                     "vocabulary_issues": [
                         {
                             "word": "small",
-                            "better": "quaint, tranquil, modest",
+                            "better": "quaint, modest, compact",
                             "example": "My hometown is a quaint city..."
                         },
                         {
                             "word": "very peaceful",
-                            "better": "serene, tranquil, calm",
-                            "example": "It's a serene place..."
+                            "better": "tranquil, serene, calm",
+                            "example": "It's a tranquil place..."
                         },
                         {
                             "word": "much",
-                            "better": "greatly, deeply",
-                            "example": "I love it greatly."
-                        },
-                        {
-                            "word": "good",
-                            "better": "excellent, pleasant, beneficial",
-                            "example": "It is an excellent place for relaxation."
-                        },
-                        {
-                            "word": "best",
-                            "better": "finest, most outstanding",
-                            "example": "The finest feature is the long beach."
+                            "better": "so much, greatly",
+                            "example": "I love it so much."
                         },
                         {
                             "word": "many",
-                            "better": "numerous, abundant, a variety of",
-                            "example": "The city has numerous old buildings."
+                            "better": "numerous, abundant, a multitude of",
+                            "example": "It has numerous old buildings."
+                        },
+                        {
+                            "word": "old",
+                            "better": "historic, ancient, venerable",
+                            "example": "many historic, beautiful buildings"
+                        },
+                        {
+                            "word": "beautiful",
+                            "better": "picturesque, charming, stunning",
+                            "example": "picturesque buildings"
                         },
                         {
                             "word": "big",
-                            "better": "spacious, expansive",
-                            "example": "near the center is a spacious park."
+                            "better": "spacious, expansive, large",
+                            "example": "a spacious park"
                         },
                         {
-                            "word": "fast",
-                            "better": "rapidly, swiftly",
-                            "example": "motorbikes always go very rapidly."
+                            "word": "good",
+                            "better": "favorable, excellent, pleasant",
+                            "example": "Traffic is not favorable."
+                        },
+                        {
+                            "word": "best",
+                            "better": "finest, superb, unparalleled",
+                            "example": "The food is superb, I think!"
                         },
                         {
                             "word": "cheap",
-                            "better": "affordable, inexpensive",
-                            "example": "fresh seafood for an affordable price."
+                            "better": "affordable, inexpensive, economical",
+                            "example": "for an affordable price"
+                        },
+                        {
+                            "word": "slow",
+                            "better": "unhurried, relaxed, laid-back",
+                            "example": "even if it is unhurried sometimes"
                         },
                         {
                             "word": "hot",
-                            "better": "warm, tropical",
-                            "example": "The weather is always warm."
+                            "better": "warm, tropical, balmy",
+                            "example": "The weather is always tropical."
                         },
                         {
                             "word": "friend",
-                            "better": "friendly",
-                            "example": "the people are very friendly."
+                            "better": "friendly, amiable, welcoming",
+                            "example": "the people are very friendly"
                         },
                         {
                             "word": "lovely",
-                            "better": "charming, delightful",
-                            "example": "its charming nature."
+                            "better": "charming, delightful, captivating",
+                            "example": "its charming nature"
                         }
                     ],
                     "missing_points": [],
                     "matched_points": [],
-                    "corrected_text": "My hometown is a small city on the south coast of the country, where I have lived since I was born. It's a very peaceful place, which is why I love it much. The city has many old, beautiful buildings from the colonial time, and near the center is a big park where people do morning exercise. The best feature is the long beach, where you can see the perfect sunset every day. Most people work in the fish market or for the tourism industry, like hotels and small guest houses. Traffic is not good because many motorbikes always go very fast and ignore red lights. The food is the best I think! There are many restaurants where you can buy fresh seafood for a cheap price, especially the grilled fish. I like my hometown very much, even if it is slow sometimes and there are not many new jobs. It is a good place for relaxing and not stressing like a big city, and I hope to live here for all my life. The weather is always hot, which I prefer, and the people are very friendly and always smile to everyone they meet in the street. I am very proud of my little town's history and its lovely nature.",
+                    "corrected_text": "My hometown is a small city on the south coast of the country, where I have lived since I was born. It's a very peaceful place, which is why I love it so much. The city has many old, beautiful buildings from colonial times, and near the center is a big park where people do morning exercise. The best feature is the long beach, where you can see the perfect sunset every day. Most people work in the fish market or for the tourism industry, like hotels and small guest houses. Traffic is not good because many motorbikes always go very fast and ignore red lights. The food is the best, I think! There are many restaurants where you can buy fresh seafood for a cheap price, especially the grilled fish. I like my hometown very much, even if it is slow sometimes and there are not many new jobs. It is a good place for relaxation and not stressful like a big city, and I hope to live here for all my life. The weather is always hot, which I prefer, and the people are very friendly and always smile to everyone they meet in the street. I am very proud of my little town's history and its lovely nature.",
                     "image_description": null,
                     "opinion_support_issues": [
-                        "While examples are provided, some could be further developed with more descriptive details or personal anecdotes to enhance the reader's understanding of 'why' these features are loved."
+                        "While several reasons are provided with some examples, deeper elaboration on *why* certain aspects are loved (e.g., how the peace is experienced, specific details about the beauty of buildings) would strengthen the support."
                     ]
                 },
                 "recommendations": [
-                    "✅ Strong essay! (Overall: 71/100)",
+                    "✅ Strong essay! (Overall: 70/100)",
                     "",
                     "💭 Opinion support: 80/100",
-                    "  1. While examples are provided, some could be further developed with more descriptive details or personal anecdotes to enhance the reader's understanding of 'why' these features are loved.",
+                    "  1. While several reasons are provided with some examples, deeper elaboration on *why* certain aspects are loved (e.g., how the peace is experienced, specific details about the beauty of buildings) would strengthen the support.",
                     "",
-                    "📝 Grammar: 60/100",
-                    "  1. ✗ 'city small in the south coast' → ✓ 'small city on the south coast'",
-                    "     Rule: Word order and preposition usage",
+                    "📝 Grammar: 55/100",
+                    "  1. ✗ 'a city small' → ✓ 'a small city'",
+                    "     Rule: Adjective order",
                     "  2. ✗ 'where I live since I am born' → ✓ 'where I have lived since I was born'",
-                    "     Rule: Verb tense (present perfect for duration, past simple for birth)",
-                    "  3. ✗ 'The city have many old' → ✓ 'The city has many old'",
-                    "     Rule: Subject-verb agreement",
+                    "     Rule: Present perfect tense with 'since', past tense for 'born'",
+                    "  3. ✗ 'I love it much' → ✓ 'I love it so much'",
+                    "     Rule: Adverb usage ('much' vs 'so much')",
                     "",
-                    "📚 Vocabulary: 65/100",
-                    "  1. 'small' → 'quaint, tranquil, modest'",
+                    "📚 Vocabulary: 60/100",
+                    "  1. 'small' → 'quaint, modest, compact'",
                     "     Example: My hometown is a quaint city...",
-                    "  2. 'very peaceful' → 'serene, tranquil, calm'",
-                    "     Example: It's a serene place...",
+                    "  2. 'very peaceful' → 'tranquil, serene, calm'",
+                    "     Example: It's a tranquil place...",
                     "",
                     "⚠️  Overused words:"
                 ],
                 "transcription": "",
-                "correctedText": "My hometown is a small city on the south coast of the country, where I have lived since I was born. It's a very peaceful place, which is why I love it much. The city has many old, beautiful buildings from the colonial time, and near the center is a big park where people do morning exercise. The best feature is the long beach, where you can see the perfect sunset every day. Most people work in the fish market or for the tourism industry, like hotels and small guest houses. Traffic is not good because many motorbikes always go very fast and ignore red lights. The food is the best I think! There are many restaurants where you can buy fresh seafood for a cheap price, especially the grilled fish. I like my hometown very much, even if it is slow sometimes and there are not many new jobs. It is a good place for relaxing and not stressing like a big city, and I hope to live here for all my life. The weather is always hot, which I prefer, and the people are very friendly and always smile to everyone they meet in the street. I am very proud of my little town's history and its lovely nature.",
+                "correctedText": "My hometown is a small city on the south coast of the country, where I have lived since I was born. It's a very peaceful place, which is why I love it so much. The city has many old, beautiful buildings from colonial times, and near the center is a big park where people do morning exercise. The best feature is the long beach, where you can see the perfect sunset every day. Most people work in the fish market or for the tourism industry, like hotels and small guest houses. Traffic is not good because many motorbikes always go very fast and ignore red lights. The food is the best, I think! There are many restaurants where you can buy fresh seafood for a cheap price, especially the grilled fish. I like my hometown very much, even if it is slow sometimes and there are not many new jobs. It is a good place for relaxation and not stressful like a big city, and I hope to live here for all my life. The weather is always hot, which I prefer, and the people are very friendly and always smile to everyone they meet in the street. I am very proud of my little town's history and its lovely nature.",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:03:56.5319654",
+                "createdAt": "2025-11-25T12:20:44.1377095",
                 "partId": 9,
                 "partName": "W-Part 2",
                 "questionContent": {
@@ -213,8 +254,8 @@ https://localhost:7100/api/tests/result/detail/134
             },
             {
                 "testQuestionId": 111,
-                "feedbackId": 121,
-                "userAnswerId": 371,
+                "feedbackId": 145,
+                "userAnswerId": 414,
                 "answerText": "The two woman is talk and laugh to each other while they holding coffee cups in office.",
                 "answerAudioUrl": null,
                 "score": 15,
@@ -236,22 +277,22 @@ https://localhost:7100/api/tests/result/detail/134
                     "missing_points": [
                         "a man",
                         "reading a newspaper",
-                        "formal attire",
-                        "seated indoors"
+                        "wearing a suit",
+                        "desk"
                     ],
                     "matched_points": [],
                     "corrected_text": null,
-                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
+                    "image_description": "This black and white photograph depicts a young adult male engrossed in reading a newspaper in an indoor setting, likely an office.\n\nThe man is positioned in the right half of the frame, seated and leaning back. He has dark hair and is wearing a dark suit jacket over a white shirt and a striped tie. His left hand is raised to his chin or mouth, suggesting a thoughtful or concentrated expression as he looks down at the newspaper.\n\nA folded newspaper is spread across his raised legs, which are resting on a dark, flat surface, presumably a desk, that occupies the lower portion of the image. The newspaper is open, displaying columns of text, though the specific content is not legible. On the far right of the desk, some indistinct objects are visible.\n\nThe background is blurred but shows vertical and horizontal lines, possibly indicating a window or a glass partition, with some reflections visible. The overall impression is one of a professional individual taking a moment to read.",
                     "opinion_support_issues": []
                 },
                 "recommendations": [
                     "❌ FAIL: Sentence doesn't describe the picture",
                     "",
                     "What the picture shows:",
-                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
+                    "  This black and white photograph depicts a young adult male engrossed in reading a newspaper in an indoor setting, likely an office.\n\nThe man is positioned in the right half of the frame, seated and le",
                     "",
                     "What you wrote about:",
-                    "  Elements NOT in picture: two woman, talk and laugh, coffee cups",
+                    "  Elements NOT in picture: two woman, talk and laugh, holding coffee cups",
                     "",
                     "How to fix:",
                     "1. Look at the picture carefully",
@@ -261,7 +302,7 @@ https://localhost:7100/api/tests/result/detail/134
                 "transcription": "",
                 "correctedText": "",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:05:24.8713574",
+                "createdAt": "2025-11-25T12:20:45.1465863",
                 "partId": 8,
                 "partName": "W-Part 1",
                 "questionContent": {
@@ -278,8 +319,8 @@ https://localhost:7100/api/tests/result/detail/134
             },
             {
                 "testQuestionId": 112,
-                "feedbackId": 122,
-                "userAnswerId": 372,
+                "feedbackId": 146,
+                "userAnswerId": 415,
                 "answerText": "Man standing on ladder painting the walls of the building using a big roller.",
                 "answerAudioUrl": null,
                 "score": 15,
@@ -300,8 +341,7 @@ https://localhost:7100/api/tests/result/detail/134
                     "vocabulary_issues": [],
                     "missing_points": [
                         "woman",
-                        "shopping",
-                        "supermarket aisle",
+                        "supermarket",
                         "shopping cart",
                         "groceries",
                         "shelves",
@@ -309,17 +349,17 @@ https://localhost:7100/api/tests/result/detail/134
                     ],
                     "matched_points": [],
                     "corrected_text": null,
-                    "image_description": "This black and white photograph depicts a woman shopping in a supermarket aisle.\n\nThe main subject is a young adult woman, positioned slightly to the right of the frame's center. She has light-colored hair, pulled back, and is smiling as she looks down at an item she holds in her right hand. She is wearing a long-sleeved, buttoned cardigan over another garment, and a shoulder bag hangs from her left arm. The item she is holding appears to be a jar or container with a dark lid.\n\nIn front of her is a metal shopping cart, partially filled with groceries. Visible items in the cart include a baguette (long loaf of bread), a carton of eggs, a bottle (possibly milk or juice), and some green vegetables, which appear to be broccoli. Other packaged goods, including a bag that resembles M&M's, are also visible further down in the cart.\n\nThe background shows a typical supermarket aisle, with tall shelves extending into the distance on both sides. These shelves are fully stocked with various packaged products, though specific details and labels are indistinct due to the distance and monochrome nature of the image. Overhead lighting fixtures are visible at the top of the frame, illuminating the aisle. The overall scene captures an everyday activity of grocery shopping.",
+                    "image_description": "The image depicts a young adult woman engaged in grocery shopping within a supermarket aisle.\n\nIn the foreground, the woman is shown from the waist up, standing next to a metal shopping cart. She has light-colored hair, styled partially pulled back, and is wearing a light-colored, buttoned cardigan. A shoulder bag is visible on her left side. Her expression is a gentle smile as she looks down at a cylindrical product with a dark lid, which she holds in her raised right hand, appearing to examine it.\n\nThe shopping cart, positioned in front of her, is filled with various grocery items. Among the visible items are a long loaf of bread (resembling a baguette), a carton of eggs, a white bottle (possibly milk or juice), and some dark green vegetables, possibly broccoli. Further down in the cart, various packaged goods and a bag of snacks are discernible.\n\nThe background features a well-stocked supermarket aisle with tall shelves filled with numerous products, extending into the distance. The shelves appear organized, showcasing a wide variety of merchandise. The lighting suggests an indoor retail environment.\n\nThe overall scene portrays a common retail environment and a customer engaged in selecting groceries.",
                     "opinion_support_issues": []
                 },
                 "recommendations": [
                     "❌ FAIL: Sentence doesn't describe the picture",
                     "",
                     "What the picture shows:",
-                    "  This black and white photograph depicts a woman shopping in a supermarket aisle.\n\nThe main subject is a young adult woman, positioned slightly to the right of the frame's center. She has light-colored",
+                    "  The image depicts a young adult woman engaged in grocery shopping within a supermarket aisle.\n\nIn the foreground, the woman is shown from the waist up, standing next to a metal shopping cart. She has ",
                     "",
                     "What you wrote about:",
-                    "  Elements NOT in picture: Man, standing on ladder, painting the walls",
+                    "  Elements NOT in picture: Man, ladder, painting",
                     "",
                     "How to fix:",
                     "1. Look at the picture carefully",
@@ -329,7 +369,7 @@ https://localhost:7100/api/tests/result/detail/134
                 "transcription": "",
                 "correctedText": "",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:05:53.6697983",
+                "createdAt": "2025-11-25T12:20:45.6248219",
                 "partId": 8,
                 "partName": "W-Part 1",
                 "questionContent": {
@@ -346,8 +386,8 @@ https://localhost:7100/api/tests/result/detail/134
             },
             {
                 "testQuestionId": 113,
-                "feedbackId": 123,
-                "userAnswerId": 373,
+                "feedbackId": 147,
+                "userAnswerId": 416,
                 "answerText": "The customer is buying many vegetable at market stand and lady selling is look at her phone.",
                 "answerAudioUrl": null,
                 "score": 15,
@@ -367,25 +407,27 @@ https://localhost:7100/api/tests/result/detail/134
                     "grammar_errors": [],
                     "vocabulary_issues": [],
                     "missing_points": [
-                        "a man",
+                        "young adult male",
                         "reading a newspaper",
-                        "indoors",
-                        "formal attire",
-                        "seated"
+                        "indoor setting",
+                        "office",
+                        "seated",
+                        "dark suit",
+                        "desk"
                     ],
                     "matched_points": [],
                     "corrected_text": null,
-                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
+                    "image_description": "This black and white photograph depicts a young adult male engrossed in reading a newspaper in an indoor setting, likely an office.\n\nThe man is positioned in the right half of the frame, seated and leaning back. He has dark hair and is wearing a dark suit jacket over a white shirt and a striped tie. His left hand is raised to his chin or mouth, suggesting a thoughtful or concentrated expression as he looks down at the newspaper.\n\nA folded newspaper is spread across his raised legs, which are resting on a dark, flat surface, presumably a desk, that occupies the lower portion of the image. The newspaper is open, displaying columns of text, though the specific content is not legible. On the far right of the desk, some indistinct objects are visible.\n\nThe background is blurred but shows vertical and horizontal lines, possibly indicating a window or a glass partition, with some reflections visible. The overall impression is one of a professional individual taking a moment to read.",
                     "opinion_support_issues": []
                 },
                 "recommendations": [
                     "❌ FAIL: Sentence doesn't describe the picture",
                     "",
                     "What the picture shows:",
-                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
+                    "  This black and white photograph depicts a young adult male engrossed in reading a newspaper in an indoor setting, likely an office.\n\nThe man is positioned in the right half of the frame, seated and le",
                     "",
                     "What you wrote about:",
-                    "  Elements NOT in picture: The customer, buying many vegetable, at market stand",
+                    "  Elements NOT in picture: customer, buying, many vegetable",
                     "",
                     "How to fix:",
                     "1. Look at the picture carefully",
@@ -395,7 +437,7 @@ https://localhost:7100/api/tests/result/detail/134
                 "transcription": "",
                 "correctedText": "",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:06:12.4131764",
+                "createdAt": "2025-11-25T12:20:46.0353913",
                 "partId": 8,
                 "partName": "W-Part 1",
                 "questionContent": {
@@ -412,8 +454,8 @@ https://localhost:7100/api/tests/result/detail/134
             },
             {
                 "testQuestionId": 114,
-                "feedbackId": 124,
-                "userAnswerId": 374,
+                "feedbackId": 148,
+                "userAnswerId": 417,
                 "answerText": "A bicycle lean against a tree near the sidewalk and some trees is behind it.",
                 "answerAudioUrl": null,
                 "score": 15,
@@ -433,27 +475,27 @@ https://localhost:7100/api/tests/result/detail/134
                     "grammar_errors": [],
                     "vocabulary_issues": [],
                     "missing_points": [
-                        "man",
-                        "newspaper",
-                        "reading",
-                        "indoors",
-                        "formal attire",
-                        "desk/table",
-                        "thoughtful posture"
+                        "a man",
+                        "a newspaper",
+                        "an indoor setting",
+                        "a desk",
+                        "a suit",
+                        "a tie",
+                        "a white shirt"
                     ],
                     "matched_points": [],
                     "corrected_text": null,
-                    "image_description": "This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right of the frame, looking downwards at the newspaper. He is dressed in formal attire, including a dark suit jacket, a white shirt, and a striped tie. His right hand is resting under his chin, suggesting a thoughtful or focused posture. His legs are elevated and appear to be resting on a dark, flat surface in the foreground, which is likely a desk or table.\n\nHe is holding a large, open newspaper, which is resting on his lap or legs. The newspaper is folded, and text is visible on its pages, though it is not legible. The background is blurred but shows vertical rectangular elements, possibly windows or wall panels, suggesting an indoor, potentially office, environment. The overall lighting appears even, highlighting the man and the newspaper.",
+                    "image_description": "This black and white photograph depicts a young adult male engrossed in reading a newspaper in an indoor setting, likely an office.\n\nThe man is positioned in the right half of the frame, seated and leaning back. He has dark hair and is wearing a dark suit jacket over a white shirt and a striped tie. His left hand is raised to his chin or mouth, suggesting a thoughtful or concentrated expression as he looks down at the newspaper.\n\nA folded newspaper is spread across his raised legs, which are resting on a dark, flat surface, presumably a desk, that occupies the lower portion of the image. The newspaper is open, displaying columns of text, though the specific content is not legible. On the far right of the desk, some indistinct objects are visible.\n\nThe background is blurred but shows vertical and horizontal lines, possibly indicating a window or a glass partition, with some reflections visible. The overall impression is one of a professional individual taking a moment to read.",
                     "opinion_support_issues": []
                 },
                 "recommendations": [
                     "❌ FAIL: Sentence doesn't describe the picture",
                     "",
                     "What the picture shows:",
-                    "  This black and white photograph depicts a young adult male seated indoors, engaged in reading a newspaper.\n\nThe main subject, a man with dark, neatly styled hair, is positioned slightly to the right o",
+                    "  This black and white photograph depicts a young adult male engrossed in reading a newspaper in an indoor setting, likely an office.\n\nThe man is positioned in the right half of the frame, seated and le",
                     "",
                     "What you wrote about:",
-                    "  Elements NOT in picture: bicycle, tree, sidewalk",
+                    "  Elements NOT in picture: A bicycle, a tree, the sidewalk",
                     "",
                     "How to fix:",
                     "1. Look at the picture carefully",
@@ -463,7 +505,7 @@ https://localhost:7100/api/tests/result/detail/134
                 "transcription": "",
                 "correctedText": "",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:06:32.2713987",
+                "createdAt": "2025-11-25T12:20:46.4799104",
                 "partId": 8,
                 "partName": "W-Part 1",
                 "questionContent": {
@@ -480,8 +522,8 @@ https://localhost:7100/api/tests/result/detail/134
             },
             {
                 "testQuestionId": 115,
-                "feedbackId": 119,
-                "userAnswerId": 369,
+                "feedbackId": 143,
+                "userAnswerId": 412,
                 "answerText": "Dear Mr. Kramer,\n\nI writing to you for express my strong interest in the Experienced Accountant vacancy at Marleyhome Inc. that I see in the Daily Jobseeker update email. I think this job is a perfect match for my professional background because I have a very good degree in Accounting from the National University, and I currently work in financial audit for four year experience in a big international company. I also very expert in using all accounting software like QuickBooks and SAP, which I think will be important for your vacancy.\n\nBefore sending my complete CV and a letter, I have to ask two very important thing about this job. First, can you tell me exactly what is the working hours for this job and if it is possible for some remote work from home, maybe one or two day per week, because I have family commitment in the afternoon? Second, please inform me of the expected salary pay range for this position, including any bonus or insurance benefit, because I need to make sure it matches my current pay grade before I move to a new company and spend time for interview process.\n\nThank you very much for your time and help. I waiting for your quick reply for I can send my document.\n\nSincerely,\nAnna Billings",
                 "answerAudioUrl": null,
                 "score": 150,
@@ -604,7 +646,7 @@ https://localhost:7100/api/tests/result/detail/134
                 "transcription": "",
                 "correctedText": "Dear Mr. Kramer,\n\nI am writing to you to express my strong interest in the Experienced Accountant vacancy at Marleyhome Inc. that I see in the Daily Jobseeker update email. I think this job is a perfect match for my professional background because I have a very good degree in Accounting from the National University, and I currently work in financial audit with four years of experience in a big international company. I am also very expert in using all accounting software like QuickBooks and SAP, which I think will be important for your vacancy.\n\nBefore sending my complete CV and a letter, I have to ask two very important things about this job. First, can you tell me exactly what are the working hours for this job and if it is possible for some remote work from home, maybe one or two days per week, because I have family commitment in the afternoon? Second, please inform me of the expected salary pay range for this position, including any bonus or insurance benefit, because I need to make sure it matches my current pay grade before I move to a new company and spend time for interview process.\n\nThank you very much for your time and help. I am waiting for your quick reply so that I can send my documents.\n\nSincerely,\nAnna Billings",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:04:32.325125",
+                "createdAt": "2025-11-25T12:20:44.2436742",
                 "partId": 9,
                 "partName": "W-Part 2",
                 "questionContent": {
@@ -621,8 +663,8 @@ https://localhost:7100/api/tests/result/detail/134
             },
             {
                 "testQuestionId": 116,
-                "feedbackId": 120,
-                "userAnswerId": 370,
+                "feedbackId": 144,
+                "userAnswerId": 413,
                 "answerText": "Dear Elisa Hays,\n\nI receive your email about reservation system bad problems and I want to compile the list of issues I see at front desk always for you. Many agents are unhappy with the system, and it makes our work very difficult and slow when we have big rush hour with many guest.\n\nHere is the list of THREE problem with the reservation system that I see every day:\n\n1. System Freeze Often: The computer system for booking always freeze and crash very often when I try to process group check-in for more than ten people, especialy when I try to process all the credit card at once. This freezing make long queue very much in the lobby and guest become angry, which is bad for the hotel reputation.\n\n2. Credit Card Processing Slow: The machine to take payment with card is extremely slow, it take at least three minute for one person to finalize the transaction, sometimes it fails and I have to retry many time. This is not efficient at all and makes me worry about the payment being collected correctly from all guests.\n\n3. Guest Profile Mix-up: Sometimes the system show the wrong guest profile for the room they book, or it erase their special request, like extra towel or non-smoking room on the high floor. Once, a guest was given a room with two beds when she requested one big bed, and she was furious. The system needs to be more stable so the information is correct and not lost, it is causing big trouble for our service.\n\nI hope these information help you fix the bad problem soon and the IT department can work on this issue very fast.\n\nSincerely,\nA Front Desk Agent",
                 "answerAudioUrl": null,
                 "score": 180,
@@ -643,37 +685,31 @@ https://localhost:7100/api/tests/result/detail/134
                         {
                             "wrong": "I receive your email",
                             "correct": "I received your email",
-                            "rule": "Incorrect verb tense (present instead of past).",
-                            "severity": "high"
-                        },
-                        {
-                            "wrong": "reservation system bad problems",
-                            "correct": "bad problems with the reservation system",
-                            "rule": "Incorrect adjective order/placement.",
+                            "rule": "Incorrect verb tense. The action of receiving the email happened in the past.",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "I see at front desk always",
-                            "correct": "I always see at the front desk",
-                            "rule": "Incorrect adverb placement.",
+                            "wrong": "reservation system bad problems",
+                            "correct": "bad reservation system problems",
+                            "rule": "Incorrect adjective order. Adjectives of opinion usually come before descriptive adjectives.",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "I see at front desk always for you",
+                            "correct": "I always see at the front desk for you",
+                            "rule": "Incorrect adverb placement. 'Always' should typically come before the main verb.",
                             "severity": "medium"
                         },
                         {
                             "wrong": "many guest",
                             "correct": "many guests",
-                            "rule": "Incorrect pluralization of noun.",
-                            "severity": "high"
+                            "rule": "Incorrect pluralization. 'Guest' should be plural when used with 'many'.",
+                            "severity": "medium"
                         },
                         {
-                            "wrong": "list of THREE problem",
-                            "correct": "list of THREE problems",
-                            "rule": "Incorrect pluralization of noun.",
-                            "severity": "high"
-                        },
-                        {
-                            "wrong": "always freeze and crash",
-                            "correct": "always freezes and crashes",
-                            "rule": "Subject-verb agreement (singular subject 'system' requires '-es' ending).",
+                            "wrong": "The computer system for booking always freeze and crash very often",
+                            "correct": "The computer system for booking always freezes and crashes very often",
+                            "rule": "Subject-verb agreement. The singular subject 'system' requires singular verbs 'freezes' and 'crashes'.",
                             "severity": "high"
                         },
                         {
@@ -684,57 +720,57 @@ https://localhost:7100/api/tests/result/detail/134
                         },
                         {
                             "wrong": "This freezing make long queue very much",
-                            "correct": "This freezing makes very long queues",
-                            "rule": "Subject-verb agreement (singular subject 'freezing' requires '-s' ending) and incorrect pluralization of noun.",
+                            "correct": "This freezing creates very long queues",
+                            "rule": "Subject-verb agreement ('freezing' is singular, requires 'creates') and incorrect collocation ('make queue' should be 'create queues').",
                             "severity": "high"
                         },
                         {
                             "wrong": "guest become angry",
                             "correct": "guests become angry",
-                            "rule": "Incorrect pluralization of noun.",
+                            "rule": "Incorrect pluralization and subject-verb agreement. 'Guests' is plural and requires 'become'.",
                             "severity": "high"
                         },
                         {
                             "wrong": "it take at least three minute",
                             "correct": "it takes at least three minutes",
-                            "rule": "Subject-verb agreement (singular subject 'it' requires '-s' ending) and incorrect pluralization of noun.",
+                            "rule": "Subject-verb agreement ('it' is singular, requires 'takes') and incorrect pluralization ('minute' should be 'minutes').",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "slow, it take",
+                            "correct": "slow. It takes",
+                            "rule": "Comma splice. Two independent clauses are incorrectly joined by only a comma.",
                             "severity": "high"
                         },
                         {
                             "wrong": "retry many time",
                             "correct": "retry many times",
-                            "rule": "Incorrect pluralization of noun.",
-                            "severity": "high"
+                            "rule": "Incorrect pluralization. 'Time' should be 'times' when referring to countable instances.",
+                            "severity": "medium"
                         },
                         {
                             "wrong": "Sometimes the system show the wrong guest profile",
                             "correct": "Sometimes the system shows the wrong guest profile",
-                            "rule": "Subject-verb agreement (singular subject 'system' requires '-s' ending).",
+                            "rule": "Subject-verb agreement. The singular subject 'system' requires the singular verb 'shows'.",
                             "severity": "high"
                         },
                         {
-                            "wrong": "or it erase their special request",
-                            "correct": "or it erases their special requests",
-                            "rule": "Subject-verb agreement (singular subject 'it' requires '-es' ending) and incorrect pluralization of noun.",
-                            "severity": "high"
-                        },
-                        {
-                            "wrong": "these information help you",
-                            "correct": "this information helps you",
-                            "rule": "Incorrect demonstrative pronoun ('information' is uncountable) and subject-verb agreement.",
-                            "severity": "high"
-                        },
-                        {
-                            "wrong": "fix the bad problem soon",
-                            "correct": "fix these problems soon",
-                            "rule": "Word choice and agreement.",
+                            "wrong": "room they book",
+                            "correct": "room they booked",
+                            "rule": "Incorrect verb tense. The booking action happened in the past.",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "work on this issue very fast",
-                            "correct": "work on this issue quickly",
-                            "rule": "Incorrect adverb choice ('fast' as an adverb is informal/less precise than 'quickly').",
-                            "severity": "medium"
+                            "wrong": "erase their special request",
+                            "correct": "erases their special requests",
+                            "rule": "Subject-verb agreement ('system' is singular, requires 'erases') and incorrect pluralization ('request' should be 'requests').",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "these information help",
+                            "correct": "this information helps",
+                            "rule": "Incorrect demonstrative pronoun ('information' is uncountable, so 'this' is appropriate) and subject-verb agreement ('information' is singular, requires 'helps').",
+                            "severity": "high"
                         }
                     ],
                     "vocabulary_issues": [
@@ -754,49 +790,24 @@ https://localhost:7100/api/tests/result/detail/134
                             "example": "when we have peak hours with many guests."
                         },
                         {
-                            "word": "freeze often",
-                            "better": "frequently freezes",
-                            "example": "The computer system for booking frequently freezes."
-                        },
-                        {
                             "word": "make long queue very much",
-                            "better": "creates significant queues",
-                            "example": "This freezing creates significant queues in the lobby."
-                        },
-                        {
-                            "word": "guest become angry",
-                            "better": "guests become frustrated",
-                            "example": "and guests become frustrated."
-                        },
-                        {
-                            "word": "take payment with card",
-                            "better": "process card payments",
-                            "example": "The machine to process card payments is extremely slow."
+                            "better": "creates very long queues",
+                            "example": "This freezing creates very long queues in the lobby."
                         },
                         {
                             "word": "take at least three minute",
-                            "better": "requires at least three minutes",
-                            "example": "it requires at least three minutes for one person to finalize the transaction."
+                            "better": "takes at least three minutes",
+                            "example": "it takes at least three minutes for one person to finalize the transaction."
                         },
                         {
                             "word": "retry many time",
                             "better": "retry multiple times",
-                            "example": "and I have to retry multiple times."
-                        },
-                        {
-                            "word": "not efficient at all",
-                            "better": "highly inefficient",
-                            "example": "This is highly inefficient."
-                        },
-                        {
-                            "word": "worry about the payment being collected correctly",
-                            "better": "concerned about accurate payment collection",
-                            "example": "and makes me concerned about accurate payment collection from all guests."
+                            "example": "sometimes it fails and I have to retry multiple times."
                         },
                         {
                             "word": "show the wrong guest profile",
-                            "better": "displays incorrect guest profiles",
-                            "example": "Sometimes the system displays incorrect guest profiles."
+                            "better": "displays the incorrect guest profile",
+                            "example": "Sometimes the system displays the wrong guest profile for the room they booked."
                         },
                         {
                             "word": "erase their special request",
@@ -804,9 +815,9 @@ https://localhost:7100/api/tests/result/detail/134
                             "example": "or it deletes their special requests."
                         },
                         {
-                            "word": "one big bed",
-                            "better": "a king-sized bed",
-                            "example": "when she requested a king-sized bed."
+                            "word": "big trouble",
+                            "better": "significant problems",
+                            "example": "it is causing significant problems for our service."
                         },
                         {
                             "word": "fix the bad problem soon",
@@ -821,10 +832,11 @@ https://localhost:7100/api/tests/result/detail/134
                     ],
                     "missing_points": [],
                     "matched_points": [
-                        "Responds as a front desk agent.",
-                        "Describes three problems with the reservation system."
+                        "Responds to the email from Elisa Hays",
+                        "Describes three problems with the reservation system",
+                        "Responds as a front desk agent"
                     ],
-                    "corrected_text": "Dear Elisa Hays,\n\nI received your email about problems with the reservation system, and I want to compile the list of issues I always see at the front desk for you. Many agents are unhappy with the system, and it makes our work very difficult and slow when we have a big rush hour with many guests.\n\nHere is the list of THREE problems with the reservation system that I see every day:\n\n1. System Freeze Often: The computer system for booking always freezes and crashes very often when I try to process group check-ins for more than ten people, especially when I try to process all the credit cards at once. This freezing makes very long queues in the lobby, and guests become angry, which is bad for the hotel's reputation.\n\n2. Credit Card Processing Slow: The machine to take payment with cards is extremely slow; it takes at least three minutes for one person to finalize the transaction. Sometimes it fails, and I have to retry many times. This is not efficient at all and makes me worry about the payment being collected correctly from all guests.\n\n3. Guest Profile Mix-up: Sometimes the system shows the wrong guest profile for the room they book, or it erases their special requests, like extra towels or a non-smoking room on a high floor. Once, a guest was given a room with two beds when she requested one big bed, and she was furious. The system needs to be more stable so the information is correct and not lost; it is causing big trouble for our service.\n\nI hope this information helps you fix these problems soon, and the IT department can work on this issue very quickly.\n\nSincerely,\nA Front Desk Agent",
+                    "corrected_text": "Dear Elisa Hays,\n\nI received your email about bad reservation system problems and I want to compile the list of issues I always see at the front desk for you. Many agents are unhappy with the system, and it makes our work very difficult and slow when we have big rush hour with many guests.\n\nHere is the list of THREE problems with the reservation system that I see every day:\n\n1. System Freezes Often: The computer system for booking always freezes and crashes very often when I try to process group check-in for more than ten people, especially when I try to process all the credit cards at once. This freezing creates very long queues in the lobby and guests become angry, which is bad for the hotel reputation.\n\n2. Credit Card Processing Slow: The machine to take payment with a card is extremely slow. It takes at least three minutes for one person to finalize the transaction; sometimes it fails and I have to retry many times. This is not efficient at all and makes me worry about the payment being collected correctly from all guests.\n\n3. Guest Profile Mix-up: Sometimes the system shows the wrong guest profile for the room they booked, or it erases their special requests, like extra towels or a non-smoking room on a high floor. Once, a guest was given a room with two beds when she requested one big bed, and she was furious. The system needs to be more stable so the information is correct and not lost; it is causing big trouble for our service.\n\nI hope this information helps you fix the bad problems soon and the IT department can work on this issue very fast.\n\nSincerely,\nA Front Desk Agent",
                     "image_description": null,
                     "opinion_support_issues": []
                 },
@@ -835,11 +847,11 @@ https://localhost:7100/api/tests/result/detail/134
                     "",
                     "📝 Grammar: 60/100",
                     "  1. ✗ 'I receive your email' → ✓ 'I received your email'",
-                    "     Rule: Incorrect verb tense (present instead of past).",
-                    "  2. ✗ 'reservation system bad problems' → ✓ 'bad problems with the reservation system'",
-                    "     Rule: Incorrect adjective order/placement.",
-                    "  3. ✗ 'I see at front desk always' → ✓ 'I always see at the front desk'",
-                    "     Rule: Incorrect adverb placement.",
+                    "     Rule: Incorrect verb tense. The action of receiving the email happened in the past.",
+                    "  2. ✗ 'reservation system bad problems' → ✓ 'bad reservation system problems'",
+                    "     Rule: Incorrect adjective order. Adjectives of opinion usually come before descriptive adjectives.",
+                    "  3. ✗ 'I see at front desk always for you' → ✓ 'I always see at the front desk for you'",
+                    "     Rule: Incorrect adverb placement. 'Always' should typically come before the main verb.",
                     "",
                     "📚 Vocabulary: 65/100",
                     "  1. 'bad problems' → 'significant issues'",
@@ -849,9 +861,9 @@ https://localhost:7100/api/tests/result/detail/134
                     ""
                 ],
                 "transcription": "",
-                "correctedText": "Dear Elisa Hays,\n\nI received your email about problems with the reservation system, and I want to compile the list of issues I always see at the front desk for you. Many agents are unhappy with the system, and it makes our work very difficult and slow when we have a big rush hour with many guests.\n\nHere is the list of THREE problems with the reservation system that I see every day:\n\n1. System Freeze Often: The computer system for booking always freezes and crashes very often when I try to process group check-ins for more than ten people, especially when I try to process all the credit cards at once. This freezing makes very long queues in the lobby, and guests become angry, which is bad for the hotel's reputation.\n\n2. Credit Card Processing Slow: The machine to take payment with cards is extremely slow; it takes at least three minutes for one person to finalize the transaction. Sometimes it fails, and I have to retry many times. This is not efficient at all and makes me worry about the payment being collected correctly from all guests.\n\n3. Guest Profile Mix-up: Sometimes the system shows the wrong guest profile for the room they book, or it erases their special requests, like extra towels or a non-smoking room on a high floor. Once, a guest was given a room with two beds when she requested one big bed, and she was furious. The system needs to be more stable so the information is correct and not lost; it is causing big trouble for our service.\n\nI hope this information helps you fix these problems soon, and the IT department can work on this issue very quickly.\n\nSincerely,\nA Front Desk Agent",
+                "correctedText": "Dear Elisa Hays,\n\nI received your email about bad reservation system problems and I want to compile the list of issues I always see at the front desk for you. Many agents are unhappy with the system, and it makes our work very difficult and slow when we have big rush hour with many guests.\n\nHere is the list of THREE problems with the reservation system that I see every day:\n\n1. System Freezes Often: The computer system for booking always freezes and crashes very often when I try to process group check-in for more than ten people, especially when I try to process all the credit cards at once. This freezing creates very long queues in the lobby and guests become angry, which is bad for the hotel reputation.\n\n2. Credit Card Processing Slow: The machine to take payment with a card is extremely slow. It takes at least three minutes for one person to finalize the transaction; sometimes it fails and I have to retry many times. This is not efficient at all and makes me worry about the payment being collected correctly from all guests.\n\n3. Guest Profile Mix-up: Sometimes the system shows the wrong guest profile for the room they booked, or it erases their special requests, like extra towels or a non-smoking room on a high floor. Once, a guest was given a room with two beds when she requested one big bed, and she was furious. The system needs to be more stable so the information is correct and not lost; it is causing big trouble for our service.\n\nI hope this information helps you fix the bad problems soon and the IT department can work on this issue very fast.\n\nSincerely,\nA Front Desk Agent",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:05:11.1170984",
+                "createdAt": "2025-11-25T12:20:44.3033599",
                 "partId": 9,
                 "partName": "W-Part 2",
                 "questionContent": {
@@ -868,197 +880,149 @@ https://localhost:7100/api/tests/result/detail/134
             },
             {
                 "testQuestionId": 117,
-                "feedbackId": 125,
-                "userAnswerId": 375,
+                "feedbackId": 149,
+                "userAnswerId": 418,
                 "answerText": "Many people all over the world enjoy sport very much, no matter if they are playing on a field or watching on the TV in their home. They spend a lot of time and money on this activity, and I think that sports are very important to all peoples for three important thing in life. These important things is health physical, learning life lessons, and building a strong friendship and community feeling. People need to know why sports are great to have good and happy life because the benefits are more than just a game.\n\nFirst thing is that sports is good for health physical and mental well-being. If you always sitting at your desk and not move, you will become fat and maybe sick many time, especialy with problem like high blood pressure or diabetes, which is common in today's world. Sport activity is like running, playing soccer or basketball, or even just going to gym. These exercise make your body strong and your heart work better, and they also help you to sleep better at night. For example, my brother play tennis every week, and he is never sick and always feel positive and full of energy, he is happy and his mind is clear. This is important for health for long time and for living quality life.\n\nSecond, sports teach you lessons life what is important for you later when you are an adult in your work life. You learn for cooperate with all your team members, even if you don't like they very much as a person, because you must work together to win. If you don't cooperate, you lose the game, which teach the important of teamwork. Also, when the game is very difficult and you feel bad and want to cry, you must not give up the fighting. This skill is call perseverance, and I use this skill every day at my work when my project is hard and I think I cannot finish it. The sport make me know how to work with group and not quit easy when something is challenging.\n\nFinally, many people like to watch sport because it make many friend and a feeling of belonging. When my country team play in the international game, all people go to same bar or pub and shout very loud for the team. We don't know other person, but we are friend that night because we share the same passion and the same hope for victory. This make community very much strong and people feel happy together, which is important for mental health. The feeling of belong is important for everyone life to not feel lonely.\n\nFor these reasons, I think sport is super important to people life. It make our body good, teach us good thing for our career, and give us friend time always and a strong community feeling, making life more fulfilled and healthy for all.",
                 "answerAudioUrl": null,
-                "score": 150,
-                "content": "Score: 68/100. Grammar: 40, Vocabulary: 50, Organization: 80",
+                "score": 120,
+                "content": "Score: 64/100. Grammar: 30, Vocabulary: 40, Organization: 85",
                 "aiScorer": "writing",
                 "detailedScores": {
                     "word_count": 486,
-                    "grammar": 40,
-                    "vocabulary": 50,
-                    "organization": 80,
-                    "relevance": 90,
+                    "grammar": 30,
+                    "vocabulary": 40,
+                    "organization": 85,
+                    "relevance": 100,
                     "sentence_variety": 0,
-                    "opinion_support": 85,
-                    "overall": 68
+                    "opinion_support": 80,
+                    "overall": 64
                 },
                 "detailedAnalysis": {
                     "grammar_errors": [
                         {
-                            "wrong": "sport",
-                            "correct": "sports",
-                            "rule": "Noun form (singular/plural)",
+                            "wrong": "all peoples",
+                            "correct": "all people",
+                            "rule": "Noun form (plural of 'person')",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "peoples",
-                            "correct": "people",
-                            "rule": "Noun form (irregular plural)",
+                            "wrong": "three important thing",
+                            "correct": "three important things",
+                            "rule": "Noun form (plural)",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "thing",
-                            "correct": "things",
-                            "rule": "Noun form (singular/plural)",
-                            "severity": "medium"
-                        },
-                        {
-                            "wrong": "is",
-                            "correct": "are",
-                            "rule": "Subject-verb agreement",
+                            "wrong": "These important things is health physical",
+                            "correct": "These important things are physical health",
+                            "rule": "Subject-verb agreement, word order",
                             "severity": "high"
                         },
                         {
                             "wrong": "health physical",
                             "correct": "physical health",
-                            "rule": "Adjective placement",
+                            "rule": "Word order (adjective-noun)",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "life",
-                            "correct": "a good and happy life / good and happy lives",
-                            "rule": "Article usage / Noun form",
-                            "severity": "medium"
-                        },
-                        {
-                            "wrong": "First thing",
-                            "correct": "The first thing / First",
-                            "rule": "Article usage / Phrasing",
-                            "severity": "low"
-                        },
-                        {
-                            "wrong": "sports is",
-                            "correct": "sports are",
-                            "rule": "Subject-verb agreement",
-                            "severity": "high"
-                        },
-                        {
-                            "wrong": "always sitting",
-                            "correct": "always sit",
+                            "wrong": "If you always sitting",
+                            "correct": "If you always sit",
                             "rule": "Verb tense/form",
                             "severity": "medium"
                         },
                         {
                             "wrong": "not move",
-                            "correct": "don't move",
-                            "rule": "Negation form",
+                            "correct": "do not move",
+                            "rule": "Missing auxiliary verb",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "many time",
-                            "correct": "many times / often",
-                            "rule": "Noun form / Adverb choice",
+                            "wrong": "sick many time",
+                            "correct": "sick many times",
+                            "rule": "Noun form (plural)",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "especialy",
-                            "correct": "especially",
-                            "rule": "Spelling",
-                            "severity": "low"
-                        },
-                        {
-                            "wrong": "problem",
-                            "correct": "problems",
-                            "rule": "Noun form (singular/plural)",
+                            "wrong": "especialy with problem like",
+                            "correct": "especially with problems like",
+                            "rule": "Spelling, noun form (plural)",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "Sport activity is",
-                            "correct": "Sports activities are / Engaging in sports activities is",
-                            "rule": "Noun form / Subject-verb agreement",
+                            "wrong": "Sport activity is like",
+                            "correct": "Sports activities include",
+                            "rule": "Subject-verb agreement, phrasing",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "going to gym",
-                            "correct": "going to the gym",
-                            "rule": "Article usage",
+                            "wrong": "These exercise make",
+                            "correct": "These exercises make",
+                            "rule": "Noun form (plural)",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "These exercise",
-                            "correct": "These exercises",
-                            "rule": "Noun form (singular/plural)",
-                            "severity": "medium"
-                        },
-                        {
-                            "wrong": "my brother play",
-                            "correct": "my brother plays",
+                            "wrong": "my brother play tennis",
+                            "correct": "my brother plays tennis",
                             "rule": "Subject-verb agreement",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "always feel positive",
+                            "correct": "always feels positive",
+                            "rule": "Subject-verb agreement",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "for long time and for living quality life",
+                            "correct": "for a long time and for living a quality life",
+                            "rule": "Articles, word order",
                             "severity": "high"
-                        },
-                        {
-                            "wrong": "feel positive",
-                            "correct": "feels positive",
-                            "rule": "Subject-verb agreement",
-                            "severity": "medium"
-                        },
-                        {
-                            "wrong": "he is happy",
-                            "correct": "and he is happy",
-                            "rule": "Run-on sentence / Conjunction",
-                            "severity": "medium"
-                        },
-                        {
-                            "wrong": "for long time",
-                            "correct": "for a long time",
-                            "rule": "Article usage",
-                            "severity": "medium"
-                        },
-                        {
-                            "wrong": "quality life",
-                            "correct": "a quality life / a life of quality",
-                            "rule": "Article usage / Noun phrase",
-                            "severity": "medium"
                         },
                         {
                             "wrong": "lessons life what is important",
                             "correct": "life lessons that are important",
-                            "rule": "Noun phrase / Relative pronoun",
+                            "rule": "Word order, relative pronoun",
                             "severity": "high"
                         },
                         {
-                            "wrong": "for cooperate",
-                            "correct": "to cooperate",
-                            "rule": "Preposition / Infinitive",
+                            "wrong": "You learn for cooperate",
+                            "correct": "You learn to cooperate",
+                            "rule": "Preposition/infinitive",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "don't like they",
-                            "correct": "don't like them",
+                            "wrong": "don't like they very much",
+                            "correct": "don't like them very much",
                             "rule": "Pronoun case",
                             "severity": "high"
                         },
                         {
-                            "wrong": "which teach the important",
-                            "correct": "which teaches the importance",
-                            "rule": "Subject-verb agreement / Noun form",
-                            "severity": "high"
+                            "wrong": "teach the important of teamwork",
+                            "correct": "teach the importance of teamwork",
+                            "rule": "Noun form",
+                            "severity": "medium"
                         },
                         {
-                            "wrong": "the fighting",
-                            "correct": "the fight / fighting",
-                            "rule": "Noun choice",
-                            "severity": "low"
+                            "wrong": "must not give up the fighting",
+                            "correct": "must not give up fighting",
+                            "rule": "Phrasing",
+                            "severity": "medium"
                         },
                         {
-                            "wrong": "is call",
-                            "correct": "is called",
-                            "rule": "Passive voice form",
-                            "severity": "high"
+                            "wrong": "This skill is call perseverance",
+                            "correct": "This skill is called perseverance",
+                            "rule": "Verb form (past participle)",
+                            "severity": "medium"
                         },
                         {
-                            "wrong": "The sport make",
-                            "correct": "Sports make / Sport makes",
-                            "rule": "Subject-verb agreement",
-                            "severity": "high"
+                            "wrong": "The sport make me know",
+                            "correct": "Sports make me know",
+                            "rule": "Subject-verb agreement, article/plural",
+                            "severity": "medium"
                         },
                         {
-                            "wrong": "with group",
-                            "correct": "with a group",
-                            "rule": "Article usage",
+                            "wrong": "how to work with group",
+                            "correct": "how to work with a group",
+                            "rule": "Article",
                             "severity": "medium"
                         },
                         {
@@ -1068,141 +1032,169 @@ https://localhost:7100/api/tests/result/detail/134
                             "severity": "medium"
                         },
                         {
-                            "wrong": "it make many friend",
-                            "correct": "it makes many friends",
-                            "rule": "Subject-verb agreement / Noun form",
+                            "wrong": "watch sport because it make many friend",
+                            "correct": "watch sports because it makes many friends",
+                            "rule": "Noun form (plural), subject-verb agreement",
                             "severity": "high"
                         },
                         {
-                            "wrong": "country team play",
-                            "correct": "country's team plays",
-                            "rule": "Possessive form / Subject-verb agreement",
-                            "severity": "high"
-                        },
-                        {
-                            "wrong": "same bar",
-                            "correct": "the same bar",
-                            "rule": "Article usage",
+                            "wrong": "When my country team play",
+                            "correct": "When my country's team plays",
+                            "rule": "Possessive, subject-verb agreement",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "other person",
-                            "correct": "other people",
-                            "rule": "Noun form (singular/plural)",
+                            "wrong": "go to same bar or pub",
+                            "correct": "go to the same bar or pub",
+                            "rule": "Article",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "are friend",
-                            "correct": "are friends",
-                            "rule": "Noun form (singular/plural)",
+                            "wrong": "shout very loud",
+                            "correct": "shout very loudly",
+                            "rule": "Adverb form",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "We don't know other person",
+                            "correct": "We don't know other people",
+                            "rule": "Noun form (plural)",
+                            "severity": "medium"
+                        },
+                        {
+                            "wrong": "we are friend that night",
+                            "correct": "we are friends that night",
+                            "rule": "Noun form (plural)",
                             "severity": "medium"
                         },
                         {
                             "wrong": "This make community very much strong",
-                            "correct": "This makes community very strong / This makes communities much stronger",
-                            "rule": "Subject-verb agreement / Adverb placement / Noun form",
+                            "correct": "This makes the community very strong",
+                            "rule": "Subject-verb agreement, article, word order",
                             "severity": "high"
                         },
                         {
-                            "wrong": "The feeling of belong",
-                            "correct": "The feeling of belonging",
+                            "wrong": "The feeling of belong is important",
+                            "correct": "The feeling of belonging is important",
                             "rule": "Noun form",
                             "severity": "medium"
                         },
                         {
-                            "wrong": "everyone life",
-                            "correct": "everyone's life",
-                            "rule": "Possessive form",
+                            "wrong": "for everyone life",
+                            "correct": "for everyone's life",
+                            "rule": "Possessive",
                             "severity": "medium"
+                        },
+                        {
+                            "wrong": "to not feel lonely",
+                            "correct": "not to feel lonely",
+                            "rule": "Split infinitive (stylistic preference)",
+                            "severity": "low"
                         },
                         {
                             "wrong": "sport is super important to people life",
                             "correct": "sports are super important to people's lives",
-                            "rule": "Subject-verb agreement / Possessive form / Noun form",
+                            "rule": "Subject-verb agreement, noun form (plural), possessive",
                             "severity": "high"
                         },
                         {
-                            "wrong": "It make our body good, teach us good thing",
-                            "correct": "They make our bodies good / They make our bodies healthy, teach us good things",
-                            "rule": "Pronoun agreement / Subject-verb agreement / Noun form",
+                            "wrong": "It make our body good",
+                            "correct": "It makes our bodies healthy",
+                            "rule": "Subject-verb agreement, noun form (plural), word choice",
                             "severity": "high"
                         },
                         {
-                            "wrong": "friend time always",
-                            "correct": "friendship and a sense of belonging",
-                            "rule": "Word choice / Phrasing",
-                            "severity": "medium"
+                            "wrong": "teach us good thing for our career",
+                            "correct": "teaches us good things for our careers",
+                            "rule": "Subject-verb agreement, noun form (plural)",
+                            "severity": "high"
+                        },
+                        {
+                            "wrong": "give us friend time always",
+                            "correct": "gives us friendship and a sense of community",
+                            "rule": "Subject-verb agreement, phrasing",
+                            "severity": "high"
                         }
                     ],
                     "vocabulary_issues": [
                         {
                             "word": "thing",
-                            "better": "aspect, benefit, element",
-                            "example": "three important thing in life"
+                            "better": "aspects, benefits, elements",
+                            "example": "three important thing"
                         },
                         {
                             "word": "good",
-                            "better": "beneficial, positive, healthy, effective",
-                            "example": "sports is good for health"
+                            "better": "beneficial, positive, healthy",
+                            "example": "make our body good"
                         },
                         {
                             "word": "bad",
-                            "better": "discouraged, disheartened",
-                            "example": "you feel bad and want to cry"
-                        },
-                        {
-                            "word": "stuff",
-                            "better": "activities, pursuits",
-                            "example": "not used, but common generic word"
+                            "better": "negative, detrimental",
+                            "example": "feel bad"
                         },
                         {
                             "word": "very",
                             "better": "extremely, highly, significantly",
-                            "example": "enjoy sport very much"
+                            "example": "very much strong"
                         },
                         {
-                            "word": "people",
-                            "better": "individuals, society, citizens",
-                            "example": "Many people all over the world"
+                            "word": "super",
+                            "better": "extremely, highly, immensely",
+                            "example": "super important"
                         },
                         {
-                            "word": "make",
-                            "better": "foster, cultivate, contribute to, enhance",
-                            "example": "it make many friend"
+                            "word": "peoples",
+                            "better": "people",
+                            "example": "all peoples"
+                        },
+                        {
+                            "word": "health physical",
+                            "better": "physical health",
+                            "example": "health physical"
+                        },
+                        {
+                            "word": "lessons life",
+                            "better": "life lessons",
+                            "example": "lessons life"
+                        },
+                        {
+                            "word": "friend time always",
+                            "better": "friendship and a sense of community",
+                            "example": "give us friend time always"
                         }
                     ],
                     "missing_points": [],
                     "matched_points": [],
-                    "corrected_text": "Many people all over the world enjoy sports very much, no matter if they are playing on a field or watching on TV in their home. They spend a lot of time and money on this activity, and I think that sports are very important to all people for three important things in life. These important things are physical health, learning life lessons, and building strong friendships and a sense of community. People need to know why sports are great to have a good and happy life because the benefits are more than just a game.\n\nThe first thing is that sports are good for physical health and mental well-being. If you always sit at your desk and don't move, you will become fat and maybe sick many times, especially with problems like high blood pressure or diabetes, which are common in today's world. Sports activities are like running, playing soccer or basketball, or even just going to the gym. These exercises make your body strong and your heart work better, and they also help you to sleep better at night. For example, my brother plays tennis every week, and he is never sick and always feels positive and full of energy; he is happy and his mind is clear. This is important for health for a long time and for living a quality life.\n\nSecond, sports teach you life lessons that are important for you later when you are an adult in your work life. You learn to cooperate with all your team members, even if you don't like them very much as people, because you must work together to win. If you don't cooperate, you lose the game, which teaches the importance of teamwork. Also, when the game is very difficult and you feel bad and want to cry, you must not give up the fight. This skill is called perseverance, and I use this skill every day at my work when my project is hard and I think I cannot finish it. Sports make me know how to work with a group and not quit easily when something is challenging.\n\nFinally, many people like to watch sports because it makes many friends and a feeling of belonging. When my country's team plays in an international game, all people go to the same bar or pub and shout very loud for the team. We don't know other people, but we are friends that night because we share the same passion and the same hope for victory. This makes the community very strong and people feel happy together, which is important for mental health. The feeling of belonging is important for everyone's life to not feel lonely.\n\nFor these reasons, I think sports are super important to people's lives. They make our bodies good/healthy, teach us good things for our career, and give us friendship and a strong community feeling, making life more fulfilled and healthy for all.",
+                    "corrected_text": "original",
                     "image_description": null,
                     "opinion_support_issues": []
                 },
                 "recommendations": [
-                    "✅ Strong essay! (Overall: 68/100)",
+                    "✅ Strong essay! (Overall: 64/100)",
                     "",
-                    "📝 Grammar: 40/100",
-                    "  1. ✗ 'sport' → ✓ 'sports'",
-                    "     Rule: Noun form (singular/plural)",
-                    "  2. ✗ 'peoples' → ✓ 'people'",
-                    "     Rule: Noun form (irregular plural)",
-                    "  3. ✗ 'thing' → ✓ 'things'",
-                    "     Rule: Noun form (singular/plural)",
+                    "📝 Grammar: 30/100",
+                    "  1. ✗ 'all peoples' → ✓ 'all people'",
+                    "     Rule: Noun form (plural of 'person')",
+                    "  2. ✗ 'three important thing' → ✓ 'three important things'",
+                    "     Rule: Noun form (plural)",
+                    "  3. ✗ 'These important things is health physical' → ✓ 'These important things are physical health'",
+                    "     Rule: Subject-verb agreement, word order",
                     "",
-                    "📚 Vocabulary: 50/100",
-                    "  1. 'thing' → 'aspect, benefit, element'",
-                    "     Example: three important thing in life",
-                    "  2. 'good' → 'beneficial, positive, healthy, effective'",
-                    "     Example: sports is good for health",
+                    "📚 Vocabulary: 40/100",
+                    "  1. 'thing' → 'aspects, benefits, elements'",
+                    "     Example: three important thing",
+                    "  2. 'good' → 'beneficial, positive, healthy'",
+                    "     Example: make our body good",
                     "",
                     "⚠️  Overused words:",
-                    "  • 'people' appears 10x - vary with: individuals, society, the public",
-                    "  • 'very' appears 5x - vary with: extremely, highly, significantly",
+                    "  • 'sport' appears 18x - vary with: athletics, physical activity, games",
+                    "  • 'people' appears 10x - vary with: individuals, everyone, society",
                     ""
                 ],
                 "transcription": "",
-                "correctedText": "Many people all over the world enjoy sports very much, no matter if they are playing on a field or watching on TV in their home. They spend a lot of time and money on this activity, and I think that sports are very important to all people for three important things in life. These important things are physical health, learning life lessons, and building strong friendships and a sense of community. People need to know why sports are great to have a good and happy life because the benefits are more than just a game.\n\nThe first thing is that sports are good for physical health and mental well-being. If you always sit at your desk and don't move, you will become fat and maybe sick many times, especially with problems like high blood pressure or diabetes, which are common in today's world. Sports activities are like running, playing soccer or basketball, or even just going to the gym. These exercises make your body strong and your heart work better, and they also help you to sleep better at night. For example, my brother plays tennis every week, and he is never sick and always feels positive and full of energy; he is happy and his mind is clear. This is important for health for a long time and for living a quality life.\n\nSecond, sports teach you life lessons that are important for you later when you are an adult in your work life. You learn to cooperate with all your team members, even if you don't like them very much as people, because you must work together to win. If you don't cooperate, you lose the game, which teaches the importance of teamwork. Also, when the game is very difficult and you feel bad and want to cry, you must not give up the fight. This skill is called perseverance, and I use this skill every day at my work when my project is hard and I think I cannot finish it. Sports make me know how to work with a group and not quit easily when something is challenging.\n\nFinally, many people like to watch sports because it makes many friends and a feeling of belonging. When my country's team plays in an international game, all people go to the same bar or pub and shout very loud for the team. We don't know other people, but we are friends that night because we share the same passion and the same hope for victory. This makes the community very strong and people feel happy together, which is important for mental health. The feeling of belonging is important for everyone's life to not feel lonely.\n\nFor these reasons, I think sports are super important to people's lives. They make our bodies good/healthy, teach us good things for our career, and give us friendship and a strong community feeling, making life more fulfilled and healthy for all.",
+                "correctedText": "original",
                 "audioDuration": null,
-                "createdAt": "2025-11-25T00:07:02.7607656",
+                "createdAt": "2025-11-25T12:20:46.5276663",
                 "partId": 10,
                 "partName": "W-Part 3",
                 "questionContent": {

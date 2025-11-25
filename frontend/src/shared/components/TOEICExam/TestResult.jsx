@@ -28,6 +28,7 @@ import {
   FlagOutlined,
 } from "@ant-design/icons";
 import { getTestResultDetail, startTest } from "../../../services/testExamService";
+import { translateErrorMessage } from "@shared/utils/translateError";
 import { reportQuestion as reportQuestionAPI, getTestResultReports, getMyQuestionReports } from "../../../services/questionReportService";
 import styles from "../../styles/Result.module.css";
 
@@ -393,7 +394,7 @@ export default function ResultScreen() {
       navigate("/exam");
     } catch (error) {
       console.error("Error starting test:", error);
-      message.error(error.response?.data?.message || "Không thể bắt đầu bài thi. Vui lòng thử lại.");
+      message.error(translateErrorMessage(error.response?.data?.message) || "Không thể bắt đầu bài thi. Vui lòng thử lại.");
     } finally {
       setRetakeConfirmLoading(false);
     }
@@ -424,7 +425,7 @@ export default function ResultScreen() {
       // Không hiển thị message success khi auto load
     } catch (error) {
       console.error("Error loading detail:", error);
-      message.error("Không thể tải chi tiết câu hỏi: " + (error.response?.data?.message || error.message));
+      message.error("Không thể tải chi tiết câu hỏi: " + translateErrorMessage(error.response?.data?.message || error.message));
     } finally {
       setLoadingDetail(false);
     }
@@ -1566,9 +1567,9 @@ export default function ResultScreen() {
             }
           } catch (error) {
             console.error("Error reporting question:", error);
-            const errorMsg = error?.response?.data?.message || error?.message || "Không thể gửi báo cáo";
+            const errorMsg = translateErrorMessage(error?.response?.data?.message || error?.message) || "Không thể gửi báo cáo";
             // Xử lý lỗi "đã báo cáo rồi" một cách thân thiện hơn
-            if (errorMsg.includes("already reported") || errorMsg.includes("đã báo cáo")) {
+            if (errorMsg.includes("already reported") || errorMsg.includes("đã báo cáo") || errorMsg.includes("Bạn đã báo cáo")) {
               message.warning("Câu hỏi này đã được báo cáo rồi");
               // Cập nhật state để hiển thị trạng thái "đã báo cáo"
               if (reportQuestion?.testQuestionId) {

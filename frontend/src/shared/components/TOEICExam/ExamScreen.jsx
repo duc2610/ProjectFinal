@@ -7,6 +7,7 @@ import QuestionCard from "./QuestionCard";
 import { submitTest, submitAssessmentBulk, saveProgress, startTest } from "../../../services/testExamService";
 import { uploadFile } from "../../../services/filesService";
 import { getMyQuestionReports } from "../../../services/questionReportService";
+import { translateErrorMessage } from "@shared/utils/translateError";
 import { useNavigate } from "react-router-dom";
 import { SaveOutlined } from "@ant-design/icons";
 
@@ -572,7 +573,7 @@ export default function ExamScreen() {
         message.warning("Tính năng lưu tiến độ chưa được kích hoạt. Vui lòng liên hệ quản trị viên.");
         console.warn("Save progress endpoint may not be implemented on backend");
       } else {
-        message.error("Không thể lưu tiến độ: " + (error.response?.data?.message || error.message));
+        message.error("Không thể lưu tiến độ: " + translateErrorMessage(error.response?.data?.message || error.message));
       }
     } finally {
       setIsSaving(false);
@@ -812,7 +813,7 @@ export default function ExamScreen() {
         navigate("/result", { state: { resultData: fullResult, autoSubmit: auto } });
       }, 900);
     } catch (error) {
-      message.error("Nộp bài thất bại: " + (error.response?.data?.message || error.message));
+      message.error("Nộp bài thất bại: " + translateErrorMessage(error.response?.data?.message || error.message));
       setShowSubmitModal(false);
       setIsSubmitting(false); // Reset flag on error
     }

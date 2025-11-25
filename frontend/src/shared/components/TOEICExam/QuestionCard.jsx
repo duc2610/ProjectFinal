@@ -4,6 +4,7 @@ import { AudioOutlined, StopOutlined, PlayCircleOutlined, FlagOutlined } from "@
 import styles from "../../styles/Exam.module.css";
 import { uploadFile } from "../../../services/filesService";
 import { reportQuestion } from "../../../services/questionReportService";
+import { translateErrorMessage } from "@shared/utils/translateError";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -310,7 +311,7 @@ export default function QuestionCard({
           message.success("Đã upload audio thành công");
         } catch (error) {
           console.error("Error uploading audio:", error);
-          const errorMessage = error.response?.data?.message || error.message || "Không thể upload audio";
+          const errorMessage = translateErrorMessage(error.response?.data?.message || error.message) || "Không thể upload audio";
           message.error(`Lỗi upload audio: ${errorMessage}. Vui lòng thử lại.`);
           // Nếu upload thất bại, vẫn lưu Blob để có thể upload lại khi submit
           onAnswer(answerKey, audioBlob);
@@ -383,7 +384,7 @@ export default function QuestionCard({
       }
     } catch (error) {
       console.error("Error reporting question:", error);
-      let errorMsg = error?.response?.data?.message || error?.message || "Không thể gửi báo cáo";
+      let errorMsg = translateErrorMessage(error?.response?.data?.message || error?.message) || "Không thể gửi báo cáo";
       
       // Chuyển đổi thông báo lỗi tiếng Anh sang tiếng Việt
       if (errorMsg.toLowerCase().includes("already reported") || 

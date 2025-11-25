@@ -1,4 +1,4 @@
-https://localhost:7100/api/tests/result/detail/134
+https://localhost:7100/api/tests/result/detail/14545
 
  data response for LR
 
@@ -6,7 +6,7 @@ https://localhost:7100/api/tests/result/detail/134
     "statusCode": 200,
     "message": "Success",
     "data": {
-        "testResultId": 134,
+        "testResultId": 145,
         "testId": 1,
         "title": "TOEIC Full Simulator Test 1",
         "testSkill": "LR",
@@ -16,8 +16,10 @@ https://localhost:7100/api/tests/result/detail/134
         "status": "Graded",
         "duration": 120,
         "quantityQuestion": 200,
-        "correctCount": 1,
-        "totalScore": 10,
+        "correctCount": 3,
+        "listeningScore": 5,
+        "readingScore": 15,
+        "totalScore": 20,
         "parts": [
             {
                 "partId": 1,
@@ -56,8 +58,8 @@ https://localhost:7100/api/tests/result/detail/134
                                     "isCorrect": false
                                 }
                             ],
-                            "userAnswer": null,
-                            "isCorrect": null
+                            "userAnswer": "A",
+                            "isCorrect": true
                         },
                         "questionGroupSnapshotDto": null
                     },
@@ -312,8 +314,8 @@ https://localhost:7100/api/tests/result/detail/134
                                     "isCorrect": false
                                 }
                             ],
-                            "userAnswer": "A",
-                            "isCorrect": true
+                            "userAnswer": null,
+                            "isCorrect": null
                         },
                         "questionGroupSnapshotDto": null
                     },
@@ -568,8 +570,8 @@ https://localhost:7100/api/tests/result/detail/134
                                     "isCorrect": false
                                 }
                             ],
-                            "userAnswer": null,
-                            "isCorrect": null
+                            "userAnswer": "A",
+                            "isCorrect": true
                         },
                         "questionGroupSnapshotDto": null
                     },
@@ -1242,8 +1244,8 @@ https://localhost:7100/api/tests/result/detail/134
                                             "isCorrect": false
                                         }
                                     ],
-                                    "userAnswer": null,
-                                    "isCorrect": null
+                                    "userAnswer": "B",
+                                    "isCorrect": false
                                 },
                                 {
                                     "questionId": 0,
@@ -6142,8 +6144,8 @@ https://localhost:7100/api/tests/result/detail/134
                                             "isCorrect": false
                                         }
                                     ],
-                                    "userAnswer": null,
-                                    "isCorrect": null
+                                    "userAnswer": "A",
+                                    "isCorrect": true
                                 }
                             ]
                         }

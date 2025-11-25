@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Tabs, Form, Input, Button, Row, Col, Modal, notification, Table, Tag, Space, Empty, message, Spin } from "antd";
-import { PlayCircleOutlined } from "@ant-design/icons";
+import { Tabs, Form, Input, Button, Row, Col, Modal, notification, Table, Tag, Space, Empty, message, Spin, Card, Progress, Divider, Collapse, Typography } from "antd";
+import { PlayCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, WarningOutlined, InfoCircleOutlined, EditOutlined, SoundOutlined, FileTextOutlined, BulbOutlined } from "@ant-design/icons";
+
+const { Panel } = Collapse;
+const { Text, Title } = Typography;
 import { useNavigate } from "react-router-dom";
 import styles from "@shared/styles/Profile.module.css";
 import { useAuth } from "@shared/hooks/useAuth";
@@ -10,6 +13,7 @@ import { startTest, getTestResultDetail } from "@services/testExamService";
 
 const EMPTY_LR_MESSAGE =
   "Không có câu trả lời cho phần này. Có thể bạn chưa làm hoặc dữ liệu chưa được ghi nhận.";
+import { translateErrorMessage } from "@shared/utils/translateError";
 import { getMyQuestionReports } from "@services/questionReportService";
 
 export default function Profile() {
@@ -67,16 +71,18 @@ export function PersonalTab({ user }) {
       });
       handleCancel();
     } catch (error) {
-      const msg = error?.response?.data?.message || "Đổi mật khẩu thất bại";
+      const rawMsg = error?.response?.data?.message || "Đổi mật khẩu thất bại";
+      const msg = translateErrorMessage(rawMsg);
       if (
-        msg.toLowerCase().includes("old password") ||
-        msg.toLowerCase().includes("mật khẩu cũ") ||
-        msg.toLowerCase().includes("current password")
+        rawMsg.toLowerCase().includes("old password") ||
+        rawMsg.toLowerCase().includes("mật khẩu cũ") ||
+        rawMsg.toLowerCase().includes("current password") ||
+        rawMsg.toLowerCase().includes("incorrect password")
       ) {
         form.setFields([
           {
             name: "oldPassword",
-            errors: [msg],
+            errors: ["Mật khẩu hiện tại không đúng"],
           },
         ]);
       } else {
@@ -425,6 +431,7 @@ export function TestHistoryTab() {
                 userAnswerText: userAnswerText || null,
                 correctAnswerLabel: correct?.label || null,
                 correctAnswerText: correct?.content || null,
+                explanation: qs.explanation || group.explanation || null,
                 isCorrect:
                   typeof qs.isCorrect === "boolean"
                     ? qs.isCorrect
@@ -457,6 +464,7 @@ export function TestHistoryTab() {
               userAnswerText: userAnswerText || null,
               correctAnswerLabel: correct?.label || null,
               correctAnswerText: correct?.content || null,
+              explanation: qs.explanation || null,
               isCorrect:
                 typeof qs.isCorrect === "boolean"
                   ? qs.isCorrect
@@ -681,7 +689,7 @@ export function TestHistoryTab() {
     } catch (error) {
       console.error("Error continuing test:", error);
       message.error({ 
-        content: error.response?.data?.message || "Không thể tiếp tục bài test. Vui lòng thử lại.", 
+        content: translateErrorMessage(error.response?.data?.message) || "Không thể tiếp tục bài test. Vui lòng thử lại.", 
         key: "continueTest" 
       });
     }
@@ -714,6 +722,12 @@ export function TestHistoryTab() {
           totalScore: data?.totalScore ?? record.totalScore ?? null,
           listeningScore: data?.listeningScore ?? null,
           readingScore: data?.readingScore ?? null,
+          correctCount: data?.correctCount ?? record.correctQuestion ?? null,
+          quantityQuestion: data?.quantityQuestion ?? record.totalQuestion ?? null,
+          duration: data?.duration ?? record.duration ?? null,
+          status: data?.status ?? record.testStatus ?? null,
+          testType: data?.testType ?? record.testType ?? null,
+          testSkill: data?.testSkill ?? record.testSkill ?? null,
         });
       } else {
         setSwDetail(data?.perPartFeedbacks || []);
@@ -721,12 +735,17 @@ export function TestHistoryTab() {
           totalScore: data?.totalScore ?? record.totalScore ?? null,
           writingScore: data?.writingScore ?? null,
           speakingScore: data?.speakingScore ?? null,
+          quantityQuestion: data?.quantityQuestion ?? record.totalQuestion ?? null,
+          duration: data?.duration ?? record.duration ?? null,
+          status: data?.status ?? record.testStatus ?? null,
+          testType: data?.testType ?? record.testType ?? null,
+          testSkill: data?.testSkill ?? record.testSkill ?? null,
         });
       }
     } catch (error) {
       console.error("Error loading test detail:", error);
       message.error(
-        error?.response?.data?.message || "Không thể tải chi tiết bài thi"
+        translateErrorMessage(error?.response?.data?.message) || "Không thể tải chi tiết bài thi"
       );
       setDetailModalVisible(false);
     } finally {
@@ -750,7 +769,19 @@ export function TestHistoryTab() {
       dataIndex: "order",
       width: 70,
       align: "center",
-      render: (value) => <strong>{value}</strong>,
+      render: (value, row) => (
+        <div style={{ textAlign: "center" }}>
+          <strong style={{ fontSize: 16 }}>{value}</strong>
+          <div style={{ marginTop: 4 }}>
+            {row.isCorrect === true && (
+              <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 18 }} />
+            )}
+            {row.isCorrect === false && (
+              <CloseCircleOutlined style={{ color: "#f5222d", fontSize: 18 }} />
+            )}
+          </div>
+        </div>
+      ),
     },
     {
       title: "Nội dung",
@@ -765,12 +796,16 @@ export function TestHistoryTab() {
                 color: "#666",
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
+                background: "#f9f9f9",
+                padding: 8,
+                borderRadius: 4,
+                borderLeft: "3px solid #d9d9d9",
               }}
             >
               {row.passage}
             </div>
           )}
-          <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+          <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontWeight: 500 }}>
             {row.question || "—"}
           </div>
           {row.imageUrl && (
@@ -778,7 +813,7 @@ export function TestHistoryTab() {
               <img
                 src={row.imageUrl}
                 alt="question"
-                style={{ maxWidth: "100%", borderRadius: 4 }}
+                style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
               />
             </div>
           )}
@@ -790,13 +825,62 @@ export function TestHistoryTab() {
             </div>
           )}
           {row.options?.length > 0 && (
-            <ul style={{ marginTop: 8, paddingLeft: 18 }}>
-              {row.options.map((opt) => (
-                <li key={opt.label}>
-                  <strong>{opt.label}.</strong> {opt.content}
-                </li>
-              ))}
-            </ul>
+            <div style={{ marginTop: 8 }}>
+              {row.options.map((opt) => {
+                const isUserAnswer = opt.label === row.userAnswerLabel;
+                const isCorrectAnswer = opt.isCorrect;
+                let bgColor = "transparent";
+                let borderColor = "transparent";
+                let textColor = "#333";
+                
+                if (isCorrectAnswer) {
+                  bgColor = "#f6ffed";
+                  borderColor = "#52c41a";
+                  textColor = "#389e0d";
+                } else if (isUserAnswer && !row.isCorrect) {
+                  bgColor = "#fff1f0";
+                  borderColor = "#f5222d";
+                  textColor = "#cf1322";
+                }
+                
+                return (
+                  <div 
+                    key={opt.label}
+                    style={{
+                      padding: "6px 10px",
+                      marginBottom: 4,
+                      background: bgColor,
+                      borderLeft: `3px solid ${borderColor}`,
+                      borderRadius: 4,
+                      color: textColor,
+                    }}
+                  >
+                    <strong>{opt.label}.</strong> {opt.content}
+                    {isCorrectAnswer && <CheckCircleOutlined style={{ marginLeft: 8, color: "#52c41a" }} />}
+                    {isUserAnswer && !row.isCorrect && <CloseCircleOutlined style={{ marginLeft: 8, color: "#f5222d" }} />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* Giải thích */}
+          {row.explanation && (
+            <div 
+              style={{ 
+                marginTop: 12, 
+                padding: 10, 
+                background: "#e6f7ff", 
+                borderRadius: 6,
+                borderLeft: "3px solid #1890ff"
+              }}
+            >
+              <div style={{ fontWeight: 600, color: "#1890ff", marginBottom: 4, fontSize: 12 }}>
+                <BulbOutlined /> Giải thích:
+              </div>
+              <div style={{ color: "#333", fontSize: 13 }}>
+                {row.explanation}
+              </div>
+            </div>
           )}
         </div>
       ),
@@ -804,43 +888,34 @@ export function TestHistoryTab() {
     {
       title: "Đáp án của bạn",
       dataIndex: "userAnswerLabel",
-      width: 170,
+      width: 150,
       render: (_, row) =>
         row.userAnswerLabel ? (
-          <span style={{ color: row.isCorrect ? "#52c41a" : "#f5222d" }}>
+          <Tag 
+            color={row.isCorrect ? "success" : "error"}
+            style={{ fontSize: 14, padding: "4px 12px" }}
+          >
             {row.userAnswerLabel}
-            {row.userAnswerText ? ` - ${row.userAnswerText}` : ""}
-          </span>
+          </Tag>
         ) : (
-          "—"
+          <Tag color="default">—</Tag>
         ),
     },
     {
       title: "Đáp án đúng",
       dataIndex: "correctAnswerLabel",
-      width: 170,
+      width: 150,
       render: (_, row) =>
         row.correctAnswerLabel ? (
-          <span style={{ color: "#52c41a" }}>
+          <Tag 
+            color="success"
+            style={{ fontSize: 14, padding: "4px 12px" }}
+          >
             {row.correctAnswerLabel}
-            {row.correctAnswerText ? ` - ${row.correctAnswerText}` : ""}
-          </span>
+          </Tag>
         ) : (
-          "—"
+          <Tag color="default">—</Tag>
         ),
-    },
-    {
-      title: "Kết quả",
-      dataIndex: "isCorrect",
-      width: 110,
-      render: (val) => {
-        if (val === null || val === undefined) {
-          return <Tag color="default">Không xác định</Tag>;
-        }
-        return (
-          <Tag color={val ? "success" : "error"}>{val ? "Đúng" : "Sai"}</Tag>
-        );
-      },
     },
   ];
 
@@ -981,192 +1056,456 @@ export function TestHistoryTab() {
     );
   };
 
-  const renderSWItemContent = (item, scores, analysis) => {
-    return (
-      <Space direction="vertical" size="small" style={{ width: "100%" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 12,
-          }}
-        >
-          <Space size="small">
-            <Tag color="purple">
-              Điểm: {scores.overall ?? item.score ?? 0}/100
-            </Tag>
-          </Space>
-          {scores.word_count !== undefined && (
-            <Tag color="default">Số từ: {scores.word_count}</Tag>
-          )}
-        </div>
+  const getSeverityColor = (severity) => {
+    switch (severity?.toLowerCase()) {
+      case "high": return "#f5222d";
+      case "medium": return "#fa8c16";
+      case "low": return "#52c41a";
+      default: return "#666";
+    }
+  };
 
-        {item.questionContent?.content && (
-          <div>
-            <strong>Đề bài:</strong>
-            <div
-              style={{
-                marginTop: 4,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
-              {item.questionContent.content}
+  const getSeverityLabel = (severity) => {
+    switch (severity?.toLowerCase()) {
+      case "high": return "Nghiêm trọng";
+      case "medium": return "Trung bình";
+      case "low": return "Nhẹ";
+      default: return "Không xác định";
+    }
+  };
+
+  const getScoreStatus = (score) => {
+    if (score >= 80) return "success";
+    if (score >= 60) return "normal";
+    if (score >= 40) return "active";
+    return "exception";
+  };
+
+  const renderScoreCard = (scores, item) => {
+    const overallScore = scores.overall ?? item.score ?? 0;
+    const hasDetailedScores = scores.grammar !== undefined || scores.vocabulary !== undefined;
+    
+    return (
+      <Card 
+        size="small" 
+        style={{ 
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+          borderRadius: 12,
+          marginBottom: 16 
+        }}
+        bodyStyle={{ padding: 16 }}
+      >
+        <Row gutter={[16, 16]} align="middle">
+          <Col xs={24} sm={8}>
+            <div style={{ textAlign: "center", color: "#fff" }}>
+              <div style={{ fontSize: 14, opacity: 0.9 }}>Điểm tổng</div>
+              <div style={{ fontSize: 36, fontWeight: 700 }}>{overallScore}</div>
+              <div style={{ fontSize: 12, opacity: 0.8 }}>/100</div>
             </div>
+          </Col>
+          {hasDetailedScores && (
+            <Col xs={24} sm={16}>
+              <Row gutter={[8, 8]}>
+                {scores.grammar !== undefined && (
+                  <Col span={12}>
+                    <div style={{ color: "#fff" }}>
+                      <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>Ngữ pháp</div>
+                      <Progress 
+                        percent={scores.grammar} 
+                        size="small" 
+                        strokeColor="#52c41a"
+                        trailColor="rgba(255,255,255,0.3)"
+                        format={(p) => <span style={{ color: "#fff", fontSize: 11 }}>{p}</span>}
+                      />
+                    </div>
+                  </Col>
+                )}
+                {scores.vocabulary !== undefined && (
+                  <Col span={12}>
+                    <div style={{ color: "#fff" }}>
+                      <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>Từ vựng</div>
+                      <Progress 
+                        percent={scores.vocabulary} 
+                        size="small" 
+                        strokeColor="#1890ff"
+                        trailColor="rgba(255,255,255,0.3)"
+                        format={(p) => <span style={{ color: "#fff", fontSize: 11 }}>{p}</span>}
+                      />
+                    </div>
+                  </Col>
+                )}
+                {scores.organization !== undefined && (
+                  <Col span={12}>
+                    <div style={{ color: "#fff" }}>
+                      <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>Cấu trúc</div>
+                      <Progress 
+                        percent={scores.organization} 
+                        size="small" 
+                        strokeColor="#722ed1"
+                        trailColor="rgba(255,255,255,0.3)"
+                        format={(p) => <span style={{ color: "#fff", fontSize: 11 }}>{p}</span>}
+                      />
+                    </div>
+                  </Col>
+                )}
+                {scores.relevance !== undefined && (
+                  <Col span={12}>
+                    <div style={{ color: "#fff" }}>
+                      <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>Liên quan</div>
+                      <Progress 
+                        percent={scores.relevance} 
+                        size="small" 
+                        strokeColor="#eb2f96"
+                        trailColor="rgba(255,255,255,0.3)"
+                        format={(p) => <span style={{ color: "#fff", fontSize: 11 }}>{p}</span>}
+                      />
+                    </div>
+                  </Col>
+                )}
+                {scores.opinion_support !== undefined && scores.opinion_support > 0 && (
+                  <Col span={12}>
+                    <div style={{ color: "#fff" }}>
+                      <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>Luận điểm</div>
+                      <Progress 
+                        percent={scores.opinion_support} 
+                        size="small" 
+                        strokeColor="#13c2c2"
+                        trailColor="rgba(255,255,255,0.3)"
+                        format={(p) => <span style={{ color: "#fff", fontSize: 11 }}>{p}</span>}
+                      />
+                    </div>
+                  </Col>
+                )}
+                {scores.sentence_variety !== undefined && scores.sentence_variety > 0 && (
+                  <Col span={12}>
+                    <div style={{ color: "#fff" }}>
+                      <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 4 }}>Đa dạng câu</div>
+                      <Progress 
+                        percent={scores.sentence_variety} 
+                        size="small" 
+                        strokeColor="#faad14"
+                        trailColor="rgba(255,255,255,0.3)"
+                        format={(p) => <span style={{ color: "#fff", fontSize: 11 }}>{p}</span>}
+                      />
+                    </div>
+                  </Col>
+                )}
+              </Row>
+            </Col>
+          )}
+        </Row>
+        {scores.word_count !== undefined && (
+          <div style={{ marginTop: 12, textAlign: "center" }}>
+            <Tag color="rgba(255,255,255,0.2)" style={{ color: "#fff", border: "none" }}>
+              <FileTextOutlined /> Số từ: {scores.word_count}
+            </Tag>
           </div>
         )}
+      </Card>
+    );
+  };
 
+  const renderSWItemContent = (item, scores, analysis) => {
+    const hasGrammarErrors = analysis.grammar_errors?.length > 0;
+    const hasVocabIssues = analysis.vocabulary_issues?.length > 0;
+    const hasMissingPoints = analysis.missing_points?.length > 0;
+    const hasMatchedPoints = analysis.matched_points?.length > 0;
+    const hasOpinionIssues = analysis.opinion_support_issues?.length > 0;
+    const hasRecommendations = Array.isArray(item.recommendations) && item.recommendations.length > 0;
+    
+    return (
+      <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+        {/* Score Card */}
+        {renderScoreCard(scores, item)}
+
+        {/* Đề bài */}
+        {item.questionContent?.content && (
+          <Card 
+            size="small" 
+            title={<><EditOutlined /> Đề bài</>}
+            style={{ borderRadius: 8 }}
+          >
+            <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              {item.questionContent.content}
+            </div>
+          </Card>
+        )}
+
+        {/* Hình ảnh đề bài */}
         {item.questionContent?.imageUrl && (
-          <div>
+          <div style={{ textAlign: "center" }}>
             <img
               src={item.questionContent.imageUrl}
               alt="question"
-              style={{ maxWidth: "100%", borderRadius: 8, marginTop: 8 }}
+              style={{ maxWidth: "100%", maxHeight: 300, borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}
             />
           </div>
         )}
 
+        {/* Audio trả lời (Speaking) */}
         {item.answerAudioUrl && (
-          <div>
-            <strong>Âm thanh trả lời:</strong>
+          <Card 
+            size="small" 
+            title={<><SoundOutlined /> Âm thanh trả lời</>}
+            style={{ borderRadius: 8 }}
+          >
             <audio
               controls
               src={item.answerAudioUrl}
-              style={{ width: "100%", marginTop: 4 }}
+              style={{ width: "100%" }}
             >
               Trình duyệt không hỗ trợ audio.
             </audio>
-          </div>
+            {item.audioDuration && (
+              <div style={{ marginTop: 8, color: "#666", fontSize: 12 }}>
+                Thời lượng: {item.audioDuration}s
+              </div>
+            )}
+          </Card>
         )}
 
+        {/* Transcription (Speaking) */}
+        {item.transcription && item.transcription.trim() && (
+          <Card 
+            size="small" 
+            title="Nội dung phiên âm"
+            style={{ borderRadius: 8, background: "#f6ffed" }}
+          >
+            <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+              {item.transcription}
+            </div>
+          </Card>
+        )}
+
+        {/* Bài làm (Writing) */}
         {item.answerText && (
-          <div>
-            <strong>Bài làm:</strong>
-            <div
-              style={{
-                marginTop: 4,
-                background: "#fafafa",
-                borderRadius: 8,
-                padding: 12,
-                whiteSpace: "pre-wrap",
-              }}
-            >
+          <Card 
+            size="small" 
+            title={<><FileTextOutlined /> Bài làm của bạn</>}
+            style={{ borderRadius: 8, background: "#fafafa" }}
+          >
+            <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.8 }}>
               {item.answerText}
             </div>
-          </div>
+          </Card>
         )}
 
-        {item.correctedText && (
-          <div>
-            <strong>Phiên bản gợi ý:</strong>
-            <div
-              style={{
-                marginTop: 4,
-                background: "#fffbe6",
-                borderRadius: 8,
-                padding: 12,
-                whiteSpace: "pre-wrap",
-              }}
-            >
+        {/* Phiên bản sửa lỗi */}
+        {item.correctedText && item.correctedText !== "original" && (
+          <Card 
+            size="small" 
+            title={<><CheckCircleOutlined style={{ color: "#52c41a" }} /> Phiên bản đã sửa</>}
+            style={{ borderRadius: 8, background: "#f6ffed", borderColor: "#b7eb8f" }}
+          >
+            <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.8 }}>
               {item.correctedText}
             </div>
-          </div>
+          </Card>
         )}
 
-        {analysis.grammar_errors?.length > 0 && (
-          <div>
-            <strong>Lỗi ngữ pháp:</strong>
-            <ul style={{ marginTop: 4, paddingLeft: 18 }}>
-              {analysis.grammar_errors.map((err, idx) => (
-                <li key={idx}>
-                  ✗ {err.wrong} → ✓ {err.correct}
-                  {err.rule ? ` (${err.rule})` : ""}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {analysis.vocabulary_issues?.length > 0 && (
-          <div>
-            <strong>Gợi ý từ vựng:</strong>
-            <ul style={{ marginTop: 4, paddingLeft: 18 }}>
-              {analysis.vocabulary_issues.map((issue, idx) => (
-                <li key={idx}>
-                  "{issue.word}" → "{issue.better}"
-                  {issue.example ? ` (Ví dụ: ${issue.example})` : ""}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {analysis.missing_points?.length > 0 && (
-          <div>
-            <strong>Ý còn thiếu:</strong>
-            <ul style={{ marginTop: 4, paddingLeft: 18 }}>
-              {analysis.missing_points.map((point, idx) => (
-                <li key={idx}>{point}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {analysis.matched_points?.length > 0 && (
-          <div>
-            <strong>Ý đã đáp ứng:</strong>
-            <ul style={{ marginTop: 4, paddingLeft: 18 }}>
-              {analysis.matched_points.map((point, idx) => (
-                <li key={idx}>{point}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {analysis.opinion_support_issues?.length > 0 && (
-          <div>
-            <strong>Lưu ý bổ sung:</strong>
-            <ul style={{ marginTop: 4, paddingLeft: 18 }}>
-              {analysis.opinion_support_issues.map((point, idx) => (
-                <li key={idx}>{point}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
+        {/* Mô tả hình ảnh (từ AI) */}
         {analysis.image_description && (
-          <div>
-            <strong>Mô tả hình ảnh:</strong>
-            <div
-              style={{
-                marginTop: 4,
-                background: "#fafafa",
-                borderRadius: 8,
-                padding: 12,
-                whiteSpace: "pre-wrap",
-              }}
-            >
+          <Card 
+            size="small" 
+            title={<><InfoCircleOutlined /> Mô tả hình ảnh (AI phân tích)</>}
+            style={{ borderRadius: 8, background: "#e6f7ff", borderColor: "#91d5ff" }}
+          >
+            <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
               {analysis.image_description}
             </div>
-          </div>
+          </Card>
         )}
 
-        {Array.isArray(item.recommendations) && item.recommendations.length > 0 && (
-          <div>
-            <strong>Khuyến nghị:</strong>
-            <div
-              style={{
-                marginTop: 4,
-                whiteSpace: "pre-wrap",
-                background: "#fafafa",
-                borderRadius: 8,
-                padding: 12,
-                wordBreak: "break-word",
-              }}
+        {/* Collapsible sections for detailed analysis */}
+        <Collapse 
+          defaultActiveKey={hasGrammarErrors ? ["grammar"] : []} 
+          style={{ borderRadius: 8 }}
+          expandIconPosition="end"
+        >
+          {/* Lỗi ngữ pháp */}
+          {hasGrammarErrors && (
+            <Panel 
+              header={
+                <Space>
+                  <CloseCircleOutlined style={{ color: "#f5222d" }} />
+                  <span>Lỗi ngữ pháp ({analysis.grammar_errors.length} lỗi)</span>
+                </Space>
+              } 
+              key="grammar"
             >
-              {item.recommendations.join("\n")}
-            </div>
+              <Space direction="vertical" size="small" style={{ width: "100%" }}>
+                {analysis.grammar_errors.map((err, idx) => (
+                  <div 
+                    key={idx} 
+                    style={{ 
+                      padding: "10px 12px", 
+                      background: "#fff1f0", 
+                      borderRadius: 6,
+                      borderLeft: `3px solid ${getSeverityColor(err.severity)}`
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <Text delete style={{ color: "#f5222d" }}>{err.wrong}</Text>
+                        <span style={{ margin: "0 8px" }}>→</span>
+                        <Text strong style={{ color: "#52c41a" }}>{err.correct}</Text>
+                      </div>
+                      {err.severity && (
+                        <Tag color={getSeverityColor(err.severity)} style={{ margin: 0 }}>
+                          {getSeverityLabel(err.severity)}
+                        </Tag>
+                      )}
+                    </div>
+                    {err.rule && (
+                      <div style={{ marginTop: 6, fontSize: 12, color: "#666" }}>
+                        <InfoCircleOutlined style={{ marginRight: 4 }} />
+                        {err.rule}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </Space>
+            </Panel>
+          )}
+
+          {/* Gợi ý từ vựng */}
+          {hasVocabIssues && (
+            <Panel 
+              header={
+                <Space>
+                  <BulbOutlined style={{ color: "#1890ff" }} />
+                  <span>Gợi ý từ vựng ({analysis.vocabulary_issues.length} gợi ý)</span>
+                </Space>
+              } 
+              key="vocabulary"
+            >
+              <Space direction="vertical" size="small" style={{ width: "100%" }}>
+                {analysis.vocabulary_issues.map((issue, idx) => (
+                  <div 
+                    key={idx} 
+                    style={{ 
+                      padding: "10px 12px", 
+                      background: "#e6f7ff", 
+                      borderRadius: 6,
+                      borderLeft: "3px solid #1890ff"
+                    }}
+                  >
+                    <div>
+                      <Text style={{ color: "#595959" }}>"{issue.word}"</Text>
+                      <span style={{ margin: "0 8px" }}>→</span>
+                      <Text strong style={{ color: "#1890ff" }}>{issue.better}</Text>
+                    </div>
+                    {issue.example && (
+                      <div style={{ marginTop: 6, fontSize: 12, color: "#666", fontStyle: "italic" }}>
+                        Ví dụ: {issue.example}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </Space>
+            </Panel>
+          )}
+
+          {/* Ý còn thiếu */}
+          {hasMissingPoints && (
+            <Panel 
+              header={
+                <Space>
+                  <WarningOutlined style={{ color: "#fa8c16" }} />
+                  <span>Ý còn thiếu ({analysis.missing_points.length} ý)</span>
+                </Space>
+              } 
+              key="missing"
+            >
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                {analysis.missing_points.map((point, idx) => (
+                  <li key={idx} style={{ marginBottom: 6, color: "#fa8c16" }}>
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
+
+          {/* Ý đã đáp ứng */}
+          {hasMatchedPoints && (
+            <Panel 
+              header={
+                <Space>
+                  <CheckCircleOutlined style={{ color: "#52c41a" }} />
+                  <span>Ý đã đáp ứng ({analysis.matched_points.length} ý)</span>
+                </Space>
+              } 
+              key="matched"
+            >
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                {analysis.matched_points.map((point, idx) => (
+                  <li key={idx} style={{ marginBottom: 6, color: "#52c41a" }}>
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
+
+          {/* Lưu ý bổ sung */}
+          {hasOpinionIssues && (
+            <Panel 
+              header={
+                <Space>
+                  <InfoCircleOutlined style={{ color: "#722ed1" }} />
+                  <span>Lưu ý bổ sung ({analysis.opinion_support_issues.length})</span>
+                </Space>
+              } 
+              key="opinion"
+            >
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                {analysis.opinion_support_issues.map((point, idx) => (
+                  <li key={idx} style={{ marginBottom: 6 }}>
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
+
+          {/* Khuyến nghị */}
+          {hasRecommendations && (
+            <Panel 
+              header={
+                <Space>
+                  <BulbOutlined style={{ color: "#13c2c2" }} />
+                  <span>Khuyến nghị từ AI</span>
+                </Space>
+              } 
+              key="recommendations"
+            >
+              <div 
+                style={{ 
+                  whiteSpace: "pre-wrap", 
+                  wordBreak: "break-word",
+                  background: "#f0f5ff",
+                  padding: 12,
+                  borderRadius: 6,
+                  fontSize: 13,
+                  lineHeight: 1.8
+                }}
+              >
+                {item.recommendations.join("\n")}
+              </div>
+            </Panel>
+          )}
+        </Collapse>
+
+        {/* Thông tin bổ sung */}
+        {(item.createdAt || item.aiScorer) && (
+          <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8, marginTop: 8, padding: "8px 0", borderTop: "1px solid #f0f0f0", fontSize: 12, color: "#999" }}>
+            {item.createdAt && (
+              <span>Thời gian: {new Date(item.createdAt).toLocaleString("vi-VN")}</span>
+            )}
+            {item.aiScorer && (
+              <span>Chấm bởi: {item.aiScorer.toUpperCase()} AI</span>
+            )}
           </div>
         )}
       </Space>
@@ -1174,48 +1513,159 @@ export function TestHistoryTab() {
   };
 
   const renderSummaryChips = () => {
-    const chips = [];
-    if (detailSummary.listeningScore !== undefined && detailSummary.listeningScore !== null) {
-      chips.push(
-        <Tag color="purple" key="listening">
-          Nghe: {detailSummary.listeningScore}/495
-        </Tag>
-      );
-    }
-    if (detailSummary.readingScore !== undefined && detailSummary.readingScore !== null) {
-      chips.push(
-        <Tag color="blue" key="reading">
-          Đọc: {detailSummary.readingScore}/495
-        </Tag>
-      );
-    }
-    if (detailSummary.writingScore !== undefined && detailSummary.writingScore !== null) {
-      chips.push(
-        <Tag color="green" key="writing">
-          Viết: {detailSummary.writingScore}/200
-        </Tag>
-      );
-    }
-    if (detailSummary.speakingScore !== undefined && detailSummary.speakingScore !== null) {
-      chips.push(
-        <Tag color="cyan" key="speaking">
-          Nói: {detailSummary.speakingScore}/200
-        </Tag>
-      );
-    }
-    if (detailSummary.totalScore !== undefined && detailSummary.totalScore !== null) {
-      chips.push(
-        <Tag color="gold" key="total">
-          Tổng: {detailSummary.totalScore}
-        </Tag>
-      );
-    }
-
-    if (chips.length === 0) return null;
+    const isLR = detailMode === "LR";
+    const totalScore = detailSummary.totalScore;
+    const maxScore = isLR ? 990 : 400;
+    
     return (
-      <Space wrap style={{ marginBottom: 16 }}>
-        {chips}
-      </Space>
+      <Card 
+        style={{ 
+          marginBottom: 20, 
+          borderRadius: 12,
+          background: isLR 
+            ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+            : "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)",
+          border: "none"
+        }}
+        bodyStyle={{ padding: "20px 24px" }}
+      >
+        <Row gutter={[24, 16]} align="middle">
+          {/* Điểm tổng */}
+          <Col xs={24} sm={8} style={{ textAlign: "center", borderRight: "1px solid rgba(255,255,255,0.2)" }}>
+            <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 14, marginBottom: 4 }}>
+              Điểm tổng
+            </div>
+            <div style={{ color: "#fff", fontSize: 42, fontWeight: 700, lineHeight: 1 }}>
+              {totalScore ?? "—"}
+            </div>
+            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 12, marginTop: 4 }}>
+              /{maxScore}
+            </div>
+          </Col>
+          
+          {/* Chi tiết điểm */}
+          <Col xs={24} sm={16}>
+            <Row gutter={[16, 12]}>
+              {/* Listening Score */}
+              {detailSummary.listeningScore !== undefined && detailSummary.listeningScore !== null && (
+                <Col span={12}>
+                  <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                      <SoundOutlined /> Listening
+                    </div>
+                    <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                      {detailSummary.listeningScore}
+                      <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>/495</span>
+                    </div>
+                  </div>
+                </Col>
+              )}
+              
+              {/* Reading Score */}
+              {detailSummary.readingScore !== undefined && detailSummary.readingScore !== null && (
+                <Col span={12}>
+                  <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                      <FileTextOutlined /> Reading
+                    </div>
+                    <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                      {detailSummary.readingScore}
+                      <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>/495</span>
+                    </div>
+                  </div>
+                </Col>
+              )}
+              
+              {/* Writing Score */}
+              {detailSummary.writingScore !== undefined && detailSummary.writingScore !== null && (
+                <Col span={12}>
+                  <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                      <EditOutlined /> Writing
+                    </div>
+                    <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                      {detailSummary.writingScore}
+                      <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>/200</span>
+                    </div>
+                  </div>
+                </Col>
+              )}
+              
+              {/* Speaking Score */}
+              {detailSummary.speakingScore !== undefined && detailSummary.speakingScore !== null && (
+                <Col span={12}>
+                  <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                      <SoundOutlined /> Speaking
+                    </div>
+                    <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                      {detailSummary.speakingScore}
+                      <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>/200</span>
+                    </div>
+                  </div>
+                </Col>
+              )}
+              
+              {/* Correct Count (for LR) */}
+              {detailSummary.correctCount !== undefined && detailSummary.correctCount !== null && (
+                <Col span={12}>
+                  <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                      <CheckCircleOutlined /> Số câu đúng
+                    </div>
+                    <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                      {detailSummary.correctCount}
+                      {detailSummary.quantityQuestion && (
+                        <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>
+                          /{detailSummary.quantityQuestion}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Col>
+              )}
+              
+              {/* Số câu hỏi (for SW) */}
+              {!isLR && detailSummary.quantityQuestion !== undefined && detailSummary.quantityQuestion !== null && (
+                <Col span={12}>
+                  <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                      <FileTextOutlined /> Số câu hỏi
+                    </div>
+                    <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                      {detailSummary.quantityQuestion}
+                    </div>
+                  </div>
+                </Col>
+              )}
+            </Row>
+          </Col>
+        </Row>
+        
+        {/* Additional Info */}
+        <div style={{ marginTop: 16, paddingTop: 12, borderTop: "1px solid rgba(255,255,255,0.2)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          {detailSummary.duration && (
+            <Tag style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff" }}>
+              Thời gian: {detailSummary.duration} phút
+            </Tag>
+          )}
+          {detailSummary.testType && (
+            <Tag style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff" }}>
+              {getTestTypeLabel(detailSummary.testType)}
+            </Tag>
+          )}
+          {detailSummary.testSkill && (
+            <Tag style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "#fff" }}>
+              {getSkillLabel(detailSummary.testSkill)}
+            </Tag>
+          )}
+          {detailSummary.status && (
+            <Tag style={{ background: detailSummary.status === "Graded" ? "rgba(82,196,26,0.3)" : "rgba(255,255,255,0.2)", border: "none", color: "#fff" }}>
+              {detailSummary.status === "Graded" ? "Đã chấm điểm" : "Đang chấm điểm" + getStatusLabel(detailSummary.status)}
+            </Tag>
+          )}
+        </div>
+      </Card>
     );
   };
 
@@ -1266,24 +1716,18 @@ export function TestHistoryTab() {
         const isSW = testSkill === "Writing" || testSkill === "Speaking" || testSkill === "S&W" || 
                      testSkill === 2 || testSkill === 1 || testSkill === 4;
         
-        // Tất cả đều hiển thị totalScore từ API
-        const totalScore = record.totalScore !== undefined && record.totalScore !== null 
-          ? Number(record.totalScore) 
-          : null;
-        
-        return (
-          <Space direction="vertical" size="small">
-            {totalScore !== null && !isNaN(totalScore) ? (
+          // Tất cả đều hiển thị totalScore từ API, nếu không có thì hiển thị 0
+          const totalScore = record.totalScore !== undefined && record.totalScore !== null 
+            ? Number(record.totalScore) 
+            : 0;
+          
+          return (
+            <Space direction="vertical" size="small">
               <span>
                 <Tag color={isSW ? "blue" : getScoreColor(calculateScore(record.correctQuestion, record.totalQuestion))}>
                   {totalScore} điểm
                 </Tag>
               </span>
-            ) : (
-              <span>
-                <Tag color="default">—</Tag>
-              </span>
-            )}
             {/* Chỉ hiển thị số câu đúng cho L&R */}
             {!isSW && (
               <span style={{ fontSize: 12, color: "#666" }}>
