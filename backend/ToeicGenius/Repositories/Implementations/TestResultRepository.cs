@@ -236,6 +236,7 @@ namespace ToeicGenius.Repositories.Implementations
 					.ThenInclude(t => t.TestQuestions)
 						.ThenInclude(q => q.Part)
 				.Include(tr => tr.UserAnswers)
+				.Include(tr => tr.SkillScores)
 				.FirstOrDefaultAsync(tr => tr.TestResultId == testResultId && tr.UserId == userId);
 		}
 

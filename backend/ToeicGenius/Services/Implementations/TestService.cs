@@ -1249,6 +1249,10 @@ namespace ToeicGenius.Services.Implementations
 
 			var test = testResult.Test;
 
+			// Get Listening and Reading scores from SkillScores
+			var listeningScore = testResult.SkillScores?.FirstOrDefault(s => s.Skill == "Listening");
+			var readingScore = testResult.SkillScores?.FirstOrDefault(s => s.Skill == "Reading");
+
 			var dto = new TestResultDetailDto
 			{
 				TestResultId = testResult.TestResultId,
@@ -1262,6 +1266,8 @@ namespace ToeicGenius.Services.Implementations
 				Duration = test.Duration,
 				QuantityQuestion = test.TotalQuestion,
 				CorrectCount = testResult.CorrectCount,
+				ListeningScore = listeningScore != null ? (int?)listeningScore.Score : null,
+				ReadingScore = readingScore != null ? (int?)readingScore.Score : null,
 				TotalScore = (int)testResult.TotalScore
 			};
 
