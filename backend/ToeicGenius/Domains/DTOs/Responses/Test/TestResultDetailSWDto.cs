@@ -9,6 +9,15 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
     /// </summary>
     public class TestResultDetailSWDto
     {
+        // Test basic info
+        public int TestResultId { get; set; }
+        public int TestId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public TestType TestType { get; set; }
+        public TestSkill TestSkill { get; set; }
+        public int Duration { get; set; }
+        public int QuantityQuestion { get; set; }
+
         // Aggregated skill scores
         public double? WritingScore { get; set; }
         public double? SpeakingScore { get; set; }

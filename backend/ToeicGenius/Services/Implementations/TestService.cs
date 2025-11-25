@@ -1249,6 +1249,10 @@ namespace ToeicGenius.Services.Implementations
 
 			var test = testResult.Test;
 
+			// Get Listening and Reading scores from SkillScores
+			var listeningScore = testResult.SkillScores?.FirstOrDefault(s => s.Skill == "Listening");
+			var readingScore = testResult.SkillScores?.FirstOrDefault(s => s.Skill == "Reading");
+
 			var dto = new TestResultDetailDto
 			{
 				TestResultId = testResult.TestResultId,
@@ -1262,6 +1266,8 @@ namespace ToeicGenius.Services.Implementations
 				Duration = test.Duration,
 				QuantityQuestion = test.TotalQuestion,
 				CorrectCount = testResult.CorrectCount,
+				ListeningScore = listeningScore != null ? (int?)listeningScore.Score : null,
+				ReadingScore = readingScore != null ? (int?)readingScore.Score : null,
 				TotalScore = (int)testResult.TotalScore
 			};
 
@@ -1410,6 +1416,15 @@ namespace ToeicGenius.Services.Implementations
 			// Map sang TestResultDetailSWDto
 			var response = new Domains.DTOs.Responses.Test.TestResultDetailSWDto
 			{
+				// Test basic info
+				TestResultId = testResult.TestResultId,
+				TestId = testResult.TestId,
+				Title = testResult.Test?.Title ?? string.Empty,
+				TestType = testResult.Test?.TestType ?? TestType.Practice,
+				TestSkill = testResult.Test?.TestSkill ?? TestSkill.LR,
+				Duration = testResult.Test?.Duration ?? 0,
+				QuantityQuestion = testResult.Test?.TotalQuestion ?? 0,
+
 				// Lấy điểm từ SkillScores (TOEIC scale: 0-200)
 				WritingScore = writingSkillScore != null ? (double?)writingSkillScore.Score : null,
 				SpeakingScore = speakingSkillScore != null ? (double?)speakingSkillScore.Score : null,
