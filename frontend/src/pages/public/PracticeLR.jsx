@@ -116,7 +116,7 @@ export default function PracticeLR() {
                 {/* Header Section */}
                 <div className={styles.headerSection}>
                     <h1 className={styles.headerTitle}>
-                        Practice Listening & Reading
+                        Luyện tập Listening & Reading
                     </h1>
                     <p className={styles.headerDescription}>
                         Luyện tập kỹ năng nghe và đọc với hàng ngàn câu hỏi đa dạng từ cơ bản đến nâng cao

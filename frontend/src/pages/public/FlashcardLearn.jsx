@@ -8,7 +8,7 @@ import {
   RedoOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
-import { getFlashcardsBySetId, markCardKnowledge, startStudySession, getStudyStats } from "@services/flashcardService";
+import { getFlashcardsBySetId, markCardKnowledge, startStudySession, getStudyStats, resetStudySession } from "@services/flashcardService";
 import "@shared/styles/FlashcardDetail.css";
 
 export default function FlashcardLearn() {
@@ -28,9 +28,11 @@ export default function FlashcardLearn() {
     fetchStudySession();
   }, [setId]);
 
-  const fetchStudySession = async () => {
+  const fetchStudySession = async (showLoader = true) => {
     try {
-      setLoading(true);
+      if (showLoader) {
+        setLoading(true);
+      }
       // Sử dụng startStudySession để lấy thông tin học tập với trạng thái
       const sessionData = await startStudySession(setId);
       if (sessionData && sessionData.cards) {
@@ -50,13 +52,12 @@ export default function FlashcardLearn() {
         });
         setLearnedCards(initialLearned);
         
-        // Nếu tất cả đều đã học, đánh dấu hoàn thành
-        if (unlearnedCards.length === 0 && allCards.length > 0) {
-          setIsCompleted(true);
-        }
+        // Cập nhật trạng thái hoàn thành dựa trên dữ liệu mới
+        setIsCompleted(unlearnedCards.length === 0 && allCards.length > 0);
       } else {
         setAllFlashcards([]);
         setFlashcards([]);
+        setIsCompleted(false);
       }
       
       // Lấy thống kê học tập
@@ -82,7 +83,9 @@ export default function FlashcardLearn() {
         console.error("Fallback error:", fallbackError);
       }
     } finally {
-      setLoading(false);
+      if (showLoader) {
+        setLoading(false);
+      }
     }
   };
 
@@ -152,7 +155,7 @@ export default function FlashcardLearn() {
           setIsCompleted(true);
           message.success("Chúc mừng! Bạn đã học xong tất cả các thẻ!");
           // Refresh stats sau khi hoàn thành
-          fetchStudySession();
+          fetchStudySession(false);
         }
         
         // Lưu updatedCards để dùng trong setTimeout
@@ -160,7 +163,7 @@ export default function FlashcardLearn() {
         
         // Refresh lại từ backend sau một chút để đảm bảo đồng bộ
         setTimeout(() => {
-          fetchStudySession();
+          fetchStudySession(false);
         }, 500);
         
         const newLearned = new Set(learnedCards);
@@ -283,17 +286,22 @@ export default function FlashcardLearn() {
     }, 300);
   };
 
-  const handleLearnAgain = () => {
-    // Lọc lại các flashcard chưa học
-    const unlearnedCards = allFlashcards.filter(card => card.status !== "learned");
-    setFlashcards(unlearnedCards);
-    setCurrentCardIndex(0);
-    setIsFlipped(false);
-    setIsCompleted(false);
-    setIsCardAnimating(false);
-    
-    if (unlearnedCards.length === 0) {
-      message.info("Tất cả các thẻ đã được học xong!");
+  const handleLearnAgain = async () => {
+    try {
+      setLoading(true);
+      await resetStudySession(setId);
+      message.success("Đã đặt lại tiến trình. Bắt đầu học lại từ đầu!");
+      // Reset trạng thái để giao diện chuyển sang chế độ học ngay lập tức
+      setIsCompleted(false);
+      setIsFlipped(false);
+      setCurrentCardIndex(0);
+      await fetchStudySession(false);
+    } catch (error) {
+      console.error("Error resetting study session:", error);
+      const errorMsg = error?.response?.data?.message || "Không thể đặt lại tiến trình học";
+      message.error(errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
 

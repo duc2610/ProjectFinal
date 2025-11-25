@@ -152,9 +152,6 @@ export default function TestCreatorDashboard() {
       title: "Bài thi đã xuất bản",
       value: stats.publishedTests,
       prefix: <CheckCircleOutlined />,
-      suffix: stats.totalTests > 0 
-        ? `${Math.round((stats.publishedTests / stats.totalTests) * 100)}%`
-        : "0%",
       valueStyle: { color: "#52c41a" },
     },
     {
@@ -220,7 +217,7 @@ export default function TestCreatorDashboard() {
   return (
     <div style={{ padding: "24px" }} className="animate-fade-in">
       <Title level={2} style={{ marginBottom: 24 }} className="animate-fade-in-down">
-        Bảng điều khiển Test Creator
+        Bảng điều khiển 
       </Title>
 
       {/* Statistics Cards */}

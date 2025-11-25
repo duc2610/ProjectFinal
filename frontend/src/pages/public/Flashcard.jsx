@@ -19,6 +19,13 @@ export default function Flashcard() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
+  const normalizeSets = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.dataPaginated)) return payload.dataPaginated;
+    return [];
+  };
+
   useEffect(() => {
     fetchFlashcardSets();
   }, [activeTab, isAuthenticated]);
@@ -29,13 +36,13 @@ export default function Flashcard() {
       if (activeTab === "flashcard") {
         if (isAuthenticated) {
           const data = await getUserFlashcardSets();
-          setFlashcardSets(Array.isArray(data) ? data : []);
+          setFlashcardSets(normalizeSets(data));
         } else {
           setFlashcardSets([]);
         }
       } else if (activeTab === "discover") {
         const data = await getPublicFlashcardSets();
-        setPublicSets(Array.isArray(data) ? data : []);
+        setPublicSets(normalizeSets(data));
       }
     } catch (error) {
       console.error("Error fetching flashcard sets:", error);
@@ -381,6 +388,12 @@ export default function Flashcard() {
                       <span style={{ fontSize: 12, color: "#999" }}>
                         {set.totalCards || 0} thẻ
                       </span>
+                    </div>
+                    <div style={{ fontSize: 13, color: "#666", marginTop: 12 }}>
+                      Tác giả: <strong>{set.creatorName || "Ẩn danh"}</strong>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
+                      Tạo: {formatDate(set.createdAt)}
                     </div>
                   </Card>
                 </Col>

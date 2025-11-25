@@ -192,10 +192,10 @@ export default function TestList() {
                 {/* Header Section */}
                 <div className={styles.headerSection}>
                     <h1 className={styles.headerTitle}>
-                        Simulator Tests
+                        Bài thi mô phỏng TOEIC
                     </h1>
                     <p className={styles.headerDescription}>
-                        Làm bài thi mô phỏng TOEIC với format giống như bài thi thật, đánh giá năng lực toàn diện
+                        Làm bài thi mô phỏng TOEIC với đề thi thật, đánh giá năng lực toàn diện
                     </p>
                 </div>
 

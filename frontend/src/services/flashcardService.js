@@ -28,7 +28,11 @@ export async function getFlashcardSetById(setId) {
 
 export async function getPublicFlashcardSets() {
   const res = await api.get("/api/flashcards/public");
-  return unwrap(res);
+  const raw = unwrap(res);
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.data)) return raw.data;
+  if (Array.isArray(raw?.dataPaginated)) return raw.dataPaginated;
+  return [];
 }
 
 export async function createFlashcardSet(data) {
@@ -84,6 +88,11 @@ export async function startStudySession(setId) {
 
 export async function markCardKnowledge(data) {
   const res = await api.post("/api/flashcards/study/mark", data);
+  return unwrap(res);
+}
+
+export async function resetStudySession(setId) {
+  const res = await api.post(`/api/flashcards/study/${setId}/reset`);
   return unwrap(res);
 }
 

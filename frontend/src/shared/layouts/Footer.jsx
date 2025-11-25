@@ -18,9 +18,9 @@ export default function Footer() {
 
   const footerLinks = {
     practice: [
-      { label: "Practice L&R", to: "/practice-lr" },
-      { label: "Practice S&W", to: "/practice-sw" },
-      { label: "Test", to: "/test" },
+      { label: "Luyện Tập L&R", to: "/practice-lr" },
+      { label: "Luyện Tập S&W", to: "/practice-sw" },
+      { label: "Bài thi", to: "/test-list" },
       { label: "Flashcard", to: "/flashcard" },
     ],
     support: [
