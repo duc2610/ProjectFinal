@@ -583,7 +583,7 @@ export default function QuestionCard({
           <Text strong style={{ fontSize: "16px", color: "#2d3748", display: "block", marginBottom: "16px" }}>
             Viết câu trả lời
           </Text>
-          <div>
+          <div style={{ position: "relative" }}>
             <TextArea
               rows={8}
               placeholder="Nhập câu trả lời của bạn..."
@@ -618,9 +618,54 @@ export default function QuestionCard({
               style={{
                 fontSize: 14,
                 borderRadius: "8px",
-                border: "2px solid #e2e8f0"
+                border: "2px solid #e2e8f0",
+                paddingBottom: 40
               }}
             />
+            {/* Đếm từ và ký tự */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: 8,
+                right: 12,
+                fontSize: 12,
+                color: "#999",
+                display: "flex",
+                gap: 16,
+                background: "rgba(255, 255, 255, 0.9)",
+                padding: "4px 8px",
+                borderRadius: "4px"
+              }}
+            >
+              <span>
+                Từ: {(() => {
+                  const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+                    ? question.subQuestionIndex
+                    : 0;
+                  const testQuestionIdStr = String(question.testQuestionId);
+                  const answerKey = subIndex !== 0
+                    ? `${testQuestionIdStr}_${subIndex}`
+                    : testQuestionIdStr;
+                  const answerValue = typeof answers[answerKey] === "string" ? answers[answerKey] : "";
+                  // Đếm từ: split bằng khoảng trắng và filter các từ không rỗng
+                  const wordCount = answerValue.trim() === "" ? 0 : answerValue.trim().split(/\s+/).length;
+                  return wordCount;
+                })()}
+              </span>
+              <span>
+                Ký tự: {(() => {
+                  const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+                    ? question.subQuestionIndex
+                    : 0;
+                  const testQuestionIdStr = String(question.testQuestionId);
+                  const answerKey = subIndex !== 0
+                    ? `${testQuestionIdStr}_${subIndex}`
+                    : testQuestionIdStr;
+                  const answerValue = typeof answers[answerKey] === "string" ? answers[answerKey] : "";
+                  return answerValue.length;
+                })()}
+              </span>
+            </div>
           </div>
         </div>
       ) : isSpeakingPart ? (
