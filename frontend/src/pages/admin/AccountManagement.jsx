@@ -301,8 +301,6 @@ const AccountManagement = () => {
           <Switch
             checked={record.isActive}
             onChange={() => handleToggleStatus(record.id, record.isActive)}
-            checkedChildren="Đang hoạt động"
-            unCheckedChildren="Bị ban"
             disabled={loading[record.isActive ? "active" : "banned"]}
           />
         );
