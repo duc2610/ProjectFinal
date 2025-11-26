@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Tabs, Form, Input, Button, Row, Col, Modal, notification, Table, Tag, Space, Empty, message, Spin, Card, Progress, Divider, Collapse, Typography } from "antd";
 import { PlayCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, WarningOutlined, InfoCircleOutlined, EditOutlined, SoundOutlined, FileTextOutlined, BulbOutlined } from "@ant-design/icons";
 
@@ -211,6 +211,7 @@ export function TestHistoryTab() {
   const [swDetail, setSwDetail] = useState([]);
   const [detailSummary, setDetailSummary] = useState({});
   const [selectedHistory, setSelectedHistory] = useState(null);
+  const [detailData, setDetailData] = useState(null); // Lưu toàn bộ detailData từ API
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -713,6 +714,11 @@ export function TestHistoryTab() {
 
     try {
       const data = await getTestResultDetail(record.testResultId);
+      setDetailData(data); // Lưu toàn bộ detailData
+      
+      // Lấy timeResult (ưu tiên timeResult, fallback về timeResuilt, sau đó tính từ createdAt)
+      const timeResult = data?.timeResult ?? data?.timeResuilt ?? null;
+      const isSelectTime = data?.isSelectTime ?? record.isSelectTime ?? false;
       
       if (skillGroup === "lr") {
         setLrDetail({
@@ -725,6 +731,8 @@ export function TestHistoryTab() {
           correctCount: data?.correctCount ?? record.correctQuestion ?? null,
           quantityQuestion: data?.quantityQuestion ?? record.totalQuestion ?? null,
           duration: data?.duration ?? record.duration ?? null,
+          timeResult: timeResult,
+          isSelectTime: isSelectTime,
           status: data?.status ?? record.testStatus ?? null,
           testType: data?.testType ?? record.testType ?? null,
           testSkill: data?.testSkill ?? record.testSkill ?? null,
@@ -737,6 +745,8 @@ export function TestHistoryTab() {
           speakingScore: data?.speakingScore ?? null,
           quantityQuestion: data?.quantityQuestion ?? record.totalQuestion ?? null,
           duration: data?.duration ?? record.duration ?? null,
+          timeResult: timeResult,
+          isSelectTime: isSelectTime,
           status: data?.status ?? record.testStatus ?? null,
           testType: data?.testType ?? record.testType ?? null,
           testSkill: data?.testSkill ?? record.testSkill ?? null,
@@ -761,6 +771,7 @@ export function TestHistoryTab() {
     setSwDetail([]);
     setDetailSummary({});
     setSelectedHistory(null);
+    setDetailData(null);
   };
 
   const lrDetailColumns = [
@@ -1512,10 +1523,412 @@ export function TestHistoryTab() {
     );
   };
 
+  // Tính practiceLrStats từ detailData (giống TestResult.jsx)
+  const practiceLrStats = useMemo(() => {
+    if (!detailData?.parts || detailMode !== "LR") {
+      return {
+        totalQuestions: 0,
+        totalAnswered: 0,
+        correct: 0,
+        wrong: 0,
+        unanswered: 0,
+        accuracy: 0,
+        listening: { total: 0, answered: 0, correct: 0, wrong: 0, unanswered: 0 },
+        reading: { total: 0, answered: 0, correct: 0, wrong: 0, unanswered: 0 },
+      };
+    }
+
+    // Tính tổng số câu hỏi trong đề
+    let totalQuestions = 0;
+    let listeningTotal = 0;
+    let readingTotal = 0;
+
+    detailData.parts.forEach((part) => {
+      const partId = part.partId || 0;
+      const isListening = partId >= 1 && partId <= 4;
+      const isReading = partId >= 5 && partId <= 7;
+
+      part.testQuestions?.forEach((tq) => {
+        let count = 0;
+        if (tq.isGroup && tq.questionGroupSnapshotDto) {
+          count = tq.questionGroupSnapshotDto.questionSnapshots?.length || 0;
+        } else if (!tq.isGroup && tq.questionSnapshotDto) {
+          count = 1;
+        }
+        totalQuestions += count;
+        if (isListening) listeningTotal += count;
+        if (isReading) readingTotal += count;
+      });
+    });
+
+    // Tính từ lrDetail.questions (chỉ những câu đã làm)
+    const questions = lrDetail.questions || [];
+    const listeningRows = questions.filter((q) => {
+      const partId = q.partId || 0;
+      return partId >= 1 && partId <= 4;
+    });
+    const readingRows = questions.filter((q) => {
+      const partId = q.partId || 0;
+      return partId >= 5 && partId <= 7;
+    });
+
+    const listeningAnswered = {
+      answered: listeningRows.length,
+      correct: listeningRows.filter((r) => r.isCorrect === true).length,
+      wrong: listeningRows.filter((r) => r.isCorrect === false).length,
+    };
+
+    const readingAnswered = {
+      answered: readingRows.length,
+      correct: readingRows.filter((r) => r.isCorrect === true).length,
+      wrong: readingRows.filter((r) => r.isCorrect === false).length,
+    };
+
+    const totalAnswered = listeningAnswered.answered + readingAnswered.answered;
+    const correct = listeningAnswered.correct + readingAnswered.correct;
+    const wrong = listeningAnswered.wrong + readingAnswered.wrong;
+    const unanswered = Math.max(0, totalQuestions - totalAnswered);
+    const accuracy = totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0;
+
+    return {
+      totalQuestions,
+      totalAnswered,
+      correct,
+      wrong,
+      unanswered,
+      accuracy,
+      listening: {
+        total: listeningTotal,
+        answered: listeningAnswered.answered,
+        correct: listeningAnswered.correct,
+        wrong: listeningAnswered.wrong,
+        unanswered: Math.max(0, listeningTotal - listeningAnswered.answered),
+      },
+      reading: {
+        total: readingTotal,
+        answered: readingAnswered.answered,
+        correct: readingAnswered.correct,
+        wrong: readingAnswered.wrong,
+        unanswered: Math.max(0, readingTotal - readingAnswered.answered),
+      },
+    };
+  }, [detailData, lrDetail, detailMode]);
+
+  // Helper function để normalize testType
+  const normalizeTestType = (value) => {
+    if (typeof value === "string") {
+      const lower = value.toLowerCase();
+      if (lower.includes("practice") || lower.includes("luyện")) return "Practice";
+      return "Simulator";
+    }
+    if (value === 2) return "Practice";
+    return "Simulator";
+  };
+
+  // Kiểm tra xem có phải Practice LR không
+  const isPracticeLrMode = useMemo(() => {
+    const normalizedTestType = normalizeTestType(detailSummary.testType);
+    return normalizedTestType === "Practice" && detailMode === "LR";
+  }, [detailSummary.testType, detailMode]);
+
+  const renderPracticeSummary = () => {
+    const tiles = [
+      { label: "Tổng số câu trong đề", value: practiceLrStats.totalQuestions },
+      { label: "Câu đã làm", value: practiceLrStats.totalAnswered, color: "#1d39c4" },
+      { label: "Câu chưa làm", value: practiceLrStats.unanswered, color: "#fa8c16" },
+      {
+        label: "Độ chính xác (trên toàn đề)",
+        value: `${practiceLrStats.accuracy}%`,
+        color: "#389e0d",
+      },
+    ];
+    return (
+      <div
+        style={{
+          width: "100%",
+          padding: 32,
+          borderRadius: 20,
+          border: "1px dashed #91caff",
+          background: "linear-gradient(135deg, #e6f7ff, #f0f9ff)",
+          textAlign: "center",
+          marginBottom: 24,
+        }}
+      >
+        <div style={{ fontSize: 48, marginBottom: 12 }}>ℹ️</div>
+        <Title level={3} style={{ marginBottom: 8, color: "#0958d9" }}>
+          Chế độ Practice (Listening & Reading)
+        </Title>
+        <Text style={{ fontSize: 16, color: "#1f3b76" }}>
+          Chế độ luyện tập không chấm điểm tự động. Hệ thống chỉ hiển thị danh sách câu hỏi bạn
+          đã làm cùng trạng thái đúng/sai để tự đánh giá.
+        </Text>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 16,
+            flexWrap: "wrap",
+            marginTop: 24,
+          }}
+        >
+          {tiles.map((tile) => (
+            <div
+              key={tile.label}
+              style={{
+                minWidth: 160,
+                padding: "16px 20px",
+                borderRadius: 12,
+                background: "#fff",
+                border: "1px solid rgba(145,202,255,0.7)",
+                boxShadow: "0 6px 16px rgba(9,88,217,0.08)",
+              }}
+            >
+              <Text type="secondary">{tile.label}</Text>
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: tile.color || "#0c1d4f",
+                }}
+              >
+                {tile.value}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Khối thông tin chi tiết dùng chung (giống TestResult.jsx)
+  const renderGlobalDetailTiles = () => {
+    const tiles = [];
+
+    // Thời gian làm bài (timeResult)
+    const displayedTimeSpent = detailSummary.timeResult ?? detailSummary.duration ?? 0;
+    tiles.push({
+      label: "Thời gian làm bài",
+      value: `${displayedTimeSpent} phút`,
+      color: "#1d39c4",
+    });
+
+    // Thời lượng đề (chỉ hiển thị nếu isSelectTime = true)
+    const displayedIsSelectTime = detailSummary.isSelectTime ?? false;
+    const displayedDuration = detailSummary.duration ?? 0;
+    tiles.push({
+      label: "Thời lượng đề",
+      value: displayedIsSelectTime ? `${displayedDuration} phút` : "Không giới hạn",
+      color: "#531dab",
+    });
+
+    if (detailMode === "LR") {
+      tiles.push({
+        label: "Tổng số câu trong đề",
+        value: practiceLrStats.totalQuestions,
+        color: "#0958d9",
+      });
+      tiles.push({
+        label: "Câu đã làm",
+        value: practiceLrStats.totalAnswered,
+        color: "#1d39c4",
+      });
+      tiles.push({
+        label: "Câu chưa làm",
+        value: practiceLrStats.unanswered,
+        color: "#fa8c16",
+      });
+      tiles.push({
+        label: "Đúng",
+        value: practiceLrStats.correct,
+        color: "#389e0d",
+      });
+      tiles.push({
+        label: "Sai",
+        value: practiceLrStats.wrong,
+        color: "#cf1322",
+      });
+      tiles.push({
+        label: "Độ chính xác (trên toàn đề)",
+        value: `${practiceLrStats.accuracy}%`,
+        color: "#08979c",
+      });
+    } else {
+      // SW mode
+      const totalQuestions = detailSummary.quantityQuestion ?? 0;
+      if (totalQuestions > 0) {
+        tiles.push({
+          label: "Tổng số câu trong đề",
+          value: totalQuestions,
+          color: "#0958d9",
+        });
+      }
+      if (detailSummary.writingScore != null) {
+        tiles.push({
+          label: "Điểm Writing",
+          value: detailSummary.writingScore,
+          color: "#fa541c",
+        });
+      }
+      if (detailSummary.speakingScore != null) {
+        tiles.push({
+          label: "Điểm Speaking",
+          value: detailSummary.speakingScore,
+          color: "#fa8c16",
+        });
+      }
+      if (detailSummary.totalScore != null && !isPracticeLrMode) {
+        tiles.push({
+          label: "Tổng điểm",
+          value: detailSummary.totalScore,
+          color: "#722ed1",
+        });
+      }
+    }
+
+    if (tiles.length === 0) return null;
+
+    return (
+      <div
+        style={{
+          marginTop: 24,
+          paddingTop: 16,
+          borderTop: "1px dashed #e6f4ff",
+        }}
+      >
+        <div style={{ maxWidth: 900, margin: "0 auto" }}>
+          <Title level={5} style={{ marginBottom: 12, textAlign: "center" }}>
+            Thông tin chi tiết
+          </Title>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 16,
+              justifyContent: "center",
+            }}
+          >
+            {tiles.map((tile) => (
+              <div
+                key={tile.label}
+                style={{
+                  minWidth: 160,
+                  padding: "16px 20px",
+                  borderRadius: 12,
+                  background: "#fff",
+                  border: "1px solid #e0e7ff",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                }}
+              >
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {tile.label}
+                </Text>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: tile.color || "#111827",
+                  }}
+                >
+                  {tile.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderSummaryChips = () => {
     const isLR = detailMode === "LR";
     const totalScore = detailSummary.totalScore;
     const maxScore = isLR ? 990 : 400;
+    
+    // Tạo tiles cho thông tin chi tiết
+    const detailTiles = [];
+    
+    // Thời gian làm bài (timeResult)
+    const displayedTimeSpent = detailSummary.timeResult ?? detailSummary.duration ?? 0;
+    detailTiles.push({
+      label: "Thời gian làm bài",
+      value: `${displayedTimeSpent} phút`,
+      color: "#1d39c4",
+    });
+
+    // Thời lượng đề (chỉ hiển thị nếu isSelectTime = true)
+    const displayedIsSelectTime = detailSummary.isSelectTime ?? false;
+    const displayedDuration = detailSummary.duration ?? 0;
+    detailTiles.push({
+      label: "Thời lượng đề",
+      value: displayedIsSelectTime ? `${displayedDuration} phút` : "Không giới hạn",
+      color: "#531dab",
+    });
+
+    if (detailMode === "LR") {
+      detailTiles.push({
+        label: "Tổng số câu trong đề",
+        value: practiceLrStats.totalQuestions,
+        color: "#0958d9",
+      });
+      detailTiles.push({
+        label: "Câu đã làm",
+        value: practiceLrStats.totalAnswered,
+        color: "#1d39c4",
+      });
+      detailTiles.push({
+        label: "Câu chưa làm",
+        value: practiceLrStats.unanswered,
+        color: "#fa8c16",
+      });
+      detailTiles.push({
+        label: "Đúng",
+        value: practiceLrStats.correct,
+        color: "#389e0d",
+      });
+      detailTiles.push({
+        label: "Sai",
+        value: practiceLrStats.wrong,
+        color: "#cf1322",
+      });
+      detailTiles.push({
+        label: "Độ chính xác (trên toàn đề)",
+        value: `${practiceLrStats.accuracy}%`,
+        color: "#08979c",
+      });
+    } else {
+      // SW mode
+      const totalQuestions = detailSummary.quantityQuestion ?? 0;
+      if (totalQuestions > 0) {
+        detailTiles.push({
+          label: "Tổng số câu trong đề",
+          value: totalQuestions,
+          color: "#0958d9",
+        });
+      }
+      if (detailSummary.writingScore != null) {
+        detailTiles.push({
+          label: "Điểm Writing",
+          value: detailSummary.writingScore,
+          color: "#fa541c",
+        });
+      }
+      if (detailSummary.speakingScore != null) {
+        detailTiles.push({
+          label: "Điểm Speaking",
+          value: detailSummary.speakingScore,
+          color: "#fa8c16",
+        });
+      }
+      if (detailSummary.totalScore != null && !isPracticeLrMode) {
+        detailTiles.push({
+          label: "Tổng điểm",
+          value: detailSummary.totalScore,
+          color: "#722ed1",
+        });
+      }
+    }
     
     return (
       <Card 
@@ -1665,19 +2078,59 @@ export function TestHistoryTab() {
             </Tag>
           )}
         </div>
+
+        {/* Thông tin chi tiết - gộp vào card */}
+        {detailTiles.length > 0 && (
+          <div
+            style={{
+              marginTop: 24,
+              paddingTop: 16,
+              borderTop: "1px solid rgba(255,255,255,0.2)",
+            }}
+          >
+            <Title level={5} style={{ marginBottom: 12, textAlign: "center", color: "#fff" }}>
+              Thông tin chi tiết
+            </Title>
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 16,
+                justifyContent: "center",
+              }}
+            >
+              {detailTiles.map((tile) => (
+                <div
+                  key={tile.label}
+                  style={{
+                    minWidth: 160,
+                    padding: "16px 20px",
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.15)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.85)" }}>
+                    {tile.label}
+                  </Text>
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: 20,
+                      fontWeight: 700,
+                      color: "#fff",
+                    }}
+                  >
+                    {tile.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </Card>
     );
-  };
-
-
-  const normalizeTestType = (value) => {
-    if (typeof value === "string") {
-      const lower = value.toLowerCase();
-      if (lower.includes("practice") || lower.includes("luyện")) return "Practice";
-      return "Simulator";
-    }
-    if (value === 2) return "Practice";
-    return "Simulator";
   };
 
   // Kiểm tra xem có bài nào đang làm không
@@ -1754,31 +2207,75 @@ export function TestHistoryTab() {
         const isSW = testSkill === "Writing" || testSkill === "Speaking" || testSkill === "S&W" || 
                      testSkill === 2 || testSkill === 1 || testSkill === 4;
         
-          // Tất cả đều hiển thị totalScore từ API, nếu không có thì hiển thị 0
+        // Kiểm tra xem có phải Practice LR không
+        const normalizedTestType = normalizeTestType(record.testType);
+        const skillGroup = getSkillGroupFromValue(record.testSkill);
+        const isPracticeLR = normalizedTestType === "Practice" && skillGroup === "lr";
+        
+        // Tất cả đều hiển thị totalScore từ API, nếu không có thì hiển thị 0
         const totalScore =
           record.totalScore !== undefined && record.totalScore !== null
             ? Number(record.totalScore)
             : 0;
 
+        // Tính số câu đúng và tổng số câu
+        const correctCount = record.correctQuestion ?? 0;
+        const totalCount = record.totalQuestion ?? 0;
+        const accuracy = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
+
         return (
           <div style={cellCardStyle}>
             <div style={sectionTitleStyle}>Kết quả</div>
             <Space direction="vertical" size={4}>
-              <Tag
-                color={
-                  isSW
-                    ? "blue"
-                    : getScoreColor(
-                        calculateScore(record.correctQuestion, record.totalQuestion)
-                      )
-                }
-              >
-                {totalScore} điểm
-              </Tag>
-              {!isSW && (
-                <span style={{ fontSize: 12, color: "#666" }}>
-                  {record.correctQuestion ?? 0}/{record.totalQuestion ?? 0} câu đúng
-                </span>
+              {isPracticeLR ? (
+                // Practice LR: Hiển thị số câu đúng và độ chính xác (không hiển thị điểm)
+                <>
+                  <Tag color="success" style={{ fontSize: 13, fontWeight: 500 }}>
+                    {correctCount} câu đúng
+                  </Tag>
+                  {totalCount > 0 && (
+                    <span style={{ fontSize: 12, color: "#666" }}>
+                      {accuracy}% chính xác
+                    </span>
+                  )}
+                  {totalCount > 0 && (
+                    <span style={{ fontSize: 11, color: "#999" }}>
+                      {correctCount}/{totalCount} câu
+                    </span>
+                  )}
+                </>
+              ) : (
+                // Simulator hoặc SW: Hiển thị điểm và phần trăm chính xác
+                <>
+                  <Tag
+                    color={
+                      isSW
+                        ? "blue"
+                        : getScoreColor(
+                            calculateScore(record.correctQuestion, record.totalQuestion)
+                          )
+                    }
+                  >
+                    {totalScore} điểm
+                  </Tag>
+                  {!isSW && (
+                    <>
+                      {totalCount > 0 && (
+                        <span style={{ fontSize: 12, color: "#666" }}>
+                          {accuracy}% chính xác
+                        </span>
+                      )}
+                      <span style={{ fontSize: 12, color: "#666" }}>
+                        {record.correctQuestion ?? 0}/{record.totalQuestion ?? 0} câu đúng
+                      </span>
+                    </>
+                  )}
+                  {isSW && totalCount > 0 && (
+                    <span style={{ fontSize: 12, color: "#666" }}>
+                      {accuracy}% chính xác
+                    </span>
+                  )}
+                </>
               )}
             </Space>
           </div>
@@ -1920,7 +2417,7 @@ export function TestHistoryTab() {
         </div>
       ) : detailMode === "LR" ? (
         <>
-          {renderSummaryChips()}
+          {isPracticeLrMode ? renderPracticeSummary() : renderSummaryChips()}
           <div style={{ marginTop: 16 }}>
             {renderLRDetailByParts()}
           </div>

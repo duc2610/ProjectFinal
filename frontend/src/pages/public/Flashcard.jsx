@@ -6,7 +6,7 @@ import { getUserFlashcardSets, getPublicFlashcardSets } from "@services/flashcar
 import { useAuth } from "@shared/hooks/useAuth";
 import CreateFlashcardSetModal from "@shared/components/Flashcard/CreateFlashcardSetModal";
 import UpdateFlashcardSetModal from "@shared/components/Flashcard/UpdateFlashcardSetModal";
-import "./Flashcard.css";
+import "../../shared/styles/Flashcard.css";
 
 export default function Flashcard() {
   const [activeTab, setActiveTab] = useState("flashcard");
