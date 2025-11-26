@@ -17,7 +17,7 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
         public int Duration { get; set; }
 		public int QuantityQuestion { get; set; }
 		public int CorrectCount { get; set; }
-
+		public int TimeResult { get; set; }
 		// Skill scores
 		public int? ListeningScore { get; set; }
 		public int? ReadingScore { get; set; }
