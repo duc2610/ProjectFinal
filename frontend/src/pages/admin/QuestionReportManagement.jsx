@@ -311,14 +311,9 @@ export default function QuestionReportManagement() {
   const columns = useMemo(
     () => [
       {
-        title: "ID",
-        dataIndex: "reportId",
-        width: 70,
-        sorter: (a, b) => a.reportId - b.reportId,
-      },
-      {
         title: "Câu hỏi",
         dataIndex: "questionContent",
+        width: 260,
         ellipsis: true,
         render: (text, record) => {
           const content =
@@ -335,10 +330,10 @@ export default function QuestionReportManagement() {
       {
         title: "Bài test",
         dataIndex: "testName",
-        width: 160,
+        width: 200,
         render: (text, record) => (
           <Space direction="vertical" size={0}>
-            <Text strong ellipsis style={{ maxWidth: 150 }}>
+            <Text strong ellipsis style={{ maxWidth: 180 }}>
               {text || "—"}
             </Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
@@ -348,22 +343,9 @@ export default function QuestionReportManagement() {
         ),
       },
       {
-        title: "Người báo cáo",
-        dataIndex: "reporterName",
-        width: 180,
-        render: (text, record) => (
-          <Space direction="vertical" size={0}>
-            <Text strong>{text}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {record.reporterEmail}
-            </Text>
-          </Space>
-        ),
-      },
-      {
         title: "Loại lỗi",
         dataIndex: "reportType",
-        width: 140,
+        width: 130,
         render: (value) => {
           const label = reportTypeTextMap[value] || value || "Khác";
           return <Tag color="purple">{label}</Tag>;
@@ -394,6 +376,19 @@ export default function QuestionReportManagement() {
         },
       },
       {
+        title: "Người báo cáo",
+        dataIndex: "reporterName",
+        width: 200,
+        render: (text, record) => (
+          <Space direction="vertical" size={0}>
+            <Text strong>{text}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.reporterEmail}
+            </Text>
+          </Space>
+        ),
+      },
+      {
         title: "Thời gian",
         dataIndex: "createdAt",
         width: 180,
@@ -414,7 +409,7 @@ export default function QuestionReportManagement() {
         title: "Thao tác",
         key: "actions",
         fixed: "right",
-        width: 140,
+        width: 120,
         render: (_, record) => (
           <Space>
             <Tooltip title="Xem & xử lý">

@@ -1686,24 +1686,62 @@ export function TestHistoryTab() {
     return status === "InProgress" || status === "inProgress" || status === 0 || status === "0";
   });
 
+  const cellCardStyle = {
+    width: "100%",
+    padding: "8px 10px",
+    borderRadius: 8,
+    background: "#fafafa",
+    border: "1px solid #f0f0f0",
+  };
+
+  const sectionTitleStyle = {
+    fontSize: 12,
+    fontWeight: 600,
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginBottom: 4,
+  };
+
   const columns = [
     {
       title: "Tiêu đề",
       dataIndex: "title",
       key: "title",
-      ellipsis: true,
-      width: 200,
+      width: 240,
+      render: (title) => (
+        <div style={cellCardStyle}>
+          <div style={sectionTitleStyle}>Tiêu đề</div>
+          <div
+            style={{
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {title || "—"}
+          </div>
+        </div>
+      ),
     },
     {
       title: "Loại / Kỹ năng / Trạng thái",
       key: "typeSkillStatus",
-      width: 160,
+      width: 200,
       render: (_, record) => (
-        <Space direction="vertical" size="small">
-          <Tag color={getTestTypeColor(record.testType)}>{getTestTypeLabel(record.testType)}</Tag>
-          <Tag color={getSkillColor(record.testSkill)}>{getSkillLabel(record.testSkill)}</Tag>
-          <Tag color={getStatusColor(record.testStatus)}>{getStatusLabel(record.testStatus)}</Tag>
-        </Space>
+        <div style={cellCardStyle}>
+          <div style={sectionTitleStyle}>Loại / Kỹ năng / Trạng thái</div>
+          <Space direction="vertical" size={4}>
+            <Tag color={getTestTypeColor(record.testType)}>
+              {getTestTypeLabel(record.testType)}
+            </Tag>
+            <Tag color={getSkillColor(record.testSkill)}>
+              {getSkillLabel(record.testSkill)}
+            </Tag>
+            <Tag color={getStatusColor(record.testStatus)}>
+              {getStatusLabel(record.testStatus)}
+            </Tag>
+          </Space>
+        </div>
       ),
     },
     {
@@ -1717,24 +1755,33 @@ export function TestHistoryTab() {
                      testSkill === 2 || testSkill === 1 || testSkill === 4;
         
           // Tất cả đều hiển thị totalScore từ API, nếu không có thì hiển thị 0
-          const totalScore = record.totalScore !== undefined && record.totalScore !== null 
-            ? Number(record.totalScore) 
+        const totalScore =
+          record.totalScore !== undefined && record.totalScore !== null
+            ? Number(record.totalScore)
             : 0;
-          
-          return (
-            <Space direction="vertical" size="small">
-              <span>
-                <Tag color={isSW ? "blue" : getScoreColor(calculateScore(record.correctQuestion, record.totalQuestion))}>
-                  {totalScore} điểm
-                </Tag>
-              </span>
-            {/* Chỉ hiển thị số câu đúng cho L&R */}
-            {!isSW && (
-              <span style={{ fontSize: 12, color: "#666" }}>
-                {record.correctQuestion ?? 0}/{record.totalQuestion ?? 0} câu đúng
-              </span>
-            )}
-          </Space>
+
+        return (
+          <div style={cellCardStyle}>
+            <div style={sectionTitleStyle}>Kết quả</div>
+            <Space direction="vertical" size={4}>
+              <Tag
+                color={
+                  isSW
+                    ? "blue"
+                    : getScoreColor(
+                        calculateScore(record.correctQuestion, record.totalQuestion)
+                      )
+                }
+              >
+                {totalScore} điểm
+              </Tag>
+              {!isSW && (
+                <span style={{ fontSize: 12, color: "#666" }}>
+                  {record.correctQuestion ?? 0}/{record.totalQuestion ?? 0} câu đúng
+                </span>
+              )}
+            </Space>
+          </div>
         );
       },
     },
@@ -1744,10 +1791,16 @@ export function TestHistoryTab() {
       key: "duration",
       width: 100,
       render: (duration) => {
-        if (duration === undefined || duration === null || duration === 0 || isNaN(duration)) {
-          return <span>—</span>;
-        }
-        return `${duration} phút`;
+        const display =
+          duration === undefined || duration === null || duration === 0 || isNaN(duration)
+            ? "—"
+            : `${duration} phút`;
+        return (
+          <div style={cellCardStyle}>
+            <div style={sectionTitleStyle}>Thời lượng</div>
+            <div>{display}</div>
+          </div>
+        );
       },
     },
     {
@@ -1755,46 +1808,59 @@ export function TestHistoryTab() {
       dataIndex: "createdAt",
       key: "createdAt",
       width: 150,
-      render: (date) => formatDate(date),
+      render: (date) => (
+        <div style={cellCardStyle}>
+          <div style={sectionTitleStyle}>Ngày làm</div>
+          <div>{formatDate(date)}</div>
+        </div>
+      ),
     },
     {
       title: "Chi tiết",
       key: "detail",
       width: 110,
       render: (_, record) => (
-        <Button
-          size="small"
-          onClick={() => handleViewDetail(record)}
-          disabled={!record.testResultId}
-        >
-          Xem chi tiết
-        </Button>
+        <div style={cellCardStyle}>
+          <div style={sectionTitleStyle}>Chi tiết</div>
+          <Button
+            size="small"
+            onClick={() => handleViewDetail(record)}
+            disabled={!record.testResultId}
+          >
+            Xem chi tiết
+          </Button>
+        </div>
       ),
     },
     // Chỉ hiển thị cột "Hành động" nếu có bài đang làm
     ...(hasInProgressTest ? [{
       title: "Hành động",
       key: "action",
-      width: 120,
+      width: 140,
       render: (_, record) => {
-        const isInProgress = record.testStatus === "InProgress" || 
-                             record.testStatus === "inProgress" ||
-                             record.testStatus === 0 ||
-                             record.testStatus === "0";
-        
-        if (isInProgress) {
-          return (
-            <Button
-              type="primary"
-              icon={<PlayCircleOutlined />}
-              size="small"
-              onClick={() => handleContinueTest(record)}
-            >
-              Tiếp tục
-            </Button>
-          );
-        }
-        return null;
+        const isInProgress =
+          record.testStatus === "InProgress" ||
+          record.testStatus === "inProgress" ||
+          record.testStatus === 0 ||
+          record.testStatus === "0";
+
+        return (
+          <div style={cellCardStyle}>
+            <div style={sectionTitleStyle}>Hành động</div>
+            {isInProgress ? (
+              <Button
+                type="primary"
+                icon={<PlayCircleOutlined />}
+                size="small"
+                onClick={() => handleContinueTest(record)}
+              >
+                Tiếp tục
+              </Button>
+            ) : (
+              <span style={{ fontSize: 12, color: "#9ca3af" }}>—</span>
+            )}
+          </div>
+        );
       },
     }] : []),
   ];
@@ -1816,6 +1882,7 @@ export function TestHistoryTab() {
               dataSource={history}
               rowKey={(record, index) => `${record.testId}-${record.createdAt}-${index}`}
               loading={loading}
+              showHeader={false}
               pagination={{
                 current: pagination.current,
                 pageSize: pagination.pageSize,
@@ -1825,6 +1892,8 @@ export function TestHistoryTab() {
                 pageSizeOptions: ["10", "20", "50"],
               }}
               onChange={handleTableChange}
+              size="middle"
+              bordered
             />
           )}
         </Col>
@@ -1947,6 +2016,11 @@ export function ReportTab() {
           partName: partLabel,
           testName: report.testName || snapshot.testName || null,
           testTitle: report.testName || snapshot.testName || null,
+          // Thông tin xử lý
+          reviewedBy: report.reviewedBy || null,
+          reviewerName: report.reviewerName || null,
+          reviewerNotes: report.reviewerNotes || null,
+          reviewedAt: report.reviewedAt || null,
         };
       });
       
@@ -1981,85 +2055,167 @@ export function ReportTab() {
     });
   };
 
+  const cellCardStyle = {
+    width: "100%",
+    padding: "8px 10px",
+    borderRadius: 8,
+    background: "#fafafa",
+    border: "1px solid #f0f0f0",
+  };
+
+  const sectionTitleStyle = {
+    fontSize: 12,
+    fontWeight: 600,
+    color: "#64748b",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+    marginBottom: 4,
+  };
+
   const columns = [
     {
       title: "Chi tiết câu hỏi",
       key: "questionDetail",
-      width: 320,
+      width: 380,
       render: (_, record) => {
         const isExpanded = expandedReports.has(record.reportId);
         const questionText = record.questionContent || "—";
         const hasLongText = questionText.length > 150; // Ước tính text dài
         
         return (
-          <Space direction="vertical" size="small" style={{ width: "100%" }}>
-            <span>
-              <strong>Bài thi:</strong> {record.testName || "—"}
-            </span>
-            <span>
-              <strong>Phần:</strong> {record.partName || "—"}
-            </span>
-            <div>
-              <strong>Câu hỏi:</strong>
-              <div
-                style={{
-                  marginTop: 4,
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                  maxHeight: isExpanded ? "none" : "100px",
-                  overflow: isExpanded ? "visible" : "hidden",
-                  position: "relative",
-                }}
-              >
-                {questionText}
-                {!isExpanded && hasLongText && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      height: "30px",
-                      background: "linear-gradient(to bottom, transparent, #fff)",
-                      display: "flex",
-                      alignItems: "flex-end",
-                      justifyContent: "center",
-                      paddingBottom: 4,
-                    }}
-                  />
+          <div style={cellCardStyle}>
+            <Space direction="vertical" size={6} style={{ width: "100%" }}>
+              <div style={sectionTitleStyle}>Chi tiết câu hỏi</div>
+              <Space direction="vertical" size={2} style={{ width: "100%" }}>
+                <span>
+                  <strong>Bài thi:</strong> {record.testName || "—"}
+                </span>
+                <span>
+                  <strong>Phần:</strong> {record.partName || "—"}
+                </span>
+              </Space>
+              <div>
+                <strong>Câu hỏi:</strong>
+                <div
+                  style={{
+                    marginTop: 4,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                    maxHeight: isExpanded ? "none" : "100px",
+                    overflow: isExpanded ? "visible" : "hidden",
+                    position: "relative",
+                  }}
+                >
+                  {questionText}
+                  {!isExpanded && hasLongText && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        height: "30px",
+                        background: "linear-gradient(to bottom, transparent, #fff)",
+                        display: "flex",
+                        alignItems: "flex-end",
+                        justifyContent: "center",
+                        paddingBottom: 4,
+                      }}
+                    />
+                  )}
+                </div>
+                {hasLongText && (
+                  <Button
+                    type="link"
+                    size="small"
+                    onClick={() => toggleExpand(record.reportId)}
+                    style={{ padding: 0, height: "auto", marginTop: 4 }}
+                  >
+                    {isExpanded ? "Thu gọn" : "Xem thêm..."}
+                  </Button>
                 )}
               </div>
-              {hasLongText && (
-                <Button
-                  type="link"
-                  size="small"
-                  onClick={() => toggleExpand(record.reportId)}
-                  style={{ padding: 0, height: "auto", marginTop: 4 }}
-                >
-                  {isExpanded ? "Thu gọn" : "Xem thêm..."}
-                </Button>
-              )}
-            </div>
-          </Space>
+            </Space>
+          </div>
         );
       },
     },
     {
-      title: "Nội dung báo cáo",
-      dataIndex: "description",
-      key: "description",
-      ellipsis: true,
-      width: 300,
-      render: (description) => (
-        <div
-          style={{
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}
-        >
-          {description || "—"}
-        </div>
-      ),
+      title: "Báo cáo & xử lý",
+      key: "reportAndReview",
+      width: 340,
+      render: (_, record) => {
+        const description = record.description;
+        const hasReviewer = !!record.reviewerName;
+        const hasNotes = !!record.reviewerNotes;
+        const reviewedTime = record.reviewedAt && formatDate(record.reviewedAt);
+
+        return (
+          <div style={cellCardStyle}>
+            <Space direction="vertical" size={6} style={{ width: "100%" }}>
+              {/* Nội dung báo cáo */}
+              <div>
+                <div style={sectionTitleStyle}>Nội dung báo cáo</div>
+                <div
+                  style={{
+                    marginTop: 4,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {description || "—"}
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div
+                style={{
+                  height: 1,
+                  background: "#e5e7eb",
+                  margin: "4px 0 4px",
+                  opacity: 0.7,
+                }}
+              />
+
+              {/* Thông tin xử lý */}
+              <div>
+                <div style={sectionTitleStyle}>Thông tin xử lý</div>
+                {(!hasReviewer && !hasNotes && !reviewedTime) ? (
+                  <div style={{ marginTop: 4, color: "#9ca3af" }}>
+                    Chưa được xử lý
+                  </div>
+                ) : (
+                  <Space direction="vertical" size={2} style={{ marginTop: 4 }}>
+                    {hasReviewer && (
+                      <div>
+                        <strong>Người xử lý:</strong> {record.reviewerName}
+                      </div>
+                    )}
+                    {hasNotes && (
+                      <div>
+                        <strong>Nội dung xử lý:</strong>{" "}
+                        <span
+                          style={{
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {record.reviewerNotes}
+                        </span>
+                      </div>
+                    )}
+                    {reviewedTime && (
+                      <div style={{ fontSize: 12, color: "#888" }}>
+                        <strong>Thời gian xử lý:</strong> {reviewedTime}
+                      </div>
+                    )}
+                  </Space>
+                )}
+              </div>
+            </Space>
+          </div>
+        );
+      },
     },
     {
       title: "Loại báo cáo",
@@ -2075,7 +2231,13 @@ export function ReportTab() {
           "Unclear": "Câu hỏi không rõ ràng",
           "Other": "Khác",
         };
-        return typeMap[type] || type || "—";
+        const label = typeMap[type] || type || "—";
+        return (
+          <div style={cellCardStyle}>
+            <div style={sectionTitleStyle}>Loại báo cáo</div>
+            <div>{label}</div>
+          </div>
+        );
       },
     },
     {
@@ -2091,7 +2253,12 @@ export function ReportTab() {
           "Rejected": { label: "Từ chối", color: "error" },
         };
         const statusInfo = statusMap[status] || { label: status || "—", color: "default" };
-        return <Tag color={statusInfo.color}>{statusInfo.label}</Tag>;
+        return (
+          <div style={cellCardStyle}>
+            <div style={sectionTitleStyle}>Trạng thái</div>
+            <Tag color={statusInfo.color}>{statusInfo.label}</Tag>
+          </div>
+        );
       },
     },
     {
@@ -2099,7 +2266,12 @@ export function ReportTab() {
       dataIndex: "createdAt",
       key: "createdAt",
       width: 180,
-      render: (date) => formatDate(date),
+      render: (date) => (
+        <div style={cellCardStyle}>
+          <div style={sectionTitleStyle}>Ngày tạo</div>
+          <div>{formatDate(date)}</div>
+        </div>
+      ),
     },
   ];
 
@@ -2119,6 +2291,7 @@ export function ReportTab() {
               dataSource={reports}
               rowKey={(record, index) => record.reportId || record.key || `report-${index}`}
               loading={loading}
+              showHeader={false}
               pagination={{
                 current: pagination.current,
                 pageSize: pagination.pageSize,
@@ -2129,6 +2302,8 @@ export function ReportTab() {
               }}
               onChange={handleTableChange}
               scroll={{ x: 1000 }}
+              size="middle"
+              bordered
             />
           )}
         </Col>
