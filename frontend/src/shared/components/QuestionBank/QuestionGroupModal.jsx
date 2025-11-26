@@ -394,6 +394,22 @@ export default function QuestionGroupModal({
     },
   });
 
+  const handleMediaChange = (field) => (info) => {
+    const fileList = info?.fileList || [];
+    const latest = fileList.slice(-1);
+    form.setFieldsValue({ [field]: latest });
+
+    if (latest.length === 0) {
+      if (field === "audio") setAudioSrc(null);
+      if (field === "image") setImageSrc(null);
+    }
+
+    const errors = form.getFieldsError([field]);
+    if (errors[0]?.errors?.length > 0) {
+      form.setFields([{ name: field, errors: [] }]);
+    }
+  };
+
   const validateGroupAudio = () => ({
     validator(_, value) {
       if (!isAudioRequired || !showAudioField) return Promise.resolve();
@@ -683,17 +699,8 @@ export default function QuestionGroupModal({
                     beforeUpload={() => false}
                     maxCount={1}
                     accept=".mp3,audio/mpeg,audio/mp3"
-                    showUploadList={{
-                      showPreviewIcon: false,
-                      showRemoveIcon: true,
-                    }}
-                    onChange={() => {
-                      // Xóa lỗi khi chọn file (nếu có)
-                      const errors = form.getFieldsError(['audio']);
-                      if (errors[0]?.errors?.length > 0) {
-                        form.setFields([{ name: 'audio', errors: [] }]);
-                      }
-                    }}
+                    showUploadList={false}
+                    onChange={handleMediaChange("audio")}
                     onRemove={() => {
                       form.setFieldsValue({ audio: [] });
                       return true;
@@ -717,7 +724,7 @@ export default function QuestionGroupModal({
                         src={audioSrc}
                         style={{ width: "100%" }}
                       />
-                      {audioList?.[0]?.url && (
+                      {audioList?.length ? (
                         <Button
                           danger
                           type="primary"
@@ -733,7 +740,7 @@ export default function QuestionGroupModal({
                         >
                           Xóa audio
                         </Button>
-                      )}
+                      ) : null}
                     </div>
                   )}
                 </Form.Item>
@@ -755,17 +762,8 @@ export default function QuestionGroupModal({
                     maxCount={1}
                     accept="image/*"
                     listType="picture"
-                    showUploadList={{
-                      showPreviewIcon: false,
-                      showRemoveIcon: true,
-                    }}
-                    onChange={() => {
-                      // Xóa lỗi khi chọn file (nếu có)
-                      const errors = form.getFieldsError(['image']);
-                      if (errors[0]?.errors?.length > 0) {
-                        form.setFields([{ name: 'image', errors: [] }]);
-                      }
-                    }}
+                    showUploadList={false}
+                    onChange={handleMediaChange("image")}
                     onRemove={() => {
                       form.setFieldsValue({ image: [] });
                       return true;
@@ -786,7 +784,7 @@ export default function QuestionGroupModal({
                     </Button>
                   </Upload>
                   {imageSrc && (
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: 8, position: "relative" }}>
                       <img
                         src={imageSrc}
                         alt="preview"
@@ -800,7 +798,7 @@ export default function QuestionGroupModal({
                           background: "#fff",
                         }}
                       />
-                      {imageList?.[0]?.url && (
+                      {imageList?.length ? (
                         <Button
                           danger
                           type="primary"
@@ -816,7 +814,7 @@ export default function QuestionGroupModal({
                         >
                           Xóa ảnh
                         </Button>
-                      )}
+                      ) : null}
                     </div>
                   )}
                 </Form.Item>

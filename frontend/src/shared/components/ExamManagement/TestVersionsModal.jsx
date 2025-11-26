@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Table, Tag, message, Switch, Tooltip } from "antd";
+import { Modal, Table, Tag, message, Switch, Tooltip, Button } from "antd";
 import { getTestVersions, hideTest, publishTest } from "@services/testsService";
 
 export default function TestVersionsModal({ open, onClose, parentTestId, onSelectVersion }) {
@@ -93,7 +93,20 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
     };
 
     const getTestId = (record) => {
-        return record?.testId ?? record?.TestId ?? record?.id ?? record?.Id ?? null;
+        return record?.id ?? record?.Id ?? record?.testId ?? record?.TestId ?? null;
+    };
+
+    const handleViewDetail = (record) => {
+        const testId = getTestId(record);
+        if (!testId) {
+            message.error("Không xác định được ID version để xem chi tiết");
+            return;
+        }
+        if (typeof onSelectVersion === "function") {
+            onSelectVersion(testId);
+        } else {
+            message.warning("Chưa cấu hình hành động xem chi tiết");
+        }
     };
 
     const handleToggleVisibility = async (record, targetChecked) => {
@@ -186,6 +199,21 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
             render: (date) => date ? new Date(date).toLocaleString("vi-VN") : "-"
         },
         {
+            title: "Chi tiết",
+            key: "detail",
+            width: 120,
+            align: "center",
+            render: (_, record) => (
+                <Button
+                    type="link"
+                    size="small"
+                    onClick={() => handleViewDetail(record)}
+                >
+                    Xem
+                </Button>
+            )
+        },
+        {
             title: "Ẩn / Hiện",
             key: "action",
             width: 140,
@@ -221,12 +249,12 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
             open={open}
             onCancel={onClose}
             footer={null}
-            width={800}
+            width={1100}
         >
             <Table
                 columns={columns}
                 dataSource={versions}
-                rowKey="testId"
+                rowKey={(record) => getTestId(record) ?? `version-${record?.version}`}
                 loading={loading}
                 pagination={false}
             />

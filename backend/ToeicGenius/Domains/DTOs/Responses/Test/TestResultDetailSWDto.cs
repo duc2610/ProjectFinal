@@ -16,6 +16,7 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
         public TestType TestType { get; set; }
         public TestSkill TestSkill { get; set; }
         public int Duration { get; set; }
+        public int TimeResuilt { get; set; }
         public int QuantityQuestion { get; set; }
 
         // Aggregated skill scores

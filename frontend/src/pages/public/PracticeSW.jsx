@@ -413,7 +413,7 @@ export default function PracticeSW() {
                 {/* Header Section */}
                 <div className={styles.headerSection}>
                     <h1 className={styles.headerTitle}>
-                        Practice Speaking & Writing
+                    Luyện tập Speaking & Writing
                     </h1>
                     <p className={styles.headerDescription}>
                         Luyện tập kỹ năng nói và viết với hàng ngàn câu hỏi đa dạng từ cơ bản đến nâng cao

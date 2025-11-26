@@ -201,18 +201,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 const loadedParts = await loadPartsBySkill(skillVal);
                 setParts(loadedParts);
 
-                // Parse parts data từ detail
-                const partsArr = d.parts || d.Parts || [];
-                console.log("=== DỮ LIỆU TỪ API ===");
-                console.log(`API trả về ${partsArr.length} parts`);
-                partsArr.forEach((p, idx) => {
-                    const partId = p.partId || p.PartId;
-                    const tqs = p.testQuestions || p.TestQuestions || [];
-                    const groupCount = tqs.filter(tq => (tq.isGroup ?? tq.IsGroup) === true).length;
-                    const singleCount = tqs.filter(tq => (tq.isGroup ?? tq.IsGroup) === false).length;
-                    console.log(`Part ${partId} (index ${idx}): ${tqs.length} testQuestions (${groupCount} groups, ${singleCount} single)`);
-                });
-                console.log("====================");
                 
                 const newPartsData = {};
                 

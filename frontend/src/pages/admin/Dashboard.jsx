@@ -154,9 +154,7 @@ export default function AdminDashboard() {
       title: "Người dùng hoạt động",
       value: stats.activeUsers,
       prefix: <CheckCircleOutlined />,
-      suffix: stats.totalUsers > 0 
-        ? `${Math.round((stats.activeUsers / stats.totalUsers) * 100)}%`
-        : "0%",
+      
       valueStyle: { color: "#52c41a" },
     },
     {
@@ -221,7 +219,7 @@ export default function AdminDashboard() {
   return (
     <div style={{ padding: "24px" }} className="animate-fade-in">
       <Title level={2} style={{ marginBottom: 24 }} className="animate-fade-in-down">
-        Bảng điều khiển Admin
+        Bảng điều khiển 
       </Title>
 
       {/* Statistics Cards */}
