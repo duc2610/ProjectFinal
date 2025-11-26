@@ -101,7 +101,7 @@ export default function AdminDashboard() {
           user: item.userName || "",
           test: testMatch ? testMatch[1] : null,
           time: dayjs(item.timestamp),
-          status: item.status || "info",
+          status: item.status || "thông tin",
         };
       });
 
@@ -188,15 +188,37 @@ export default function AdminDashboard() {
     },
   ];
 
+  // Chuyển đổi status sang tiếng Việt
+  const translateStatus = (status) => {
+    const statusMap = {
+      "published": "đã xuất bản",
+      "draft": "nháp",
+      "hidden": "đã ẩn",
+      "private": "riêng tư",
+      "public": "công khai",
+      "success": "thành công",
+      "error": "lỗi",
+      "info": "thông tin",
+      "warning": "cảnh báo",
+    };
+    return statusMap[status?.toLowerCase()] || status || "thông tin";
+  };
+
   // Activity status colors
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case "success":
+      case "thành công":
         return "green";
       case "error":
+      case "lỗi":
         return "red";
       case "info":
+      case "thông tin":
         return "blue";
+      case "warning":
+      case "cảnh báo":
+        return "orange";
       default:
         return "default";
     }
@@ -380,7 +402,7 @@ export default function AdminDashboard() {
                         <Space>
                           <Text strong>{item.action}</Text>
                           <Tag color={getStatusColor(item.status)}>
-                            {item.status}
+                            {translateStatus(item.status)}
                           </Tag>
                         </Space>
                       }
