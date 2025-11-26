@@ -11,6 +11,12 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
       const values = await form.validateFields();
       setLoading(true);
       
+      const examples =
+        values.examples
+          ?.split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean) || [];
+
       const data = {
         setId: setId,
         term: values.term.trim(),
@@ -18,6 +24,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
         pronunciation: values.pronunciation?.trim() || null,
         wordType: values.wordType?.trim() || null,
         notes: values.notes?.trim() || null,
+        examples,
       };
 
       const result = await createFlashcard(data);
@@ -186,6 +193,23 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
             }}
             onFocus={() => {
               // Validate các trường trước đó khi focus vào trường này
+              form.validateFields(['term', 'definition']).catch(() => {});
+            }}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="examples"
+          label="Ví dụ (mỗi dòng một câu, tùy chọn)"
+          tooltip="Nhập 1–3 câu ví dụ cho từ này. Mỗi câu một dòng."
+          validateTrigger={['onBlur']}
+        >
+          <Input.TextArea
+            rows={3}
+            placeholder={"Ví dụ:\nShe accomplished her goal of running a marathon.\nWe accomplished the task on time."}
+            maxLength={1000}
+            showCount
+            onFocus={() => {
               form.validateFields(['term', 'definition']).catch(() => {});
             }}
           />

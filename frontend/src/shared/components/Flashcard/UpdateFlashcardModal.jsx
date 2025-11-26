@@ -14,6 +14,7 @@ export default function UpdateFlashcardModal({ open, onClose, onSuccess, card })
         pronunciation: card.pronunciation || "",
         wordType: card.wordType || "",
         notes: card.notes || "",
+        examples: Array.isArray(card.examples) ? card.examples.join("\n") : "",
       });
     }
   }, [open, card, form]);
@@ -23,12 +24,19 @@ export default function UpdateFlashcardModal({ open, onClose, onSuccess, card })
       const values = await form.validateFields();
       setLoading(true);
       
+      const examples =
+        values.examples
+          ?.split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean) || [];
+
       const data = {
         term: values.term.trim(),
         definition: values.definition?.trim() || null,
         pronunciation: values.pronunciation?.trim() || null,
         wordType: values.wordType?.trim() || null,
         notes: values.notes?.trim() || null,
+        examples,
       };
 
       const result = await updateFlashcard(card.cardId, data);
@@ -199,6 +207,23 @@ export default function UpdateFlashcardModal({ open, onClose, onSuccess, card })
             }}
             onFocus={() => {
               // Validate các trường trước đó khi focus vào trường này
+              form.validateFields(['term', 'definition']).catch(() => {});
+            }}
+          />
+        </Form.Item>
+
+        <Form.Item
+          name="examples"
+          label="Ví dụ (mỗi dòng một câu, tùy chọn)"
+          tooltip="Nhập 1–3 câu ví dụ cho từ này. Mỗi câu một dòng."
+          validateTrigger={['onBlur']}
+        >
+          <Input.TextArea
+            rows={3}
+            placeholder={"Ví dụ:\nShe accomplished her goal.\nWe accomplished the task on time."}
+            maxLength={1000}
+            showCount
+            onFocus={() => {
               form.validateFields(['term', 'definition']).catch(() => {});
             }}
           />

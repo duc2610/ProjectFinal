@@ -36,6 +36,7 @@ export default function FlashcardDetail() {
   const [editSetModalOpen, setEditSetModalOpen] = useState(false);
   const [editCardModalOpen, setEditCardModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
+  const [showAllVocab, setShowAllVocab] = useState(false);
 
   useEffect(() => {
     if (setId) {
@@ -164,6 +165,7 @@ export default function FlashcardDetail() {
 
 
   const currentCard = flashcards[currentCardIndex];
+  const vocabToRender = showAllVocab ? flashcards : flashcards.slice(0, 10);
 
   if (loading) {
     return (
@@ -266,19 +268,52 @@ export default function FlashcardDetail() {
               <div className="quizlet-card-inner">
                 <div className={`quizlet-card-face quizlet-card-front ${isFlipped ? "hidden" : ""}`}>
                   <div className="quizlet-card-content">
-                    <div className="quizlet-card-word">{currentCard?.term || currentCard?.frontText}</div>
+                    <div className="quizlet-card-word">
+                      {currentCard?.term || currentCard?.frontText}
+                    </div>
+                    {(currentCard?.pronunciation || currentCard?.wordType) && (
+                      <div className="quizlet-card-meta">
+                        {currentCard?.pronunciation && (
+                          <span className="quizlet-card-pron">{currentCard.pronunciation}</span>
+                        )}
+                        {currentCard?.wordType && (
+                          <span className="quizlet-card-type">({currentCard.wordType})</span>
+                        )}
+                      </div>
+                    )}
                     <div className="quizlet-card-hint">
                       <RotateLeftOutlined /> Nhấn để xem nghĩa
                     </div>
                   </div>
                 </div>
                 <div className={`quizlet-card-face quizlet-card-back ${!isFlipped ? "hidden" : ""}`}>
-                  <div className="quizlet-card-content">
-                    <div className="quizlet-card-word">{currentCard?.definition || currentCard?.backText}</div>
-                    <div className="quizlet-card-hint">
-                      <RotateLeftOutlined /> Nhấn để xem từ
+                    <div className="quizlet-card-content">
+                      <div className="quizlet-card-word">
+                        {currentCard?.definition || currentCard?.backText}
+                      </div>
+
+                      {Array.isArray(currentCard?.examples) && currentCard.examples.length > 0 && (
+                        <div className="quizlet-card-section">
+                          <div className="quizlet-card-section-title">Ví dụ</div>
+                          <ul className="quizlet-card-examples">
+                            {currentCard.examples.map((ex, idx) => (
+                              <li key={idx}>{ex}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {currentCard?.notes && (
+                        <div className="quizlet-card-section quizlet-card-notes">
+                          <div className="quizlet-card-section-title">Ghi chú</div>
+                          <div className="quizlet-card-notes-text">{currentCard.notes}</div>
+                        </div>
+                      )}
+
+                      <div className="quizlet-card-hint">
+                        <RotateLeftOutlined /> Nhấn để xem từ
+                      </div>
                     </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -317,7 +352,7 @@ export default function FlashcardDetail() {
           <Empty description="Chưa có từ vựng nào" />
         ) : (
           <div className="quizlet-vocab-list">
-            {flashcards.map((card, index) => (
+            {vocabToRender.map((card, index) => (
               <div
                 key={card.cardId}
                 className={`quizlet-vocab-item ${index === currentCardIndex ? "active" : ""}`}
@@ -327,9 +362,40 @@ export default function FlashcardDetail() {
                 <div className="quizlet-vocab-content">
                   <div className="quizlet-vocab-term">
                     {card.term || card.frontText}
+                    {card.wordType && (
+                      <span className="quizlet-vocab-type"> ({card.wordType})</span>
+                    )}
                     {isAuthenticated && getStatusTag(card.cardId)}
                   </div>
-                  <div className="quizlet-vocab-definition">{card.definition || card.backText}</div>
+
+                  {(card.pronunciation || card.wordType) && (
+                    <div className="quizlet-vocab-meta">
+                      {card.pronunciation && (
+                        <span className="quizlet-vocab-pron">{card.pronunciation}</span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="quizlet-vocab-definition">
+                    {card.definition || card.backText}
+                  </div>
+
+                  {Array.isArray(card.examples) && card.examples.length > 0 && (
+                    <div className="quizlet-vocab-example">
+                      <div className="quizlet-vocab-label">Ví dụ:</div>
+                      <ul className="quizlet-vocab-example-list">
+                        {card.examples.map((ex, idx) => (
+                          <li key={idx}>{ex}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {card.notes && (
+                    <div className="quizlet-vocab-notes">
+                      <span className="quizlet-vocab-label">Ghi chú:</span> {card.notes}
+                    </div>
+                  )}
                 </div>
                 <div className="quizlet-vocab-actions">
                   <Button
@@ -364,6 +430,17 @@ export default function FlashcardDetail() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+        {flashcards.length > 10 && (
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <Button
+              type="link"
+              onClick={() => setShowAllVocab(!showAllVocab)}
+              style={{ fontWeight: 500 }}
+            >
+              {showAllVocab ? "Thu gọn" : `Xem thêm (${flashcards.length - 10} thuật ngữ)`}
+            </Button>
           </div>
         )}
       </div>

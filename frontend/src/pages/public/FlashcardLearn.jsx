@@ -524,16 +524,49 @@ export default function FlashcardLearn() {
               >
                 <div className="quizlet-learn-card-inner">
                   <div className={`quizlet-card-face quizlet-card-front ${isFlipped ? "hidden" : ""}`}>
-                    <div className="quizlet-card-content">
-                      <div className="quizlet-card-word">{currentCard?.term || currentCard?.frontText}</div>
-                      <div className="quizlet-card-hint">
-                        <RotateLeftOutlined /> Nhấn để xem nghĩa
-                      </div>
+                <div className="quizlet-card-content">
+                  <div className="quizlet-card-word">
+                    {currentCard?.term || currentCard?.frontText}
+                  </div>
+                  {(currentCard?.pronunciation || currentCard?.wordType) && (
+                    <div className="quizlet-card-meta">
+                      {currentCard?.pronunciation && (
+                        <span className="quizlet-card-pron">{currentCard.pronunciation}</span>
+                      )}
+                      {currentCard?.wordType && (
+                        <span className="quizlet-card-type">({currentCard.wordType})</span>
+                      )}
                     </div>
+                  )}
+                  <div className="quizlet-card-hint">
+                    <RotateLeftOutlined /> Nhấn để xem nghĩa
+                  </div>
+                </div>
                   </div>
                   <div className={`quizlet-card-face quizlet-card-back ${!isFlipped ? "hidden" : ""}`}>
                     <div className="quizlet-card-content">
-                      <div className="quizlet-card-word">{currentCard?.definition || currentCard?.backText}</div>
+                      <div className="quizlet-card-word">
+                        {currentCard?.definition || currentCard?.backText}
+                      </div>
+
+                      {Array.isArray(currentCard?.examples) && currentCard.examples.length > 0 && (
+                        <div className="quizlet-card-section">
+                          <div className="quizlet-card-section-title">Ví dụ</div>
+                          <ul className="quizlet-card-examples">
+                            {currentCard.examples.map((ex, idx) => (
+                              <li key={idx}>{ex}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {currentCard?.notes && (
+                        <div className="quizlet-card-section quizlet-card-notes">
+                          <div className="quizlet-card-section-title">Ghi chú</div>
+                          <div className="quizlet-card-notes-text">{currentCard.notes}</div>
+                        </div>
+                      )}
+
                       <div className="quizlet-card-hint">
                         <RotateLeftOutlined /> Nhấn để xem từ
                       </div>
