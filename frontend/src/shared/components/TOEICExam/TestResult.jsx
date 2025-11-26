@@ -933,6 +933,27 @@ export default function ResultScreen() {
     return presence;
   }, [detailData]);
 
+  const normalizedTestType = useMemo(
+    () =>
+      normalizeTestType(
+        result?.testType || testMeta?.testType || getSavedTestData()?.testType
+      ),
+    [result?.testType, testMeta?.testType, getSavedTestData]
+  );
+
+  const skillGroup = useMemo(
+    () =>
+      inferSkillGroup(
+        result?.testSkill ?? testMeta?.testSkill ?? getSavedTestData()?.testSkill
+      ),
+    [result?.testSkill, testMeta?.testSkill, getSavedTestData]
+  );
+
+  const isPracticeLrMode = useMemo(
+    () => normalizedTestType === "Practice" && skillGroup === "lr",
+    [normalizedTestType, skillGroup]
+  );
+
   const scoreConfigs = useMemo(
     () =>
       SCORE_META.map((meta) => ({
@@ -941,6 +962,83 @@ export default function ResultScreen() {
       })),
     [result]
   );
+
+  const lrQuestionTotals = useMemo(() => {
+    const totals = { listening: 0, reading: 0, all: 0 };
+    if (!detailData?.parts) return totals;
+
+    (detailData.parts || []).forEach((part) => {
+      const partId = part.partId;
+      const isListening = partId >= 1 && partId <= 4;
+      const isReading = partId >= 5 && partId <= 7;
+      if (!isListening && !isReading) return;
+
+      part.testQuestions?.forEach((tq) => {
+        let count = 0;
+        if (tq.isGroup && tq.questionGroupSnapshotDto) {
+          count = tq.questionGroupSnapshotDto.questionSnapshots?.length || 0;
+        } else if (!tq.isGroup && tq.questionSnapshotDto) {
+          count = 1;
+        }
+        if (isListening) totals.listening += count;
+        if (isReading) totals.reading += count;
+        totals.all += count;
+      });
+    });
+
+    return totals;
+  }, [detailData]);
+
+  const practiceLrStats = useMemo(() => {
+    const listeningRows = questionRowsBySection.listening || [];
+    const readingRows = questionRowsBySection.reading || [];
+
+    const calcAnswered = (rows) => {
+      const answered = rows.length;
+      const correct = rows.filter((r) => r.isCorrect === true).length;
+      const wrong = rows.filter((r) => r.isCorrect === false).length;
+      return { answered, correct, wrong };
+    };
+
+    const listeningAnswered = calcAnswered(listeningRows);
+    const readingAnswered = calcAnswered(readingRows);
+
+    const totalQuestions = lrQuestionTotals.all;
+    const totalAnswered = listeningAnswered.answered + readingAnswered.answered;
+    const correct = listeningAnswered.correct + readingAnswered.correct;
+    const wrong = listeningAnswered.wrong + readingAnswered.wrong;
+    const unanswered = Math.max(0, totalQuestions - totalAnswered);
+
+    const accuracy =
+      totalQuestions > 0 ? Math.round((correct / totalQuestions) * 100) : 0;
+
+    const listening = {
+      total: lrQuestionTotals.listening,
+      answered: listeningAnswered.answered,
+      correct: listeningAnswered.correct,
+      wrong: listeningAnswered.wrong,
+      unanswered: Math.max(0, lrQuestionTotals.listening - listeningAnswered.answered),
+    };
+
+    const reading = {
+      total: lrQuestionTotals.reading,
+      answered: readingAnswered.answered,
+      correct: readingAnswered.correct,
+      wrong: readingAnswered.wrong,
+      unanswered: Math.max(0, lrQuestionTotals.reading - readingAnswered.answered),
+    };
+
+    return {
+      totalQuestions,
+      totalAnswered,
+      correct,
+      wrong,
+      unanswered,
+      accuracy,
+      listening,
+      reading,
+    };
+  }, [questionRowsBySection, lrQuestionTotals]);
 
   const skillPresenceMap = useMemo(
     () => ({
@@ -1024,26 +1122,85 @@ export default function ResultScreen() {
   }, [questionRowsBySection, swFeedbacks]);
 
   const displayedTotalScore = result?.totalScore ?? getTotalScore;
+  const savedTestData = getSavedTestData();
+  const resolveTimeSpent = (source) => {
+    if (!source) return undefined;
+    if (source.timeResuilt !== undefined && source.timeResuilt !== null) {
+      return Number(source.timeResuilt);
+    }
+    if (source.timeResult !== undefined && source.timeResult !== null) {
+      return Number(source.timeResult);
+    }
+    return undefined;
+  };
+  // Thời lượng đề (phút) – luôn lấy đúng từ duration của đề
+  const displayedDuration =
+    result?.duration ??
+    testMeta?.duration ??
+    savedTestData?.duration ??
+    0;
+  // Thời gian làm bài – luôn lấy từ timeResuilt (thực tế làm bao nhiêu phút)
+  const displayedTimeSpent =
+    resolveTimeSpent(result) ??
+    resolveTimeSpent(testMeta) ??
+    resolveTimeSpent(savedTestData) ??
+    displayedDuration;
+  // Chế độ thời gian: true = đếm ngược theo thời lượng đề, false = đếm từ 0
+  const displayedIsSelectTime =
+    result?.isSelectTime ??
+    testMeta?.isSelectTime ??
+    savedTestData?.isSelectTime ??
+    true;
 
   // === SIDEBAR SECTIONS - CHỈ LẤY TỪ API, KHÔNG TỰ SUY LUẬN ===
-  const sections = result
-    ? [
+  const sections = useMemo(() => {
+    if (!result) return [];
+    if (isPracticeLrMode) {
+      return [
         {
           key: "overall",
-          title: "Tổng điểm",
-          score: getTotalScore,
-          max: getMaxScore,
+          title: "Tiến độ tổng quan",
+          description: `${practiceLrStats.correct}/${practiceLrStats.totalQuestions} câu đúng`,
           icon: <CheckCircleTwoTone twoToneColor="#52c41a" />,
         },
-        ...availableScoreConfigs.map((cfg) => ({
-          key: cfg.key,
-          title: cfg.label,
-          score: cfg.score,
-          max: cfg.max,
-          icon: cfg.icon,
-        })),
-      ]
-    : [];
+        {
+          key: "listening",
+          title: "Nghe",
+          description: `${practiceLrStats.listening.correct}/${practiceLrStats.listening.answered} câu đúng`,
+          icon: <SoundOutlined />,
+        },
+        {
+          key: "reading",
+          title: "Đọc",
+          description: `${practiceLrStats.reading.correct}/${practiceLrStats.reading.answered} câu đúng`,
+          icon: <ReadOutlined />,
+        },
+      ];
+    }
+    return [
+      {
+        key: "overall",
+        title: "Tổng điểm",
+        score: getTotalScore,
+        max: getMaxScore,
+        icon: <CheckCircleTwoTone twoToneColor="#52c41a" />,
+      },
+      ...availableScoreConfigs.map((cfg) => ({
+        key: cfg.key,
+        title: cfg.label,
+        score: cfg.score,
+        max: cfg.max,
+        icon: cfg.icon,
+      })),
+    ];
+  }, [
+    result,
+    isPracticeLrMode,
+    practiceLrStats,
+    availableScoreConfigs,
+    getTotalScore,
+    getMaxScore,
+  ]);
 
   useEffect(() => {
     setLrPagination((prev) => ({ ...prev, current: 1 }));
@@ -1498,6 +1655,428 @@ export default function ResultScreen() {
     );
   }
 
+  const renderPracticeSummary = () => {
+    const partStat =
+      selectedSection === "listening"
+        ? practiceLrStats.listening
+        : selectedSection === "reading"
+        ? practiceLrStats.reading
+        : null;
+    const tiles = [
+      { label: "Tổng số câu trong đề", value: practiceLrStats.totalQuestions },
+      { label: "Câu đã làm", value: practiceLrStats.totalAnswered, color: "#1d39c4" },
+      { label: "Câu chưa làm", value: practiceLrStats.unanswered, color: "#fa8c16" },
+      {
+        label: "Độ chính xác (trên toàn đề)",
+        value: `${practiceLrStats.accuracy}%`,
+        color: "#389e0d",
+      },
+    ];
+    return (
+      <div
+        style={{
+          width: "100%",
+          padding: 32,
+          borderRadius: 20,
+          border: "1px dashed #91caff",
+          background: "linear-gradient(135deg, #e6f7ff, #f0f9ff)",
+          textAlign: "center",
+        }}
+      >
+        <div style={{ fontSize: 48, marginBottom: 12 }}>ℹ️</div>
+        <Title level={3} style={{ marginBottom: 8, color: "#0958d9" }}>
+          Chế độ Practice (Listening & Reading)
+        </Title>
+        <Text style={{ fontSize: 16, color: "#1f3b76" }}>
+          Chế độ luyện tập không chấm điểm tự động. Hệ thống chỉ hiển thị danh sách câu hỏi bạn
+          đã làm cùng trạng thái đúng/sai để tự đánh giá.
+        </Text>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 16,
+            flexWrap: "wrap",
+            marginTop: 24,
+          }}
+        >
+          {tiles.map((tile) => (
+            <div
+              key={tile.label}
+              style={{
+                minWidth: 160,
+                padding: "16px 20px",
+                borderRadius: 12,
+                background: "#fff",
+                border: "1px solid rgba(145,202,255,0.7)",
+                boxShadow: "0 6px 16px rgba(9,88,217,0.08)",
+              }}
+            >
+              <Text type="secondary">{tile.label}</Text>
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 24,
+                  fontWeight: 700,
+                  color: tile.color || "#0c1d4f",
+                }}
+              >
+                {tile.value}
+              </div>
+            </div>
+          ))}
+        </div>
+        {partStat && (
+            <div
+              style={{
+                marginTop: 24,
+                padding: 16,
+                borderRadius: 12,
+                background: "#fff",
+                display: "flex",
+                justifyContent: "center",
+                gap: 24,
+                flexWrap: "wrap",
+                border: "1px solid #e0e7ff",
+              }}
+            >
+              <div>
+                <Text type="secondary">
+                  Tổng câu ({selectedSection === "listening" ? "Nghe" : "Đọc"})
+                </Text>
+                <Title level={4} style={{ margin: 0, color: "#003a8c" }}>
+                  {partStat.total}
+                </Title>
+              </div>
+              <div>
+                <Text type="secondary">Đã làm</Text>
+                <Title level={4} style={{ margin: 0, color: "#1d39c4" }}>
+                  {partStat.answered}
+                </Title>
+              </div>
+              <div>
+                <Text type="secondary">Chưa làm</Text>
+                <Title level={4} style={{ margin: 0, color: "#fa8c16" }}>
+                  {partStat.unanswered}
+                </Title>
+              </div>
+              <div>
+                <Text type="secondary">Đúng</Text>
+                <Title level={4} style={{ margin: 0, color: "#389e0d" }}>
+                  {partStat.correct}
+                </Title>
+              </div>
+              <div>
+                <Text type="secondary">Sai</Text>
+                <Title level={4} style={{ margin: 0, color: "#cf1322" }}>
+                  {partStat.wrong}
+                </Title>
+              </div>
+            </div>
+        )}
+      </div>
+    );
+  };
+
+  // Khối thông tin chi tiết dùng chung cho tất cả các màn kết quả
+  const renderGlobalDetailTiles = () => {
+    const tiles = [];
+
+    tiles.push({
+      label: "Thời gian làm bài",
+      value: `${displayedTimeSpent} phút`,
+      color: "#1d39c4",
+    });
+
+    tiles.push({
+      label: "Thời lượng đề",
+      value: displayedIsSelectTime ? `${displayedDuration} phút` : "Không giới hạn",
+      color: "#531dab",
+    });
+
+    if (skillGroup === "lr") {
+      tiles.push({
+        label: "Tổng số câu trong đề",
+        value: practiceLrStats.totalQuestions,
+        color: "#0958d9",
+      });
+      tiles.push({
+        label: "Câu đã làm",
+        value: practiceLrStats.totalAnswered,
+        color: "#1d39c4",
+      });
+      tiles.push({
+        label: "Câu chưa làm",
+        value: practiceLrStats.unanswered,
+        color: "#fa8c16",
+      });
+      tiles.push({
+        label: "Đúng",
+        value: practiceLrStats.correct,
+        color: "#389e0d",
+      });
+      tiles.push({
+        label: "Sai",
+        value: practiceLrStats.wrong,
+        color: "#cf1322",
+      });
+      tiles.push({
+        label: "Độ chính xác (trên toàn đề)",
+        value: `${practiceLrStats.accuracy}%`,
+        color: "#08979c",
+      });
+    } else {
+      const totalQuestions =
+        result?.questionQuantity ?? testMeta?.questionQuantity ?? 0;
+      if (totalQuestions > 0) {
+        tiles.push({
+          label: "Tổng số câu trong đề",
+          value: totalQuestions,
+          color: "#0958d9",
+        });
+      }
+      if (skillGroup === "sw" || skillGroup === "writing") {
+        if (result?.writingScore != null) {
+          tiles.push({
+            label: "Điểm Writing",
+            value: result.writingScore,
+            color: "#fa541c",
+          });
+        }
+        if (result?.speakingScore != null) {
+          tiles.push({
+            label: "Điểm Speaking",
+            value: result.speakingScore,
+            color: "#fa8c16",
+          });
+        }
+      }
+      if (result?.totalScore != null && normalizedTestType !== "Practice") {
+        tiles.push({
+          label: "Tổng điểm",
+          value: result.totalScore,
+          color: "#722ed1",
+        });
+      }
+    }
+
+    return (
+      <div
+        style={{
+          marginTop: 24,
+          paddingTop: 16,
+          borderTop: "1px dashed #e6f4ff",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: 900,
+            margin: "0 auto",
+          }}
+        >
+          <Title level={5} style={{ marginBottom: 12, textAlign: "center" }}>
+            Thông tin chi tiết
+          </Title>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 16,
+              justifyContent: "center",
+            }}
+          >
+            {tiles.map((tile) => (
+              <div
+                key={tile.label}
+                style={{
+                  flex: "1 1 180px",
+                  minWidth: 160,
+                  padding: "14px 18px",
+                  borderRadius: 12,
+                  background: "#ffffff",
+                  border: "1px solid #e6f4ff",
+                  boxShadow: "0 3px 10px rgba(15, 23, 42, 0.08)",
+                }}
+              >
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {tile.label}
+                </Text>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 20,
+                    fontWeight: 700,
+                    color: tile.color || "#111827",
+                  }}
+                >
+                  {tile.value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderScoreDisplay = () => {
+    if (isPracticeLrMode) {
+      return (
+        <>
+          {renderPracticeSummary()}
+          {renderGlobalDetailTiles()}
+        </>
+      );
+    }
+    if (selectedSection === "overall") {
+      return (
+        <div>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 24,
+              width: "100%",
+            }}
+          >
+            <div
+            style={{
+              flex: "1 1 280px",
+              minWidth: 260,
+              background: "linear-gradient(135deg, #1d39c4, #2f54eb)",
+              borderRadius: 16,
+              padding: 24,
+              color: "#fff",
+              boxShadow: "0 15px 35px rgba(47, 84, 235, 0.25)",
+            }}
+            >
+              <Text strong style={{ color: "rgba(255,255,255,0.85)" }}>
+                Kết quả tổng quan
+              </Text>
+              <Title level={1} style={{ color: "#fff", margin: "12px 0 0" }}>
+                {displayScore}
+              </Title>
+              <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 16 }}>
+                Trên tổng {getMaxScore} điểm
+              </Text>
+              <div style={{ marginTop: 16 }}>
+                <Tag
+                  color={
+                    displayedTotalScore >= 785
+                      ? "green"
+                      : displayedTotalScore >= 600
+                      ? "orange"
+                      : "default"
+                  }
+                  style={{ padding: "4px 12px", borderRadius: 999 }}
+                >
+                  {displayedTotalScore >= 785
+                    ? "Nâng cao"
+                    : displayedTotalScore >= 600
+                    ? "Trung bình"
+                    : "Cơ bản"}
+                </Tag>
+              </div>
+              <div style={{ marginTop: 12, fontSize: 14, color: "rgba(255,255,255,0.9)" }}>
+                Ngày thi:{" "}
+                {result.createdAt
+                  ? new Date(result.createdAt).toLocaleDateString("vi-VN")
+                  : new Date().toLocaleDateString("vi-VN")}
+                <br />
+                {displayedIsSelectTime && (
+                  <>
+                    Thời lượng:{" "}
+                    {result.duration ||
+                      retakeTestInfo?.duration ||
+                      testMeta?.duration ||
+                      0}{" "}
+                    phút
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div
+              style={{
+                flex: "1 1 260px",
+                minWidth: 260,
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
+              }}
+            >
+              {availableScoreConfigs.length === 0 ? (
+                <div
+                  style={{
+                    padding: 24,
+                    borderRadius: 12,
+                    border: "1px dashed #d9d9d9",
+                    background: "#fafafa",
+                    textAlign: "center",
+                  }}
+                >
+                  <Text type="secondary">Không có dữ liệu điểm chi tiết</Text>
+                </div>
+              ) : (
+                availableScoreConfigs.map((item) => {
+                  const percent = Math.min(
+                    100,
+                    Math.round(((Number(item.score) || 0) / item.max) * 100)
+                  );
+                  return (
+                    <div
+                      key={item.key}
+                      style={{
+                        padding: 16,
+                        borderRadius: 12,
+                        border: "1px solid #f0f0f0",
+                        background: "#fff",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.04)",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 8,
+                        }}
+                      >
+                        <Text strong>{item.label}</Text>
+                        <Text style={{ color: item.color, fontWeight: 600 }}>
+                          {item.score}/{item.max}
+                        </Text>
+                      </div>
+                      <Progress
+                        percent={percent}
+                        strokeColor={item.color}
+                        showInfo={false}
+                        size="small"
+                        trailColor="#f5f5f5"
+                      />
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          {renderGlobalDetailTiles()}
+        </div>
+      );
+    }
+    return (
+      <>
+        <Title level={1} style={{ color: "#fa8c16", margin: 0 }}>
+          {displayScore}
+        </Title>
+        <Text strong>{selectedScoreConfig?.label || "Điểm phần thi"}</Text>
+        <br />
+        <Text type="secondary">Trên tổng {selectedScoreConfig?.max || 0} điểm</Text>
+        {renderGlobalDetailTiles()}
+      </>
+    );
+  };
+
   // === CÓ TRẢ LỜI → HIỂN THỊ KẾT QUẢ ===
   return (
     <div className={styles.resultPage}>
@@ -1520,13 +2099,15 @@ export default function ResultScreen() {
               </Text>
               <br />
               <Text type="secondary">
-                {s.score}/{s.max} điểm
+                {isPracticeLrMode
+                  ? s.description
+                  : `${s.score}/${s.max} điểm`}
               </Text>
             </div>
           </Card>
         ))}
 
-        <div className={styles.infoBox}>
+         <div className={styles.infoBox}>
           <Title level={5}>Thông tin bài thi</Title>
           <Text>
             Ngày:{" "}
@@ -1536,8 +2117,14 @@ export default function ResultScreen() {
             ).toLocaleDateString("vi-VN")}
           </Text>
           <br />
-          <Text>Thời gian: {result?.duration || testMeta?.duration || 0} phút</Text>
+          <Text>Thời gian làm bài: {displayedTimeSpent} phút</Text>
           <br />
+          {displayedIsSelectTime && (
+            <>
+              <Text>Thời lượng đề: {displayedDuration} phút</Text>
+              <br />
+            </>
+          )}
           <Text>
             Loại: {normalizeTestType(result?.testType || testMeta?.testType || "Simulator")}
           </Text>
@@ -1589,142 +2176,7 @@ export default function ResultScreen() {
           </Title>
 
           <Card className={styles.scoreCard}>
-            <div className={styles.scoreDisplay}>
-              {selectedSection === "overall" ? (
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 24,
-                    width: "100%",
-                  }}
-                >
-                  <div
-                    style={{
-                      flex: "1 1 280px",
-                      minWidth: 260,
-                      background: "linear-gradient(135deg, #1d39c4, #2f54eb)",
-                      borderRadius: 16,
-                      padding: 24,
-                      color: "#fff",
-                      boxShadow: "0 15px 35px rgba(47, 84, 235, 0.25)",
-                    }}
-                  >
-                    <Text strong style={{ color: "rgba(255,255,255,0.85)" }}>
-                      Kết quả tổng quan
-                    </Text>
-                    <Title level={1} style={{ color: "#fff", margin: "12px 0 0" }}>
-                      {displayScore}
-                    </Title>
-                    <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 16 }}>
-                      Trên tổng {getMaxScore} điểm
-                    </Text>
-                    <div style={{ marginTop: 16 }}>
-                      <Tag
-                        color={
-                          displayedTotalScore >= 785
-                            ? "green"
-                            : displayedTotalScore >= 600
-                            ? "orange"
-                            : "default"
-                        }
-                        style={{ padding: "4px 12px", borderRadius: 999 }}
-                      >
-                        {displayedTotalScore >= 785
-                          ? "Nâng cao"
-                          : displayedTotalScore >= 600
-                          ? "Trung bình"
-                          : "Cơ bản"}
-                      </Tag>
-                    </div>
-                    <div style={{ marginTop: 12, fontSize: 14, color: "rgba(255,255,255,0.9)" }}>
-                      Ngày thi:{" "}
-                      {result.createdAt
-                        ? new Date(result.createdAt).toLocaleDateString("vi-VN")
-                        : new Date().toLocaleDateString("vi-VN")}
-                      <br />
-                      Thời lượng:{" "}
-                      {result.duration || retakeTestInfo?.duration || testMeta?.duration || 0} phút
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      flex: "1 1 260px",
-                      minWidth: 260,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 16,
-                    }}
-                  >
-                    {availableScoreConfigs.length === 0 ? (
-                      <div
-                        style={{
-                          padding: 24,
-                          borderRadius: 12,
-                          border: "1px dashed #d9d9d9",
-                          background: "#fafafa",
-                          textAlign: "center",
-                        }}
-                      >
-                        <Text type="secondary">Không có dữ liệu điểm chi tiết</Text>
-                      </div>
-                    ) : (
-                      availableScoreConfigs.map((item) => {
-                        const percent = Math.min(
-                          100,
-                          Math.round(((Number(item.score) || 0) / item.max) * 100)
-                        );
-                        return (
-                          <div
-                            key={item.key}
-                            style={{
-                              padding: 16,
-                              borderRadius: 12,
-                              border: "1px solid #f0f0f0",
-                              background: "#fff",
-                              boxShadow: "0 4px 12px rgba(0,0,0,0.04)",
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 8,
-                              }}
-                            >
-                              <Text strong>{item.label}</Text>
-                              <Text style={{ color: item.color, fontWeight: 600 }}>
-                                {item.score}/{item.max}
-                              </Text>
-                            </div>
-                            <Progress
-                              percent={percent}
-                              strokeColor={item.color}
-                              showInfo={false}
-                              size="small"
-                              trailColor="#f5f5f5"
-                            />
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <Title level={1} style={{ color: "#fa8c16", margin: 0 }}>
-                    {displayScore}
-                  </Title>
-                  <Text strong>{selectedScoreConfig?.label || "Điểm phần thi"}</Text>
-                  <br />
-                  <Text type="secondary">
-                    Trên tổng {selectedScoreConfig?.max || 0} điểm
-                  </Text>
-                </>
-              )}
-            </div>
+            <div className={styles.scoreDisplay}>{renderScoreDisplay()}</div>
 
             {/* BẢNG CÂU HỎI L&R */}
             {(selectedSection === "listening" || selectedSection === "reading") && (
@@ -1890,22 +2342,6 @@ export default function ResultScreen() {
               </div>
             )}
 
-            {/* OVERALL */}
-            {selectedSection === "overall" && (
-              (result.listeningScore !== undefined || result.readingScore !== undefined) && (
-                <div style={{ marginTop: 24, display: "flex", justifyContent: "center" }}>
-                  <Button
-                    onClick={() => openDetailForSection("overall")}
-                    type="primary"
-                    loading={loadingDetail}
-                    size="large"
-                    style={{ minWidth: 220, borderRadius: 999 }}
-                  >
-                    Xem tất cả câu hỏi L&R
-                  </Button>
-                </div>
-              )
-            )}
           </Card>
         </div>
       </div>

@@ -13,6 +13,12 @@ import { SaveOutlined } from "@ant-design/icons";
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
+const MOBILE_NAV_BREAKPOINT = 992;
+
+const getIsCompactViewport = () => {
+  if (typeof window === "undefined") return false;
+  return window.innerWidth < MOBILE_NAV_BREAKPOINT;
+};
 
 export default function ExamScreen() {
   const navigate = useNavigate();
@@ -68,7 +74,9 @@ export default function ExamScreen() {
   
   const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
   const [timeElapsed, setTimeElapsed] = useState(initialElapsedSeconds);
-  const [isNavVisible, setIsNavVisible] = useState(true);
+  const [isCompactView, setIsCompactView] = useState(() => getIsCompactViewport());
+  const [isNavVisible, setIsNavVisible] = useState(() => !getIsCompactViewport());
+  const lastCompactStateRef = useRef(isCompactView);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -424,6 +432,26 @@ export default function ExamScreen() {
     isSelectTime,
     totalDurationSeconds,
   ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      const compact = getIsCompactViewport();
+      setIsCompactView(compact);
+      if (lastCompactStateRef.current !== compact) {
+        if (compact) {
+          setIsNavVisible(false);
+        } else {
+          setIsNavVisible(true);
+        }
+        lastCompactStateRef.current = compact;
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const onAnswer = (testQuestionId, value) => {
     setAnswers((prev) => {
@@ -1003,6 +1031,61 @@ export default function ExamScreen() {
 
   const loadingIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
 
+  const renderNavigator = () => (
+    <div
+      className={`${styles.sideNav} ${isCompactView ? styles.sideNavCompact : ""}`}
+    >
+      <QuestionNavigator
+        questions={questions}
+        currentIndex={currentIndex}
+        answers={answers}
+        goToQuestionByIndex={goToQuestionByIndex}
+      />
+    </div>
+  );
+
+  const renderActionButtons = (variant = "desktop") => {
+    const containerClass =
+      variant === "mobile" ? styles.mobileActionBar : styles.headerRight;
+    const btnClassExtra =
+      variant === "mobile" ? styles.actionBtnMobile : "";
+    const metricClass =
+      variant === "mobile"
+        ? `${styles.answerCounter} ${styles.mobileMetric}`
+        : styles.answerCounter;
+
+    return (
+      <div className={containerClass}>
+        <Button
+          icon={<SaveOutlined />}
+          onClick={handleSaveProgress}
+          disabled={isSaving || isSubmitting}
+          loading={isSaving}
+          className={`${styles.actionBtn} ${styles.saveBtn} ${btnClassExtra}`}
+        >
+          Lưu
+        </Button>
+        <Button
+          onClick={() => handleSubmit(false)}
+          disabled={isSubmitting}
+          loading={isSubmitting}
+          className={`${styles.actionBtn} ${styles.submitBtn} ${btnClassExtra}`}
+        >
+          Nộp bài
+        </Button>
+        <Button
+          className={`${styles.actionBtn} ${styles.timerBtn} ${btnClassExtra}`}
+          type="dashed"
+        >
+          {formatTime(isSelectTime ? timeLeft : timeElapsed)}
+        </Button>
+        <Text className={metricClass}>
+          {answeredCount}/{totalCount} câu
+        </Text>
+      </div>
+    );
+  };
+
   if (questions.length === 0) {
     return (
       <div style={{ textAlign: "center", padding: 50 }}>
@@ -1025,79 +1108,29 @@ export default function ExamScreen() {
               TOEIC - {rawTestData.title || "Bài thi"}
             </Text>
           </div>
-          <div className={styles.headerRight}>
-            <Button 
-              icon={<SaveOutlined />}
-              onClick={handleSaveProgress}
-              disabled={isSaving || isSubmitting}
-              loading={isSaving}
-              style={{
-                borderRadius: "8px",
-                height: "36px",
-                fontWeight: 600,
-                background: "rgba(255, 255, 255, 0.2)",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
-                color: "#fff"
-              }}
-            >
-              Lưu
-            </Button>
-            <Button 
-              onClick={() => handleSubmit(false)}
-              disabled={isSubmitting}
-              loading={isSubmitting}
-              style={{
-                borderRadius: "8px",
-                height: "36px",
-                fontWeight: 600,
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                marginLeft: 8
-              }}
-            >
-              Nộp bài
-            </Button>
-            <Button 
-              style={{ 
-                marginLeft: 8,
-                borderRadius: "8px",
-                height: "36px",
-                fontWeight: 600,
-                background: "rgba(255, 255, 255, 0.2)",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
-                color: "#fff"
-              }} 
-              type="dashed"
-            >
-              {formatTime(isSelectTime ? timeLeft : timeElapsed)}
-            </Button>
-            <Text style={{ 
-              color: "#fff", 
-              marginLeft: 12,
-              fontSize: "14px",
-              fontWeight: 600,
-              background: "rgba(255, 255, 255, 0.2)",
-              padding: "6px 12px",
-              borderRadius: "8px"
-            }}>
-              {answeredCount}/{totalCount} câu
-            </Text>
-          </div>
+          {!isCompactView && renderActionButtons("desktop")}
         </div>
       </Header>
 
+      {isCompactView && (
+        <div className={styles.mobileActionWrapper}>
+          {renderActionButtons("mobile")}
+        </div>
+      )}
+
       <Content className={styles.contentArea}>
+        {isCompactView && isNavVisible && (
+          <>
+            <div
+              className={styles.navBackdrop}
+              onClick={() => setIsNavVisible(false)}
+            />
+            {renderNavigator()}
+          </>
+        )}
         <div className={styles.examBody}>
-          {isNavVisible && (
-            <div className={styles.sideNav}>
-              <QuestionNavigator
-                questions={questions}
-                currentIndex={currentIndex}
-                answers={answers}
-                goToQuestionByIndex={goToQuestionByIndex}
-              />
-            </div>
-          )}
-          <div className={styles.questionArea} style={{ flex: isNavVisible ? 1 : "auto" }}>
+          {!isCompactView && isNavVisible && renderNavigator()}
+          <div className={styles.questionArea}>
             {/* Thông tin về nút Save */}
             {showSaveInfoAlert && (
               <Alert
@@ -1129,6 +1162,7 @@ export default function ExamScreen() {
               handleSubmit={() => handleSubmit(false)}
               isSubmitting={isSubmitting}
               globalAudioUrl={rawTestData.globalAudioUrl}
+              testType={rawTestData.testType || "Simulator"}
               isReported={questions[currentIndex] ? isQuestionReported(questions[currentIndex].testQuestionId) : false}
               onReportSuccess={handleReportSuccess}
             />

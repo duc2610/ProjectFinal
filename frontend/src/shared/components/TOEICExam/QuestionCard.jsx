@@ -120,6 +120,7 @@ export default function QuestionCard({
   handleSubmit,
   isSubmitting = false,
   globalAudioUrl,
+  testType = "Simulator", // Thêm prop testType để xác định loại bài thi
   isIncorrect = undefined, // Prop để xác định câu hỏi làm sai (undefined = trong quá trình làm bài, true = làm sai ở result, false = làm đúng ở result)
   isReported = false, // Prop để xác định câu hỏi đã được report
   onReportSuccess, // Callback khi report thành công
@@ -237,8 +238,19 @@ export default function QuestionCard({
 
   const toggleAudio = () => {
     if (!audioRef.current || audioError) return;
-    // Khi làm bài thi, chỉ cho phép phát audio, không cho phép dừng
-    if (!isPlaying) {
+    
+    // Kiểm tra loại bài thi
+    const isPractice = testType && testType.toLowerCase() === "practice";
+    
+    if (isPlaying) {
+      // Nếu là Practice thì cho phép pause
+      if (isPractice) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+      // Nếu là Simulator thì không cho pause (không làm gì)
+    } else {
+      // Phát audio
       audioRef.current.play().catch(() => setAudioError(true));
       setIsPlaying(true);
     }
@@ -408,178 +420,202 @@ export default function QuestionCard({
   };
 
   return (
-    <Card
+    <div
       style={{
-        margin: 0,
-        borderRadius: "16px",
-        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
-        border: "none",
-        overflow: "hidden"
+        display: "flex",
+        flexDirection: "row",
+        gap: 24,
+        alignItems: "flex-start",
+        flexWrap: "wrap",
       }}
-      bodyStyle={{ padding: "32px" }}
     >
-      <div className={styles.questionHeader}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Title level={4} style={{ margin: 0, color: "#2d3748", fontSize: "24px" }}>
-            Câu {question.globalIndex}
-          </Title>
-          {/* Nút Report - gọn gàng, chỉ icon với tooltip, ở sau text "Câu..." */}
-          <Tooltip title={isReported ? "Đã báo cáo câu hỏi này" : "Báo cáo câu hỏi"}>
-            {isReported ? (
-              <FlagOutlined 
-                style={{ 
-                  color: "#52c41a", 
-                  fontSize: "18px", 
-                  cursor: "default" 
-                }} 
-              />
-            ) : (
-              <Button
-                type="text"
-                icon={<FlagOutlined />}
-                size="small"
-                onClick={handleOpenReportModal}
-                style={{ 
-                  padding: "0 4px",
-                  height: "auto",
-                  minWidth: "auto",
-                  color: "#666",
-                  fontSize: "18px"
-                }}
-              />
-            )}
-          </Tooltip>
+      <Card
+        style={{
+          margin: 0,
+          borderRadius: "16px",
+          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+          border: "none",
+          overflow: "hidden",
+          flex: "1 1 520px",
+        }}
+        bodyStyle={{ padding: "32px" }}
+      >
+        <div className={styles.questionHeader}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <Title level={4} style={{ margin: 0, color: "#2d3748", fontSize: "24px" }}>
+              Câu {question.globalIndex}
+            </Title>
+            {/* Nút Report - gọn gàng, chỉ icon với tooltip, ở sau text "Câu..." */}
+            <Tooltip title={isReported ? "Đã báo cáo câu hỏi này" : "Báo cáo câu hỏi"}>
+              {isReported ? (
+                <FlagOutlined 
+                  style={{ 
+                    color: "#52c41a", 
+                    fontSize: "18px", 
+                    cursor: "default" 
+                  }} 
+                />
+              ) : (
+                <Button
+                  type="text"
+                  icon={<FlagOutlined />}
+                  size="small"
+                  onClick={handleOpenReportModal}
+                  style={{ 
+                    padding: "0 4px",
+                    height: "auto",
+                    minWidth: "auto",
+                    color: "#666",
+                    fontSize: "18px"
+                  }}
+                />
+              )}
+            </Tooltip>
+          </div>
+          <div className={styles.partBadge}>
+            {question.partName}
+            {question.partDescription && ` - ${question.partDescription}`}
+          </div>
         </div>
-        <div className={styles.partBadge}>
-          {question.partName}
-          {question.partDescription && ` - ${question.partDescription}`}
-        </div>
-      </div>
 
-      <div className={styles.qContentRow}>
-        {question.passage && (
+        <div className={styles.qContentRow}>
+          {question.passage && (
+            <div style={{
+              margin: "0 0 20px 0",
+              padding: "20px",
+              background: "linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)",
+              borderRadius: "12px",
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
+              whiteSpace: "pre-line" // Giữ nguyên xuống dòng từ \r\n và \n
+            }}>
+              <Text italic style={{ fontSize: "15px", lineHeight: "1.8", color: "#4a5568" }}>
+                {question.passage}
+              </Text>
+            </div>
+          )}
+
+          {isListeningPart && hasGlobalAudio && (
+            <div className={styles.audioBox} style={{ margin: "0 0 20px 0" }}>
+              {!audioError ? (
+                <>
+                  <audio ref={audioRef} src={globalAudioUrl} />
+                  <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                    <Button
+                      size="large"
+                      onClick={toggleAudio}
+                      type={isPlaying ? "primary" : "default"}
+                      disabled={isPlaying && testType && testType.toLowerCase() !== "practice"}
+                      style={{
+                        borderRadius: "8px",
+                        height: "40px",
+                        padding: "0 24px",
+                        fontWeight: 600,
+                        boxShadow: isPlaying ? "0 4px 12px rgba(102, 126, 234, 0.3)" : "none"
+                      }}
+                    >
+                      {isPlaying 
+                        ? (testType && testType.toLowerCase() === "practice" ? "Tạm dừng" : "Đang phát...") 
+                        : "Nghe"}
+                    </Button>
+                    <div style={{ flex: 1 }}>
+                      <Progress
+                        percent={(currentTime / duration) * 100 || 0}
+                        showInfo={false}
+                        strokeColor="#667eea"
+                        size="small"
+                        style={{ marginBottom: "4px" }}
+                      />
+                      <Text type="secondary" style={{ fontSize: "13px", fontWeight: 500 }}>
+                        {formatTime(currentTime)} / {formatTime(duration || 0)}
+                      </Text>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div style={{
+                  padding: "16px",
+                  background: "#fed7d7",
+                  borderRadius: "12px",
+                  border: "1px solid #fc8181",
+                  textAlign: "center"
+                }}>
+                  <Text type="danger" style={{ fontWeight: 600 }}>
+                    Không phát được âm thanh
+                  </Text>
+                </div>
+              )}
+            </div>
+          )}
+
+          {hasImage && !imageError ? (
+            <div style={{
+              margin: "0 0 20px 0",
+              textAlign: "center",
+              padding: "16px",
+              background: "#f7fafc",
+              borderRadius: "12px",
+              border: "1px solid #e2e8f0"
+            }}>
+              <Image
+                src={question.imageUrl}
+                alt="Câu hỏi"
+                style={{
+                  maxHeight: 400,
+                  borderRadius: "12px",
+                  objectFit: "contain",
+                  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)"
+                }}
+                onError={() => setImageError(true)}
+                preview={false}
+              />
+            </div>
+          ) : hasImage && imageError ? (
+            <div style={{
+              color: "#e53e3e",
+              textAlign: "center",
+              margin: "0 0 20px 0",
+              padding: "16px",
+              background: "#fed7d7",
+              borderRadius: "12px",
+              border: "1px solid #fc8181"
+            }}>
+              Không tải được ảnh
+            </div>
+          ) : null}
+
           <div style={{
-            margin: "0 0 20px 0",
+            marginTop: "0",
             padding: "20px",
-            background: "linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)",
+            background: "#ffffff",
             borderRadius: "12px",
             border: "1px solid #e2e8f0",
-            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
+            fontSize: "16px",
+            lineHeight: "1.8",
+            color: "#2d3748",
             whiteSpace: "pre-line" // Giữ nguyên xuống dòng từ \r\n và \n
           }}>
-            <Text italic style={{ fontSize: "15px", lineHeight: "1.8", color: "#4a5568" }}>
-              {question.passage}
+            <Text strong style={{ fontSize: "16px", color: "#2d3748" }}>
+              {formatQuestionText(question.question)}
             </Text>
           </div>
-        )}
-
-        {isListeningPart && hasGlobalAudio && (
-          <div className={styles.audioBox} style={{ margin: "0 0 20px 0" }}>
-            {!audioError ? (
-              <>
-                <audio ref={audioRef} src={globalAudioUrl} />
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                  <Button
-                    size="large"
-                    onClick={toggleAudio}
-                    type={isPlaying ? "primary" : "default"}
-                    disabled={isPlaying}
-                    style={{
-                      borderRadius: "8px",
-                      height: "40px",
-                      padding: "0 24px",
-                      fontWeight: 600,
-                      boxShadow: isPlaying ? "0 4px 12px rgba(102, 126, 234, 0.3)" : "none"
-                    }}
-                  >
-                    {isPlaying ? "Đang phát..." : "Nghe"}
-                  </Button>
-                  <div style={{ flex: 1 }}>
-                    <Progress
-                      percent={(currentTime / duration) * 100 || 0}
-                      showInfo={false}
-                      strokeColor="#667eea"
-                      size="small"
-                      style={{ marginBottom: "4px" }}
-                    />
-                    <Text type="secondary" style={{ fontSize: "13px", fontWeight: 500 }}>
-                      {formatTime(currentTime)} / {formatTime(duration || 0)}
-                    </Text>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div style={{
-                padding: "16px",
-                background: "#fed7d7",
-                borderRadius: "12px",
-                border: "1px solid #fc8181",
-                textAlign: "center"
-              }}>
-                <Text type="danger" style={{ fontWeight: 600 }}>
-                  Không phát được âm thanh
-                </Text>
-              </div>
-            )}
-          </div>
-        )}
-
-        {hasImage && !imageError ? (
-          <div style={{
-            margin: "0 0 20px 0",
-            textAlign: "center",
-            padding: "16px",
-            background: "#f7fafc",
-            borderRadius: "12px",
-            border: "1px solid #e2e8f0"
-          }}>
-            <Image
-              src={question.imageUrl}
-              alt="Câu hỏi"
-              style={{
-                maxHeight: 400,
-                borderRadius: "12px",
-                objectFit: "contain",
-                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)"
-              }}
-              onError={() => setImageError(true)}
-              preview={false}
-            />
-          </div>
-        ) : hasImage && imageError ? (
-          <div style={{
-            color: "#e53e3e",
-            textAlign: "center",
-            margin: "0 0 20px 0",
-            padding: "16px",
-            background: "#fed7d7",
-            borderRadius: "12px",
-            border: "1px solid #fc8181"
-          }}>
-            Không tải được ảnh
-          </div>
-        ) : null}
-
-        <div style={{
-          marginTop: "0",
-          padding: "20px",
-          background: "#ffffff",
-          borderRadius: "12px",
-          border: "1px solid #e2e8f0",
-          fontSize: "16px",
-          lineHeight: "1.8",
-          color: "#2d3748",
-          whiteSpace: "pre-line" // Giữ nguyên xuống dòng từ \r\n và \n
-        }}>
-          <Text strong style={{ fontSize: "16px", color: "#2d3748" }}>
-            {formatQuestionText(question.question)}
-          </Text>
         </div>
-      </div>
+      </Card>
 
-      {/* PHẦN TRẢ LỜI */}
-      {isWritingPart ? (
-        <div className={styles.aBox} style={{ marginTop: 24 }}>
+      <Card
+        style={{
+          margin: 0,
+          borderRadius: "16px",
+          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+          border: "none",
+          overflow: "hidden",
+          flex: "1 1 420px",
+        }}
+        bodyStyle={{ padding: "32px" }}
+      >
+        {/* PHẦN TRẢ LỜI */}
+        {isWritingPart ? (
+          <div className={styles.aBox} style={{ marginTop: 0 }}>
           <Text strong style={{ fontSize: "16px", color: "#2d3748", display: "block", marginBottom: "16px" }}>
             Viết câu trả lời
           </Text>
@@ -669,7 +705,7 @@ export default function QuestionCard({
           </div>
         </div>
       ) : isSpeakingPart ? (
-        <div className={styles.aBox} style={{ marginTop: 24 }}>
+        <div className={styles.aBox} style={{ marginTop: 0 }}>
           <Text strong style={{ fontSize: "16px", color: "#2d3748", display: "block", marginBottom: "16px" }}>
             Ghi âm câu trả lời
           </Text>
@@ -800,7 +836,7 @@ export default function QuestionCard({
           </div>
         </div>
       ) : (
-        <div className={styles.aBox} style={{ marginTop: 24 }}>
+        <div className={styles.aBox} style={{ marginTop: 0 }}>
           <Text strong style={{ fontSize: "16px", color: "#2d3748", display: "block", marginBottom: "16px" }}>
             Chọn đáp án
           </Text>
@@ -1033,5 +1069,6 @@ export default function QuestionCard({
         </div>
       </Modal>
     </Card>
+  </div>
   );
 }

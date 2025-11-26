@@ -17,6 +17,7 @@ https://localhost:7100/api/tests/result/detail/14545
         "duration": 120,
         "quantityQuestion": 200,
         "correctCount": 3,
+        "timeResult": 1,
         "listeningScore": 5,
         "readingScore": 15,
         "totalScore": 20,
