@@ -201,7 +201,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 const loadedParts = await loadPartsBySkill(skillVal);
                 setParts(loadedParts);
 
-                
+                const partsArr = d.parts || d.Parts || [];
                 const newPartsData = {};
                 
                 // Chỉ khởi tạo parts có trong response từ API

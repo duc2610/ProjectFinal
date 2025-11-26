@@ -7,6 +7,7 @@ import {
   LogoutOutlined,
   DownOutlined,
   UserOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
 import {
   Avatar,
@@ -98,6 +99,11 @@ export default function AdminShell() {
         key: "/test-creator/exam-management",
         icon: <FileTextOutlined />,
         label: "Quản lý Test",
+      },
+      {
+        key: "/reports/question",
+        icon: <WarningOutlined />,
+        label: "Báo cáo câu hỏi",
       },
     ];
   }

@@ -44,6 +44,9 @@ const ExamManagement = lazy(() =>
   import("@pages/testCreator/ExamManagement.jsx")
 );
 import NotFound from "@pages/public/NotFound.jsx";
+const QuestionReportManagement = lazy(() =>
+  import("@pages/admin/QuestionReportManagement.jsx")
+);
 
 export default function RoutesRoot() {
   const antIcon = <LoadingOutlined style={{ fontSize: 36 }} spin />;
@@ -120,6 +123,13 @@ export default function RoutesRoot() {
               <Route
                 path="/test-creator/exam-management"
                 element={<ExamManagement />}
+              />
+            </Route>
+            {/* Quản lý báo cáo câu hỏi: CHỈ TestCreator được truy cập */}
+            <Route element={<RoleRoute allow={[ROLES.TestCreator]} />}>
+              <Route
+                path="/reports/question"
+                element={<QuestionReportManagement />}
               />
             </Route>
           </Route>
