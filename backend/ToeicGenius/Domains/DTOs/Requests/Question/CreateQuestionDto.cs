@@ -13,9 +13,8 @@ namespace ToeicGenius.Domains.DTOs.Requests.Question
 		[Range(1, int.MaxValue, ErrorMessage = "Part ID must be a positive integer.")]
 		public int PartId { get; set; }
 
-		[Required(ErrorMessage = "Question content is required.")]
 		[StringLength(1000, ErrorMessage = "Content cannot exceed 1000 characters.")]
-		public string Content { get; set; } = string.Empty;
+		public string? Content { get; set; }
 
 		public int? QuestionGroupId { get; set; }
 		// File âm thanh (nullable, không bắt buộc)
@@ -32,9 +31,8 @@ namespace ToeicGenius.Domains.DTOs.Requests.Question
 	// DTO cho đáp án (nếu câu hỏi có nhiều lựa chọn)
 	public class AnswerOptionDto
 	{
-		[Required(ErrorMessage = "Answer content is required.")]
 		[StringLength(500, ErrorMessage = "Answer content cannot exceed 500 characters.")]
-		public string Content { get; set; } = string.Empty;
+		public string? Content { get; set; }
 
 		[Required(ErrorMessage = "Label is required.")]
 		[StringLength(3, ErrorMessage = "Label content cannot exceed 3 characters.")]

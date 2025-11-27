@@ -129,6 +129,7 @@ namespace ToeicGenius.Repositories.Implementations
 					Email = u.Email,
 					Status = u.Status,
 					Roles = u.Roles.Select(r => r.RoleName).ToList(),
+					IsRoot = u.IsRoot,	
 					CreatedAt = u.CreatedAt
 				})
 				.ToListAsync();
