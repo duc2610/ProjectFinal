@@ -95,7 +95,7 @@ export function ReportTab() {
       });
     } catch (error) {
       console.error("Error fetching question reports:", error);
-      message.error("Không thể tải báo cáo");
+      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
       setReports([]);
     } finally {
       setLoading(false);

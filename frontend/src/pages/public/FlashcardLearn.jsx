@@ -116,7 +116,6 @@ export default function FlashcardLearn() {
   const handleMarkLearned = async () => {
     const card = flashcards[currentCardIndex];
     if (!card) {
-      console.log("No card found at index:", currentCardIndex);
       return;
     }
 
@@ -127,7 +126,6 @@ export default function FlashcardLearn() {
       return;
     }
 
-    console.log("Marking card as learned:", card.cardId, card.term);
 
     try {
       // Mark as known in backend
@@ -135,7 +133,6 @@ export default function FlashcardLearn() {
         cardId: card.cardId,
         isKnown: true,
       });
-      console.log("Backend response:", result);
       
       // Cập nhật status của card trong allFlashcards
       const updatedAllCards = [...allFlashcards];
@@ -149,12 +146,6 @@ export default function FlashcardLearn() {
         // Điều này cho phép người dùng tự quyết định khi nào họ đã học xong
         const newStatus = "learned";
         
-        console.log("Card status update:", {
-          cardId: card.cardId,
-          currentCorrectCount,
-          currentIncorrectCount,
-          newStatus: "learned (user marked as learned)"
-        });
         
         updatedAllCards[allCardIndex] = {
           ...updatedAllCards[allCardIndex],
@@ -168,11 +159,6 @@ export default function FlashcardLearn() {
         const updatedCards = flashcards.filter(c => c.cardId !== card.cardId);
         
         // Cập nhật flashcards state
-        console.log("Updating flashcards list:", {
-          before: flashcards.length,
-          after: updatedCards.length,
-          removed: true
-        });
         setFlashcards(updatedCards);
         
         // Nếu không còn card nào chưa học, hoàn thành

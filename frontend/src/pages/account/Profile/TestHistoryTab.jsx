@@ -64,7 +64,7 @@ export function TestHistoryTab() {
       }));
     } catch (error) {
       console.error("Error fetching test history:", error);
-      message.error("Không thể tải lịch sử thi");
+      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
     } finally {
       setLoading(false);
     }
@@ -327,8 +327,6 @@ export function TestHistoryTab() {
       
       const data = await startTest(testIdNum, isSelectTime);
       
-      console.log("Profile - Continue test: isSelectTime from history (record):", record.isSelectTime);
-      console.log("Profile - Continue test: final isSelectTime:", isSelectTime);
       
       if (!data) {
         message.error({ content: "Không thể tải bài thi. Vui lòng thử lại.", key: "continueTest" });
@@ -437,12 +435,9 @@ export function TestHistoryTab() {
             answerValue = saved.answerAudioUrl;
           }
           
-          if (answerValue !== null) {
-            console.log(`Profile - Processing savedAnswer[${index}]: testQuestionId=${saved.testQuestionId}, subQuestionIndex=${saved.subQuestionIndex} (normalized=${subIndex}), answerKey="${answerKey}", answerValue="${answerValue}", timestamp=${timestamp}`);
-            answersMap.set(answerKey, { value: answerValue, timestamp });
-          }
-        } else {
-          console.log(`Profile - Skipping savedAnswer[${index}]: testQuestionId=${saved.testQuestionId}, subQuestionIndex=${saved.subQuestionIndex} (normalized=${subIndex}), answerKey="${answerKey}" - existing timestamp is newer`);
+           if (answerValue !== null) {
+             answersMap.set(answerKey, { value: answerValue, timestamp });
+           }
         }
       });
       
@@ -452,18 +447,6 @@ export function TestHistoryTab() {
         answers[key] = item.value;
       });
       
-      console.log("Profile - Processed answers from savedAnswers:", answers);
-      console.log("Profile - Total savedAnswers:", savedAnswers.length);
-      console.log("Profile - Total unique answers:", Object.keys(answers).length);
-      console.log("Profile - Answers keys:", Object.keys(answers));
-      console.log("Profile - Sample answers:", {
-        "1": answers["1"],
-        "3": answers["3"],
-        "6": answers["6"],
-        "13": answers["13"],
-        "32_2": answers["32_2"],
-        "34_2": answers["34_2"],
-      });
 
       // Tạo payload cho bài thi
       // Ưu tiên dùng testResultId từ history (record.testResultId) thay vì testResultId mới từ startTest
@@ -490,17 +473,9 @@ export function TestHistoryTab() {
         lastBackendLoadTime: Date.now(), // Đánh dấu đã load từ backend (tiếp tục từ history)
       };
       
-      console.log("Profile - Using testResultId from history:", originalTestResultId);
-      console.log("Profile - createdAt from history:", createdAt);
-      console.log("Profile - testResultId from startTest API:", data.testResultId);
 
-      // Lưu vào sessionStorage và navigate đến màn hình làm bài
-      console.log("Profile - Saving to sessionStorage, payload.answers:", payload.answers);
-      sessionStorage.setItem("toeic_testData", JSON.stringify(payload));
-      
-      // Verify saved data
-      const saved = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
-      console.log("Profile - Verified saved answers in sessionStorage:", saved.answers);
+       // Lưu vào sessionStorage và navigate đến màn hình làm bài
+       sessionStorage.setItem("toeic_testData", JSON.stringify(payload));
       
       message.success({ content: "Đã tải bài thi thành công", key: "continueTest" });
       navigate("/exam");

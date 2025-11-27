@@ -54,13 +54,6 @@ export default function ExamScreen() {
       ? Math.max(0, totalDurationSeconds - currentElapsedSeconds)
       : totalDurationSeconds;
     
-    console.log("ExamScreen - Continue from history:");
-    console.log("  - createdAt:", rawTestData.createdAt);
-    console.log("  - createdAtTimestamp:", new Date(createdAtTimestamp).toISOString());
-    console.log("  - currentElapsedSeconds:", currentElapsedSeconds, "seconds");
-    console.log("  - isSelectTime:", isSelectTime);
-    console.log("  - initialTimeLeft:", initialTimeLeft, "seconds");
-    console.log("  - initialElapsedSeconds:", initialElapsedSeconds, "seconds");
   } else {
     // Làm test mới: dùng logic cũ
     const startTimestampValue = rawTestData.startedAt ? Number(rawTestData.startedAt) : Date.now();
@@ -94,7 +87,6 @@ export default function ExamScreen() {
   // Cập nhật startTimestampRef khi safeStartTimestamp thay đổi (ví dụ: khi tiếp tục từ history)
   useEffect(() => {
     startTimestampRef.current = safeStartTimestamp;
-    console.log("ExamScreen - Updated startTimestampRef.current to:", new Date(safeStartTimestamp).toISOString());
   }, [safeStartTimestamp]);
   const warningTimeoutRef = useRef(null);
   const originalPushStateRef = useRef(null);
@@ -188,7 +180,6 @@ export default function ExamScreen() {
             savedData.lastBackendLoadTime = Date.now();
             sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
             
-            console.log("ExamScreen - Reload: Loaded answers from API startTest only:", savedAnswersObj);
           } else {
             // Nếu không có savedAnswers từ API, set answers rỗng
             setAnswers({});
@@ -196,12 +187,10 @@ export default function ExamScreen() {
             savedData.answers = {};
             savedData.lastBackendLoadTime = Date.now();
             sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
-            console.log("ExamScreen - Reload: No savedAnswers from API, cleared answers");
           }
         } catch (error) {
           console.error("Error loading answers from backend on reload:", error);
           // Nếu lỗi, vẫn dùng answers từ sessionStorage (fallback)
-          console.log("ExamScreen - Reload: Error loading from API, using sessionStorage as fallback");
         } finally {
           setIsLoadingAnswers(false);
           hasLoadedFromBackendRef.current = true;
@@ -232,7 +221,6 @@ export default function ExamScreen() {
         });
         
         setReportedQuestionIds(reportedIds);
-        console.log("ExamScreen - Loaded reports:", reportedIds.size, "questions reported");
       } catch (error) {
         console.error("Error loading reports:", error);
         // Không hiển thị error vì đây là tính năng phụ
@@ -629,7 +617,6 @@ export default function ExamScreen() {
     const finalAnswers = answersToSubmit || answers;
     // Prevent multiple submissions
     if (isSubmitting) {
-      console.log("Submit already in progress, ignoring duplicate call");
       return;
     }
 
@@ -754,11 +741,6 @@ export default function ExamScreen() {
       // Nếu không, ưu tiên testResultId do server trả về sau submit (trong trường hợp backend tạo bản ghi mới)
       let finalTestResultId = testResultId;
       
-      console.log("ExamScreen - Submit: testResultId from sessionStorage:", testResultId);
-      console.log("ExamScreen - Submit: isContinueFromHistory:", isContinueFromHistory);
-      if (isContinueFromHistory) {
-        console.log("ExamScreen - Submit: originalTestResultId from history:", rawTestData.originalTestResultId);
-      }
       
       if (lrAnswers.length > 0) {
         const lrPayload = {
@@ -769,9 +751,7 @@ export default function ExamScreen() {
           testType: testType,
           answers: lrAnswers,
         };
-        console.log("Submitting L&R with testResultId:", finalTestResultId);
         lrResult = await submitTest(lrPayload);
-        console.log("L&R submit response:", lrResult);
 
         // CHỈ cập nhật testResultId từ response nếu KHÔNG phải tiếp tục từ history
         // Nếu tiếp tục từ history, luôn giữ nguyên testResultId từ history
@@ -786,7 +766,6 @@ export default function ExamScreen() {
             console.error("Error syncing testResultId to sessionStorage:", e);
           }
         } else if (isContinueFromHistory) {
-          console.log("ExamScreen - Continue from history: Keeping original testResultId:", finalTestResultId);
         }
       }
 
@@ -799,13 +778,8 @@ export default function ExamScreen() {
           duration: durationMinutes,
           parts: swAnswers,
         };
-        console.log("Submitting S&W with testResultId:", finalTestResultId);
-        if (isContinueFromHistory) {
-          console.log("ExamScreen - S&W Submit: Using testResultId from history (continue test)");
-        }
         swResult = await submitAssessmentBulk(swPayload);
         // KHÔNG cập nhật testResultId từ response - luôn dùng testResultId ban đầu hoặc từ history
-        console.log("S&W submit response:", swResult);
       }
 
       // Kiểm tra lại nếu không có câu nào được trả lời (sau khi format)
@@ -838,10 +812,6 @@ export default function ExamScreen() {
         console.error("Error saving result meta to sessionStorage:", e);
       }
 
-      console.log("ExamScreen - Final result testResultId:", resultMeta.testResultId);
-      if (isContinueFromHistory) {
-        console.log("ExamScreen - Final result: Using testResultId from history for continue test");
-      }
 
       setTimeout(() => {
         setShowSubmitModal(false);
@@ -911,7 +881,6 @@ export default function ExamScreen() {
   // Auto-save tiến độ mỗi 5 phút (cho tất cả loại bài thi)
   useEffect(() => {
     if (!rawTestData.testResultId) {
-      console.log("ExamScreen - Auto-save: No testResultId, skipping");
       return;
     }
 
@@ -977,43 +946,35 @@ export default function ExamScreen() {
     // Kiểm tra lần đầu
     const hasAnswers = checkHasAnswers();
     if (!hasAnswers) {
-      console.log("ExamScreen - Auto-save: No valid answers yet, will check again when answers change");
       return;
     }
 
     if (!navigator.onLine) {
-      console.log("ExamScreen - Auto-save: Offline, will start when online");
       return;
     }
 
-    console.log("ExamScreen - Auto-save: Starting auto-save interval (every 5 minutes)");
 
     // Auto-save mỗi 5 phút (300000 ms)
     autoSaveIntervalRef.current = setInterval(() => {
       // Kiểm tra lại trước mỗi lần save
       const stillHasAnswers = checkHasAnswers();
       if (!stillHasAnswers) {
-        console.log("ExamScreen - Auto-save: No valid answers, skipping this save");
         return;
       }
 
       if (!navigator.onLine) {
-        console.log("ExamScreen - Auto-save: Offline, skipping this save");
         return;
       }
 
       if (isSubmittingRef.current) {
-        console.log("ExamScreen - Auto-save: Currently submitting, skipping this save");
         return;
       }
 
-      console.log("ExamScreen - Auto-save: Triggering auto-save...");
       handleSaveProgress();
     }, 5 * 60 * 1000); // 5 phút
 
     return () => {
       if (autoSaveIntervalRef.current) {
-        console.log("ExamScreen - Auto-save: Cleaning up interval");
         clearInterval(autoSaveIntervalRef.current);
         autoSaveIntervalRef.current = null;
       }

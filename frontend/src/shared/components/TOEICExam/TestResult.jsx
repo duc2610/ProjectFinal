@@ -668,7 +668,6 @@ export default function ResultScreen() {
         });
         return newSet;
       });
-      console.log("TestResult - Loaded reports:", relevantReports.length, "questions reported out of", allReports.length, "total reports");
     } catch (error) {
       console.error("Error loading reports:", error);
       // Không hiển thị error vì đây là tính năng phụ

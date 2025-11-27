@@ -164,7 +164,7 @@ export default function QuestionReportManagement() {
       setFilters(merged);
     } catch (error) {
       console.error("Failed to load question reports", error);
-      message.error("Không thể tải danh sách báo cáo câu hỏi.");
+      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
     } finally {
       setLoading(false);
     }
@@ -232,11 +232,6 @@ export default function QuestionReportManagement() {
         reviewerNotes: values.reviewerNotes || null,
       };
 
-      // eslint-disable-next-line no-console
-      console.log("ReviewReport payload FE:", {
-        reportId: selectedReport.reportId,
-        ...payload,
-      });
 
       const res = await reviewReport(selectedReport.reportId, payload);
       const successMessage =
@@ -285,11 +280,6 @@ export default function QuestionReportManagement() {
           };
 
           // Debug payload trước khi gửi BE
-          // Bạn có thể mở DevTools Console để xem nội dung này
-          // và so sánh với Form Data trong tab Network.
-          // Khi xong có thể xoá console.log này.
-          // eslint-disable-next-line no-console
-          console.log("UpdateTestQuestion payload FE:", payload);
 
           await updateTestQuestionFromReport(
             selectedReport.testQuestionId,

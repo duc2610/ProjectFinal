@@ -219,7 +219,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                         }
 
                         const tqs = p.testQuestions || p.TestQuestions || [];
-                        console.log(`Part ${partId} có ${tqs.length} testQuestions`);
                         tqs.forEach((tq, tqIndex) => {
                             try {
                                 // Thử nhiều cách để xác định isGroup
@@ -233,7 +232,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                     
                                     // Kiểm tra questionSnapshots
                                     const questionSnapshots = gSnap.questionSnapshots || gSnap.QuestionSnapshots || [];
-                                    console.log(`Part ${partId}, Group ${tqIndex}: có ${questionSnapshots.length} questions trong group`);
                                     
                                     if (questionSnapshots.length === 0) {
                                         console.warn(`Part ${partId}, Group ${tqIndex}: Group không có questions!`, gSnap);
@@ -282,7 +280,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                         console.warn(`Part ${partId}, TestQuestion ${tqIndex}: Question snapshot không tồn tại`, tq);
                                         return;
                                     }
-                                    console.log(`Part ${partId}, Single Question ${tqIndex}: đã parse`);
                                     // Writing và Speaking parts không có options (partId 8-15)
                                     let normalizedOptions = [];
                                     
@@ -324,7 +321,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 });
                 
                 // Log để debug: kiểm tra số lượng câu hỏi đã parse theo từng part
-                console.log("=== TÓM TẮT PARSE ===");
                 const parsedTotal = Object.keys(newPartsData).reduce((sum, partIdStr) => {
                     const partId = Number(partIdStr);
                     const part = newPartsData[partId];
@@ -333,12 +329,9 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     const singleQuestions = (part.questions || []).length;
                     const total = groupQuestions + singleQuestions;
                     
-                    console.log(`Part ${partId}: ${groupCount} groups (${groupQuestions} questions) + ${singleQuestions} single = ${total} total`);
                     
                     return sum + total;
                 }, 0);
-                console.log(`Tổng: Đã parse ${parsedTotal} câu hỏi từ ${partsArr.length} parts trong API response`);
-                console.log("====================");
                 
                 // Sau khi parse xong, khởi tạo các parts còn lại (từ loadedParts) với dữ liệu rỗng
                 // Nhưng chỉ khởi tạo nếu part đó chưa có trong newPartsData

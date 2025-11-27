@@ -965,7 +965,6 @@ export default function QuestionCard({
                   ? `${testQuestionIdStr}_${subIndex}`
                   : testQuestionIdStr;
                 const answerValue = typeof answers[answerKey] === "string" ? answers[answerKey] : "";
-                console.log(`QuestionCard Writing - Question ${question.globalIndex} (testQuestionId: ${question.testQuestionId}, subQuestionIndex: ${question.subQuestionIndex}): answerKey="${answerKey}", answerValue="${answerValue}"`);
                 return answerValue;
               })()}
               onChange={(e) => {
@@ -1184,7 +1183,6 @@ export default function QuestionCard({
                   ? `${testQuestionIdStr}_${subIndex}`
                   : testQuestionIdStr;
                 const answerValue = answers[answerKey];
-                console.log(`QuestionCard - Question ${question.globalIndex} (testQuestionId: ${question.testQuestionId}, subQuestionIndex: ${question.subQuestionIndex}): answerKey="${answerKey}", answerValue="${answerValue}"`);
                 return answerValue;
               })()}
               onChange={(e) => {

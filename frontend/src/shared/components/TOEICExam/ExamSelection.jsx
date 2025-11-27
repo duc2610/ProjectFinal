@@ -240,9 +240,6 @@ export default function ExamSelection() {
         answers[key] = item.value;
       });
       
-      console.log("ExamSelection - Processed answers from savedAnswers:", answers);
-      console.log("ExamSelection - Total savedAnswers:", savedAnswers.length);
-      console.log("ExamSelection - Total unique answers:", Object.keys(answers).length);
       
       const payload = {
         ...data,

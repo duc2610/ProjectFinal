@@ -50,8 +50,7 @@ export default function Flashcard() {
       }
     } catch (error) {
       console.error("Error fetching flashcard sets:", error);
-      const errorMsg = error?.response?.data?.message || "Không thể tải danh sách flashcard";
-      message.error(errorMsg);
+      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
     } finally {
       setLoading(false);
     }
