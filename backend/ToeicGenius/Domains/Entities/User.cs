@@ -25,6 +25,8 @@ namespace ToeicGenius.Domains.Entities
 
 		public DateTime CreatedAt { get; set; } = Now;
 		public DateTime? UpdatedAt { get; set; }
+
+		public bool IsRoot { get; set; } = false;
 		public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 		public ICollection<Role> Roles { get; set; } = new List<Role>();
 		public ICollection<TestResult> UserTests { get; set; } = new List<TestResult>();

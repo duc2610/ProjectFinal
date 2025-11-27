@@ -25,7 +25,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.QuestionGroup
 	public class UpdateSingleQuestionDto
 	{
 		public int? QuestionId { get; set; } // null for new question
-		public string Content { get; set; } = string.Empty;
+		public string? Content { get; set; }
 
 		[Required(ErrorMessage = "Question Type ID is required.")]
 		[Range(1, int.MaxValue, ErrorMessage = "Question Type ID must be a positive integer.")]

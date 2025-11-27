@@ -9,8 +9,9 @@ namespace ToeicGenius.Domains.DTOs.Requests.Auth
 		public string OldPassword { get; set; }
 
 		[Required(ErrorMessage = ErrorMessages.NewPasswordRequired)]
-		[MinLength(8, ErrorMessage = ErrorMessages.PasswordMinLength)]
-		[RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$", ErrorMessage = ErrorMessages.PasswordInvalidRegex)]
+		[MinLength(NumberConstants.MinPasswordLength, ErrorMessage = ErrorMessages.PasswordMinLength)]
+		[MaxLength(NumberConstants.MaxPasswordLength, ErrorMessage = ErrorMessages.PasswordMaxLength)]
+		[RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).+$", ErrorMessage = ErrorMessages.PasswordInvalidRegex)]
 		public string NewPassword { get; set; }
 
 		[Required(ErrorMessage = ErrorMessages.ConfirmNewPasswordRequired)]

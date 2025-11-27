@@ -31,6 +31,10 @@ namespace ToeicGenius.Services.Implementations
 				{
 					return Result<string>.Failure(ErrorMessages.UserNotFound);
 				}
+                if (user.IsRoot)
+                {
+                    return Result<string>.Failure(ErrorMessages.CannotChangeRootUserStatus);
+                }
 				user.Status = userStatus;
 				await _uow.Users.UpdateAsync(user);
 				await _uow.SaveChangesAsync();
@@ -68,6 +72,7 @@ namespace ToeicGenius.Services.Implementations
 					FullName = user.FullName,
 					CreatedAt = user.CreatedAt,
 					Status = user.Status,
+					IsRoot = user.IsRoot,
 					Roles = roles.Select(x => x.RoleName).ToList(),
 				};
 				return Result<UserResponseDto?>.Success(result);

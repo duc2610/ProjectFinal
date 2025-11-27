@@ -10,6 +10,8 @@ using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
 using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 using ToeicGenius.Shared.Validators;
+using ToeicGenius.Domains.DTOs.Requests.Exam;
+using Azure.Core;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -51,42 +53,10 @@ namespace ToeicGenius.Services.Implementations
 		/// </summary>
 		public async Task<Result<string>> CreateAsync(QuestionGroupRequestDto request)
 		{
-			// Check valid quantity
-			var quantityQuestion = request.Questions.Count();
-			if (quantityQuestion > NumberConstants.MaxQuantityQuestionInGroup
-				|| quantityQuestion < NumberConstants.MinQuantityQuestionInGroup)
-			{
-				return Result<string>.Failure("Một nhóm câu hỏi phải có từ 2 đến 5 câu hỏi đơn.");
-			}
+			var validationResult = await ValidateQuestions(request);
+			if (!validationResult.IsSuccess)
+				return validationResult;
 
-			// check valid listening part
-			var part = await _uow.Parts.GetByIdAsync(request.PartId);
-			if (part != null && part.Skill == QuestionSkill.Listening)
-			{
-				if (request.Audio == null || request.Audio.Length == 0)
-				{
-					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
-				}
-			}
-
-			foreach (var q in request.Questions)
-			{
-				// Nếu có đáp án
-				if (q.AnswerOptions != null && q.AnswerOptions.Any())
-				{
-					var options = q.AnswerOptions.Select(opt => new Option
-					{
-						Content = opt.Content,
-						Label = opt.Label,
-						IsCorrect = opt.IsCorrect,
-					}).ToList();
-
-					// Validate option
-					var (isValid, errorMessage) = OptionValidator.IsValid(options, NumberConstants.MaxQuantityOption);
-					if (!isValid)
-						return Result<string>.Failure(errorMessage);
-				}
-			}
 			await _uow.BeginTransactionAsync();
 			var uploadedFiles = new List<string>(); // Danh sách lưu trữ các URL file đã upload
 
@@ -179,26 +149,9 @@ namespace ToeicGenius.Services.Implementations
 			var currentQuestionGroup = await _uow.QuestionGroups.GetByIdAndStatusAsync(questionGroupId, CommonStatus.Active);
 			if (currentQuestionGroup == null) return Result<string>.Failure("Không tìm thấy nhóm câu hỏi");
 
-			// Check valid quantity
-			var quantityQuestion = dto.Questions.Count();
-			if (quantityQuestion > NumberConstants.MaxQuantityQuestionInGroup
-				|| quantityQuestion < NumberConstants.MinQuantityQuestionInGroup)
-			{
-				return Result<string>.Failure("Quantity of question in group must be between 2 and 5.");
-			}
-
-			// check valid listening part
-			var part = await _uow.Parts.GetByIdAsync(dto.PartId);
-			if (part != null && part.Skill == QuestionSkill.Listening)
-			{
-				// FIX: only require audio when neither new file is provided nor question already has audio
-				var hasExistingAudio = !string.IsNullOrEmpty(currentQuestionGroup.AudioUrl);
-				var hasNewAudio = dto.Audio != null && dto.Audio.Length > 0;
-				if (!hasExistingAudio && !hasNewAudio)
-				{
-					return Result<string>.Failure("Audio file is required for Listening part.");
-				}
-			}
+			var validationResult = await ValidateQuestions(dto);
+			if (!validationResult.IsSuccess)
+				return validationResult;
 
 			await _uow.BeginTransactionAsync();
 			var uploadedFiles = new List<string>(); // Danh sách lưu trữ các URL file đã upload
@@ -364,6 +317,127 @@ namespace ToeicGenius.Services.Implementations
 				await _fileService.RollbackAndCleanupAsync(uploadedFiles);
 				return Result<string>.Failure($"Operation failed: {ex.Message}");
 			}
+		}
+
+		private async Task<Result<string>> ValidateQuestions(QuestionGroupRequestDto request)
+		{
+			// Check valid quantity
+			var quantityQuestion = request.Questions.Count();
+			if (quantityQuestion > NumberConstants.MaxQuantityQuestionInGroup
+				|| quantityQuestion < NumberConstants.MinQuantityQuestionInGroup)
+			{
+				return Result<string>.Failure("Một nhóm câu hỏi phải có từ 2 đến 5 câu hỏi đơn.");
+			}
+
+			// check valid listening part
+			var part = await _uow.Parts.GetByIdAsync(request.PartId);
+			if (part != null && part.Skill == QuestionSkill.Listening)
+			{
+				if (request.Audio == null || request.Audio.Length == 0)
+				{
+					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
+				}
+			}
+			// check part 1,2 Listening
+			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
+			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
+			bool isLRPart34 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 3 || part.PartNumber == 4);
+
+			if (!isLRPart34 && string.IsNullOrWhiteSpace(request.PassageContent))
+			{
+				return Result<string>.Failure("Passage của nhóm câu hỏi không được để trống.");
+			}
+			foreach (var q in request.Questions)
+			{
+				if ((!isLRPart6 || !isLRPart12) && string.IsNullOrWhiteSpace(q.Content))
+				{
+					return Result<string>.Failure("Content của câu hỏi không được để trống.");
+				}
+				// Nếu có đáp án
+				if (q.AnswerOptions != null && q.AnswerOptions.Any())
+				{
+					foreach (var opt in q.AnswerOptions)
+					{
+						if (!isLRPart12 && string.IsNullOrWhiteSpace(opt.Content))
+						{
+							return Result<string>.Failure("Content của option không được để trống.");
+						}
+					}
+					var options = q.AnswerOptions.Select(opt => new Option
+					{
+						Content = opt.Content,
+						Label = opt.Label,
+						IsCorrect = opt.IsCorrect,
+					}).ToList();
+
+					// Validate option
+					var (isValid, errorMessage) = OptionValidator.IsValid(options, NumberConstants.MaxQuantityOption);
+					if (!isValid)
+						return Result<string>.Failure(errorMessage);
+				}
+			}
+
+			return Result<string>.Success("Validation passed");
+		}
+		private async Task<Result<string>> ValidateQuestions(UpdateQuestionGroupDto request)
+		{
+			// Check valid quantity
+			var quantityQuestion = request.Questions.Count();
+			if (quantityQuestion > NumberConstants.MaxQuantityQuestionInGroup
+				|| quantityQuestion < NumberConstants.MinQuantityQuestionInGroup)
+			{
+				return Result<string>.Failure("Một nhóm câu hỏi phải có từ 2 đến 5 câu hỏi đơn.");
+			}
+
+			// check valid listening part
+			var part = await _uow.Parts.GetByIdAsync(request.PartId);
+			if (part != null && part.Skill == QuestionSkill.Listening)
+			{
+				if (request.Audio == null || request.Audio.Length == 0)
+				{
+					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
+				}
+			}
+			// check part 1,2 Listening
+			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
+			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
+			bool isLRPart34 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 3 || part.PartNumber == 4);
+
+			if (!isLRPart34 && string.IsNullOrWhiteSpace(request.PassageContent))
+			{
+				return Result<string>.Failure("Passage của nhóm câu hỏi không được để trống.");
+			}
+			foreach (var q in request.Questions)
+			{
+				if ((!isLRPart6 || !isLRPart12) && string.IsNullOrWhiteSpace(q.Content))
+				{
+					return Result<string>.Failure("Content của câu hỏi không được để trống.");
+				}
+				// Nếu có đáp án
+				if (q.AnswerOptions != null && q.AnswerOptions.Any())
+				{
+					foreach (var opt in q.AnswerOptions)
+					{
+						if (!isLRPart12 && string.IsNullOrWhiteSpace(opt.Content))
+						{
+							return Result<string>.Failure("Content của option không được để trống.");
+						}
+					}
+					var options = q.AnswerOptions.Select(opt => new Option
+					{
+						Content = opt.Content,
+						Label = opt.Label,
+						IsCorrect = opt.IsCorrect,
+					}).ToList();
+
+					// Validate option
+					var (isValid, errorMessage) = OptionValidator.IsValid(options, NumberConstants.MaxQuantityOption);
+					if (!isValid)
+						return Result<string>.Failure(errorMessage);
+				}
+			}
+
+			return Result<string>.Success("Validation passed");
 		}
 	}
 }
