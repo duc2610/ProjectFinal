@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Button, Card, Row, Col, Tag, Space, Empty, message, Spin } from "antd";
-import { PlusOutlined, EditOutlined, EyeOutlined } from "@ant-design/icons";
+import { Button, Card, Row, Col, Tag, Space, Empty, message, Spin, Modal } from "antd";
+import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { getUserFlashcardSets, getPublicFlashcardSets } from "@services/flashcardService";
+import { getUserFlashcardSets, getPublicFlashcardSets, deleteFlashcardSet } from "@services/flashcardService";
 import { useAuth } from "@shared/hooks/useAuth";
 import CreateFlashcardSetModal from "@shared/components/Flashcard/CreateFlashcardSetModal";
 import UpdateFlashcardSetModal from "@shared/components/Flashcard/UpdateFlashcardSetModal";
@@ -73,6 +73,26 @@ export default function Flashcard() {
     } catch {
       return dateString;
     }
+  };
+
+  const handleDeleteSet = (setId, title) => {
+    Modal.confirm({
+      title: "Xác nhận xóa",
+      content: `Bạn có chắc chắn muốn xóa flashcard "${title}"? Hành động này không thể hoàn tác.`,
+      okText: "Xóa",
+      okType: "danger",
+      cancelText: "Hủy",
+      onOk: async () => {
+        try {
+          await deleteFlashcardSet(setId);
+          message.success("Đã xóa flashcard thành công");
+          fetchFlashcardSets();
+        } catch (error) {
+          console.error("Error deleting flashcard set:", error);
+          message.error("Xóa flashcard thất bại. Vui lòng thử lại.");
+        }
+      },
+    });
   };
 
   return (
@@ -239,18 +259,32 @@ export default function Flashcard() {
                       >
                         {set.title}
                       </h3>
-                      <Button
-                        type="text"
-                        icon={<EditOutlined />}
-                        size="small"
-                        className="flashcard-edit-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingSetId(set.setId);
-                          setEditModalOpen(true);
-                        }}
-                        style={{ color: "#666" }}
-                      />
+                      <Space size="small">
+                        <Button
+                          type="text"
+                          icon={<EditOutlined />}
+                          size="small"
+                          className="flashcard-edit-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingSetId(set.setId);
+                            setEditModalOpen(true);
+                          }}
+                          style={{ color: "#666" }}
+                        />
+                        <Button
+                          type="text"
+                          icon={<DeleteOutlined />}
+                          size="small"
+                          className="flashcard-delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSet(set.setId, set.title);
+                          }}
+                          style={{ color: "#ff4d4f" }}
+                          danger
+                        />
+                      </Space>
                     </div>
 
                     <p
