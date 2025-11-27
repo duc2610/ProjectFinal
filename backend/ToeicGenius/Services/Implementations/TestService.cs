@@ -601,7 +601,7 @@ namespace ToeicGenius.Services.Implementations
 		public async Task<Result<TestDetailDto>> GetDetailAsync(int id)
 		{
 			var test = await _uow.Tests.GetTestByIdAsync(id);
-			if (test == null) return Result<TestDetailDto>.Failure("Test not found");
+			if (test == null) return Result<TestDetailDto>.Failure(CommonMessages.DataNotFound);
 
 			var result = new TestDetailDto
 			{
@@ -679,17 +679,17 @@ namespace ToeicGenius.Services.Implementations
 		public async Task<Result<string>> UpdateStatusAsync(UpdateTestVisibilityStatusDto request)
 		{
 			var test = await _uow.Tests.GetByIdAsync(request.TestId);
-			if (test == null) return Result<string>.Failure("Not found");
+			if (test == null) return Result<string>.Failure(CommonMessages.DataNotFound);
 			if (test.CreationStatus != TestCreationStatus.Completed)
 			{
-				return Result<string>.Failure("Only completed tests can be published.");
+				return Result<string>.Failure("Chỉ những bài test hoàn chỉnh mới có thể thay đổi trạng thái hiển thị.");
 			}
 
 			test.VisibilityStatus = request.VisibilityStatus;
 			test.UpdatedAt = DateTime.Now;
 			await _uow.SaveChangesAsync();
 
-			return Result<string>.Success($"Test {test.TestId} {test.VisibilityStatus} successfully");
+			return Result<string>.Success($"Bài test {test.TestId} đã đổi trạng thái thành {test.VisibilityStatus}.");
 		}
 
 		// Update Test From Bank (practice test)
@@ -811,7 +811,7 @@ namespace ToeicGenius.Services.Implementations
 		{
 			var existing = await _uow.Tests.GetByIdAsync(testId);
 			if (existing == null)
-				return Result<string>.Failure("Test not found");
+				return Result<string>.Failure(CommonMessages.DataNotFound);
 			int totalQuestion = GetQuantityQuestion(dto);
 			// Nếu test đang PUBLISHED -> tạo bản clone
 			Test targetTest;
@@ -915,8 +915,8 @@ namespace ToeicGenius.Services.Implementations
 
 			return Result<string>.Success(
 				existing.VisibilityStatus == TestVisibilityStatus.Published
-					? $"Cloned to new version v{targetTest.Version} (TestId={targetTest.TestId})"
-					: $"Updated successfully TestId={targetTest.TestId}");
+					? $"Tạo thành công phiên bản mới v{targetTest.Version} (TestId={targetTest.TestId})"
+					: $"Cập nhật trực tiếp thành công TestId={targetTest.TestId}");
 		}
 
 		// If test visibility status: published => clone new version

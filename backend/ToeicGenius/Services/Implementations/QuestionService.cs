@@ -8,6 +8,7 @@ using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
 using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 using ToeicGenius.Shared.Validators;
+using Azure.Core;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -43,11 +44,25 @@ namespace ToeicGenius.Services.Implementations
 		{
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(request.PartId);
+
+			bool isListeningPart = part != null && part.Skill == QuestionSkill.Listening;
+			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
+
+			// Listening part yêu cầu file audio
 			if (part != null && part.Skill == QuestionSkill.Listening)
 			{
 				if (request.Audio == null || request.Audio.Length == 0)
 				{
 					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
+				}
+			}
+
+			// Nếu không phải part 1,2 của LR thì check content question
+			if (!isLRPart12)
+			{
+				if (string.IsNullOrWhiteSpace(request.Content))
+				{
+					return Result<string>.Failure("Content của câu hỏi không được để trống.");
 				}
 			}
 
@@ -96,20 +111,30 @@ namespace ToeicGenius.Services.Implementations
 				};
 
 				await _uow.Questions.AddAsync(question);
+				// Tạo options
 				var options = new List<Option>();
+				var requireQuantityOptions = (isListeningPart && part.PartNumber == 2)
+					? NumberConstants.MinQuantityOption
+					: NumberConstants.MaxQuantityOption;
 
-				var requireQuantityOptions = (part.Skill == QuestionSkill.Listening && part.PartNumber == 2) ? NumberConstants.MinQuantityOption : NumberConstants.MaxQuantityOption;
-
-				// Options (nếu có)
 				if (request.AnswerOptions != null && request.AnswerOptions.Any())
 				{
-					options.AddRange(request.AnswerOptions.Select(opt => new Option
+					foreach (var opt in request.AnswerOptions)
 					{
-						Content = opt.Content,
-						Label = opt.Label,
-						IsCorrect = opt.IsCorrect,
-						Question = question
-					}));
+						// Nếu không phải part 1,2 của LR thì content là bắt buộc
+						if (!isLRPart12 && string.IsNullOrWhiteSpace(opt.Content))
+						{
+							return Result<string>.Failure("Content của option không được để trống.");
+						}
+
+						options.Add(new Option
+						{
+							Content = isLRPart12 ? null : opt.Content,
+							Label = opt.Label,
+							IsCorrect = opt.IsCorrect,
+							Question = question
+						});
+					}
 				}
 
 				// Check validate options
@@ -151,6 +176,18 @@ namespace ToeicGenius.Services.Implementations
 					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
+
+			bool isListeningPart = part != null && part.Skill == QuestionSkill.Listening;
+			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
+			// Nếu không phải part 1,2 của LR thì check content question
+			if (!isLRPart12)
+			{
+				if (string.IsNullOrWhiteSpace(dto.Content))
+				{
+					return Result<string>.Failure("Content của câu hỏi không được để trống.");
+				}
+			}
+
 			await _uow.BeginTransactionAsync();
 
 			var uploadedFiles = new List<string>();   // file mới để rollback nếu fail
@@ -221,7 +258,11 @@ namespace ToeicGenius.Services.Implementations
 						// đúng 1 đáp án đúng
 						if (dto.AnswerOptions.Count(o => o.IsCorrect) != 1)
 							return Result<string>.Failure("Cần có duy nhất một đáp án đúng.");
-
+						// Nếu không phải part 1,2 của LR thì content là bắt buộc
+						if (!isLRPart12 && string.IsNullOrWhiteSpace(dto.Content))
+						{
+							return Result<string>.Failure("Content của option không được để trống.");
+						}
 						// rule số lượng theo Part (LR Part 2 = 3; còn lại = 4)
 						var isLR = Convert.ToInt32(part.Skill) == (int)TestSkill.LR;
 						var required = (isLR && Convert.ToInt32(part.PartNumber) == 2)
