@@ -190,7 +190,7 @@ namespace ToeicGenius.Tests.UnitTests
             var result = await service.LoginAsync(loginDto, "192.168.1.100");
 
             result.IsSuccess.Should().BeFalse();
-            result.ErrorMessage.Should().Be(ErrorMessages.AccountDeleted);
+            result.ErrorMessage.Should().Be(ErrorMessages.InvalidCredentials);
         }
 
         // UTCID08: Ip trống và đăng nhập không thành công, GenerateRefreshtoken trả ra exception

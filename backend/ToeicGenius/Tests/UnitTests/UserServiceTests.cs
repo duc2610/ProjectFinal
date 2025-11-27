@@ -1397,8 +1397,5 @@ namespace ToeicGenius.Tests.UnitTests
 		}
 
 		#endregion
-
-		#region 6. UserService_GetUserStatisticsAsync Tests	
-		#endregion	
     }
 }
