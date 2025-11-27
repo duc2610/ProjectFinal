@@ -383,7 +383,6 @@ const AccountManagement = () => {
                     style={{ width: "100%" }}
                   >
                     <Option value="all">Tất cả Role</Option>
-                    <Option value="Admin">Admin</Option>
                     <Option value="TestCreator">TestCreator</Option>
                     <Option value="Examinee">Examinee</Option>
                   </Select>
@@ -425,7 +424,6 @@ const AccountManagement = () => {
                     style={{ width: "100%" }}
                   >
                     <Option value="all">Tất cả Role</Option>
-                    <Option value="Admin">Admin</Option>
                     <Option value="TestCreator">TestCreator</Option>
                     <Option value="Examinee">Examinee</Option>
                   </Select>
@@ -532,6 +530,17 @@ const AccountManagement = () => {
                 rules={[
                   { required: true, message: "Vui lòng nhập mật khẩu!" },
                   { min: 6, message: "Mật khẩu phải ít nhất 6 ký tự!" },
+                  {
+                    validator: (_, value) => {
+                      if (!value) return Promise.resolve();
+                      // Kiểm tra ký tự đặc biệt
+                      const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
+                      if (specialCharRegex.test(value)) {
+                        return Promise.reject(new Error("Mật khẩu không được chứa ký tự đặc biệt!"));
+                      }
+                      return Promise.resolve();
+                    },
+                  },
                 ]}
               >
                 <Input.Password 
@@ -559,8 +568,16 @@ const AccountManagement = () => {
                 rules={[
                   ({ getFieldValue }) => ({
                     validator(_, value) {
-                      if (!value || value.length >= 6) return Promise.resolve();
-                      return Promise.reject(new Error("Mật khẩu phải ít nhất 6 ký tự!"));
+                      if (!value) return Promise.resolve();
+                      if (value.length < 6) {
+                        return Promise.reject(new Error("Mật khẩu phải ít nhất 6 ký tự!"));
+                      }
+                      // Kiểm tra ký tự đặc biệt
+                      const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
+                      if (specialCharRegex.test(value)) {
+                        return Promise.reject(new Error("Mật khẩu không được chứa ký tự đặc biệt!"));
+                      }
+                      return Promise.resolve();
                     },
                   }),
                 ]}
@@ -598,7 +615,6 @@ const AccountManagement = () => {
                   form.validateFields(fieldsToValidate).catch(() => {});
                 }}
               >
-                <Option value="Admin">Admin</Option>
                 <Option value="TestCreator">TestCreator</Option>
                 <Option value="Examinee">Examinee</Option>
               </Select>
