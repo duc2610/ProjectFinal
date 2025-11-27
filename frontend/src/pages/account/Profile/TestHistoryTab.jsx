@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Table, Tag, Space, Empty, message, Spin, Card, Progress, Divider, Collapse, Typography, Button, Modal } from "antd";
+import { Table, Tag, Space, Empty, message, Spin, Card, Progress, Divider, Collapse, Typography, Button, Modal, Row, Col } from "antd";
 import { PlayCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, WarningOutlined, InfoCircleOutlined, EditOutlined, SoundOutlined, FileTextOutlined, BulbOutlined } from "@ant-design/icons";
 
 const { Panel } = Collapse;
