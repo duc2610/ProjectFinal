@@ -24,7 +24,7 @@ import "@shared/styles/FlashcardDetail.css";
 export default function FlashcardDetail() {
   const { setId } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [flashcardSet, setFlashcardSet] = useState(null);
@@ -231,22 +231,31 @@ export default function FlashcardDetail() {
         >
           <CheckOutlined /> Học
         </Button>
-        <Button
-          type="default"
-          icon={<PlusOutlined />}
-          onClick={() => setAddCardModalOpen(true)}
-          className="quizlet-action-btn"
-        >
-          Thêm thẻ
-        </Button>
-        <Button
-          type="default"
-          icon={<EditOutlined />}
-          onClick={() => setEditSetModalOpen(true)}
-          className="quizlet-action-btn"
-        >
-          Chỉnh sửa
-        </Button>
+        {/* Chỉ hiển thị nút thêm/sửa nếu user đã đăng nhập và là owner của flashcard set */}
+        {isAuthenticated && flashcardSet && (
+          (flashcardSet.creatorId === user?.id || 
+           flashcardSet.userId === user?.id || 
+           flashcardSet.isOwner === true) && (
+            <>
+              <Button
+                type="default"
+                icon={<PlusOutlined />}
+                onClick={() => setAddCardModalOpen(true)}
+                className="quizlet-action-btn"
+              >
+                Thêm thẻ
+              </Button>
+              <Button
+                type="default"
+                icon={<EditOutlined />}
+                onClick={() => setEditSetModalOpen(true)}
+                className="quizlet-action-btn"
+              >
+                Chỉnh sửa
+              </Button>
+            </>
+          )
+        )}
       </div>
 
       {/* Main Card Display - Quizlet Style */}
@@ -410,23 +419,32 @@ export default function FlashcardDetail() {
                     className="quizlet-vocab-action-icon"
                     title="Phát âm"
                   />
-                  <Button
-                    type="text"
-                    icon={<EditOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingCard(card);
-                      setEditCardModalOpen(true);
-                    }}
-                    className="quizlet-vocab-action-icon"
-                  />
-                  <Button
-                    type="text"
-                    icon={<DeleteOutlined />}
-                    onClick={(e) => handleDeleteCard(card.cardId, e)}
-                    danger
-                    className="quizlet-vocab-action-icon"
-                  />
+                  {/* Chỉ hiển thị nút sửa/xóa nếu user đã đăng nhập và là owner của flashcard set */}
+                  {isAuthenticated && flashcardSet && (
+                    (flashcardSet.creatorId === user?.id || 
+                     flashcardSet.userId === user?.id || 
+                     flashcardSet.isOwner === true) && (
+                      <>
+                        <Button
+                          type="text"
+                          icon={<EditOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingCard(card);
+                            setEditCardModalOpen(true);
+                          }}
+                          className="quizlet-vocab-action-icon"
+                        />
+                        <Button
+                          type="text"
+                          icon={<DeleteOutlined />}
+                          onClick={(e) => handleDeleteCard(card.cardId, e)}
+                          danger
+                          className="quizlet-vocab-action-icon"
+                        />
+                      </>
+                    )
+                  )}
                 </div>
               </div>
             ))}

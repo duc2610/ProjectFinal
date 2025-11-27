@@ -9,7 +9,8 @@ import UpdateFlashcardSetModal from "@shared/components/Flashcard/UpdateFlashcar
 import "../../shared/styles/Flashcard.css";
 
 export default function Flashcard() {
-  const [activeTab, setActiveTab] = useState("flashcard");
+  const { isAuthenticated } = useAuth();
+  const [activeTab, setActiveTab] = useState(isAuthenticated ? "flashcard" : "discover");
   const [flashcardSets, setFlashcardSets] = useState([]);
   const [publicSets, setPublicSets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,7 +18,6 @@ export default function Flashcard() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingSetId, setEditingSetId] = useState(null);
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
 
   const normalizeSets = (payload) => {
     if (Array.isArray(payload)) return payload;
@@ -27,6 +27,10 @@ export default function Flashcard() {
   };
 
   useEffect(() => {
+    // Nếu chưa đăng nhập và đang ở tab flashcard, tự động chuyển sang discover
+    if (!isAuthenticated && activeTab === "flashcard") {
+      setActiveTab("discover");
+    }
     fetchFlashcardSets();
   }, [activeTab, isAuthenticated]);
 
@@ -98,24 +102,11 @@ export default function Flashcard() {
 
         {/* Navigation Tabs */}
         <Space size="middle" style={{ marginTop: 24 }}>
-          <Button
-            type={activeTab === "flashcard" ? "primary" : "default"}
-            size="large"
-            onClick={() => setActiveTab("flashcard")}
-            style={{
-              borderRadius: 8,
-              height: 44,
-              paddingLeft: 24,
-              paddingRight: 24,
-              fontWeight: 500,
-            }}
-            >
-              Flashcard của tôi
-            </Button>
+          {isAuthenticated && (
             <Button
-              type={activeTab === "discover" ? "primary" : "default"}
+              type={activeTab === "flashcard" ? "primary" : "default"}
               size="large"
-              onClick={() => setActiveTab("discover")}
+              onClick={() => setActiveTab("flashcard")}
               style={{
                 borderRadius: 8,
                 height: 44,
@@ -124,8 +115,23 @@ export default function Flashcard() {
                 fontWeight: 500,
               }}
             >
-              Khám phá
+              Flashcard của tôi
             </Button>
+          )}
+          <Button
+            type={activeTab === "discover" ? "primary" : "default"}
+            size="large"
+            onClick={() => setActiveTab("discover")}
+            style={{
+              borderRadius: 8,
+              height: 44,
+              paddingLeft: 24,
+              paddingRight: 24,
+              fontWeight: 500,
+            }}
+          >
+            Khám phá
+          </Button>
         </Space>
       </div>
 

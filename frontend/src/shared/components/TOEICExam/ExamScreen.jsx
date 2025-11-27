@@ -1041,8 +1041,8 @@ export default function ExamScreen() {
         answers={answers}
         goToQuestionByIndex={goToQuestionByIndex}
       />
-    </div>
-  );
+      </div>
+    );
 
   const renderActionButtons = (variant = "desktop") => {
     const containerClass =
@@ -1054,35 +1054,35 @@ export default function ExamScreen() {
         ? `${styles.answerCounter} ${styles.mobileMetric}`
         : styles.answerCounter;
 
-    return (
+  return (
       <div className={containerClass}>
-        <Button
-          icon={<SaveOutlined />}
-          onClick={handleSaveProgress}
-          disabled={isSaving || isSubmitting}
-          loading={isSaving}
+            <Button 
+              icon={<SaveOutlined />}
+              onClick={handleSaveProgress}
+              disabled={isSaving || isSubmitting}
+              loading={isSaving}
           className={`${styles.actionBtn} ${styles.saveBtn} ${btnClassExtra}`}
-        >
-          Lưu
-        </Button>
-        <Button
-          onClick={() => handleSubmit(false)}
-          disabled={isSubmitting}
-          loading={isSubmitting}
+            >
+              Lưu
+            </Button>
+            <Button 
+              onClick={() => handleSubmit(false)}
+              disabled={isSubmitting}
+              loading={isSubmitting}
           className={`${styles.actionBtn} ${styles.submitBtn} ${btnClassExtra}`}
-        >
-          Nộp bài
-        </Button>
-        <Button
+            >
+              Nộp bài
+            </Button>
+            <Button 
           className={`${styles.actionBtn} ${styles.timerBtn} ${btnClassExtra}`}
-          type="dashed"
-        >
-          {formatTime(isSelectTime ? timeLeft : timeElapsed)}
-        </Button>
+              type="dashed"
+            >
+              {formatTime(isSelectTime ? timeLeft : timeElapsed)}
+            </Button>
         <Text className={metricClass}>
-          {answeredCount}/{totalCount} câu
-        </Text>
-      </div>
+              {answeredCount}/{totalCount} câu
+            </Text>
+          </div>
     );
   };
 
@@ -1127,7 +1127,7 @@ export default function ExamScreen() {
             />
             {renderNavigator()}
           </>
-        )}
+          )}
         <div className={styles.examBody}>
           {!isCompactView && isNavVisible && renderNavigator()}
           <div className={styles.questionArea}>
