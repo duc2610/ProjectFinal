@@ -6,8 +6,8 @@ services:
     container_name: toeic-writing-api
     ports:
       - "8002:8002"
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    env_file:
+      - ./backend/.env
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8002/"]
@@ -22,10 +22,8 @@ services:
     container_name: toeic-speaking-api
     ports:
       - "8001:8001"
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - AZURE_SPEECH_KEY=${AZURE_SPEECH_KEY}
-      - AZURE_SPEECH_REGION=${AZURE_SPEECH_REGION}
+    env_file:
+      - ./backend/.env
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/"]
@@ -82,8 +80,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${FRONTEND_API_BASE_URL:-http://localhost:7100}
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
     container_name: toeic-frontend
     depends_on:
       - api
