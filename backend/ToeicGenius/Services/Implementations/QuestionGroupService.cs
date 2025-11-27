@@ -340,10 +340,16 @@ namespace ToeicGenius.Services.Implementations
 			}
 			// check part 1,2 Listening
 			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
+			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
+			bool isLRPart34 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 3 || part.PartNumber == 4);
 
+			if (!isLRPart34 && string.IsNullOrWhiteSpace(request.PassageContent))
+			{
+				return Result<string>.Failure("Passage của nhóm câu hỏi không được để trống.");
+			}
 			foreach (var q in request.Questions)
 			{
-				if (!isLRPart12 && string.IsNullOrWhiteSpace(q.Content))
+				if ((!isLRPart6 || !isLRPart12) && string.IsNullOrWhiteSpace(q.Content))
 				{
 					return Result<string>.Failure("Content của câu hỏi không được để trống.");
 				}
@@ -394,10 +400,16 @@ namespace ToeicGenius.Services.Implementations
 			}
 			// check part 1,2 Listening
 			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
+			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
+			bool isLRPart34 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 3 || part.PartNumber == 4);
 
+			if (!isLRPart34 && string.IsNullOrWhiteSpace(request.PassageContent))
+			{
+				return Result<string>.Failure("Passage của nhóm câu hỏi không được để trống.");
+			}
 			foreach (var q in request.Questions)
 			{
-				if (!isLRPart12 && string.IsNullOrWhiteSpace(q.Content))
+				if ((!isLRPart6 || !isLRPart12) && string.IsNullOrWhiteSpace(q.Content))
 				{
 					return Result<string>.Failure("Content của câu hỏi không được để trống.");
 				}
