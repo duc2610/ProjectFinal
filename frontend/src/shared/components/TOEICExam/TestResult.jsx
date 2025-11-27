@@ -49,17 +49,6 @@ export default function ResultScreen() {
   const navigate = useNavigate();
   const { testResultId: stateTestResultId, testMeta: stateTestMeta, autoSubmit } = state || {};
 
-  // Chặn back ở màn hình kết quả
-  useEffect(() => {
-    const handlePopState = () => {
-      history.go(1);
-    };
-    window.history.pushState(null, "", window.location.href);
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, []);
 
   const [result, setResult] = useState(null);
   const [selectedSection, setSelectedSection] = useState("overall");
@@ -145,6 +134,31 @@ export default function ResultScreen() {
     }
     return "/test-list";
   }, [getSavedTestData, result, testMeta]);
+
+  // Chặn quay lại màn thi: nếu người dùng nhấn back, ép chuyển tới màn an toàn
+  useEffect(() => {
+    const handlePopState = (event) => {
+      event.preventDefault?.();
+      const savedTestData = getSavedTestData();
+      const normalizedType = normalizeTestType(
+        result?.testType || testMeta?.testType || savedTestData?.testType
+      );
+      let safePath = "/test-list";
+      if (normalizedType === "Practice") {
+        const skillGroup = inferSkillGroup(
+          result?.testSkill ?? testMeta?.testSkill ?? savedTestData?.testSkill
+        );
+        if (skillGroup === "sw") safePath = "/practice-sw";
+        if (skillGroup === "lr") safePath = "/practice-lr";
+      }
+      navigate(safePath, { replace: true });
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [navigate, getSavedTestData, result, testMeta]);
 
   // Hàm xử lý quay lại - quay về trang chủ hoặc test-list
   const handleGoBack = () => {
@@ -1613,9 +1627,9 @@ export default function ResultScreen() {
                 }
                 pagination={lrPagination}
                 onPaginationChange={(page, size) =>
-                  setLrPagination({
-                    current: page,
-                    pageSize: size || lrPagination.pageSize,
+                    setLrPagination({
+                      current: page,
+                      pageSize: size || lrPagination.pageSize,
                   })
                 }
                 emptyMessage={EMPTY_LR_MESSAGE}
@@ -1645,34 +1659,34 @@ export default function ResultScreen() {
                 <SWAnswersSection
                   feedbacks={
                     selectedSection === "writing"
-                      ? swFeedbacks.writing
-                      : swFeedbacks.speaking
+                  ? swFeedbacks.writing
+                  : swFeedbacks.speaking
                   }
                   onSelectFeedback={(item) => {
-                    setSelectedSwFeedback(item);
-                    setSwDetailModalVisible(true);
-                  }}
+                              setSelectedSwFeedback(item);
+                              setSwDetailModalVisible(true);
+                            }}
                   onReportQuestion={(item) => {
-                    if (!item.testQuestionId) {
-                      message.error("Không tìm thấy thông tin câu hỏi");
-                      return;
-                    }
-                    const formattedQuestion = formatQuestionText(
-                      item.questionContent || item.content || ""
-                    );
-                    setReportQuestion({
-                      testQuestionId: item.testQuestionId,
-                      question: formattedQuestion,
-                      content: formattedQuestion,
-                    });
-                    setReportModalVisible(true);
-                  }}
+                                    if (!item.testQuestionId) {
+                                      message.error("Không tìm thấy thông tin câu hỏi");
+                                      return;
+                                    }
+                                const formattedQuestion = formatQuestionText(
+                                  item.questionContent || item.content || ""
+                                );
+                                setReportQuestion({
+                                  testQuestionId: item.testQuestionId,
+                                  question: formattedQuestion,
+                                  content: formattedQuestion,
+                                });
+                                    setReportModalVisible(true);
+                                  }}
                   isQuestionReported={isQuestionReported}
                   getSwPartDisplayName={getSwPartDisplayName}
                   formatQuestionText={formatQuestionText}
                 />
-              </div>
-            )}
+                  </div>
+                )}
           </Card>
         </div>
       </div>
@@ -1681,7 +1695,7 @@ export default function ResultScreen() {
         open={detailModalVisible}
         loading={loadingDetail}
         questions={detailQuestions}
-        columns={columns}
+            columns={columns}
         pagination={modalPagination}
         onPaginationChange={({ current, size }) =>
           setModalPagination({ current, size })
@@ -1724,6 +1738,6 @@ export default function ResultScreen() {
         onCancel={handleRetakeCancel}
       />
 
-   </div>
+    </div>
   );
 }
