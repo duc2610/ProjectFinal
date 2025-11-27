@@ -1,0 +1,116 @@
+services:
+  writing-api:
+    build:
+      context: ./backend/python-service/python-services/writing-assessment
+      dockerfile: Dockerfile
+    container_name: toeic-writing-api
+    ports:
+      - "8002:8002"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  speaking-api:
+    build:
+      context: ./backend/python-service/python-services/speaking-assessment
+      dockerfile: Dockerfile
+    container_name: toeic-speaking-api
+    ports:
+      - "8001:8001"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - AZURE_SPEECH_KEY=${AZURE_SPEECH_KEY}
+      - AZURE_SPEECH_REGION=${AZURE_SPEECH_REGION}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  api:
+    build:
+      context: ./backend/ToeicGenius
+      dockerfile: Dockerfile
+    container_name: toeic-backend
+    depends_on:
+      - sqlserver
+      - writing-api
+      - speaking-api
+    ports:
+      - "7100:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__MyCnn=Server=toeic-sql,1433;Database=ToeicGeniusV2;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=True;
+      - PythonApiSettings__WritingApiUrl=http://writing-api:8002
+      - PythonApiSettings__SpeakingApiUrl=http://speaking-api:8001
+      - Jwt__Issuer=${JWT_ISSUER:-Capstone_SEP490_G22}
+      - Jwt__Audience=${JWT_AUDIENCE:-Capstone_SEP490_G22}
+      - Jwt__SecretKey=${JWT_SECRET_KEY:-dGhpcy1pcy1hLXNhbXBsZS1rZXktZm9yLWRlbW8tZ=}
+      - Jwt__ExpireMinutes=${JWT_EXPIRE_MINUTES:-30}
+      - MailSettings__Host=${MAIL_HOST:-smtp.gmail.com}
+      - MailSettings__Password=${MAIL_PASSWORD:-changeme}
+      - MailSettings__Port=${MAIL_PORT:-587}
+      - MailSettings__UserName=${MAIL_USERNAME:-user@example.com}
+      - MailSettings__From=${MAIL_FROM:-noreply@toeicgenius.com}
+      - AWS__Region=${AWS_REGION:-ap-southeast-1}
+      - AWS__S3BucketName=${AWS_S3_BUCKET:-sep490-g22-tts}
+      - AWS__CloudFrontDomain=${AWS_CLOUDFRONT_DOMAIN:-daksgci46xjpr.cloudfront.net}
+      - AWS__AccessKey=${AWS_ACCESS_KEY:-changeme}
+      - AWS__SecretKey=${AWS_SECRET_KEY:-changeme}
+      - DefaultAccounts__Admin__Email=${ADMIN_EMAIL:-admin@toeicgenius.com}
+      - DefaultAccounts__Admin__FullName=${ADMIN_NAME:-System Admin}
+      - DefaultAccounts__Admin__Password=${ADMIN_PASSWORD:-Admin@123}
+      - DefaultAccounts__TestCreator__Email=${CREATOR_EMAIL:-creator@toeicgenius.com}
+      - DefaultAccounts__TestCreator__FullName=${CREATOR_NAME:-Test Creator}
+      - DefaultAccounts__TestCreator__Password=${CREATOR_PASSWORD:-Creator@123}
+      - DefaultAccounts__Examinee__Email=${EXAMINEE_EMAIL:-examinee@toeicgenius.com}
+      - DefaultAccounts__Examinee__FullName=${EXAMINEE_NAME:-Regular Examinee}
+      - DefaultAccounts__Examinee__Password=${EXAMINEE_PASSWORD:-Examinee@123}
+    restart: unless-stopped
+    networks:
+      - toeic-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${FRONTEND_API_BASE_URL:-http://localhost:7100}
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    container_name: toeic-frontend
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    networks:
+      - toeic-network
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: toeic-sql
+    ports:
+      - "14333:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd}
+    volumes:
+      - sql_data:/var/opt/mssql
+    restart: unless-stopped
+    networks:
+      - toeic-network
+
+networks:
+  toeic-network:
+    name: toeic-network
+
+volumes:
+  sql_data:
+
