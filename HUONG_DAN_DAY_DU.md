@@ -123,6 +123,9 @@ ProjectFinal/
 ├── docker-compose.yml      ← File chính để chạy TẤT CẢ services
 ├── run-docker.ps1          ← Script chạy tất cả services
 ├── check-docker.ps1        ← Script kiểm tra môi trường
+├── rebuild-frontend.ps1    ← Script rebuild frontend sau khi thay đổi .env
+├── load-env.ps1            ← Script load biến môi trường từ .env files
+├── clean-docker.ps1         ← Script dọn dẹp Docker (có menu chọn)
 ├── backend/
 │   ├── .env                ← File cấu hình cho backend và Python services
 │   ├── ToeicGenius/        ← Backend .NET
@@ -136,6 +139,9 @@ ProjectFinal/
 - **`docker-compose.yml`**: Cấu hình tất cả services
 - **`run-docker.ps1`**: Script tự động chạy Docker
 - **`check-docker.ps1`**: Script kiểm tra môi trường
+- **`rebuild-frontend.ps1`**: Script rebuild frontend sau khi thay đổi `frontend/.env`
+- **`load-env.ps1`**: Script load biến môi trường từ `.env` files
+- **`clean-docker.ps1`**: Script dọn dẹp Docker với menu chọn (an toàn/toàn bộ/compact VHDX)
 - **`backend/.env`**: File cấu hình biến môi trường cho backend và Python services (đã có sẵn)
 - **`frontend/.env`**: File cấu hình biến môi trường cho frontend (đã có sẵn)
 
@@ -167,9 +173,21 @@ AZURE_SPEECH_REGION=your-azure-region
 
 **File `frontend/.env`** - Chứa cấu hình cho frontend:
 ```env
-VITE_API_BASE_URL=https://localhost:7100/
+VITE_API_BASE_URL=http://localhost:7100/
 VITE_GOOGLE_CLIENT_ID=your-google-client-id
 ```
+
+**⚠️ QUAN TRỌNG về `VITE_API_BASE_URL`:**
+- **PHẢI dùng HTTP**: `http://localhost:7100/` (không phải `https://`)
+- Backend trong Docker chỉ chạy HTTP, không hỗ trợ HTTPS
+- Nếu dùng `https://localhost:7100/`, frontend sẽ gặp lỗi `ERR_SSL_PROTOCOL_ERROR`
+- Đảm bảo URL bắt đầu bằng `http://` (không có chữ 's')
+
+**Cách kiểm tra và sửa:**
+1. Mở file `frontend/.env`
+2. Kiểm tra dòng `VITE_API_BASE_URL`
+3. Nếu thấy `https://localhost:7100/`, sửa thành `http://localhost:7100/`
+4. Sau khi sửa, chạy `.\rebuild-frontend.ps1` để rebuild frontend
 
 **Lưu ý**: 
 - Các file `.env` đã có sẵn trong dự án
@@ -337,16 +355,27 @@ docker-compose up -d
 
 ## 🔄 Cập nhật code
 
+### ⚠️ QUAN TRỌNG: Khi sửa code, bạn PHẢI rebuild!
+
+**Khi sửa code Backend (C#) hoặc Frontend (React/JavaScript):**
+- ✅ Code mới **KHÔNG** tự động cập nhật trong container đang chạy
+- ✅ **PHẢI rebuild** để tạo image mới với code mới
+- ✅ Sau đó restart container để chạy image mới
+
+**Khi chỉ sửa biến môi trường (`.env`):**
+- Backend: Chỉ cần **restart** (không cần rebuild)
+- Frontend: **PHẢI rebuild** (vì Vite bake biến môi trường vào build)
+
 ### Khi nào cần thay đổi file Docker?
 
-**❌ KHÔNG CẦN thay đổi khi:**
+**❌ KHÔNG CẦN thay đổi Dockerfile/docker-compose.yml khi:**
 - ✅ Cập nhật code trong backend (C#)
 - ✅ Cập nhật code trong frontend (React/JavaScript)
 - ✅ Thay đổi logic, thêm tính năng mới
 - ✅ Sửa bug, refactor code
 - ✅ Cập nhật dependencies (package.json, .csproj)
 
-**⚠️ CẦN thay đổi khi:**
+**⚠️ CẦN thay đổi Dockerfile/docker-compose.yml khi:**
 - 🔧 Thay đổi cấu trúc thư mục (di chuyển file/folder)
 - 🔧 Thêm/xóa services mới
 - 🔧 Thay đổi port
@@ -428,37 +457,120 @@ docker-compose restart frontend
 
 ### Các trường hợp cụ thể
 
-**1. Cập nhật code Backend (.NET):**
+**1. Sửa code Backend (.NET - C#):**
+
+Sau khi sửa code C# trong `backend/ToeicGenius/`:
 ```powershell
+# Rebuild backend với code mới
 docker-compose up -d --build api
+
+# Xem logs để kiểm tra
 docker-compose logs -f api
 ```
 
-**2. Cập nhật code Frontend (React):**
+**Ví dụ:**
+- Sửa file `Controllers/TestController.cs`
+- Thêm method mới trong service
+- Sửa logic xử lý
+→ Chạy: `docker-compose up -d --build api`
+
+**2. Sửa code Frontend (React/JavaScript/TypeScript):**
+
+Sau khi sửa code trong `frontend/`:
 ```powershell
+# Rebuild frontend với code mới
 docker-compose up -d --build frontend
+
+# Xem logs để kiểm tra
 docker-compose logs -f frontend
 ```
-**Lưu ý**: Sau khi rebuild, hard refresh browser (Ctrl+F5) để xóa cache.
+
+**Lưu ý**: 
+- Sau khi rebuild, **hard refresh browser (Ctrl+F5)** để xóa cache
+- Kiểm tra `http://localhost:3000`
+
+**Ví dụ:**
+- Sửa component React
+- Thêm trang mới
+- Sửa CSS/styling
+- Thêm tính năng mới
+→ Chạy: `docker-compose up -d --build frontend`
 
 **3. Cập nhật dependencies:**
+
+Khi thêm/sửa/xóa packages trong `package.json` hoặc `.csproj`:
 ```powershell
-# Backend (NuGet packages)
+# Backend (NuGet packages trong .csproj)
 docker-compose up -d --build api
 
-# Frontend (npm packages)
+# Frontend (npm packages trong package.json)
 docker-compose up -d --build frontend
 ```
 
-**4. Thay đổi biến môi trường:**
-```powershell
-# Sửa file .env trong backend hoặc frontend
-notepad backend/.env
-notepad frontend/.env
+**Lưu ý**: 
+- Nếu dependencies thay đổi nhiều, có thể cần `--no-cache`:
+  ```powershell
+  docker-compose build --no-cache frontend
+  docker-compose up -d frontend
+  ```
 
-# Restart services (không cần rebuild)
-docker-compose restart
+**4. Thay đổi biến môi trường:**
+
+**4.1. Thay đổi biến môi trường Backend (`backend/.env`):**
+```powershell
+# Sửa file .env
+notepad backend/.env
+
+# Restart backend (không cần rebuild)
+docker-compose restart api
 ```
+
+**4.2. Thay đổi biến môi trường Frontend (`frontend/.env`):**
+
+⚠️ **QUAN TRỌNG**: Khi thay đổi `frontend/.env`, bạn **PHẢI REBUILD** frontend vì Vite "bake" các biến môi trường vào build tại thời điểm build.
+
+**⚠️ LƯU Ý ĐẶC BIỆT về `VITE_API_BASE_URL`:**
+- **PHẢI dùng HTTP**: Đảm bảo `VITE_API_BASE_URL=http://localhost:7100/` (không phải `https://`)
+- Backend trong Docker chỉ chạy HTTP, không hỗ trợ HTTPS
+- Nếu file `.env` có `https://localhost:7100/`, frontend sẽ gặp lỗi `ERR_SSL_PROTOCOL_ERROR` khi gọi API
+- **Cách sửa**: Mở `frontend/.env`, tìm dòng `VITE_API_BASE_URL` và đảm bảo nó là `http://localhost:7100/` (không có chữ 's' sau 'http')
+
+**Cách 1: Sử dụng script tự động (Khuyến nghị)**
+```powershell
+# Script tự động load .env và rebuild frontend
+.\rebuild-frontend.ps1
+```
+
+**Cách 2: Chạy thủ công**
+```powershell
+# Bước 1: Load biến môi trường từ .env files
+. ./load-env.ps1
+
+# Bước 2: Rebuild frontend (không dùng cache)
+docker-compose build --no-cache frontend
+
+# Bước 3: Restart frontend
+docker-compose up -d frontend
+```
+
+**Cách 3: Một lệnh duy nhất**
+```powershell
+. ./load-env.ps1; docker-compose build --no-cache frontend; docker-compose up -d frontend
+```
+
+**Sau khi rebuild:**
+1. Hard refresh trình duyệt (Ctrl+F5) để xóa cache
+2. Kiểm tra `http://localhost:3000`
+
+**Tại sao cần rebuild?**
+- Frontend React/Vite "bake" các biến môi trường (như `VITE_API_BASE_URL`, `VITE_GOOGLE_CLIENT_ID`) vào JavaScript bundle tại thời điểm build
+- Thay đổi `.env` **KHÔNG** tự động cập nhật trong container đang chay
+- Cần rebuild để tạo image mới với giá trị mới từ `.env`
+
+**Lưu ý:**
+- Script `rebuild-frontend.ps1` tự động load biến môi trường từ `frontend/.env` và `backend/.env`
+- Flag `--no-cache` đảm bảo rebuild từ đầu, không dùng cache cũ
+- Quá trình rebuild có thể mất 2-3 phút
 
 ---
 
@@ -558,6 +670,30 @@ docker-compose restart sqlserver
 3. Đảm bảo đã rebuild: `docker-compose up -d --build`
 4. Kiểm tra code đã được commit/save chưa
 
+**Lỗi: "ERR_SSL_PROTOCOL_ERROR" hoặc "net::ERR_SSL_PROTOCOL_ERROR"**
+
+⚠️ **Nguyên nhân**: File `frontend/.env` đang dùng `https://` thay vì `http://`
+
+**Cách xử lý:**
+1. Mở file `frontend/.env`
+2. Tìm dòng `VITE_API_BASE_URL`
+3. Kiểm tra xem có `https://localhost:7100/` không
+4. Nếu có, sửa thành `http://localhost:7100/` (bỏ chữ 's' sau 'http')
+5. Lưu file
+6. Rebuild frontend: `.\rebuild-frontend.ps1`
+7. Hard refresh browser (Ctrl+F5)
+
+**Ví dụ:**
+```env
+# SAI (sẽ gây lỗi):
+VITE_API_BASE_URL=https://localhost:7100/
+
+# ĐÚNG:
+VITE_API_BASE_URL=http://localhost:7100/
+```
+
+**Lưu ý**: Backend trong Docker chỉ chạy HTTP, không hỗ trợ HTTPS. Luôn dùng `http://` trong `frontend/.env`.
+
 ### Xử lý sự cố nâng cao
 
 **Xóa tất cả và bắt đầu lại:**
@@ -596,6 +732,132 @@ docker exec toeic-backend ping -c 3 writing-api
 docker exec toeic-backend ping -c 3 speaking-api
 ```
 
+### Dọn dẹp Docker để giải phóng dung lượng
+
+**⚠️ Vấn đề: Dung lượng tăng mỗi lần rebuild**
+
+**Nguyên nhân:**
+- Mỗi lần rebuild, Docker tạo ra các layers mới
+- Build cache và images cũ vẫn được giữ lại
+- Dẫn đến dung lượng ổ cứng tăng dần theo thời gian
+
+**⚠️ QUAN TRỌNG trên Windows:**
+- Docker Desktop lưu tất cả dữ liệu trong file VHDX của WSL2
+- Khi xóa images/cache trong Docker, file VHDX **KHÔNG tự động thu nhỏ**
+- Dung lượng ổ C: **KHÔNG giảm ngay** sau khi dọn dẹp
+- Cần **compact VHDX file** để giải phóng dung lượng thực sự
+
+**Kiểm tra dung lượng hiện tại:**
+```powershell
+# Xem dung lượng Docker đang sử dụng
+docker system df
+```
+
+**Cách 1: Sử dụng script tự động (Khuyến nghị - CHỈ CẦN 1 LỆNH)**
+```powershell
+# Chạy script (sẽ hiển thị menu để chọn)
+.\clean-docker.ps1
+```
+
+Script sẽ hiển thị menu với 3 lựa chọn:
+
+**1. Dọn dẹp an toàn (Mặc định - Khuyến nghị)**
+- ✅ Xóa build cache
+- ✅ Xóa images/containers/networks không sử dụng
+- ✅ **GIỮ LẠI** images/containers/volumes đang chạy
+- ⚠️ **CHƯA giải phóng dung lượng ổ C:** trên Windows (cần compact VHDX)
+
+**2. Dọn dẹp toàn bộ (Cẩn thận)**
+- ✅ Xóa tất cả build cache
+- ✅ Xóa tất cả images không đang chạy
+- ✅ Xóa tất cả containers không đang chạy
+- ✅ Xóa tất cả volumes không đang chạy
+- ✅ Xóa tất cả networks không sử dụng
+- ⚠️ **Cần xác nhận** trước khi thực hiện
+- ⚠️ **CHƯA giải phóng dung lượng ổ C:** trên Windows (cần compact VHDX)
+
+**3. Dọn dẹp + Compact VHDX (Windows - Giải phóng dung lượng ổ C:)**
+- ✅ Tất cả tính năng của "Dọn dẹp toàn bộ"
+- ✅ Tự động shutdown WSL2
+- ✅ Tự động compact VHDX file (nếu có Hyper-V)
+- ✅ **Giải phóng dung lượng ổ C: thực sự**
+- ⚠️ **Cần xác nhận** trước khi thực hiện
+- ⚠️ Có thể mất 5-10 phút để compact VHDX
+
+**Sử dụng với tham số (không cần menu):**
+```powershell
+# Dọn dẹp an toàn (mặc định)
+.\clean-docker.ps1
+
+# Dọn dẹp toàn bộ
+.\clean-docker.ps1 -All
+
+# Dọn dẹp + Compact VHDX (Windows)
+.\clean-docker.ps1 -Compact
+```
+
+**Cách 2: Dọn dẹp thủ công**
+```powershell
+# Xóa build cache (an toàn, không ảnh hưởng containers đang chạy)
+docker builder prune -f
+
+# Xóa images không sử dụng
+docker image prune -f
+
+# Xóa containers đã dừng
+docker container prune -f
+
+# Xóa networks không sử dụng
+docker network prune -f
+```
+
+**Cách 4: Xóa images cũ của dự án cụ thể**
+```powershell
+# Xóa tất cả images của dự án (sau khi dừng containers)
+docker-compose down
+docker-compose down --rmi all
+
+# Build lại từ đầu
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+**Cách 3: Compact VHDX thủ công (Nếu script không tự động compact được)**
+
+**Trong Docker Desktop:**
+1. Mở Docker Desktop
+2. Click Settings (icon bánh răng)
+3. Vào **Resources** → **Advanced**
+4. Click **"Clean / Purge data"** hoặc **"Compact disk"**
+5. Đợi quá trình hoàn tất (có thể mất 5-10 phút)
+
+**Hoặc dùng PowerShell:**
+```powershell
+# 1. Dừng Docker Desktop và WSL2
+wsl --shutdown
+
+# 2. Đợi 5 giây
+Start-Sleep -Seconds 5
+
+# 3. Compact VHDX file (nếu có Hyper-V)
+Optimize-VHD -Path "$env:LOCALAPPDATA\Docker\wsl\data\ext4.vhdx" -Mode Full
+
+# 4. Khởi động lại Docker Desktop
+```
+
+**Khi nào nên dọn dẹp:**
+- Sau mỗi lần rebuild nhiều lần
+- Khi dung lượng ổ cứng sắp hết
+- Định kỳ mỗi tuần/tháng
+- Khi thấy build cache > 10GB
+
+**Lưu ý:**
+- Dọn dẹp **KHÔNG** ảnh hưởng đến containers đang chạy
+- Database volume **KHÔNG** bị xóa khi dùng `clean-docker.ps1`
+- Build cache thường chiếm nhiều dung lượng nhất (có thể > 20GB)
+- Sau khi dọn dẹp, lần build tiếp theo sẽ mất thời gian hơn (vì không có cache)
+- **Trên Windows**: Sau khi dọn dẹp, **PHẢI compact VHDX** trong Docker Desktop để giải phóng dung lượng ổ C:
+
 ---
 
 ## 📋 Các lệnh thường dùng
@@ -625,6 +887,17 @@ docker-compose restart sqlserver
 ```powershell
 docker-compose build --no-cache api
 docker-compose up -d api
+```
+
+**Rebuild frontend sau khi thay đổi `.env`:**
+```powershell
+# Cách 1: Sử dụng script (khuyến nghị)
+.\rebuild-frontend.ps1
+
+# Cách 2: Chạy thủ công
+. ./load-env.ps1
+docker-compose build --no-cache frontend
+docker-compose up -d frontend
 ```
 
 ### Xem thông tin
@@ -673,13 +946,41 @@ docker-compose logs -f api
 **A**: Không, dữ liệu được lưu trong Docker volume và không bị mất khi restart, rebuild, hoặc update code. Chỉ mất khi chạy `docker-compose down -v`.
 
 ### Q: Có cần rebuild khi cập nhật code không?
-**A**: Có, cần chạy `docker-compose up -d --build` để rebuild images với code mới. Không cần sửa Dockerfile hay docker-compose.yml.
+**A**: 
+- **Có**, khi sửa code Backend hoặc Frontend, **PHẢI rebuild** để code mới được áp dụng
+- Backend: `docker-compose up -d --build api`
+- Frontend: `docker-compose up -d --build frontend`
+- Không cần sửa Dockerfile hay docker-compose.yml khi chỉ sửa code
+
+### Q: Sửa code nhưng không thấy thay đổi?
+**A**: 
+- Code mới **KHÔNG** tự động cập nhật trong container đang chạy
+- **PHẢI rebuild**: `docker-compose up -d --build [service-name]`
+- Frontend: Sau rebuild, hard refresh browser (Ctrl+F5) để xóa cache
+- Kiểm tra logs: `docker-compose logs -f [service-name]` để xem code mới đã được build chưa
 
 ### Q: Rebuild mất quá nhiều thời gian?
 **A**: 
 - Chỉ rebuild service cần thiết: `docker-compose up -d --build api`
 - Sử dụng cache: không dùng `--no-cache` trừ khi cần
 - Lần đầu sẽ mất thời gian để download images
+
+### Q: Dung lượng tăng mỗi lần rebuild?
+**A**: 
+- **Nguyên nhân**: Docker giữ lại build cache và images cũ, dẫn đến dung lượng tăng dần
+- **Giải pháp**: Chạy `.\clean-docker.ps1` để dọn dẹp build cache và images không sử dụng
+- **Kiểm tra**: `docker system df` để xem dung lượng hiện tại
+- **Lưu ý**: Dọn dẹp không ảnh hưởng đến containers đang chạy, chỉ xóa cache và images cũ
+
+### Q: Đã dọn dẹp Docker nhưng dung lượng ổ C: vẫn không giảm (Windows)?
+**A**: 
+- **Nguyên nhân**: Docker Desktop trên Windows lưu dữ liệu trong file VHDX của WSL2. Khi xóa trong Docker, file VHDX không tự động thu nhỏ
+- **Giải pháp**: 
+  1. Chạy `.\clean-docker.ps1 -Compact` để dọn dẹp và compact VHDX
+  2. Mở Docker Desktop → Settings → Resources → Advanced
+  3. Click **"Clean / Purge data"** hoặc **"Compact disk"**
+  4. Đợi quá trình hoàn tất (5-10 phút)
+- **Kết quả**: Dung lượng ổ C: sẽ giảm sau khi compact VHDX
 
 ### Q: Port đã được sử dụng?
 **A**: 
@@ -692,6 +993,22 @@ docker-compose logs -f api
 - SQL Server cần 30-60 giây để khởi động hoàn toàn
 - Kiểm tra logs: `docker-compose logs sqlserver`
 - Đợi thêm thời gian hoặc restart: `docker-compose restart sqlserver`
+
+### Q: Thay đổi `frontend/.env` nhưng không thấy thay đổi?
+**A**: 
+- Frontend React/Vite "bake" biến môi trường vào build tại thời điểm build
+- Cần rebuild frontend: `.\rebuild-frontend.ps1` hoặc `docker-compose build --no-cache frontend && docker-compose up -d frontend`
+- Sau đó hard refresh browser (Ctrl+F5) để xóa cache
+
+### Q: Gặp lỗi "ERR_SSL_PROTOCOL_ERROR" khi frontend gọi API?
+**A**: 
+- **Nguyên nhân**: File `frontend/.env` đang dùng `https://localhost:7100/` thay vì `http://localhost:7100/`
+- **Cách sửa**: 
+  1. Mở `frontend/.env`
+  2. Sửa `VITE_API_BASE_URL=https://localhost:7100/` thành `VITE_API_BASE_URL=http://localhost:7100/` (bỏ chữ 's')
+  3. Chạy `.\rebuild-frontend.ps1` để rebuild
+  4. Hard refresh browser (Ctrl+F5)
+- **Lý do**: Backend trong Docker chỉ chạy HTTP, không hỗ trợ HTTPS
 
 ### Q: Có thể chạy từ thư mục backend không?
 **A**: Không khuyến nghị. Nên chạy từ thư mục root để sử dụng file `docker-compose.yml` ở đó.
@@ -718,14 +1035,33 @@ docker-compose ps
 # Backend: http://localhost:7100/swagger
 ```
 
-### Cập nhật code:
+### Sửa code Backend hoặc Frontend:
 
 ```powershell
-# Rebuild và restart
+# Sau khi sửa code, PHẢI rebuild để áp dụng thay đổi
+
+# Rebuild tất cả services
 docker-compose up -d --build
 
-# Hoặc chỉ rebuild một service
-docker-compose up -d --build api
+# Hoặc chỉ rebuild service cần thiết
+docker-compose up -d --build api        # Backend
+docker-compose up -d --build frontend  # Frontend
+
+# Sau đó hard refresh browser (Ctrl+F5) nếu sửa frontend
+```
+
+### Thay đổi biến môi trường Frontend:
+
+```powershell
+# Sau khi sửa frontend/.env, chạy:
+.\rebuild-frontend.ps1
+
+# Hoặc thủ công:
+. ./load-env.ps1
+docker-compose build --no-cache frontend
+docker-compose up -d frontend
+
+# Sau đó hard refresh browser (Ctrl+F5)
 ```
 
 ### Các lệnh thường dùng:
@@ -742,6 +1078,9 @@ docker-compose restart
 
 # Xem trạng thái
 docker-compose ps
+
+# Dọn dẹp Docker (giải phóng dung lượng)
+.\clean-docker.ps1
 ```
 
 ### Checklist hoàn chỉnh:

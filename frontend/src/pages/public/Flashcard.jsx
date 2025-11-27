@@ -260,18 +260,18 @@ export default function Flashcard() {
                         {set.title}
                       </h3>
                       <Space size="small">
-                        <Button
-                          type="text"
-                          icon={<EditOutlined />}
-                          size="small"
-                          className="flashcard-edit-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingSetId(set.setId);
-                            setEditModalOpen(true);
-                          }}
-                          style={{ color: "#666" }}
-                        />
+                      <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        size="small"
+                        className="flashcard-edit-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingSetId(set.setId);
+                          setEditModalOpen(true);
+                        }}
+                        style={{ color: "#666" }}
+                      />
                         <Button
                           type="text"
                           icon={<DeleteOutlined />}

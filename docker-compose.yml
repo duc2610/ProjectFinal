@@ -41,13 +41,10 @@ services:
       - writing-api
       - speaking-api
     ports:
-      - "7101:8080"   # HTTP (optional)
-      - "7100:8443"   # HTTPS (main port)
+      - "7100:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080;https://+:8443
-      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/certs/cert.pem
-      - ASPNETCORE_Kestrel__Certificates__Default__KeyPath=/app/certs/key.pem
+      - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__MyCnn=Server=toeic-sql,1433;Database=ToeicGeniusV2;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=True;
       - PythonApiSettings__WritingApiUrl=http://writing-api:8002
       - PythonApiSettings__SpeakingApiUrl=http://speaking-api:8001
