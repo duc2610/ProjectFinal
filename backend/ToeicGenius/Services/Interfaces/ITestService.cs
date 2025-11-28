@@ -14,17 +14,17 @@ namespace ToeicGenius.Services.Interfaces
 		Task<Result<string>> CreateManualAsync(Guid userId, CreateTestManualDto request);
 		Task<Result<string>> CreateFromBankAsync(Guid userId,CreateTestFromBankDto request);
 		Task<Result<string>> CreateFromBankRandomAsync(CreateTestFromBankRandomDto request);
-		Task<Result<PaginationResponse<TestListResponseDto>>> FilterAllAsync(TestFilterDto request);
-		Task<Result<string>> UpdateStatusAsync(UpdateTestVisibilityStatusDto request);
-		Task<Result<TestDetailDto>> GetDetailAsync(int id);
-		Task<Result<string>> UpdateManualTestAsync(int id, UpdateManualTestDto dto);
-		Task<Result<string>> UpdateTestFromBankAsync(int id, UpdateTestFromBank dto);
+		Task<Result<PaginationResponse<TestListResponseDto>>> FilterAllAsync(TestFilterDto request, Guid? creatorId = null);
+		Task<Result<string>> UpdateStatusAsync(UpdateTestVisibilityStatusDto request, Guid userId, bool isAdmin = false);
+		Task<Result<TestDetailDto>> GetDetailAsync(int id, Guid? userId = null, bool isAdmin = false);
+		Task<Result<string>> UpdateManualTestAsync(int id, UpdateManualTestDto dto, Guid userId, bool isAdmin = false);
+		Task<Result<string>> UpdateTestFromBankAsync(int id, UpdateTestFromBank dto, Guid userId, bool isAdmin = false);
 		Task<Test> CloneTestAsync(int sourceTestId);
 		Task<Result<List<TestVersionDto>>> GetVersionsByParentIdAsync(int parentTestId);
 		Task<Result<string>> CreateDraftManualAsync(Guid userId, CreateTestManualDraftDto dto);
 		Task<Result<string>> SavePartManualAsync(Guid userId, int testId, int partId, PartDto dto);
 		Task<Result<string>> FinalizeTestAsync(Guid userId, int testId);
-		Task<Result<string>> UpdateTestQuestionAsync(int testQuestionId, UpdateTestQuestionDto dto);
+		Task<Result<string>> UpdateTestQuestionAsync(int testQuestionId, UpdateTestQuestionDto dto, Guid userId, bool isAdmin = false);
 		#endregion
 
 		#region Examinee

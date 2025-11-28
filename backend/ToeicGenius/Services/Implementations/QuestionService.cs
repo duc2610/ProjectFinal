@@ -40,7 +40,7 @@ namespace ToeicGenius.Services.Implementations
 			return await _uow.Questions.GetAllAsync();
 		}
 
-		public async Task<Result<string>> CreateAsync(CreateQuestionDto request)
+		public async Task<Result<string>> CreateAsync(CreateQuestionDto request, Guid creatorId)
 		{
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(request.PartId);
@@ -107,7 +107,8 @@ namespace ToeicGenius.Services.Implementations
 					Content = request.Content,
 					AudioUrl = audioUrl,
 					ImageUrl = imageUrl,
-					Explanation = request.Solution
+					Explanation = request.Solution,
+					CreatedById = creatorId
 				};
 
 				await _uow.Questions.AddAsync(question);
@@ -157,12 +158,16 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<Result<string>> UpdateAsync(int questionId, UpdateQuestionDto dto)
+		public async Task<Result<string>> UpdateAsync(int questionId, UpdateQuestionDto dto, Guid userId, bool isAdmin = false)
 		{
 			// Check question
 			var currentQuestion = await _uow.Questions.GetQuestionByIdAndStatus(questionId, CommonStatus.Active);
 			if (currentQuestion == null)
 				return Result<string>.Failure("Không tìm thấy câu hỏi để cập nhật.");
+
+			// Check ownership - only creator or admin can update
+			if (!isAdmin && currentQuestion.CreatedById != userId)
+				return Result<string>.Failure("Bạn không có quyền sửa câu hỏi này.");
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(dto.PartId);
@@ -344,7 +349,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<Result<string>> UpdateStatusAsync(int id, bool isGroupQuestion, bool isRestore)
+		public async Task<Result<string>> UpdateStatusAsync(int id, bool isGroupQuestion, bool isRestore, Guid userId, bool isAdmin = false)
 		{
 			await _uow.BeginTransactionAsync();
 
@@ -363,6 +368,10 @@ namespace ToeicGenius.Services.Implementations
 						string notFoundType = isRestore ? "Inactive" : "Active";
 						return Result<string>.Failure($"Không tìm thấy câu hỏi có ID {id} hoặc câu hỏi đã ở trạng thái {targetStatus}.");
 					}
+
+					// Check ownership - only creator or admin can delete/restore
+					if (!isAdmin && question.CreatedById != userId)
+						return Result<string>.Failure("Bạn không có quyền thực hiện thao tác này.");
 
 					// Cập nhật trạng thái
 					question.Status = targetStatus;
@@ -384,6 +393,10 @@ namespace ToeicGenius.Services.Implementations
 						string notFoundType = isRestore ? "Inactive" : "Active";
 						return Result<string>.Failure($"Không tìm thấy nhóm câu hỏi có ID {id} hoặc nhóm đã ở trạng thái {targetStatus}.");
 					}
+
+					// Check ownership - only creator or admin can delete/restore
+					if (!isAdmin && group.CreatedById != userId)
+						return Result<string>.Failure("Bạn không có quyền thực hiện thao tác này.");
 
 					group.Status = targetStatus;
 					group.UpdatedAt = Now;
@@ -415,17 +428,27 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id)
+		public async Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id, Guid? userId = null, bool isAdmin = false)
 		{
-			return await _uow.Questions.GetQuestionResponseByIdAsync(id);
+			var question = await _uow.Questions.GetQuestionResponseByIdAsync(id);
+
+			// Check ownership - only creator or admin can view
+			if (question != null && !isAdmin && userId.HasValue)
+			{
+				var questionEntity = await _uow.Questions.GetQuestionByIdAndStatus(id, CommonStatus.Active);
+				if (questionEntity != null && questionEntity.CreatedById != userId.Value)
+					return null; // Return null if not owner
+			}
+
+			return question;
 		}
 
 		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterSingleQuestionAsync(
-			int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
+			int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status, Guid? creatorId = null)
 		{
 			try
 			{
-				var result = await _uow.Questions.FilterSingleAsync(partId, questionTypeId, keyWord, skill, sortOrder, page, pageSize, status);
+				var result = await _uow.Questions.FilterSingleAsync(partId, questionTypeId, keyWord, skill, sortOrder, page, pageSize, status, creatorId);
 				return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
 			}
 			catch (Exception ex)

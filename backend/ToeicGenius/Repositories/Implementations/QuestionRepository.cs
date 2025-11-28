@@ -136,13 +136,17 @@ namespace ToeicGenius.Repositories.Implementations
 				.ToListAsync();
 		}
 		
-		public async Task<PaginationResponse<QuestionListItemDto>> FilterSingleAsync(int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
+		public async Task<PaginationResponse<QuestionListItemDto>> FilterSingleAsync(int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status, Guid? creatorId = null)
 		{
 			var query = _context.Questions
 				.Include(q => q.Part)
 				.Include(q => q.QuestionType)
 				.Where(q => q.Status == status && q.QuestionGroupId == null)
 				.AsQueryable();
+
+			// Filter by creator - TestCreator only sees their own questions
+			if (creatorId.HasValue)
+				query = query.Where(q => q.CreatedById == creatorId.Value);
 
 			if (partId.HasValue)
 				query = query.Where(q => q.PartId == partId);

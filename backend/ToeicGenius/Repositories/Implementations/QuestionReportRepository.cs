@@ -35,6 +35,7 @@ namespace ToeicGenius.Repositories.Implementations
 			ReportStatus? status = null,
 			int? testQuestionId = null,
 			Guid? reportedBy = null,
+			Guid? testCreatorId = null,
 			int skip = 0,
 			int take = 20)
 		{
@@ -57,6 +58,10 @@ namespace ToeicGenius.Repositories.Implementations
 			if (reportedBy.HasValue)
 				query = query.Where(r => r.ReportedBy == reportedBy.Value);
 
+			// Filter by test creator - only show reports for tests created by this creator
+			if (testCreatorId.HasValue)
+				query = query.Where(r => r.TestQuestion.Test.CreatedById == testCreatorId.Value);
+
 			return await query
 				.OrderByDescending(r => r.CreatedAt)
 				.Skip(skip)
@@ -67,9 +72,13 @@ namespace ToeicGenius.Repositories.Implementations
 		public async Task<int> GetReportsCountAsync(
 			ReportStatus? status = null,
 			int? testQuestionId = null,
-			Guid? reportedBy = null)
+			Guid? reportedBy = null,
+			Guid? testCreatorId = null)
 		{
-			var query = _context.QuestionReports.AsQueryable();
+			var query = _context.QuestionReports
+				.Include(r => r.TestQuestion)
+					.ThenInclude(tq => tq.Test)
+				.AsQueryable();
 
 			if (status.HasValue)
 				query = query.Where(r => r.Status == status.Value);
@@ -79,6 +88,10 @@ namespace ToeicGenius.Repositories.Implementations
 
 			if (reportedBy.HasValue)
 				query = query.Where(r => r.ReportedBy == reportedBy.Value);
+
+			// Filter by test creator
+			if (testCreatorId.HasValue)
+				query = query.Where(r => r.TestQuestion.Test.CreatedById == testCreatorId.Value);
 
 			return await query.CountAsync();
 		}
@@ -96,10 +109,26 @@ namespace ToeicGenius.Repositories.Implementations
 				.AnyAsync(r => r.TestQuestionId == testQuestionId && r.ReportedBy == userId);
 		}
 
-		public async Task<int> GetPendingReportsCountAsync()
+		public async Task<int> GetPendingReportsCountAsync(Guid? testCreatorId = null)
+		{
+			var query = _context.QuestionReports
+				.Include(r => r.TestQuestion)
+					.ThenInclude(tq => tq.Test)
+				.Where(r => r.Status == ReportStatus.Pending);
+
+			// Filter by test creator - only count pending reports for their tests
+			if (testCreatorId.HasValue)
+				query = query.Where(r => r.TestQuestion.Test.CreatedById == testCreatorId.Value);
+
+			return await query.CountAsync();
+		}
+
+		public async Task<bool> IsReportOwnedByCreatorAsync(int reportId, Guid creatorId)
 		{
 			return await _context.QuestionReports
-				.CountAsync(r => r.Status == ReportStatus.Pending);
+				.Include(r => r.TestQuestion)
+					.ThenInclude(tq => tq.Test)
+				.AnyAsync(r => r.ReportId == reportId && r.TestQuestion.Test.CreatedById == creatorId);
 		}
 	}
 }

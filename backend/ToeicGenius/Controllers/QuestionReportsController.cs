@@ -59,6 +59,7 @@ namespace ToeicGenius.Controllers
 
 		/// <summary>
 		/// Get all reports with filtering (Admin/Test Creator only)
+		/// Admin sees all reports, TestCreator only sees reports for their tests
 		/// </summary>
 		[HttpGet]
 		[Authorize(Roles = "Admin,TestCreator")]
@@ -68,7 +69,12 @@ namespace ToeicGenius.Controllers
 			[FromQuery] int page = 1,
 			[FromQuery] int pageSize = 20)
 		{
-			var result = await _reportService.GetReportsAsync(status, testQuestionId, page, pageSize);
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var isAdmin = User.IsInRole("Admin");
+			var result = await _reportService.GetReportsAsync(status, testQuestionId, userId, isAdmin, page, pageSize);
 
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
@@ -78,12 +84,18 @@ namespace ToeicGenius.Controllers
 
 		/// <summary>
 		/// Get report by ID (Admin/Test Creator only)
+		/// Admin can view any report, TestCreator can only view reports for their tests
 		/// </summary>
 		[HttpGet("{reportId}")]
 		[Authorize(Roles = "Admin,TestCreator")]
 		public async Task<IActionResult> GetReportById(int reportId)
 		{
-			var result = await _reportService.GetReportByIdAsync(reportId);
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var isAdmin = User.IsInRole("Admin");
+			var result = await _reportService.GetReportByIdAsync(reportId, userId, isAdmin);
 
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
@@ -93,6 +105,7 @@ namespace ToeicGenius.Controllers
 
 		/// <summary>
 		/// Review/update a report (Admin/Test Creator only)
+		/// Admin can review any report, TestCreator can only review reports for their tests
 		/// </summary>
 		[HttpPut("{reportId}/review")]
 		[Authorize(Roles = "Admin,TestCreator")]
@@ -102,7 +115,8 @@ namespace ToeicGenius.Controllers
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var reviewerId))
 				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
 
-			var result = await _reportService.ReviewReportAsync(reportId, request, reviewerId);
+			var isAdmin = User.IsInRole("Admin");
+			var result = await _reportService.ReviewReportAsync(reportId, request, reviewerId, isAdmin);
 
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
@@ -112,12 +126,18 @@ namespace ToeicGenius.Controllers
 
 		/// <summary>
 		/// Get pending reports count for dashboard (Admin/Test Creator only)
+		/// Admin gets all pending count, TestCreator gets only their pending reports count
 		/// </summary>
 		[HttpGet("stats/pending-count")]
 		[Authorize(Roles = "Admin,TestCreator")]
 		public async Task<IActionResult> GetPendingCount()
 		{
-			var result = await _reportService.GetPendingReportsCountAsync();
+			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+
+			var isAdmin = User.IsInRole("Admin");
+			var result = await _reportService.GetPendingReportsCountAsync(userId, isAdmin);
 
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
