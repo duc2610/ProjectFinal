@@ -13,18 +13,10 @@ export const uploadFile = async (file, type = "image") => {
   formData.append("File", file);
   formData.append("Type", type);
   
-  console.log("Uploading file:", {
-    name: file.name, 
-    type: file.type, 
-    size: file.size,
-    fileType: type,
-    formDataKeys: Array.from(formData.keys())
-  });
   
   try {
     const response = await api.post("/api/files/upload", formData);
     
-    console.log("Upload response:", response.data);
     
     // Backend returns ApiResponse<string> with data property
     return response.data.data || response.data;
@@ -58,7 +50,6 @@ export const rollbackFiles = async (urls) => {
   if (!urls || urls.length === 0) return;
   try {
     await deleteFiles(urls);
-    console.log("Rolled back files:", urls);
   } catch (error) {
     console.error("Failed to rollback files:", error);
   }

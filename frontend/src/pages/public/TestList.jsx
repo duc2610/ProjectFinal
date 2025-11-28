@@ -74,14 +74,9 @@ export default function TestList() {
             }
         } catch (error) {
             console.error("Error fetching simulator tests:", error);
-            if (error.response?.status === 404) {
-                setAllTests([]);
-                setTests([]);
-            } else {
-                message.error("Không thể tải danh sách bài test. Vui lòng thử lại sau.");
-                setAllTests([]);
-                setTests([]);
-            }
+            // Không hiển thị thông báo lỗi, chỉ set data rỗng
+            setAllTests([]);
+            setTests([]);
         } finally {
             setLoading(false);
         }

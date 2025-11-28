@@ -103,6 +103,8 @@ export function AuthProvider({ children }) {
     svcLogout();
     setUser(null);
     removeCookie("user");
+    // Navigate về login sau khi đăng xuất
+    navigate("/login", { replace: true });
   };
 
   const value = useMemo(

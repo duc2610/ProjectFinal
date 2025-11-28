@@ -99,15 +99,9 @@ export default function PracticeSW() {
             }
         } catch (error) {
             console.error("Error fetching practice tests:", error);
-            // Nếu là lỗi 404, chỉ set data rỗng, không hiển thị thông báo lỗi
-            if (error.response?.status === 404) {
-                setSpeakingTests([]);
-                setWritingTests([]);
-            } else {
-                message.error("Không thể tải danh sách bài test. Vui lòng thử lại sau.");
-                setSpeakingTests([]);
-                setWritingTests([]);
-            }
+            // Không hiển thị thông báo lỗi, chỉ set data rỗng
+            setSpeakingTests([]);
+            setWritingTests([]);
         } finally {
             setLoading(false);
         }

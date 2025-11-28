@@ -75,13 +75,8 @@ export default function PracticeLR() {
             }
         } catch (error) {
             console.error("Error fetching practice tests:", error);
-            // Nếu là lỗi 404, chỉ set data rỗng, không hiển thị thông báo lỗi
-            if (error.response?.status === 404) {
-                setTests([]);
-            } else {
-                message.error("Không thể tải danh sách bài test. Vui lòng thử lại sau.");
-                setTests([]);
-            }
+            // Không hiển thị thông báo lỗi, chỉ set data rỗng
+            setTests([]);
         } finally {
             setLoading(false);
         }

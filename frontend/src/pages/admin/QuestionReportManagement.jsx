@@ -164,7 +164,7 @@ export default function QuestionReportManagement() {
       setFilters(merged);
     } catch (error) {
       console.error("Failed to load question reports", error);
-      message.error("Không thể tải danh sách báo cáo câu hỏi.");
+      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
     } finally {
       setLoading(false);
     }
@@ -232,11 +232,6 @@ export default function QuestionReportManagement() {
         reviewerNotes: values.reviewerNotes || null,
       };
 
-      // eslint-disable-next-line no-console
-      console.log("ReviewReport payload FE:", {
-        reportId: selectedReport.reportId,
-        ...payload,
-      });
 
       const res = await reviewReport(selectedReport.reportId, payload);
       const successMessage =
@@ -285,11 +280,6 @@ export default function QuestionReportManagement() {
           };
 
           // Debug payload trước khi gửi BE
-          // Bạn có thể mở DevTools Console để xem nội dung này
-          // và so sánh với Form Data trong tab Network.
-          // Khi xong có thể xoá console.log này.
-          // eslint-disable-next-line no-console
-          console.log("UpdateTestQuestion payload FE:", payload);
 
           await updateTestQuestionFromReport(
             selectedReport.testQuestionId,
@@ -311,14 +301,9 @@ export default function QuestionReportManagement() {
   const columns = useMemo(
     () => [
       {
-        title: "ID",
-        dataIndex: "reportId",
-        width: 70,
-        sorter: (a, b) => a.reportId - b.reportId,
-      },
-      {
         title: "Câu hỏi",
         dataIndex: "questionContent",
+        width: 260,
         ellipsis: true,
         render: (text, record) => {
           const content =
@@ -335,10 +320,10 @@ export default function QuestionReportManagement() {
       {
         title: "Bài test",
         dataIndex: "testName",
-        width: 160,
+        width: 200,
         render: (text, record) => (
           <Space direction="vertical" size={0}>
-            <Text strong ellipsis style={{ maxWidth: 150 }}>
+            <Text strong ellipsis style={{ maxWidth: 180 }}>
               {text || "—"}
             </Text>
             <Text type="secondary" style={{ fontSize: 12 }}>
@@ -348,22 +333,9 @@ export default function QuestionReportManagement() {
         ),
       },
       {
-        title: "Người báo cáo",
-        dataIndex: "reporterName",
-        width: 180,
-        render: (text, record) => (
-          <Space direction="vertical" size={0}>
-            <Text strong>{text}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {record.reporterEmail}
-            </Text>
-          </Space>
-        ),
-      },
-      {
         title: "Loại lỗi",
         dataIndex: "reportType",
-        width: 140,
+        width: 130,
         render: (value) => {
           const label = reportTypeTextMap[value] || value || "Khác";
           return <Tag color="purple">{label}</Tag>;
@@ -394,6 +366,19 @@ export default function QuestionReportManagement() {
         },
       },
       {
+        title: "Người báo cáo",
+        dataIndex: "reporterName",
+        width: 200,
+        render: (text, record) => (
+          <Space direction="vertical" size={0}>
+            <Text strong>{text}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {record.reporterEmail}
+            </Text>
+          </Space>
+        ),
+      },
+      {
         title: "Thời gian",
         dataIndex: "createdAt",
         width: 180,
@@ -414,7 +399,7 @@ export default function QuestionReportManagement() {
         title: "Thao tác",
         key: "actions",
         fixed: "right",
-        width: 140,
+        width: 120,
         render: (_, record) => (
           <Space>
             <Tooltip title="Xem & xử lý">

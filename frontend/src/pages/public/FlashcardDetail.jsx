@@ -24,18 +24,20 @@ import "@shared/styles/FlashcardDetail.css";
 export default function FlashcardDetail() {
   const { setId } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [flashcardSet, setFlashcardSet] = useState(null);
   const [flashcards, setFlashcards] = useState([]);
-  const [cardStatusMap, setCardStatusMap] = useState(new Map()); // Map cardId -> status
+  const [cardStatusMap, setCardStatusMap] = useState(new Map());
   const [loading, setLoading] = useState(false);
-  const [studyMode, setStudyMode] = useState("flashcard"); // flashcard, learn
+  const [studyMode, setStudyMode] = useState("flashcard");
   const [addCardModalOpen, setAddCardModalOpen] = useState(false);
   const [editSetModalOpen, setEditSetModalOpen] = useState(false);
   const [editCardModalOpen, setEditCardModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
+  const [showAllVocab, setShowAllVocab] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     if (setId) {
@@ -46,6 +48,7 @@ export default function FlashcardDetail() {
   const fetchFlashcardDetail = async () => {
     try {
       setLoading(true);
+      setAccessDenied(false);
       const [setData, cardsData] = await Promise.all([
         getFlashcardSetById(setId),
         getFlashcardsBySetId(setId),
@@ -67,13 +70,46 @@ export default function FlashcardDetail() {
           }
         } catch (studyError) {
           console.error("Error fetching study session:", studyError);
+          // Kiểm tra nếu lỗi study session cũng là lỗi quyền truy cập
+          const studyErrorMsg = studyError?.response?.data?.message || "";
+          const studyStatus = studyError?.response?.status;
+          const isStudyAccessDenied = studyStatus === 403 || 
+                                     studyErrorMsg.toLowerCase().includes("access denied") ||
+                                     studyErrorMsg.toLowerCase().includes("riêng tư") ||
+                                     studyErrorMsg.toLowerCase().includes("private");
+          
+          if (isStudyAccessDenied) {
+            setAccessDenied(true);
+            message.error("Bạn không có quyền truy cập flashcard này");
+            setTimeout(() => {
+              navigate("/flashcard");
+            }, 1000);
+            return;
+          }
           // Không hiển thị lỗi, chỉ không hiển thị trạng thái
         }
       }
     } catch (error) {
       console.error("Error fetching flashcard detail:", error);
       const errorMsg = error?.response?.data?.message || "Không thể tải chi tiết flashcard";
-      message.error(errorMsg);
+      const status = error?.response?.status;
+      
+      // Kiểm tra nếu là lỗi quyền truy cập (403) hoặc message chứa "Access denied" hoặc "private"
+      const isAccessDenied = status === 403 || 
+                            errorMsg.toLowerCase().includes("access denied") ||
+                            errorMsg.toLowerCase().includes("riêng tư") ||
+                            errorMsg.toLowerCase().includes("private");
+      
+      if (isAccessDenied) {
+        setAccessDenied(true);
+        message.error("Bạn không có quyền truy cập flashcard này");
+        // Tự động chuyển hướng về trang flashcard sau 1 giây
+        setTimeout(() => {
+          navigate("/flashcard");
+        }, 1000);
+      } else {
+        message.error(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -164,8 +200,9 @@ export default function FlashcardDetail() {
 
 
   const currentCard = flashcards[currentCardIndex];
+  const vocabToRender = showAllVocab ? flashcards : flashcards.slice(0, 10);
 
-  if (loading) {
+  if (loading || accessDenied) {
     return (
       <div style={{ textAlign: "center", padding: "100px 0" }}>
         <Spin size="large" />
@@ -229,22 +266,31 @@ export default function FlashcardDetail() {
         >
           <CheckOutlined /> Học
         </Button>
-        <Button
-          type="default"
-          icon={<PlusOutlined />}
-          onClick={() => setAddCardModalOpen(true)}
-          className="quizlet-action-btn"
-        >
-          Thêm thẻ
-        </Button>
-        <Button
-          type="default"
-          icon={<EditOutlined />}
-          onClick={() => setEditSetModalOpen(true)}
-          className="quizlet-action-btn"
-        >
-          Chỉnh sửa
-        </Button>
+        {/* Chỉ hiển thị nút thêm/sửa nếu user đã đăng nhập và là owner của flashcard set */}
+        {isAuthenticated && flashcardSet && (
+          (flashcardSet.creatorId === user?.id || 
+           flashcardSet.userId === user?.id || 
+           flashcardSet.isOwner === true) && (
+            <>
+              <Button
+                type="default"
+                icon={<PlusOutlined />}
+                onClick={() => setAddCardModalOpen(true)}
+                className="quizlet-action-btn"
+              >
+                Thêm thẻ
+              </Button>
+              <Button
+                type="default"
+                icon={<EditOutlined />}
+                onClick={() => setEditSetModalOpen(true)}
+                className="quizlet-action-btn"
+              >
+                Chỉnh sửa
+              </Button>
+            </>
+          )
+        )}
       </div>
 
       {/* Main Card Display - Quizlet Style */}
@@ -266,19 +312,52 @@ export default function FlashcardDetail() {
               <div className="quizlet-card-inner">
                 <div className={`quizlet-card-face quizlet-card-front ${isFlipped ? "hidden" : ""}`}>
                   <div className="quizlet-card-content">
-                    <div className="quizlet-card-word">{currentCard?.term || currentCard?.frontText}</div>
+                    <div className="quizlet-card-word">
+                      {currentCard?.term || currentCard?.frontText}
+                    </div>
+                    {(currentCard?.pronunciation || currentCard?.wordType) && (
+                      <div className="quizlet-card-meta">
+                        {currentCard?.pronunciation && (
+                          <span className="quizlet-card-pron">{currentCard.pronunciation}</span>
+                        )}
+                        {currentCard?.wordType && (
+                          <span className="quizlet-card-type">({currentCard.wordType})</span>
+                        )}
+                      </div>
+                    )}
                     <div className="quizlet-card-hint">
                       <RotateLeftOutlined /> Nhấn để xem nghĩa
                     </div>
                   </div>
                 </div>
                 <div className={`quizlet-card-face quizlet-card-back ${!isFlipped ? "hidden" : ""}`}>
-                  <div className="quizlet-card-content">
-                    <div className="quizlet-card-word">{currentCard?.definition || currentCard?.backText}</div>
-                    <div className="quizlet-card-hint">
-                      <RotateLeftOutlined /> Nhấn để xem từ
+                    <div className="quizlet-card-content">
+                      <div className="quizlet-card-word">
+                        {currentCard?.definition || currentCard?.backText}
+                      </div>
+
+                      {Array.isArray(currentCard?.examples) && currentCard.examples.length > 0 && (
+                        <div className="quizlet-card-section">
+                          <div className="quizlet-card-section-title">Ví dụ</div>
+                          <ul className="quizlet-card-examples">
+                            {currentCard.examples.map((ex, idx) => (
+                              <li key={idx}>{ex}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {currentCard?.notes && (
+                        <div className="quizlet-card-section quizlet-card-notes">
+                          <div className="quizlet-card-section-title">Ghi chú</div>
+                          <div className="quizlet-card-notes-text">{currentCard.notes}</div>
+                        </div>
+                      )}
+
+                      <div className="quizlet-card-hint">
+                        <RotateLeftOutlined /> Nhấn để xem từ
+                      </div>
                     </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -317,7 +396,7 @@ export default function FlashcardDetail() {
           <Empty description="Chưa có từ vựng nào" />
         ) : (
           <div className="quizlet-vocab-list">
-            {flashcards.map((card, index) => (
+            {vocabToRender.map((card, index) => (
               <div
                 key={card.cardId}
                 className={`quizlet-vocab-item ${index === currentCardIndex ? "active" : ""}`}
@@ -327,9 +406,40 @@ export default function FlashcardDetail() {
                 <div className="quizlet-vocab-content">
                   <div className="quizlet-vocab-term">
                     {card.term || card.frontText}
+                    {card.wordType && (
+                      <span className="quizlet-vocab-type"> ({card.wordType})</span>
+                    )}
                     {isAuthenticated && getStatusTag(card.cardId)}
                   </div>
-                  <div className="quizlet-vocab-definition">{card.definition || card.backText}</div>
+
+                  {(card.pronunciation || card.wordType) && (
+                    <div className="quizlet-vocab-meta">
+                      {card.pronunciation && (
+                        <span className="quizlet-vocab-pron">{card.pronunciation}</span>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="quizlet-vocab-definition">
+                    {card.definition || card.backText}
+                  </div>
+
+                  {Array.isArray(card.examples) && card.examples.length > 0 && (
+                    <div className="quizlet-vocab-example">
+                      <div className="quizlet-vocab-label">Ví dụ:</div>
+                      <ul className="quizlet-vocab-example-list">
+                        {card.examples.map((ex, idx) => (
+                          <li key={idx}>{ex}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {card.notes && (
+                    <div className="quizlet-vocab-notes">
+                      <span className="quizlet-vocab-label">Ghi chú:</span> {card.notes}
+                    </div>
+                  )}
                 </div>
                 <div className="quizlet-vocab-actions">
                   <Button
@@ -344,26 +454,46 @@ export default function FlashcardDetail() {
                     className="quizlet-vocab-action-icon"
                     title="Phát âm"
                   />
-                  <Button
-                    type="text"
-                    icon={<EditOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingCard(card);
-                      setEditCardModalOpen(true);
-                    }}
-                    className="quizlet-vocab-action-icon"
-                  />
-                  <Button
-                    type="text"
-                    icon={<DeleteOutlined />}
-                    onClick={(e) => handleDeleteCard(card.cardId, e)}
-                    danger
-                    className="quizlet-vocab-action-icon"
-                  />
+                  {/* Chỉ hiển thị nút sửa/xóa nếu user đã đăng nhập và là owner của flashcard set */}
+                  {isAuthenticated && flashcardSet && (
+                    (flashcardSet.creatorId === user?.id || 
+                     flashcardSet.userId === user?.id || 
+                     flashcardSet.isOwner === true) && (
+                      <>
+                        <Button
+                          type="text"
+                          icon={<EditOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingCard(card);
+                            setEditCardModalOpen(true);
+                          }}
+                          className="quizlet-vocab-action-icon"
+                        />
+                        <Button
+                          type="text"
+                          icon={<DeleteOutlined />}
+                          onClick={(e) => handleDeleteCard(card.cardId, e)}
+                          danger
+                          className="quizlet-vocab-action-icon"
+                        />
+                      </>
+                    )
+                  )}
                 </div>
               </div>
             ))}
+          </div>
+        )}
+        {flashcards.length > 10 && (
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <Button
+              type="link"
+              onClick={() => setShowAllVocab(!showAllVocab)}
+              style={{ fontWeight: 500 }}
+            >
+              {showAllVocab ? "Thu gọn" : `Xem thêm (${flashcards.length - 10} thuật ngữ)`}
+            </Button>
           </div>
         )}
       </div>

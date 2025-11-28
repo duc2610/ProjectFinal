@@ -1,13 +1,18 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Card, Typography, Radio, Button, Image, Progress, Input, message, Modal, Select, Tooltip } from "antd";
+import { Card, Typography, Radio, Button, Image, Progress, Input, message, Modal, Select, Tooltip, Radio as AntRadio } from "antd";
 import { AudioOutlined, StopOutlined, PlayCircleOutlined, FlagOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import { uploadFile } from "../../../services/filesService";
 import { reportQuestion } from "../../../services/questionReportService";
 import { translateErrorMessage } from "@shared/utils/translateError";
+import { getUserFlashcardSets, createFlashcardSet, addFlashcardFromTest } from "../../../services/flashcardService";
+import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+
+// Bảng màu highlight
+const HIGHLIGHT_COLORS = ["#fef08a", "#bfdbfe", "#bbf7d0", "#fed7aa"];
 
 // Hàm chuyển đổi WebM Blob sang WAV File
 const convertWebmToWav = async (webmBlob) => {
@@ -120,6 +125,7 @@ export default function QuestionCard({
   handleSubmit,
   isSubmitting = false,
   globalAudioUrl,
+  testType = "Simulator", // Thêm prop testType để xác định loại bài thi
   isIncorrect = undefined, // Prop để xác định câu hỏi làm sai (undefined = trong quá trình làm bài, true = làm sai ở result, false = làm đúng ở result)
   isReported = false, // Prop để xác định câu hỏi đã được report
   onReportSuccess, // Callback khi report thành công
@@ -142,12 +148,111 @@ export default function QuestionCard({
   const [reportDescription, setReportDescription] = useState("");
   const [reporting, setReporting] = useState(false);
 
+  // Flashcard from exam
+  const { isAuthenticated } = useAuth();
+  const [flashcardModalVisible, setFlashcardModalVisible] = useState(false);
+  const [flashcardSets, setFlashcardSets] = useState([]);
+  const [flashcardLoading, setFlashcardLoading] = useState(false);
+  const [flashcardMode, setFlashcardMode] = useState("existing"); // 'existing' | 'new'
+  const [selectedSetId, setSelectedSetId] = useState(null);
+  const [newSetTitle, setNewSetTitle] = useState("");
+  const [newSetDescription, setNewSetDescription] = useState("");
+  const [flashcardTerm, setFlashcardTerm] = useState("");
+  const [flashcardDefinition, setFlashcardDefinition] = useState("");
+  const [flashcardPronunciation, setFlashcardPronunciation] = useState("");
+  const [flashcardWordType, setFlashcardWordType] = useState("");
+  const [flashcardExamplesInput, setFlashcardExamplesInput] = useState("");
+  const [flashcardNotes, setFlashcardNotes] = useState("");
+
+  // Highlight text
+  const [highlights, setHighlights] = useState([]);
+  const [highlightColor, setHighlightColor] = useState(HIGHLIGHT_COLORS[0]);
+  const [highlightToolbarVisible, setHighlightToolbarVisible] = useState(false);
+  const [highlightToolbarPos, setHighlightToolbarPos] = useState({ top: 0, left: 0 });
+  const [pendingSelection, setPendingSelection] = useState({ start: 0, end: 0, text: "" });
+  const questionTextContainerRef = useRef(null);
+
   const isListeningPart = question.partId >= 1 && question.partId <= 4;
   const isWritingPart = question.partId >= 8 && question.partId <= 10;
   const isSpeakingPart = question.partId >= 11 && question.partId <= 15;
   const isLrPart = question.partId >= 1 && question.partId <= 7;
   const hasGlobalAudio = globalAudioUrl && globalAudioUrl.trim() !== "";
   const hasImage = question.imageUrl && question.imageUrl.trim() !== "";
+
+  // Chuyển node + offset thành offset toàn cục trong text
+  const getGlobalOffset = (root, node, localOffset) => {
+    if (!root || !node) return 0;
+    let total = 0;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    while (walker.nextNode()) {
+      const current = walker.currentNode;
+      if (current === node) {
+        return total + localOffset;
+      }
+      total += current.textContent.length;
+    }
+    return total;
+  };
+
+  // Render câu hỏi với highlight
+  const renderQuestionWithHighlights = () => {
+    const raw = formatQuestionText(question.question || "");
+    if (!highlights || highlights.length === 0) {
+      return raw;
+    }
+
+    const sorted = [...highlights].sort((a, b) => a.start - b.start);
+    const segments = [];
+    let cursor = 0;
+
+    sorted.forEach((h, idx) => {
+      const start = Math.max(0, Math.min(raw.length, h.start));
+      const end = Math.max(start, Math.min(raw.length, h.end));
+
+      if (start > cursor) {
+        segments.push({
+          text: raw.slice(cursor, start),
+          highlight: null,
+          key: `n-${idx}-${cursor}`,
+        });
+      }
+
+      if (end > start) {
+        segments.push({
+          text: raw.slice(start, end),
+          highlight: h.color,
+          key: `h-${idx}-${start}`,
+        });
+      }
+
+      cursor = end;
+    });
+
+    if (cursor < raw.length) {
+      segments.push({
+        text: raw.slice(cursor),
+        highlight: null,
+        key: `n-end-${cursor}`,
+      });
+    }
+
+    return segments.map((seg) =>
+      seg.highlight ? (
+        <span
+          key={seg.key}
+          style={{
+            backgroundColor: seg.highlight,
+            borderRadius: 2,
+            padding: "0 1px",
+          }}
+        >
+          {seg.text}
+        </span>
+      ) : (
+        seg.text
+      )
+    );
+  };
 
   useEffect(() => {
     let previousUrl = recordedAudioUrl;
@@ -214,6 +319,13 @@ export default function QuestionCard({
     };
   }, [question.testQuestionId, answers, isSpeakingPart, globalAudioUrl, isListeningPart, hasGlobalAudio]);
 
+  // Reset highlight khi chuyển câu hỏi
+  useEffect(() => {
+    setHighlights([]);
+    setHighlightToolbarVisible(false);
+    setPendingSelection({ start: 0, end: 0, text: "" });
+  }, [question.testQuestionId, question.subQuestionIndex]);
+
   useEffect(() => {
     if (!audioRef.current || !hasGlobalAudio) return;
     const audio = audioRef.current;
@@ -237,8 +349,19 @@ export default function QuestionCard({
 
   const toggleAudio = () => {
     if (!audioRef.current || audioError) return;
-    // Khi làm bài thi, chỉ cho phép phát audio, không cho phép dừng
-    if (!isPlaying) {
+    
+    // Kiểm tra loại bài thi
+    const isPractice = testType && testType.toLowerCase() === "practice";
+    
+    if (isPlaying) {
+      // Nếu là Practice thì cho phép pause
+      if (isPractice) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+      // Nếu là Simulator thì không cho pause (không làm gì)
+    } else {
+      // Phát audio
       audioRef.current.play().catch(() => setAudioError(true));
       setIsPlaying(true);
     }
@@ -407,14 +530,93 @@ export default function QuestionCard({
     }
   };
 
+  const handleSaveFlashcard = async () => {
+    if (!flashcardTerm || !flashcardTerm.trim()) {
+      message.warning("Vui lòng nhập từ / cụm từ để lưu vào flashcard.");
+      return;
+    }
+    if (flashcardMode === "existing" && !selectedSetId) {
+      message.warning("Vui lòng chọn bộ flashcard.");
+      return;
+    }
+    if (flashcardMode === "new" && !newSetTitle.trim()) {
+      message.warning("Vui lòng nhập tên bộ flashcard mới.");
+      return;
+    }
+
+    try {
+      setFlashcardLoading(true);
+      let targetSetId = selectedSetId;
+
+      if (flashcardMode === "new") {
+        const payload = {
+          title: newSetTitle.trim(),
+          description: newSetDescription?.trim() || null,
+          language: "en-US",
+          isPublic: false,
+        };
+        const created = await createFlashcardSet(payload);
+        targetSetId = created?.setId || created?.id;
+        if (!targetSetId) {
+          message.error("Không lấy được ID bộ flashcard vừa tạo.");
+          return;
+        }
+        const sets = await getUserFlashcardSets();
+        setFlashcardSets(Array.isArray(sets) ? sets : []);
+        setSelectedSetId(targetSetId);
+      }
+
+      const examples =
+        flashcardExamplesInput
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+      const cardPayload = {
+        setId: targetSetId,
+        term: flashcardTerm.trim(),
+        definition: flashcardDefinition?.trim() || flashcardTerm.trim(),
+        pronunciation: flashcardPronunciation?.trim() || null,
+        wordType: flashcardWordType?.trim() || null,
+        examples,
+        notes:
+          flashcardNotes?.trim() ||
+          `Found in TOEIC ${testType} test, question ${
+            question.globalIndex ?? question.index ?? ""
+          }`,
+      };
+
+      await addFlashcardFromTest(cardPayload);
+      message.success("Đã thêm thẻ flashcard từ bài thi!");
+      setFlashcardModalVisible(false);
+    } catch (error) {
+      console.error("Lỗi khi lưu flashcard từ bài thi:", error);
+      const errorMsg =
+        error?.response?.data?.message || "Không thể lưu flashcard từ bài thi.";
+      message.error(errorMsg);
+    } finally {
+      setFlashcardLoading(false);
+    }
+  };
+
   return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "row",
+        gap: 24,
+        alignItems: "flex-start",
+        flexWrap: "wrap",
+      }}
+    >
     <Card
       style={{
         margin: 0,
         borderRadius: "16px",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
         border: "none",
-        overflow: "hidden"
+          overflow: "hidden",
+          flex: "1 1 520px",
       }}
       bodyStyle={{ padding: "32px" }}
     >
@@ -483,7 +685,7 @@ export default function QuestionCard({
                     size="large"
                     onClick={toggleAudio}
                     type={isPlaying ? "primary" : "default"}
-                    disabled={isPlaying}
+                      disabled={isPlaying && testType && testType.toLowerCase() !== "practice"}
                     style={{
                       borderRadius: "8px",
                       height: "40px",
@@ -492,7 +694,9 @@ export default function QuestionCard({
                       boxShadow: isPlaying ? "0 4px 12px rgba(102, 126, 234, 0.3)" : "none"
                     }}
                   >
-                    {isPlaying ? "Đang phát..." : "Nghe"}
+                      {isPlaying 
+                        ? (testType && testType.toLowerCase() === "practice" ? "Tạm dừng" : "Đang phát...") 
+                        : "Nghe"}
                   </Button>
                   <div style={{ flex: 1 }}>
                     <Progress
@@ -523,6 +727,122 @@ export default function QuestionCard({
             )}
           </div>
         )}
+
+          {/* Thanh công cụ highlight + flashcard */}
+          {highlightToolbarVisible && (
+            <div
+              style={{
+                position: "fixed",
+                top: highlightToolbarPos.top,
+                left: highlightToolbarPos.left,
+                background: "#111827",
+                color: "#fff",
+                padding: "6px 8px",
+                borderRadius: 999,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                boxShadow: "0 4px 10px rgba(15,23,42,0.35)",
+                zIndex: 20,
+              }}
+            >
+              {HIGHLIGHT_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    if (pendingSelection.end > pendingSelection.start) {
+                      const start = pendingSelection.start;
+                      const end = pendingSelection.end;
+                      setHighlights((prev) => {
+                        // Loại bỏ mọi highlight cũ bị chồng lấn với vùng mới
+                        const cleaned = prev.filter(
+                          (h) => h.end <= start || h.start >= end
+                        );
+                        return [...cleaned, { start, end, color: c }];
+                      });
+                      setHighlightColor(c);
+                    }
+                  }}
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 4,
+                    border: c === highlightColor ? "2px solid #fff" : "1px solid #e5e7eb",
+                    backgroundColor: c,
+                    cursor: "pointer",
+                  }}
+                />
+              ))}
+              <span
+                style={{
+                  width: 1,
+                  height: 18,
+                  background: "rgba(148,163,184,0.7)",
+                  margin: "0 4px",
+                }}
+              />
+              <Button
+                size="small"
+                type="primary"
+                style={{ borderRadius: 16, padding: "0 10px" }}
+                onClick={async () => {
+                  if (!pendingSelection.text) return;
+                  if (!isAuthenticated) {
+                    message.warning("Vui lòng đăng nhập để lưu flashcard.");
+                    return;
+                  }
+                  try {
+                    setFlashcardTerm(pendingSelection.text);
+                    setFlashcardDefinition("");
+                    setFlashcardMode("existing");
+                    setNewSetTitle("");
+                    setNewSetDescription("");
+                    setSelectedSetId(null);
+                    setFlashcardPronunciation("");
+                    setFlashcardWordType("");
+                    setFlashcardExamplesInput("");
+                    setFlashcardNotes(
+                      `Found in TOEIC ${testType} test, question ${
+                        question.globalIndex ?? question.index ?? ""
+                      }`
+                    );
+                    setFlashcardModalVisible(true);
+                    setFlashcardLoading(true);
+                    const sets = await getUserFlashcardSets();
+                    setFlashcardSets(Array.isArray(sets) ? sets : []);
+                    if (Array.isArray(sets) && sets.length > 0) {
+                      setSelectedSetId(sets[0].setId);
+                    }
+                  } catch (error) {
+                    console.error("Không thể tải danh sách flashcard:", error);
+                    const errorMsg =
+                      error?.response?.data?.message || "Không thể tải danh sách flashcard";
+                    message.error(errorMsg);
+                  } finally {
+                    setFlashcardLoading(false);
+                    setHighlightToolbarVisible(false);
+                  }
+                }}
+              >
+                + Thẻ
+              </Button>
+              <button
+                type="button"
+                onClick={() => setHighlightToolbarVisible(false)}
+                style={{
+                  marginLeft: 4,
+                  background: "transparent",
+                  border: "none",
+                  color: "#e5e7eb",
+                  cursor: "pointer",
+                  fontSize: 12,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
 
         {hasImage && !imageError ? (
           <div style={{
@@ -560,7 +880,9 @@ export default function QuestionCard({
           </div>
         ) : null}
 
-        <div style={{
+          <div
+            ref={questionTextContainerRef}
+            style={{
           marginTop: "0",
           padding: "20px",
           background: "#ffffff",
@@ -569,17 +891,61 @@ export default function QuestionCard({
           fontSize: "16px",
           lineHeight: "1.8",
           color: "#2d3748",
-          whiteSpace: "pre-line" // Giữ nguyên xuống dòng từ \r\n và \n
-        }}>
+              whiteSpace: "pre-line", // Giữ nguyên xuống dòng từ \r\n và \n
+              cursor: "text",
+            }}
+            onMouseUp={() => {
+              if (typeof window === "undefined" || !window.getSelection) return;
+              const selection = window.getSelection();
+              if (!selection || selection.rangeCount === 0) return;
+
+              const range = selection.getRangeAt(0);
+              const text = selection.toString().trim();
+              if (!text) {
+                setHighlightToolbarVisible(false);
+                return;
+              }
+
+              const rootEl = questionTextContainerRef.current;
+              // Tính offset toàn cục trong toàn bộ câu hỏi, không chỉ trong text node hiện tại
+              const start = getGlobalOffset(
+                rootEl,
+                range.startContainer,
+                range.startOffset
+              );
+              const end = getGlobalOffset(rootEl, range.endContainer, range.endOffset);
+              setPendingSelection({ start, end, text });
+
+              // Tính vị trí toolbar theo viewport (hiển thị ngay trên vùng bôi đen)
+              const rect = range.getBoundingClientRect();
+              setHighlightToolbarPos({
+                top: rect.top + window.scrollY - 40,
+                left: rect.left + window.scrollX,
+              });
+              setHighlightToolbarVisible(true);
+            }}
+          >
           <Text strong style={{ fontSize: "16px", color: "#2d3748" }}>
-            {formatQuestionText(question.question)}
+              {renderQuestionWithHighlights()}
           </Text>
         </div>
       </div>
+      </Card>
 
+      <Card
+        style={{
+          margin: 0,
+          borderRadius: "16px",
+          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+          border: "none",
+          overflow: "hidden",
+          flex: "1 1 420px",
+        }}
+        bodyStyle={{ padding: "32px" }}
+      >
       {/* PHẦN TRẢ LỜI */}
       {isWritingPart ? (
-        <div className={styles.aBox} style={{ marginTop: 24 }}>
+          <div className={styles.aBox} style={{ marginTop: 0 }}>
           <Text strong style={{ fontSize: "16px", color: "#2d3748", display: "block", marginBottom: "16px" }}>
             Viết câu trả lời
           </Text>
@@ -599,7 +965,6 @@ export default function QuestionCard({
                   ? `${testQuestionIdStr}_${subIndex}`
                   : testQuestionIdStr;
                 const answerValue = typeof answers[answerKey] === "string" ? answers[answerKey] : "";
-                console.log(`QuestionCard Writing - Question ${question.globalIndex} (testQuestionId: ${question.testQuestionId}, subQuestionIndex: ${question.subQuestionIndex}): answerKey="${answerKey}", answerValue="${answerValue}"`);
                 return answerValue;
               })()}
               onChange={(e) => {
@@ -669,7 +1034,7 @@ export default function QuestionCard({
           </div>
         </div>
       ) : isSpeakingPart ? (
-        <div className={styles.aBox} style={{ marginTop: 24 }}>
+        <div className={styles.aBox} style={{ marginTop: 0 }}>
           <Text strong style={{ fontSize: "16px", color: "#2d3748", display: "block", marginBottom: "16px" }}>
             Ghi âm câu trả lời
           </Text>
@@ -800,7 +1165,7 @@ export default function QuestionCard({
           </div>
         </div>
       ) : (
-        <div className={styles.aBox} style={{ marginTop: 24 }}>
+        <div className={styles.aBox} style={{ marginTop: 0 }}>
           <Text strong style={{ fontSize: "16px", color: "#2d3748", display: "block", marginBottom: "16px" }}>
             Chọn đáp án
           </Text>
@@ -818,7 +1183,6 @@ export default function QuestionCard({
                   ? `${testQuestionIdStr}_${subIndex}`
                   : testQuestionIdStr;
                 const answerValue = answers[answerKey];
-                console.log(`QuestionCard - Question ${question.globalIndex} (testQuestionId: ${question.testQuestionId}, subQuestionIndex: ${question.subQuestionIndex}): answerKey="${answerKey}", answerValue="${answerValue}"`);
                 return answerValue;
               })()}
               onChange={(e) => {
@@ -1032,6 +1396,164 @@ export default function QuestionCard({
           </div>
         </div>
       </Modal>
+      
+      {/* Modal thêm vào Flashcard */}
+      <Modal
+        title="Thêm vào flashcard"
+        open={flashcardModalVisible}
+        onOk={handleSaveFlashcard}
+        onCancel={() => setFlashcardModalVisible(false)}
+        okText="Lưu"
+        cancelText="Hủy"
+        confirmLoading={flashcardLoading}
+        width={640}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Nội dung đã chọn
+          </Text>
+          <div
+            style={{
+              padding: 12,
+              background: "#f7fafc",
+              borderRadius: 8,
+              border: "1px solid #e2e8f0",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {flashcardTerm}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Bộ flashcard
+          </Text>
+          <AntRadio.Group
+            value={flashcardMode}
+            onChange={(e) => setFlashcardMode(e.target.value)}
+            style={{ marginBottom: 8 }}
+          >
+            <AntRadio value="existing">Thêm vào bộ có sẵn</AntRadio>
+            <AntRadio value="new">Tạo bộ mới</AntRadio>
+          </AntRadio.Group>
+
+          {flashcardMode === "existing" ? (
+            <Select
+              style={{ width: "100%", marginTop: 8 }}
+              placeholder="Chọn bộ flashcard"
+              value={selectedSetId}
+              onChange={setSelectedSetId}
+              loading={flashcardLoading && flashcardSets.length === 0}
+              allowClear
+            >
+              {flashcardSets.map((set) => (
+                <Select.Option key={set.setId} value={set.setId}>
+                  {set.title}
+                </Select.Option>
+              ))}
+            </Select>
+          ) : (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+              <Input
+                placeholder="Nhập tên bộ flashcard mới"
+                value={newSetTitle}
+                onChange={(e) => setNewSetTitle(e.target.value)}
+                maxLength={255}
+              />
+              <TextArea
+                rows={2}
+                placeholder="Mô tả (tùy chọn) cho bộ flashcard"
+                value={newSetDescription}
+                onChange={(e) => setNewSetDescription(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <Text strong style={{ display: "block", marginBottom: 4 }}>
+                Từ vựng / Thuật ngữ
+              </Text>
+              <Input
+                value={flashcardTerm}
+                onChange={(e) => setFlashcardTerm(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Text strong style={{ display: "block", marginBottom: 4 }}>
+                Định nghĩa
+              </Text>
+              <TextArea
+                rows={3}
+                value={flashcardDefinition}
+                onChange={(e) => setFlashcardDefinition(e.target.value)}
+                maxLength={1000}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <Text strong style={{ display: "block", marginBottom: 4 }}>
+                Phiên âm (tùy chọn)
+              </Text>
+              <Input
+                placeholder="/ˈkwɔː.tə.li/"
+                value={flashcardPronunciation}
+                onChange={(e) => setFlashcardPronunciation(e.target.value)}
+                maxLength={255}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Text strong style={{ display: "block", marginBottom: 4 }}>
+                Loại từ (tùy chọn)
+              </Text>
+              <Input
+                placeholder="ADJ, N, V..."
+                value={flashcardWordType}
+                onChange={(e) => setFlashcardWordType(e.target.value)}
+                maxLength={50}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Text strong style={{ display: "block", marginBottom: 4 }}>
+              Ví dụ (mỗi dòng một câu, tùy chọn)
+            </Text>
+            <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
+              Gợi ý: nhập 1–2 câu hoàn chỉnh thể hiện cách dùng của từ ở trên. Mỗi câu một dòng.
+            </Text>
+            <TextArea
+              rows={3}
+              placeholder={
+                "Ví dụ:\nThe company holds quarterly meetings.\nQuarterly sales increased by 10%."
+              }
+              value={flashcardExamplesInput}
+              onChange={(e) => setFlashcardExamplesInput(e.target.value)}
+              maxLength={1000}
+            />
+          </div>
+
+          <div>
+            <Text strong style={{ display: "block", marginBottom: 4 }}>
+              Ghi chú (notes, tùy chọn)
+            </Text>
+            <TextArea
+              rows={2}
+              value={flashcardNotes}
+              onChange={(e) => setFlashcardNotes(e.target.value)}
+              maxLength={500}
+            />
+          </div>
+        </div>
+      </Modal>
     </Card>
+  </div>
   );
 }

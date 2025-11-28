@@ -9,11 +9,13 @@ import {
 } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import { getFlashcardsBySetId, markCardKnowledge, startStudySession, getStudyStats, resetStudySession } from "@services/flashcardService";
+import { useAuth } from "@shared/hooks/useAuth";
 import "@shared/styles/FlashcardDetail.css";
 
 export default function FlashcardLearn() {
   const { setId } = useParams();
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [allFlashcards, setAllFlashcards] = useState([]); // Tất cả flashcard
@@ -23,17 +25,32 @@ export default function FlashcardLearn() {
   const [isCardAnimating, setIsCardAnimating] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [studyStats, setStudyStats] = useState(null);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     fetchStudySession();
-  }, [setId]);
+  }, [setId, isAuthenticated]);
 
   const fetchStudySession = async (showLoader = true) => {
     try {
       if (showLoader) {
         setLoading(true);
       }
-      // Sử dụng startStudySession để lấy thông tin học tập với trạng thái
+      setAccessDenied(false);
+      
+      // Nếu chưa đăng nhập, chỉ lấy danh sách flashcard thông thường
+      if (!isAuthenticated) {
+        const cardsData = await getFlashcardsBySetId(setId);
+        const allCards = Array.isArray(cardsData) ? cardsData : [];
+        setAllFlashcards(allCards);
+        setFlashcards(allCards);
+        setLearnedCards(new Set()); // Không có trạng thái học tập cho khách
+        setIsCompleted(false);
+        setStudyStats(null);
+        return;
+      }
+      
+      // Nếu đã đăng nhập, sử dụng startStudySession để lấy thông tin học tập với trạng thái
       const sessionData = await startStudySession(setId);
       if (sessionData && sessionData.cards) {
         const allCards = Array.isArray(sessionData.cards) ? sessionData.cards : [];
@@ -60,7 +77,7 @@ export default function FlashcardLearn() {
         setIsCompleted(false);
       }
       
-      // Lấy thống kê học tập
+      // Lấy thống kê học tập (chỉ khi đã đăng nhập)
       try {
         const stats = await getStudyStats(setId);
         setStudyStats(stats);
@@ -71,7 +88,31 @@ export default function FlashcardLearn() {
     } catch (error) {
       console.error("Error fetching study session:", error);
       const errorMsg = error?.response?.data?.message || "Không thể tải phiên học tập";
-      message.error(errorMsg);
+      const status = error?.response?.status;
+      
+      // Kiểm tra nếu là lỗi quyền truy cập (403) hoặc message chứa "Access denied" hoặc "private"
+      const isAccessDenied = status === 403 || 
+                            errorMsg.toLowerCase().includes("access denied") ||
+                            errorMsg.toLowerCase().includes("riêng tư") ||
+                            errorMsg.toLowerCase().includes("private");
+      
+      if (isAccessDenied) {
+        setAccessDenied(true);
+        message.error("Bạn không có quyền truy cập flashcard này");
+        // Tự động chuyển hướng về trang flashcard sau 1 giây
+        setTimeout(() => {
+          navigate("/flashcard");
+        }, 1000);
+        if (showLoader) {
+          setLoading(false);
+        }
+        return;
+      }
+      
+      // Chỉ hiển thị lỗi nếu đã đăng nhập và không phải lỗi quyền truy cập
+      if (isAuthenticated) {
+        message.error(errorMsg);
+      }
       // Fallback: thử lấy danh sách flashcard thông thường
       try {
         const cardsData = await getFlashcardsBySetId(setId);
@@ -81,6 +122,21 @@ export default function FlashcardLearn() {
         setFlashcards(allCards);
       } catch (fallbackError) {
         console.error("Fallback error:", fallbackError);
+        // Kiểm tra lại nếu fallback cũng bị lỗi quyền truy cập
+        const fallbackStatus = fallbackError?.response?.status;
+        const fallbackMsg = fallbackError?.response?.data?.message || "";
+        const isFallbackAccessDenied = fallbackStatus === 403 || 
+                                      fallbackMsg.toLowerCase().includes("access denied") ||
+                                      fallbackMsg.toLowerCase().includes("riêng tư") ||
+                                      fallbackMsg.toLowerCase().includes("private");
+        
+        if (isFallbackAccessDenied) {
+          setAccessDenied(true);
+          message.error("Bạn không có quyền truy cập flashcard này");
+          setTimeout(() => {
+            navigate("/flashcard");
+          }, 1000);
+        }
       }
     } finally {
       if (showLoader) {
@@ -98,11 +154,16 @@ export default function FlashcardLearn() {
   const handleMarkLearned = async () => {
     const card = flashcards[currentCardIndex];
     if (!card) {
-      console.log("No card found at index:", currentCardIndex);
       return;
     }
 
-    console.log("Marking card as learned:", card.cardId, card.term);
+    // Nếu chưa đăng nhập, chỉ cập nhật local state
+    if (!isAuthenticated) {
+      message.warning("Vui lòng đăng nhập để lưu tiến độ học tập");
+      // Vẫn cho phép xem flashcard nhưng không lưu trạng thái
+      return;
+    }
+
 
     try {
       // Mark as known in backend
@@ -110,7 +171,6 @@ export default function FlashcardLearn() {
         cardId: card.cardId,
         isKnown: true,
       });
-      console.log("Backend response:", result);
       
       // Cập nhật status của card trong allFlashcards
       const updatedAllCards = [...allFlashcards];
@@ -124,12 +184,6 @@ export default function FlashcardLearn() {
         // Điều này cho phép người dùng tự quyết định khi nào họ đã học xong
         const newStatus = "learned";
         
-        console.log("Card status update:", {
-          cardId: card.cardId,
-          currentCorrectCount,
-          currentIncorrectCount,
-          newStatus: "learned (user marked as learned)"
-        });
         
         updatedAllCards[allCardIndex] = {
           ...updatedAllCards[allCardIndex],
@@ -139,21 +193,16 @@ export default function FlashcardLearn() {
         };
         setAllFlashcards(updatedAllCards);
         
-        // Xóa card khỏi danh sách flashcards vì đã học xong
+        // Xóa card khỏi danh sách flashcards vì đã nhớ
         const updatedCards = flashcards.filter(c => c.cardId !== card.cardId);
         
         // Cập nhật flashcards state
-        console.log("Updating flashcards list:", {
-          before: flashcards.length,
-          after: updatedCards.length,
-          removed: true
-        });
         setFlashcards(updatedCards);
         
         // Nếu không còn card nào chưa học, hoàn thành
         if (updatedCards.length === 0) {
           setIsCompleted(true);
-          message.success("Chúc mừng! Bạn đã học xong tất cả các thẻ!");
+          message.success("Chúc mừng! Bạn đã nhớ tất cả các thẻ!");
           // Refresh stats sau khi hoàn thành
           fetchStudySession(false);
         }
@@ -182,7 +231,7 @@ export default function FlashcardLearn() {
             setCurrentCardIndex(nextIndex);
             setIsFlipped(false);
           } else {
-            // Tất cả đã học xong
+            // Tất cả đã nhớ
             setCurrentCardIndex(0);
             setIsFlipped(false);
           }
@@ -210,13 +259,13 @@ export default function FlashcardLearn() {
             setCurrentCardIndex(0);
             setIsFlipped(false);
             setIsCompleted(true);
-            message.success("Chúc mừng! Bạn đã học xong tất cả các thẻ!");
+            message.success("Chúc mừng! Bạn đã nhớ tất cả các thẻ!");
           }
         }, 300);
       }
     } catch (error) {
       console.error("Error marking card as learned:", error);
-      message.error("Không thể đánh dấu thẻ đã học. Vui lòng thử lại.");
+      message.error("Không thể đánh dấu thẻ đã nhớ. Vui lòng thử lại.");
       // Vẫn cập nhật UI để người dùng có thể tiếp tục
       setIsCardAnimating(false);
     }
@@ -225,6 +274,13 @@ export default function FlashcardLearn() {
   const handleMarkNotLearned = async () => {
     const card = flashcards[currentCardIndex];
     if (!card) return;
+
+    // Nếu chưa đăng nhập, chỉ cập nhật local state
+    if (!isAuthenticated) {
+      message.warning("Vui lòng đăng nhập để lưu tiến độ học tập");
+      // Vẫn cho phép xem flashcard nhưng không lưu trạng thái
+      return;
+    }
 
     try {
       // Mark as unknown in backend
@@ -278,15 +334,21 @@ export default function FlashcardLearn() {
         setCurrentCardIndex(currentCardIndex + 1);
         setIsFlipped(false);
       } else {
-        // Nếu đã xem hết, quay lại từ đầu để học lại những cái chưa học
+        // Nếu đã xem hết, quay lại từ đầu để ôn tập lại những cái chưa nhớ
         setCurrentCardIndex(0);
         setIsFlipped(false);
-        message.info("Đã xem hết! Quay lại học những thẻ chưa học.");
+        message.info("Đã xem hết! Quay lại ôn tập những thẻ chưa nhớ.");
       }
     }, 300);
   };
 
   const handleLearnAgain = async () => {
+    // Nếu chưa đăng nhập, không cho reset
+    if (!isAuthenticated) {
+      message.warning("Vui lòng đăng nhập để sử dụng chức năng này");
+      return;
+    }
+
     try {
       setLoading(true);
       await resetStudySession(setId);
@@ -322,7 +384,7 @@ export default function FlashcardLearn() {
     currentCard.status === "learning"
   );
 
-  if (loading) {
+  if (loading || accessDenied) {
     return (
       <div style={{ textAlign: "center", padding: "100px 0" }}>
         <Spin size="large" />
@@ -348,18 +410,18 @@ export default function FlashcardLearn() {
         <div className="quizlet-learn-container">
           <div className="quizlet-learn-stats">
             <div className="quizlet-stat-item">
-              <div className="quizlet-stat-label">Đã học</div>
+              <div className="quizlet-stat-label">Đã nhớ</div>
               <div className="quizlet-stat-value learned">{learnedCount}</div>
             </div>
             <div className="quizlet-stat-item">
-              <div className="quizlet-stat-label">Chưa học</div>
+              <div className="quizlet-stat-label">Chưa nhớ</div>
               <div className="quizlet-stat-value not-learned">
                 {newCount + learningCount}
               </div>
             </div>
             {learningCount > 0 && (
               <div className="quizlet-stat-item">
-                <div className="quizlet-stat-label">Đang học</div>
+                <div className="quizlet-stat-label">Đang ôn tập</div>
                 <div className="quizlet-stat-value" style={{ color: "#1890ff" }}>
                   {learningCount}
                 </div>
@@ -382,7 +444,7 @@ export default function FlashcardLearn() {
             />
             <div className="quizlet-progress-text">
               <span style={{ color: "#52c41a", fontWeight: 600 }}>
-                Hoàn thành! Đã học: {learnedCount} / {totalCards}
+                Hoàn thành! Đã nhớ: {learnedCount} / {totalCards}
               </span>
             </div>
           </div>
@@ -393,7 +455,7 @@ export default function FlashcardLearn() {
             </div>
             <h2 className="quizlet-completion-title">Hoàn thành!</h2>
             <p className="quizlet-completion-text">
-              Bạn đã học xong {learnedCount} / {totalCards} thẻ
+              Bạn đã nhớ {learnedCount} / {totalCards} thẻ
             </p>
             {studyStats && (
               <div style={{ marginTop: 16, fontSize: 14, color: "#666" }}>
@@ -464,18 +526,18 @@ export default function FlashcardLearn() {
       <div className="quizlet-learn-container">
         <div className="quizlet-learn-stats">
           <div className="quizlet-stat-item">
-            <div className="quizlet-stat-label">Đã học</div>
+            <div className="quizlet-stat-label">Đã nhớ</div>
             <div className="quizlet-stat-value learned">{learnedCount}</div>
           </div>
           <div className="quizlet-stat-item">
-            <div className="quizlet-stat-label">Chưa học</div>
+            <div className="quizlet-stat-label">Chưa nhớ</div>
             <div className="quizlet-stat-value not-learned">
               {newCount + learningCount}
             </div>
           </div>
           {learningCount > 0 && (
             <div className="quizlet-stat-item">
-              <div className="quizlet-stat-label">Đang học</div>
+              <div className="quizlet-stat-label">Đang ôn tập</div>
               <div className="quizlet-stat-value" style={{ color: "#1890ff" }}>
                 {learningCount}
               </div>
@@ -503,10 +565,10 @@ export default function FlashcardLearn() {
           <div className="quizlet-progress-text">
             {isCompleted ? (
               <span style={{ color: "#52c41a", fontWeight: 600 }}>
-                Hoàn thành! Đã học: {learnedCount} / {flashcards.length}
+                Hoàn thành! Đã nhớ: {learnedCount} / {flashcards.length}
               </span>
             ) : (
-              `Đã học: ${learnedCount} / ${totalCards}`
+              `Đã nhớ: ${learnedCount} / ${totalCards}`
             )}
           </div>
         </div>
@@ -525,7 +587,19 @@ export default function FlashcardLearn() {
                 <div className="quizlet-learn-card-inner">
                   <div className={`quizlet-card-face quizlet-card-front ${isFlipped ? "hidden" : ""}`}>
                     <div className="quizlet-card-content">
-                      <div className="quizlet-card-word">{currentCard?.term || currentCard?.frontText}</div>
+                  <div className="quizlet-card-word">
+                    {currentCard?.term || currentCard?.frontText}
+                  </div>
+                  {(currentCard?.pronunciation || currentCard?.wordType) && (
+                    <div className="quizlet-card-meta">
+                      {currentCard?.pronunciation && (
+                        <span className="quizlet-card-pron">{currentCard.pronunciation}</span>
+                      )}
+                      {currentCard?.wordType && (
+                        <span className="quizlet-card-type">({currentCard.wordType})</span>
+                      )}
+                    </div>
+                  )}
                       <div className="quizlet-card-hint">
                         <RotateLeftOutlined /> Nhấn để xem nghĩa
                       </div>
@@ -533,7 +607,28 @@ export default function FlashcardLearn() {
                   </div>
                   <div className={`quizlet-card-face quizlet-card-back ${!isFlipped ? "hidden" : ""}`}>
                     <div className="quizlet-card-content">
-                      <div className="quizlet-card-word">{currentCard?.definition || currentCard?.backText}</div>
+                      <div className="quizlet-card-word">
+                        {currentCard?.definition || currentCard?.backText}
+                      </div>
+
+                      {Array.isArray(currentCard?.examples) && currentCard.examples.length > 0 && (
+                        <div className="quizlet-card-section">
+                          <div className="quizlet-card-section-title">Ví dụ</div>
+                          <ul className="quizlet-card-examples">
+                            {currentCard.examples.map((ex, idx) => (
+                              <li key={idx}>{ex}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {currentCard?.notes && (
+                        <div className="quizlet-card-section quizlet-card-notes">
+                          <div className="quizlet-card-section-title">Ghi chú</div>
+                          <div className="quizlet-card-notes-text">{currentCard.notes}</div>
+                        </div>
+                      )}
+
                       <div className="quizlet-card-hint">
                         <RotateLeftOutlined /> Nhấn để xem từ
                       </div>
@@ -565,7 +660,7 @@ export default function FlashcardLearn() {
                   fontWeight: 500,
                 }}
               >
-                Chưa học
+                Chưa nhớ
               </Button>
               <Button
                 type="primary"
@@ -582,7 +677,7 @@ export default function FlashcardLearn() {
                   border: "none",
                 }}
               >
-                Đã học
+                Đã nhớ
               </Button>
             </div>
           </>
@@ -593,7 +688,7 @@ export default function FlashcardLearn() {
             </div>
             <h2 className="quizlet-completion-title">Hoàn thành!</h2>
             <p className="quizlet-completion-text">
-              Bạn đã học xong {learnedCount} / {totalCards} thẻ
+              Bạn đã nhớ {learnedCount} / {totalCards} thẻ
             </p>
             {studyStats && (
               <div style={{ marginTop: 16, fontSize: 14, color: "#666" }}>

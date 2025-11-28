@@ -22,14 +22,14 @@ export default function Home() {
 
   const features = [
     {
-      icon: <AudioOutlined />,
+      icon: <SoundOutlined />,
       title: "Practice Listening & Reading",
       description: "Luyện tập kỹ năng nghe và đọc với hàng ngàn câu hỏi đa dạng",
       link: "/practice-lr",
       color: "#3b82f6",
     },
     {
-      icon: <SoundOutlined />,
+      icon: <AudioOutlined />,
       title: "Practice Speaking",
       description: "Luyện nói và nhận đánh giá chính xác từ AI thông minh",
       link: "/practice-sw",
@@ -190,7 +190,7 @@ export default function Home() {
                 key: "lr",
                 label: (
                   <span>
-                    <AudioOutlined /> Listening & Reading
+                    <SoundOutlined /> Listening & Reading
                   </span>
                 ),
                 children: (
@@ -315,7 +315,7 @@ export default function Home() {
                 key: "speaking",
                 label: (
                   <span>
-                    <SoundOutlined /> Speaking
+                    <AudioOutlined /> Speaking
                     <Tag color="blue" icon={<RobotOutlined />} style={{ marginLeft: 8 }}>
                       AI Scoring
                     </Tag>

@@ -60,11 +60,19 @@ namespace ToeicGenius.Services.Implementations
 			return Result<QuestionReportDto>.Success(dto);
 		}
 
-		public async Task<Result<QuestionReportDto>> GetReportByIdAsync(int reportId)
+		public async Task<Result<QuestionReportDto>> GetReportByIdAsync(int reportId, Guid? requesterId = null, bool isAdmin = false)
 		{
 			var report = await _uow.QuestionReports.GetReportByIdAsync(reportId);
 			if (report == null)
 				return Result<QuestionReportDto>.Failure("Report not found");
+
+			// If not admin and requesterId provided, check if this report belongs to their test
+			if (!isAdmin && requesterId.HasValue)
+			{
+				var isOwner = await _uow.QuestionReports.IsReportOwnedByCreatorAsync(reportId, requesterId.Value);
+				if (!isOwner)
+					return Result<QuestionReportDto>.Failure("You don't have permission to view this report");
+			}
 
 			var dto = MapToDto(report);
 			return Result<QuestionReportDto>.Success(dto);
@@ -73,12 +81,18 @@ namespace ToeicGenius.Services.Implementations
 		public async Task<Result<PagedResponse<QuestionReportDto>>> GetReportsAsync(
 			ReportStatus? status = null,
 			int? testQuestionId = null,
+			Guid? testCreatorId = null,
+			bool isAdmin = false,
 			int page = 1,
 			int pageSize = 20)
 		{
 			var skip = (page - 1) * pageSize;
-			var reports = await _uow.QuestionReports.GetReportsAsync(status, testQuestionId, null, skip, pageSize);
-			var totalCount = await _uow.QuestionReports.GetReportsCountAsync(status, testQuestionId, null);
+
+			// Admin sees all reports, TestCreator only sees reports for their tests
+			Guid? creatorFilter = isAdmin ? null : testCreatorId;
+
+			var reports = await _uow.QuestionReports.GetReportsAsync(status, testQuestionId, null, creatorFilter, skip, pageSize);
+			var totalCount = await _uow.QuestionReports.GetReportsCountAsync(status, testQuestionId, null, creatorFilter);
 
 			var dtos = reports.Select(MapToDto).ToList();
 			var pagedResponse = new PagedResponse<QuestionReportDto>(dtos, page, pageSize, totalCount);
@@ -92,8 +106,8 @@ namespace ToeicGenius.Services.Implementations
 			int pageSize = 20)
 		{
 			var skip = (page - 1) * pageSize;
-			var reports = await _uow.QuestionReports.GetReportsAsync(null, null, userId, skip, pageSize);
-			var totalCount = await _uow.QuestionReports.GetReportsCountAsync(null, null, userId);
+			var reports = await _uow.QuestionReports.GetReportsAsync(null, null, userId, null, skip, pageSize);
+			var totalCount = await _uow.QuestionReports.GetReportsCountAsync(null, null, userId, null);
 
 			var dtos = reports.Select(MapToDto).ToList();
 			var pagedResponse = new PagedResponse<QuestionReportDto>(dtos, page, pageSize, totalCount);
@@ -104,11 +118,20 @@ namespace ToeicGenius.Services.Implementations
 		public async Task<Result<QuestionReportDto>> ReviewReportAsync(
 			int reportId,
 			ReviewReportDto request,
-			Guid reviewerId)
+			Guid reviewerId,
+			bool isAdmin = false)
 		{
 			var report = await _uow.QuestionReports.GetReportByIdAsync(reportId);
 			if (report == null)
 				return Result<QuestionReportDto>.Failure("Report not found");
+
+			// If not admin, check if this report belongs to their test
+			if (!isAdmin)
+			{
+				var isOwner = await _uow.QuestionReports.IsReportOwnedByCreatorAsync(reportId, reviewerId);
+				if (!isOwner)
+					return Result<QuestionReportDto>.Failure("You don't have permission to review this report. Only the test creator or admin can review.");
+			}
 
 			// Validate status transition
 			if (request.Status == ReportStatus.Pending)
@@ -131,9 +154,11 @@ namespace ToeicGenius.Services.Implementations
 			return Result<QuestionReportDto>.Success(dto);
 		}
 
-		public async Task<Result<int>> GetPendingReportsCountAsync()
+		public async Task<Result<int>> GetPendingReportsCountAsync(Guid? testCreatorId = null, bool isAdmin = false)
 		{
-			var count = await _uow.QuestionReports.GetPendingReportsCountAsync();
+			// Admin sees all pending reports, TestCreator sees only their pending reports
+			Guid? creatorFilter = isAdmin ? null : testCreatorId;
+			var count = await _uow.QuestionReports.GetPendingReportsCountAsync(creatorFilter);
 			return Result<int>.Success(count);
 		}
 

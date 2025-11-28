@@ -113,7 +113,7 @@ export default function AdminDashboard() {
       });
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      message.error("Không thể tải dữ liệu dashboard. Vui lòng thử lại.");
+      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
     } finally {
       setLoading(false);
     }

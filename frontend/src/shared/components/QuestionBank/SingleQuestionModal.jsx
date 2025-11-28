@@ -10,6 +10,7 @@ import {
   Row,
   Col,
   message,
+  Alert,
 } from "antd";
 import { UploadOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import {
@@ -103,6 +104,21 @@ export default function SingleQuestionModal({
 
   const isOptionSkill =
     Number(selectedSkill) === 3 || Number(selectedSkill) === 4;
+
+  // Parts chỉ dành cho group questions: 3, 4 (Listening), 6, 7 (Reading)
+  const GROUP_PARTS = [3, 4, 6, 7];
+  const isGroupPart = (p) => GROUP_PARTS.includes(Number(p));
+  
+  // Kiểm tra part hiện tại có phải group part không
+  const isCurrentPartGroup = useMemo(() => {
+    return isGroupPart(selectedPart);
+  }, [selectedPart]);
+
+  // Parts 1, 2, 6 không hiển thị trường content
+  const isContentVisible = useMemo(() => {
+    const partId = Number(selectedPart);
+    return !([1, 2, 6].includes(partId));
+  }, [selectedPart]);
 
   const loadPartsBySkill = async (skill) => {
     try {
@@ -286,6 +302,13 @@ export default function SingleQuestionModal({
         const detail = await getQuestionById(Number(editingId));
         const q = detail?.data || detail || {};
 
+        // Kiểm tra nếu part là group part thì không cho phép edit
+        if (isGroupPart(q.partId)) {
+          message.error("Câu hỏi này thuộc Part chỉ dành cho nhóm câu hỏi. Không thể chỉnh sửa dưới dạng câu hỏi đơn.");
+          onClose?.();
+          return;
+        }
+
         let skill = q.skillId || skillNameToId(q.skill || q.skillName);
         if (!skill) skill = inferSkillFromPartName(q.partName);
 
@@ -352,6 +375,13 @@ export default function SingleQuestionModal({
       const typeNum = Number(values.questionTypeId);
       if (!Number.isFinite(partNum))
         throw { errorFields: [{ name: ["partId"], errors: ["Chọn Part"] }] };
+      
+      // Chặn tạo single question cho các part group (3, 4, 6, 7)
+      if (isGroupPart(partNum)) {
+        message.error("Part này chỉ dành cho nhóm câu hỏi (Group Question). Vui lòng sử dụng chức năng 'Thêm nhóm câu' để tạo.");
+        return;
+      }
+      
       if (!Number.isFinite(typeNum))
         throw {
           errorFields: [
@@ -441,7 +471,9 @@ export default function SingleQuestionModal({
       }
 
       const fd = new FormData();
-      fd.append("Content", (values.content ?? "").trim());
+      // Parts 1, 2, 6 không bắt buộc content - có thể để trống
+      const contentValue = (values.content ?? "").trim();
+      fd.append("Content", contentValue || "");
       fd.append("QuestionTypeId", String(typeNum));
       fd.append("PartId", String(partNum));
       fd.append("Number", String(Number(values.number || 1)));
@@ -494,6 +526,7 @@ export default function SingleQuestionModal({
       okText={isEdit ? "Cập nhật" : "Tạo mới"}
       cancelText="Hủy"
       destroyOnClose
+      okButtonProps={{ disabled: isCurrentPartGroup }}
     >
       <Form 
         form={form} 
@@ -563,10 +596,16 @@ export default function SingleQuestionModal({
             >
               <Select
                 placeholder="Chọn Part"
-                options={parts?.map((p) => ({
-                  value: toNum(p.partId ?? p.id ?? p),
-                  label: p.name || p.partName || `Part ${p}`,
-                }))}
+                options={parts
+                  ?.filter((p) => {
+                    const pid = toNum(p.partId ?? p.id ?? p);
+                    // Lọc bỏ các part group (3, 4, 6, 7) - chỉ dành cho group questions
+                    return !isGroupPart(pid);
+                  })
+                  ?.map((p) => ({
+                    value: toNum(p.partId ?? p.id ?? p),
+                    label: p.name || p.partName || `Part ${p}`,
+                  }))}
                 showSearch
                 optionFilterProp="label"
                 onFocus={() => {
@@ -581,10 +620,18 @@ export default function SingleQuestionModal({
                       form.setFields([{ name: 'partId', errors: [] }]);
                     }
                   }
-                  form.setFieldsValue({
-                    partId: toNum(partId),
+                  const partIdNum = toNum(partId);
+                  const updates = {
+                    partId: partIdNum,
                     questionTypeId: undefined,
-                  });
+                  };
+                  
+                  // Xóa content nếu part là 1, 2, 6 (trường bị ẩn)
+                  if ([1, 2, 6].includes(partIdNum)) {
+                    updates.content = "";
+                  }
+                  
+                  form.setFieldsValue(updates);
                   setQuestionTypes([]);
                   syncAnswerOptionsForPart(
                     Number(form.getFieldValue("skill")),
@@ -594,6 +641,7 @@ export default function SingleQuestionModal({
                     { name: "audio", errors: [] },
                     { name: "image", errors: [] },
                     { name: "answerOptions", errors: [] },
+                    { name: "content", errors: [] },
                   ]);
                   const types = await loadTypesByPart(partId);
                   const firstVal = toNum(types?.[0]?.__val);
@@ -646,42 +694,54 @@ export default function SingleQuestionModal({
           </Col>
         </Row>
 
-        <Form.Item
-          name="content"
-          label="Nội dung câu hỏi"
-          validateTrigger={['onBlur']}
-          rules={[
-            {
-              validator: (_, value) => {
-                if (!value || !String(value).trim()) {
-                  return Promise.reject(new Error("Vui lòng nhập nội dung câu hỏi"));
-                }
-                if (String(value).length > 1000) {
-                  return Promise.reject(new Error("Tối đa 1000 ký tự"));
-                }
-                return Promise.resolve();
-              },
-            },
-          ]}
-        >
-          <Input.TextArea
-            rows={4}
-            showCount
-            maxLength={1000}
-            placeholder="Nhập nội dung câu hỏi..."
-            onChange={(e) => {
-              // Xóa lỗi khi đang sửa (nếu có)
-              const errors = form.getFieldsError(['content']);
-              if (errors[0]?.errors?.length > 0) {
-                form.setFields([{ name: 'content', errors: [] }]);
-              }
-            }}
-            onFocus={(e) => {
-              // Validate các trường trước đó khi focus vào trường này
-              form.validateFields(['skill', 'partId', 'questionTypeId']).catch(() => {});
-            }}
+        {isCurrentPartGroup && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="Part này chỉ dành cho nhóm câu hỏi (Group Question)"
+            description="Part 3, 4 (Nghe) và Part 6, 7 (Đọc) chỉ có thể tạo dưới dạng nhóm câu hỏi. Vui lòng sử dụng chức năng 'Thêm nhóm câu' để tạo."
           />
-        </Form.Item>
+        )}
+
+        {isContentVisible && (
+          <Form.Item
+            name="content"
+            label="Nội dung câu hỏi"
+            validateTrigger={['onBlur']}
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value || !String(value).trim()) {
+                    return Promise.reject(new Error("Vui lòng nhập nội dung câu hỏi"));
+                  }
+                  if (String(value).length > 1000) {
+                    return Promise.reject(new Error("Tối đa 1000 ký tự"));
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
+          >
+            <Input.TextArea
+              rows={4}
+              showCount
+              maxLength={1000}
+              placeholder="Nhập nội dung câu hỏi..."
+              onChange={(e) => {
+                // Xóa lỗi khi đang sửa (nếu có)
+                const errors = form.getFieldsError(['content']);
+                if (errors[0]?.errors?.length > 0) {
+                  form.setFields([{ name: 'content', errors: [] }]);
+                }
+              }}
+              onFocus={(e) => {
+                // Validate các trường trước đó khi focus vào trường này
+                form.validateFields(['skill', 'partId', 'questionTypeId']).catch(() => {});
+              }}
+            />
+          </Form.Item>
+        )}
 
         <Row gutter={12}>
           {isAudioVisible && (

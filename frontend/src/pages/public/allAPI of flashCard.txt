@@ -1,0 +1,643 @@
+AddSetFlashcard 
+POST https://localhost:7100/api/flashcards/sets
+
+input
+
+{
+  "title": "TOEIC Vocabulary Part 1",
+  "description": "Basic vocabulary for TOEIC test",
+  "language": "en-US",
+  "isPublic": false
+}
+
+reponse
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": {
+        "setId": 2,
+        "title": "TOEIC Vocabulary Part 1",
+        "description": "Basic vocabulary for TOEIC test",
+        "language": "en-US",
+        "isPublic": false,
+        "userId": "33333333-3333-3333-3333-333333333333",
+        "totalCards": 0,
+        "createdAt": "2025-11-26T23:36:22.3155948",
+        "updatedAt": null
+    },
+    "success": true
+}
+
+------------------------------------------------------------------------------------
+
+ListSetFlashcardUser
+
+GET https://localhost:7100/api/flashcards/sets
+
+reponse
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": {
+        "dataPaginated": [
+            {
+                "setId": 2,
+                "title": "TOEIC Vocabulary Part 1",
+                "description": "Basic vocabulary for TOEIC test",
+                "language": "en-US",
+                "isPublic": false,
+                "userId": "33333333-3333-3333-3333-333333333333",
+                "totalCards": 0,
+                "createdAt": "2025-11-26T23:36:22.3155948",
+                "updatedAt": null
+            },
+            {
+                "setId": 1,
+                "title": "hihi",
+                "description": null,
+                "language": "en-US",
+                "isPublic": false,
+                "userId": "33333333-3333-3333-3333-333333333333",
+                "totalCards": 6,
+                "createdAt": "2025-11-26T22:00:01.216815",
+                "updatedAt": "2025-11-26T22:30:59.8499272"
+            }
+        ],
+        "currentPage": 1,
+        "pageSize": 10,
+        "totalCount": 2,
+        "totalPages": 1,
+        "hasNextPage": false,
+        "hasPreviousPage": false
+    },
+    "success": true
+}
+
+-------------------------------------------------------------------------------------------
+DetailSetFlashcard
+
+GET  https://localhost:7100/api/flashcards/sets/2
+
+
+reponse
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": {
+        "setId": 2,
+        "title": "TOEIC Vocabulary Part 1",
+        "description": "Basic vocabulary for TOEIC test",
+        "language": "en-US",
+        "isPublic": false,
+        "userId": "33333333-3333-3333-3333-333333333333",
+        "totalCards": 0,
+        "createdAt": "2025-11-26T23:36:22.3155948",
+        "updatedAt": null
+    },
+    "success": true
+}
+
+
+------------------------------------------------------------------------------------------------
+UpdateSetFlashcard
+
+PUT https://localhost:7100/api/flashcards/sets/2
+
+
+input 
+{
+  "title": "TOEIC Vocabulary Part 1 (Updated)",
+  "description": "Updated description with more details",
+  "language": "en-GB",
+  "isPublic": true
+}
+
+
+reponse
+
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": {
+        "setId": 2,
+        "title": "TOEIC Vocabulary Part 1 (Updated)",
+        "description": "Updated description with more details",
+        "language": "en-GB",
+        "isPublic": true,
+        "userId": "33333333-3333-3333-3333-333333333333",
+        "totalCards": 0,
+        "createdAt": "2025-11-26T23:36:22.3155948",
+        "updatedAt": "2025-11-26T23:41:36.0689723"
+    },
+    "success": true
+}
+
+----------------------------------------------------------------------------------
+listPublish
+
+
+GET  https://localhost:7100/api/flashcards/public
+
+
+reponse
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": [
+        {
+            "setId": 2,
+            "title": "TOEIC Vocabulary Part 1 (Updated)",
+            "description": "Updated description with more details",
+            "language": "en-GB",
+            "totalCards": 0,
+            "userId": "33333333-3333-3333-3333-333333333333",
+            "creatorName": "Regular Examinee",
+            "createdAt": "2025-11-26T23:36:22.3155948",
+            "isStudying": false
+        }
+    ],
+    "success": true
+}
+------------------------------------------------------------------------------------------
+DeleteSetFlashcard
+
+DELETE https://localhost:7100/api/flashcards/sets/1
+
+reponse
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": true,
+    "success": true
+}
+
+------------------------------------------------------------------------------------------
+AddFlashcard
+
+POST  https://localhost:7100/api/flashcards/cards
+
+input 
+
+{
+  "setId": 2,
+  "term": "accomplish",
+  "definition": "to succeed in doing something",
+  "pronunciation": "/əˈkʌm.plɪʃ/",
+  "imageUrl": "https://example.com/images/accomplish.jpg",
+  "wordType": "V",
+  "examples": [
+    "She accomplished her goal of running a marathon.",
+    "We accomplished the task on time."
+  ],
+  "notes": "Often used in business context",
+  "audioUrl": "https://example.com/audio/accomplish.mp3"
+}
+
+reponse
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": {
+        "cardId": 11,
+        "setId": 2,
+        "term": "accomplish",
+        "definition": "to succeed in doing something",
+        "pronunciation": "/əˈkʌm.plɪʃ/",
+        "imageUrl": "https://example.com/images/accomplish.jpg",
+        "wordType": "V",
+        "examples": [
+            "She accomplished her goal of running a marathon.",
+            "We accomplished the task on time."
+        ],
+        "notes": "Often used in business context",
+        "audioUrl": "https://example.com/audio/accomplish.mp3",
+        "createdAt": "2025-11-26T23:45:02.7536878",
+        "updatedAt": null
+    },
+    "success": true
+}
+
+-------------------------------------------------------------------------------------
+
+AddFlashcardFromTest-Practice
+
+POST  https://localhost:7100/api/flashcards/cards/from-test
+
+
+input
+
+{
+  "setId": 2,
+  "term": "quarterly",
+  "definition": "happening or produced four times a year",
+  "pronunciation": "/ˈkwɔː.tə.li/",
+  "wordType": "ADJ",
+  "examples": [
+    "The company holds quarterly meetings.",
+    "Quarterly sales increased by 10%."
+  ],
+  "notes": "Found in TOEIC Practice Test #5, Question 23"
+}
+
+
+reponse
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": {
+        "cardId": 12,
+        "setId": 2,
+        "term": "quarterly",
+        "definition": "happening or produced four times a year",
+        "pronunciation": "/ˈkwɔː.tə.li/",
+        "imageUrl": null,
+        "wordType": "ADJ",
+        "examples": [
+            "The company holds quarterly meetings.",
+            "Quarterly sales increased by 10%."
+        ],
+        "notes": "Found in TOEIC Practice Test #5, Question 23",
+        "audioUrl": null,
+        "createdAt": "2025-11-26T23:47:40.7851162",
+        "updatedAt": null
+    },
+    "success": true
+}
+
+-------------------------------------------------------------------------------------------------
+Reset Study Flashcard
+
+POST https://localhost:7100/api/flashcards/study/2/reset
+
+reponse
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": true,
+    "success": true
+}
+
+--------------------------------------------------------------------------------------------
+AddFlashcardTable
+
+POST  https://localhost:7100/api/flashcards/cards/bulk
+
+
+input
+
+{
+  "setId": 2,
+  "flashcards": [
+    {
+      "term": "accomplish",
+      "definition": "to succeed in doing something",
+      "example1": "She accomplished her goal.",
+      "example2": "We accomplished the task on time.",
+      "pronunciation": "/əˈkʌm.plɪʃ/",
+      "notes": "Verb - Common in business"
+    },
+    {
+      "term": "achievement",
+      "definition": "something successfully completed",
+      "example1": "Her biggest achievement was winning the award.",
+      "example2": "This is a great achievement.",
+      "pronunciation": "/əˈtʃiːv.mənt/",
+      "notes": "Noun"
+    },
+    {
+      "term": "acquire",
+      "definition": "to obtain or buy something",
+      "example1": "The company acquired a new building.",
+      "example2": "She acquired new skills.",
+      "pronunciation": "/əˈkwaɪər/",
+      "notes": "Verb - Formal"
+    },
+    {
+      "term": "adequate",
+      "definition": "enough or satisfactory for a particular purpose",
+      "example1": "The room has adequate space.",
+      "example2": "We need adequate funding.",
+      "pronunciation": "/ˈæd.ə.kwət/",
+      "notes": "Adjective"
+    },
+    {
+      "term": "adjacent",
+      "definition": "very near, next to, or touching",
+      "example1": "The parking lot is adjacent to the building.",
+      "example2": "Our office is adjacent to the conference room.",
+      "pronunciation": "/əˈdʒeɪ.sənt/",
+      "notes": "Adjective - TOEIC Part 5 common"
+    }
+  ]
+}
+
+reponse
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": [
+        {
+            "cardId": 13,
+            "setId": 2,
+            "term": "accomplish",
+            "definition": "to succeed in doing something",
+            "pronunciation": "/əˈkʌm.plɪʃ/",
+            "imageUrl": null,
+            "wordType": null,
+            "examples": [
+                "She accomplished her goal.",
+                "We accomplished the task on time."
+            ],
+            "notes": "Verb - Common in business",
+            "audioUrl": null,
+            "createdAt": "2025-11-26T23:51:05.8193995",
+            "updatedAt": null
+        },
+        {
+            "cardId": 14,
+            "setId": 2,
+            "term": "achievement",
+            "definition": "something successfully completed",
+            "pronunciation": "/əˈtʃiːv.mənt/",
+            "imageUrl": null,
+            "wordType": null,
+            "examples": [
+                "Her biggest achievement was winning the award.",
+                "This is a great achievement."
+            ],
+            "notes": "Noun",
+            "audioUrl": null,
+            "createdAt": "2025-11-26T23:51:05.8194034",
+            "updatedAt": null
+        },
+        {
+            "cardId": 15,
+            "setId": 2,
+            "term": "acquire",
+            "definition": "to obtain or buy something",
+            "pronunciation": "/əˈkwaɪər/",
+            "imageUrl": null,
+            "wordType": null,
+            "examples": [
+                "The company acquired a new building.",
+                "She acquired new skills."
+            ],
+            "notes": "Verb - Formal",
+            "audioUrl": null,
+            "createdAt": "2025-11-26T23:51:05.8194047",
+            "updatedAt": null
+        },
+        {
+            "cardId": 16,
+            "setId": 2,
+            "term": "adequate",
+            "definition": "enough or satisfactory for a particular purpose",
+            "pronunciation": "/ˈæd.ə.kwət/",
+            "imageUrl": null,
+            "wordType": null,
+            "examples": [
+                "The room has adequate space.",
+                "We need adequate funding."
+            ],
+            "notes": "Adjective",
+            "audioUrl": null,
+            "createdAt": "2025-11-26T23:51:05.8194062",
+            "updatedAt": null
+        },
+        {
+            "cardId": 17,
+            "setId": 2,
+            "term": "adjacent",
+            "definition": "very near, next to, or touching",
+            "pronunciation": "/əˈdʒeɪ.sənt/",
+            "imageUrl": null,
+            "wordType": null,
+            "examples": [
+                "The parking lot is adjacent to the building.",
+                "Our office is adjacent to the conference room."
+            ],
+            "notes": "Adjective - TOEIC Part 5 common",
+            "audioUrl": null,
+            "createdAt": "2025-11-26T23:51:05.8194074",
+            "updatedAt": null
+        }
+    ],
+    "success": true
+}
+
+
+--------------------------------------------------------------------
+ListFlashcard
+
+GET  https://localhost:7100/api/flashcards/sets/2/cards
+
+reponse
+
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": [
+        {
+            "cardId": 11,
+            "setId": 2,
+            "term": "accomplish",
+            "definition": "to succeed in doing something",
+            "pronunciation": "/əˈkʌm.plɪʃ/",
+            "imageUrl": "https://example.com/images/accomplish.jpg",
+            "wordType": "V",
+            "examples": [
+                "She accomplished her goal of running a marathon.",
+                "We accomplished the task on time."
+            ],
+            "notes": "Often used in business context",
+            "audioUrl": "https://example.com/audio/accomplish.mp3",
+            "createdAt": "2025-11-26T23:45:02.7536878",
+            "updatedAt": null
+        },
+        {
+            "cardId": 12,
+            "setId": 2,
+            "term": "quarterly",
+            "definition": "happening or produced four times a year",
+            "pronunciation": "/ˈkwɔː.tə.li/",
+            "imageUrl": null,
+            "wordType": "ADJ",
+            "examples": [
+                "The company holds quarterly meetings.",
+                "Quarterly sales increased by 10%."
+            ],
+            "notes": "Found in TOEIC Practice Test #5, Question 23",
+            "audioUrl": null,
+            "createdAt": "2025-11-26T23:47:40.7851162",
+            "updatedAt": null
+        },
+        {
+            "cardId": 13,
+            "setId": 2,
+            "term": "accomplish",
+            "definition": "to succeed in doing something",
+            "pronunciation": "/əˈkʌm.plɪʃ/",
+            "imageUrl": null,
+            "wordType": null,
+            "examples": [
+                "She accomplished her goal.",
+                "We accomplished the task on time."
+            ],
+            "notes": "Verb - Common in business",
+            "audioUrl": null,
+            "createdAt": "2025-11-26T23:51:05.8193995",
+            "updatedAt": null
+        },
+        {
+            "cardId": 14,
+            "setId": 2,
+            "term": "achievement",
+            "definition": "something successfully completed",
+            "pronunciation": "/əˈtʃiːv.mənt/",
+            "imageUrl": null,
+            "wordType": null,
+            "examples": [
+                "Her biggest achievement was winning the award.",
+                "This is a great achievement."
+            ],
+            "notes": "Noun",
+            "audioUrl": null,
+            "createdAt": "2025-11-26T23:51:05.8194034",
+            "updatedAt": null
+        },
+        {
+            "cardId": 15,
+            "setId": 2,
+            "term": "acquire",
+            "definition": "to obtain or buy something",
+            "pronunciation": "/əˈkwaɪər/",
+            "imageUrl": null,
+            "wordType": null,
+            "examples": [
+                "The company acquired a new building.",
+                "She acquired new skills."
+            ],
+            "notes": "Verb - Formal",
+            "audioUrl": null,
+            "createdAt": "2025-11-26T23:51:05.8194047",
+            "updatedAt": null
+        },
+        {
+            "cardId": 16,
+            "setId": 2,
+            "term": "adequate",
+            "definition": "enough or satisfactory for a particular purpose",
+            "pronunciation": "/ˈæd.ə.kwət/",
+            "imageUrl": null,
+            "wordType": null,
+            "examples": [
+                "The room has adequate space.",
+                "We need adequate funding."
+            ],
+            "notes": "Adjective",
+            "audioUrl": null,
+            "createdAt": "2025-11-26T23:51:05.8194062",
+            "updatedAt": null
+        },
+        {
+            "cardId": 17,
+            "setId": 2,
+            "term": "adjacent",
+            "definition": "very near, next to, or touching",
+            "pronunciation": "/əˈdʒeɪ.sənt/",
+            "imageUrl": null,
+            "wordType": null,
+            "examples": [
+                "The parking lot is adjacent to the building.",
+                "Our office is adjacent to the conference room."
+            ],
+            "notes": "Adjective - TOEIC Part 5 common",
+            "audioUrl": null,
+            "createdAt": "2025-11-26T23:51:05.8194074",
+            "updatedAt": null
+        }
+    ],
+    "success": true
+}
+
+------------------------------------------------------------------------------------------------------
+UpdateFlashcard
+
+
+PUT  https://localhost:7100/api/flashcards/cards/15
+
+input
+
+{
+  "term": "accomplish (updated)",
+  "definition": "to successfully complete or achieve something (updated definition)",
+  "pronunciation": "/əˈkʌm.plɪʃ/",
+  "imageUrl": "https://example.com/images/accomplish-new.jpg",
+  "wordType": "V",
+  "examples": [
+    "She accomplished her goal of running a marathon. (updated)",
+    "We accomplished the task on time.",
+    "They accomplished remarkable results. (new example)"
+  ],
+  "notes": "Often used in business and formal context (updated)",
+  "audioUrl": "https://example.com/audio/accomplish-v2.mp3"
+}
+
+
+reponse
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": {
+        "cardId": 15,
+        "setId": 2,
+        "term": "accomplish (updated)",
+        "definition": "to successfully complete or achieve something (updated definition)",
+        "pronunciation": "/əˈkʌm.plɪʃ/",
+        "imageUrl": "https://example.com/images/accomplish-new.jpg",
+        "wordType": "V",
+        "examples": [
+            "She accomplished her goal of running a marathon. (updated)",
+            "We accomplished the task on time.",
+            "They accomplished remarkable results. (new example)"
+        ],
+        "notes": "Often used in business and formal context (updated)",
+        "audioUrl": "https://example.com/audio/accomplish-v2.mp3",
+        "createdAt": "2025-11-26T23:51:05.8194047",
+        "updatedAt": "2025-11-26T23:55:21.3570006"
+    },
+    "success": true
+}
+
+---------------------------------------------------------------------------------------------------------------
+DeleteFlashcard
+
+DELETE  https://localhost:7100/api/flashcards/cards/15
+
+
+reponse 
+
+
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": true,
+    "success": true
+}
+
+
+
+
+

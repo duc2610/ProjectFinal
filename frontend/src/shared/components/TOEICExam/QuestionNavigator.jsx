@@ -47,7 +47,6 @@ export default function QuestionNavigator({ questions, currentIndex, answers, go
               
               // Debug logging cho một số câu hỏi cụ thể
               if (q.globalIndex <= 6 || q.globalIndex === 13 || q.globalIndex === 14 || q.globalIndex === 34 || q.globalIndex === 40) {
-                console.log(`QuestionNavigator - Question ${q.globalIndex} (testQuestionId: ${q.testQuestionId}, subQuestionIndex: ${q.subQuestionIndex}): answerKey="${answerKey}", answerValue="${answerValue}", isAnswered=${isAnswered}`);
               }
 
               return (

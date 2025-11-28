@@ -33,10 +33,18 @@ namespace ToeicGenius.Services.Implementations
 		}
 
 
-		public async Task<Result<QuestionGroupResponseDto?>> GetDetailAsync(int id)
+		public async Task<Result<QuestionGroupResponseDto?>> GetDetailAsync(int id, Guid? userId = null, bool isAdmin = false)
 		{
 			try
 			{
+				// Check ownership - only creator or admin can view
+				if (!isAdmin && userId.HasValue)
+				{
+					var group = await _uow.QuestionGroups.GetByIdAndStatusAsync(id, CommonStatus.Active);
+					if (group != null && group.CreatedById != userId.Value)
+						return Result<QuestionGroupResponseDto?>.Failure("Bạn không có quyền xem nhóm câu hỏi này.");
+				}
+
 				var result = await _uow.QuestionGroups.GetGroupWithQuestionsAsync(id);
 				return Result<QuestionGroupResponseDto?>.Success(result);
 			}
@@ -51,7 +59,7 @@ namespace ToeicGenius.Services.Implementations
 		/// Tạo mới một nhóm câu hỏi (e.g. Part 6, Part 7,...) kèm các câu hỏi con 
 		/// Xử lý upload file và rollback file nếu có lỗi
 		/// </summary>
-		public async Task<Result<string>> CreateAsync(QuestionGroupRequestDto request)
+		public async Task<Result<string>> CreateAsync(QuestionGroupRequestDto request, Guid creatorId)
 		{
 			var validationResult = await ValidateQuestions(request);
 			if (!validationResult.IsSuccess)
@@ -97,6 +105,7 @@ namespace ToeicGenius.Services.Implementations
 					AudioUrl = audioUrl,
 					ImageUrl = imageUrl,
 					PassageContent = request.PassageContent,
+					CreatedById = creatorId
 				};
 
 				await _uow.QuestionGroups.AddAsync(group);
@@ -110,7 +119,8 @@ namespace ToeicGenius.Services.Implementations
 						PartId = request.PartId,
 						Content = q.Content,
 						Explanation = q.Solution,
-						Status = CommonStatus.Active
+						Status = CommonStatus.Active,
+						CreatedById = creatorId
 					};
 
 					var options = q.AnswerOptions.Select(opt => new Option
@@ -137,17 +147,21 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterQuestionGroupAsync(int? partId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
+		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterQuestionGroupAsync(int? partId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status, Guid? creatorId = null)
 		{
-			var result = await _uow.QuestionGroups.FilterGroupAsync(partId, keyWord, skill, sortOrder, page, pageSize, status);
+			var result = await _uow.QuestionGroups.FilterGroupAsync(partId, keyWord, skill, sortOrder, page, pageSize, status, creatorId);
 			return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
 		}
 
-		public async Task<Result<string>> UpdateAsync(int questionGroupId, UpdateQuestionGroupDto dto)
+		public async Task<Result<string>> UpdateAsync(int questionGroupId, UpdateQuestionGroupDto dto, Guid userId, bool isAdmin = false)
 		{
 			// Check exist question
 			var currentQuestionGroup = await _uow.QuestionGroups.GetByIdAndStatusAsync(questionGroupId, CommonStatus.Active);
 			if (currentQuestionGroup == null) return Result<string>.Failure("Không tìm thấy nhóm câu hỏi");
+
+			// Check ownership - only creator or admin can update
+			if (!isAdmin && currentQuestionGroup.CreatedById != userId)
+				return Result<string>.Failure("Bạn không có quyền sửa nhóm câu hỏi này.");
 
 			var validationResult = await ValidateQuestions(dto);
 			if (!validationResult.IsSuccess)
@@ -343,11 +357,10 @@ namespace ToeicGenius.Services.Implementations
 			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
 			bool isLRPart34 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 3 || part.PartNumber == 4);
 
-			if(!isLRPart34 && string.IsNullOrWhiteSpace(request.PassageContent))
+			if (!isLRPart34 && string.IsNullOrWhiteSpace(request.PassageContent))
 			{
 				return Result<string>.Failure("Passage của nhóm câu hỏi không được để trống.");
 			}
-
 			foreach (var q in request.Questions)
 			{
 				if ((!isLRPart6 || !isLRPart12) && string.IsNullOrWhiteSpace(q.Content))
