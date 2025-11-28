@@ -106,6 +106,12 @@ export default function QuestionGroupModal({
     [selectedPart]
   );
 
+  // Parts 3, 4 không hiển thị trường passageContent
+  const isPassageVisible = useMemo(() => {
+    const partId = Number(selectedPart);
+    return !([3, 4].includes(partId));
+  }, [selectedPart]);
+
   const requiredOptionsPerQuestion = 4;
 
   const loadParts = async (skillId) => {
@@ -324,6 +330,11 @@ export default function QuestionGroupModal({
       })),
     };
     
+    // Xóa passageContent nếu part là 3, 4 (trường bị ẩn)
+    if ([3, 4].includes(partNum)) {
+      updates.passageContent = "";
+    }
+    
     // Xóa audio nếu part mới không cần
     if (!needsAudio) {
       updates.audio = [];
@@ -338,10 +349,11 @@ export default function QuestionGroupModal({
     
     form.setFieldsValue(updates);
     
-    // Xóa lỗi của audio và image khi Part thay đổi (không validate ngay)
+    // Xóa lỗi của audio, image và passageContent khi Part thay đổi (không validate ngay)
     form.setFields([
       { name: "audio", errors: [] },
       { name: "image", errors: [] },
+      { name: "passageContent", errors: [] },
     ]);
   };
 
@@ -489,7 +501,9 @@ export default function QuestionGroupModal({
 
       const fd = new FormData();
       fd.append("PartId", String(Number(v.partId)));
-      fd.append("PassageContent", (v.passageContent || "").trim());
+      // Parts 3, 4 không bắt buộc passage - có thể để trống
+      const passageValue = (v.passageContent || "").trim();
+      fd.append("PassageContent", passageValue || "");
       fd.append("QuestionsJson", JSON.stringify(questionsPayload));
       if (audioFile) fd.append("Audio", audioFile);
       if (imageFile) fd.append("Image", imageFile);
@@ -641,45 +655,47 @@ export default function QuestionGroupModal({
           />
         )}
 
-        <Form.Item
-          name="passageContent"
-          label="Nội dung đoạn văn / Passage"
-          validateTrigger={['onBlur']}
-          rules={[
-            {
-              validator: (_, value) => {
-                if (!value || !value.trim()) {
-                  return Promise.reject(new Error("Vui lòng nhập nội dung đoạn văn"));
-                }
-                return Promise.resolve();
+        {isPassageVisible && (
+          <Form.Item
+            name="passageContent"
+            label="Nội dung đoạn văn / Passage"
+            validateTrigger={['onBlur']}
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value || !value.trim()) {
+                    return Promise.reject(new Error("Vui lòng nhập nội dung đoạn văn"));
+                  }
+                  return Promise.resolve();
+                },
               },
-            },
-          ]}
-        >
-          <Input.TextArea 
-            rows={4} 
-            placeholder="Nhập nội dung đoạn văn..."
-            onChange={() => {
-              // Xóa lỗi khi đang sửa (nếu có)
-              const errors = form.getFieldsError(['passageContent']);
-              if (errors[0]?.errors?.length > 0) {
-                form.setFields([{ name: 'passageContent', errors: [] }]);
-              }
-            }}
-            onFocus={() => {
-              // Validate các trường trước đó khi focus vào trường này
-              form.validateFields(['skill', 'partId']).catch(() => {});
-              // Validate audio nếu bắt buộc
-              if (isAudioRequired) {
-                form.validateFields(['audio']).catch(() => {});
-              }
-              // Validate image nếu bắt buộc
-              if (isImageRequired) {
-                form.validateFields(['image']).catch(() => {});
-              }
-            }}
-          />
-        </Form.Item>
+            ]}
+          >
+            <Input.TextArea 
+              rows={4} 
+              placeholder="Nhập nội dung đoạn văn..."
+              onChange={() => {
+                // Xóa lỗi khi đang sửa (nếu có)
+                const errors = form.getFieldsError(['passageContent']);
+                if (errors[0]?.errors?.length > 0) {
+                  form.setFields([{ name: 'passageContent', errors: [] }]);
+                }
+              }}
+              onFocus={() => {
+                // Validate các trường trước đó khi focus vào trường này
+                form.validateFields(['skill', 'partId']).catch(() => {});
+                // Validate audio nếu bắt buộc
+                if (isAudioRequired) {
+                  form.validateFields(['audio']).catch(() => {});
+                }
+                // Validate image nếu bắt buộc
+                if (isImageRequired) {
+                  form.validateFields(['image']).catch(() => {});
+                }
+              }}
+            />
+          </Form.Item>
+        )}
 
         {(showAudioField || showImageField) && (
           <Row gutter={12}>

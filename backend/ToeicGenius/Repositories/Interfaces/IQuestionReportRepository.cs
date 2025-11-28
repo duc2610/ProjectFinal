@@ -22,6 +22,7 @@ namespace ToeicGenius.Repositories.Interfaces
 			ReportStatus? status = null,
 			int? testQuestionId = null,
 			Guid? reportedBy = null,
+			Guid? testCreatorId = null,
 			int skip = 0,
 			int take = 20);
 
@@ -31,7 +32,8 @@ namespace ToeicGenius.Repositories.Interfaces
 		Task<int> GetReportsCountAsync(
 			ReportStatus? status = null,
 			int? testQuestionId = null,
-			Guid? reportedBy = null);
+			Guid? reportedBy = null,
+			Guid? testCreatorId = null);
 
 		/// <summary>
 		/// Update report status and review info
@@ -46,6 +48,11 @@ namespace ToeicGenius.Repositories.Interfaces
 		/// <summary>
 		/// Get pending reports count (for admin dashboard)
 		/// </summary>
-		Task<int> GetPendingReportsCountAsync();
+		Task<int> GetPendingReportsCountAsync(Guid? testCreatorId = null);
+
+		/// <summary>
+		/// Check if test creator owns the test that the report belongs to
+		/// </summary>
+		Task<bool> IsReportOwnedByCreatorAsync(int reportId, Guid creatorId);
 	}
 }

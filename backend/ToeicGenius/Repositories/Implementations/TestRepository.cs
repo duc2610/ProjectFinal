@@ -14,9 +14,15 @@ namespace ToeicGenius.Repositories.Implementations
 	{
 		public TestRepository(ToeicGeniusDbContext context) : base(context) { }
 
-		public async Task<PaginationResponse<TestListResponseDto>> FilterQuestionsAsync(TestFilterDto request)
+		public async Task<PaginationResponse<TestListResponseDto>> FilterQuestionsAsync(TestFilterDto request, Guid? creatorId = null)
 		{
 			var query = _context.Tests.AsQueryable();
+
+			// Filter by creator - TestCreator only sees their own tests
+			if (creatorId.HasValue)
+			{
+				query = query.Where(t => t.CreatedById == creatorId.Value);
+			}
 
 			if (request.TestSkill.HasValue)
 			{

@@ -14,6 +14,7 @@ import {
   Select,
   Row,
   Col,
+  Alert,
 } from "antd";
 import { 
   SearchOutlined, 
@@ -63,6 +64,10 @@ const toNum = (v) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
 };
+
+// Parts chỉ dành cho group questions: 3, 4 (Listening), 6, 7 (Reading)
+const GROUP_PARTS = [3, 4, 6, 7];
+const isGroupPart = (p) => GROUP_PARTS.includes(Number(p));
 
 const normalizeStatus = (raw) => {
   const n = Number(raw);
@@ -125,40 +130,65 @@ export default function QuanLyNganHangCauHoi() {
       const data = res?.data || res;
       const raw = data?.dataPaginated || data?.items || data?.records || [];
 
-      const items = (raw || []).map((r) => {
-        const st = normalizeStatus(r.status ?? r.isActive ?? r.active);
-        const skillStr =
-          r.skill ?? r.skillName ?? inferSkillFromPartName(r.partName);
-        const skillId =
-          typeof skillStr === "number" ? skillStr : skillNameToId(skillStr);
+      const items = (raw || [])
+        .map((r) => {
+          const st = normalizeStatus(r.status ?? r.isActive ?? r.active);
+          const skillStr =
+            r.skill ?? r.skillName ?? inferSkillFromPartName(r.partName);
+          const skillId =
+            typeof skillStr === "number" ? skillStr : skillNameToId(skillStr);
 
-        if (tabKey === "group") {
-          const id = (r.questionGroupId ?? r.groupId ?? r.id) ?? r.id;
+          if (tabKey === "group") {
+            const id = (r.questionGroupId ?? r.groupId ?? r.id) ?? r.id;
+            const partId = toNum(r.partId);
+            return {
+              ...r,
+              id,
+              isGroupQuestion: true,
+              content: r.passageContent ?? r.content,
+              isActive: st.isActive,
+              statusText: st.text,
+              statusColor: st.color,
+              __skillId: skillId,
+              __skillName: skillStr,
+              __partId: partId,
+              // Lưu thông tin để hiển thị
+              __hasAudio: !!(r.audioUrl || r.audioName),
+              __hasImage: !!(r.imageUrl || r.imageName),
+              __questionsCount: Array.isArray(r.questions) ? r.questions.length : 0,
+            };
+          }
+
+          const id = (r.questionId ?? r.id) ?? r.id;
+          const partId = toNum(r.partId);
           return {
             ...r,
             id,
-            isGroupQuestion: true,
-            content: r.passageContent ?? r.content,
+            isGroupQuestion: false,
             isActive: st.isActive,
             statusText: st.text,
             statusColor: st.color,
             __skillId: skillId,
             __skillName: skillStr,
+            __partId: partId,
+            // Lưu thông tin để hiển thị
+            __hasAudio: !!(r.audioUrl || r.audioName),
+            __hasImage: !!(r.imageUrl || r.imageName),
+            __optionsCount: Array.isArray(r.options) ? r.options.length : 0,
           };
-        }
-
-        const id = (r.questionId ?? r.id) ?? r.id;
-        return {
-          ...r,
-          id,
-          isGroupQuestion: false,
-          isActive: st.isActive,
-          statusText: st.text,
-          statusColor: st.color,
-          __skillId: skillId,
-          __skillName: skillStr,
-        };
-      });
+        })
+        .filter((item) => {
+          // Filter: Tab "Câu lẻ" không hiển thị single questions có part group
+          // Tab "Nhóm câu" chỉ hiển thị group questions có part group
+          const partId = toNum(item.partId);
+          if (tabKey === "single") {
+            // Loại bỏ single questions có part group (3, 4, 6, 7)
+            return !isGroupPart(partId);
+          } else {
+            // Chỉ hiển thị group questions có part group (3, 4, 6, 7)
+            return isGroupPart(partId);
+          }
+        });
 
       const total = data?.totalCount ?? data?.total ?? items.length;
       setDataSource(items);
@@ -192,10 +222,23 @@ export default function QuanLyNganHangCauHoi() {
         try {
           const parts = await getPartsBySkill(filterSkill);
           const partsData = Array.isArray(parts) ? parts : (parts?.data || []);
-          setPartsList(partsData.map(p => ({
-            id: p.partId || p.id,
-            name: p.partName || p.name,
-          })));
+          // Filter parts dựa trên tab hiện tại
+          const filteredParts = partsData
+            .filter((p) => {
+              const pid = toNum(p.partId || p.id);
+              if (tabKey === "single") {
+                // Tab "Câu lẻ": loại bỏ part group (3, 4, 6, 7)
+                return !isGroupPart(pid);
+              } else {
+                // Tab "Nhóm câu": chỉ hiển thị part group (3, 4, 6, 7)
+                return isGroupPart(pid);
+              }
+            })
+            .map((p) => ({
+              id: p.partId || p.id,
+              name: p.partName || p.name,
+            }));
+          setPartsList(filteredParts);
         } catch (e) {
           console.error("Error loading parts:", e);
         }
@@ -204,17 +247,23 @@ export default function QuanLyNganHangCauHoi() {
       }
     };
     loadParts();
-  }, [filterSkill]);
+  }, [filterSkill, tabKey]);
 
   useEffect(() => {
-    loadList(1, 10, searchKeyword, filterSkill, filterPart);
+    // Reset part filter khi chuyển tab
+    setFilterPart("all");
+    loadList(1, 10, searchKeyword, filterSkill, "all");
     
     return () => {
       if (searchTimeout) {
         clearTimeout(searchTimeout);
       }
     };
-  }, [showDeleted, tabKey, filterPart]);
+  }, [showDeleted, tabKey]);
+  
+  useEffect(() => {
+    loadList(1, 10, searchKeyword, filterSkill, filterPart);
+  }, [filterPart]);
 
   const filteredData = useMemo(() => dataSource, [dataSource]);
 
@@ -342,6 +391,26 @@ export default function QuanLyNganHangCauHoi() {
           ]}
         />
 
+        {tabKey === "single" && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="Câu lẻ"
+            description="Tab này hiển thị các câu hỏi đơn. Part 3, 4 (Nghe) và Part 6, 7 (Đọc) chỉ có thể tạo dưới dạng nhóm câu hỏi."
+          />
+        )}
+
+        {tabKey === "group" && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="Nhóm câu"
+            description="Tab này hiển thị các nhóm câu hỏi. Chỉ hiển thị Part 3, 4 (Nghe) và Part 6, 7 (Đọc)."
+          />
+        )}
+
         <Table
           rowKey={(r) => `${r.id}-${r.isGroupQuestion ? "G" : "S"}`}
           dataSource={filteredData}
@@ -380,7 +449,100 @@ export default function QuanLyNganHangCauHoi() {
             {
               title: "Nội dung / Đoạn văn",
               dataIndex: "content",
-              ellipsis: true,
+              ellipsis: { showTitle: false },
+              render: (content, record) => {
+                if (record.isGroupQuestion) {
+                  // Group questions: hiển thị passage content hoặc số lượng câu hỏi
+                  if (content && content.trim()) {
+                    return (
+                      <Tooltip title={content}>
+                        <div>
+                          <div style={{ marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {content}
+                          </div>
+                          {record.__questionsCount > 0 && (
+                            <Tag color="blue" style={{ fontSize: 11 }}>
+                              {record.__questionsCount} câu hỏi
+                            </Tag>
+                          )}
+                        </div>
+                      </Tooltip>
+                    );
+                  }
+                  return (
+                    <div>
+                      <span style={{ color: "#999", fontStyle: "italic" }}>
+                        Không có đoạn văn
+                      </span>
+                      {record.__questionsCount > 0 && (
+                        <Tag color="blue" style={{ fontSize: 11, marginLeft: 8 }}>
+                          {record.__questionsCount} câu hỏi
+                        </Tag>
+                      )}
+                    </div>
+                  );
+                } else {
+                  // Single questions
+                  const partId = record.__partId;
+                  const isContentOptional = [1, 2, 6].includes(partId);
+                  
+                  if (content && content.trim()) {
+                    // Có content: hiển thị content với tooltip
+                    return (
+                      <Tooltip title={content}>
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                          {content}
+                        </span>
+                      </Tooltip>
+                    );
+                  } else if (isContentOptional) {
+                    // Part 1, 2, 6 không có content: hiển thị thông tin khác
+                    const info = [];
+                    if (record.__hasAudio) {
+                      info.push(
+                        <Tag key="audio" color="green" style={{ fontSize: 11 }}>
+                          🔊 Audio
+                        </Tag>
+                      );
+                    }
+                    if (record.__hasImage) {
+                      info.push(
+                        <Tag key="image" color="orange" style={{ fontSize: 11 }}>
+                          🖼️ Ảnh
+                        </Tag>
+                      );
+                    }
+                    if (record.__optionsCount > 0) {
+                      info.push(
+                        <Tag key="options" color="blue" style={{ fontSize: 11 }}>
+                          {record.__optionsCount} đáp án
+                        </Tag>
+                      );
+                    }
+                    
+                    if (info.length > 0) {
+                      return (
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+                          {info}
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <span style={{ color: "#999", fontStyle: "italic", fontSize: 12 }}>
+                        Không có nội dung (Part {partId})
+                      </span>
+                    );
+                  } else {
+                    // Các part khác nhưng không có content (có thể là lỗi)
+                    return (
+                      <span style={{ color: "#ff4d4f", fontStyle: "italic", fontSize: 12 }}>
+                        ⚠️ Chưa có nội dung
+                      </span>
+                    );
+                  }
+                }
+              },
             },
             {
               title: "Trạng thái",
