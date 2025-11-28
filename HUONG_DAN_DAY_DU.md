@@ -265,6 +265,47 @@ toeic-speaking-api    Up (healthy)
 - **Username**: `sa`
 - **Password**: `YourStrong@Passw0rd` (hoặc giá trị trong biến môi trường `MSSQL_SA_PASSWORD`)
 
+### Chọn giữa SQL Server Docker volume và SQL Server cài trên máy
+
+Bạn có thể linh hoạt chọn cách lưu database theo nhu cầu:
+
+**Phương án A – Dùng SQL Server trong Docker (mặc định)**
+- Giữ nguyên service `sqlserver` trong `docker-compose.yml`.
+- Không cần cấu hình thêm: backend dùng connection string mặc định `Server=toeic-sql,1433;...`.
+- Dữ liệu nằm trong volume `sql_data`, không mất khi restart/rebuild.
+
+**Phương án B – Dùng SQL Server cài trên máy (giống chạy local)**
+1. Đảm bảo SQL Server **và SQL Server Management Studio (SSMS)** đã được cài trên máy, đồng thời database `ToeicGeniusV2` tồn tại (có thể để backend tự migrate).
+2. Mở `backend/.env` và thêm dòng (tùy chỉnh theo môi trường của bạn):
+   ```
+   DB_CONNECTION_STRING=Server=host.docker.internal,1433;Database=ToeicGeniusV2;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;
+   ```
+   - `host.docker.internal` cho phép container kết nối SQL Server trên host Windows/macOS. Nếu chạy Docker trên Linux, đổi thành IP của máy host.
+   - Nếu bạn dùng Windows Authentication, thay bằng chuỗi có `Trusted_Connection=True`.
+3. Chạy `.\run-docker.ps1` (script này đã tự động gọi `load-env.ps1` để nạp biến). Backend sẽ ưu tiên `DB_CONNECTION_STRING` nên không cần sửa Dockerfile.
+4. Nếu không muốn container SQL chạy nữa, dừng nó: `docker-compose stop sqlserver`. Khi cần dùng lại volume, bỏ dòng `DB_CONNECTION_STRING` (hoặc đổi chuỗi) và chạy `docker-compose up -d sqlserver api`.
+
+**Phương án C – Chạy backend ngoài Docker (dotnet run)**
+- File `backend/ToeicGenius/appsettings.Development.json` đã đặt sẵn connection string đến `ToeicGeniusV2` trên máy (`Server=localhost;...`). Có thể sửa trực tiếp file này nếu bạn muốn thông số khác khi chạy thuần .NET.
+
+> 💡 Quy tắc nhớ nhanh: Không khai báo `DB_CONNECTION_STRING` ⇒ backend dùng database trong Docker volume. Khai báo biến này trong `backend/.env` ⇒ backend kết nối SQL Server mà bạn chỉ định (local/on-prem).
+
+### Checklist chuyển đổi nhanh giữa 2 chế độ
+
+**A → B (từ Docker volume sang SQL local)**
+1. Bật SQL Server trên máy và đảm bảo database `ToeicGeniusV2` tồn tại.
+2. Mở `backend/.env`, thêm hoặc cập nhật `DB_CONNECTION_STRING=...` (dạng `host.docker.internal`).
+3. Lưu file, chạy `.\run-docker.ps1` hoặc `docker-compose up -d api`.
+4. (Tùy chọn) Dừng container SQL nếu không dùng: `docker-compose stop sqlserver`.
+5. Kiểm tra backend log `docker-compose logs -f api` xem đã kết nối thành công.
+
+**B → A (từ SQL local quay lại Docker volume)**
+1. Xóa hoặc comment dòng `DB_CONNECTION_STRING` trong `backend/.env`.
+2. Khởi động lại container SQL: `docker-compose up -d sqlserver` (nếu đã stop).
+3. Recreate backend để nạp biến mới: `docker-compose up -d api` hoặc `docker-compose restart api`.
+4. Kiểm tra `docker-compose ps` đảm bảo `toeic-sql` và `toeic-backend` đều “Up”.
+5. (Tùy chọn) Nếu muốn làm sạch hoàn toàn và tạo DB mới, chạy `docker-compose down -v` rồi `docker-compose up -d`.
+
 ### Quy trình khởi tạo Database
 
 **Lần đầu tiên chạy:**
