@@ -45,7 +45,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__MyCnn=Server=toeic-sql,1433;Database=ToeicGeniusV2;User Id=sa;Password=${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=True;
+      # Ghi đè DB_CONNECTION_STRING trong backend/.env để dùng SQL Server cài trên máy
+      - ConnectionStrings__MyCnn=${DB_CONNECTION_STRING:-Server=toeic-sql,1433;Database=ToeicGeniusV2;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;}
       - PythonApiSettings__WritingApiUrl=http://writing-api:8002
       - PythonApiSettings__SpeakingApiUrl=http://speaking-api:8001
       - Jwt__Issuer=${JWT_ISSUER:-Capstone_SEP490_G22}
