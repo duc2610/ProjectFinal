@@ -53,7 +53,7 @@ function isPathAllowedForRole(path, roles) {
     return roles.includes(ROLES.Admin);
   }
   if (path.startsWith("/test-creator")) {
-    return roles.includes(ROLES.TestCreator) || roles.includes(ROLES.Admin);
+    return roles.includes(ROLES.TestCreator);
   }
   if (path.startsWith("/toeic-exam") || path.startsWith("/result") || path.startsWith("/exam")) {
     return roles.includes(ROLES.Examinee);
