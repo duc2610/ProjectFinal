@@ -37,11 +37,14 @@ import {
   banUser,
   unbanUser,
 } from "@services/accountManagerService";
+import { useAuth } from "@shared/hooks/useAuth";
+import { hasCookie } from "@shared/utils/cookie";
 
 const { Option } = Select;
 const { TabPane } = Tabs;
 
 const AccountManagement = () => {
+  const { isAuthenticated } = useAuth();
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
@@ -57,6 +60,11 @@ const AccountManagement = () => {
   const [pageSize, setPageSize] = useState({ active: 10, banned: 10 });
 
   const loadActiveUsers = async () => {
+    // Kiểm tra authentication và token trước khi gọi API
+    if (!isAuthenticated || !hasCookie("tg_access_token")) {
+      return; // Không gọi API nếu không authenticated hoặc không có token
+    }
+    
     try {
       setLoading(prev => ({ ...prev, active: true }));
       const res = await getAllUsers();
@@ -72,13 +80,23 @@ const AccountManagement = () => {
         setFilteredActive(normalized);
       }
     } catch (error) {
-      message.error("Lỗi khi tải danh sách tài khoản hoạt động!");
+      // Chỉ hiển thị lỗi nếu không phải lỗi 401/403 (unauthorized/forbidden)
+      // vì có thể user đã đăng xuất
+      const status = error?.response?.status;
+      if (status !== 401 && status !== 403) {
+        message.error("Lỗi khi tải danh sách tài khoản hoạt động!");
+      }
     } finally {
       setLoading(prev => ({ ...prev, active: false }));
     }
   };
 
   const loadBannedUsers = async () => {
+    // Kiểm tra authentication và token trước khi gọi API
+    if (!isAuthenticated || !hasCookie("tg_access_token")) {
+      return; // Không gọi API nếu không authenticated hoặc không có token
+    }
+    
     try {
       setLoading(prev => ({ ...prev, banned: true }));
       const res = await getBannedUsers();
@@ -92,16 +110,25 @@ const AccountManagement = () => {
         setFilteredBanned(normalized);
       }
     } catch (error) {
-      message.error("Lỗi khi tải danh sách tài khoản bị ban!");
+      // Chỉ hiển thị lỗi nếu không phải lỗi 401/403 (unauthorized/forbidden)
+      // vì có thể user đã đăng xuất
+      const status = error?.response?.status;
+      if (status !== 401 && status !== 403) {
+        message.error("Lỗi khi tải danh sách tài khoản bị ban!");
+      }
     } finally {
       setLoading(prev => ({ ...prev, banned: false }));
     }
   };
 
   useEffect(() => {
-    loadActiveUsers();
-    loadBannedUsers();
-  }, []);
+    // Chỉ load data khi component mount và user đã authenticated
+    // Kiểm tra authentication và token trước khi gọi API
+    if (isAuthenticated && hasCookie("tg_access_token")) {
+      loadActiveUsers();
+      loadBannedUsers();
+    }
+  }, [isAuthenticated]);
 
   const filterData = (type) => {
     const data = type === "active" ? activeUsers : bannedUsers;

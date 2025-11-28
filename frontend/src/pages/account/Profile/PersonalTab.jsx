@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Form, Input, Button, Row, Col, Modal, notification } from "antd";
 import styles from "@shared/styles/Profile.module.css";
 import { changePassword } from "@services/authService";
-import { translateErrorMessage } from "@shared/utils/translateError";
 
 export function PersonalTab({ user }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,6 +15,32 @@ export function PersonalTab({ user }) {
     form.resetFields();
   };
 
+  // Hàm chuyển đổi thông báo lỗi sang tiếng Việt
+  const translateError = (errorMsg) => {
+    if (!errorMsg) return "Đổi mật khẩu thất bại";
+    
+    const errorMsgLower = errorMsg.toLowerCase();
+    
+    const errorMap = {
+      "invalid password": "Mật khẩu không hợp lệ!",
+      "password": "Mật khẩu không đúng định dạng!",
+      "old password": "Mật khẩu hiện tại không đúng!",
+      "current password": "Mật khẩu hiện tại không đúng!",
+      "incorrect password": "Mật khẩu hiện tại không đúng!",
+      "network error": "Lỗi kết nối mạng!",
+      "timeout": "Yêu cầu quá thời gian chờ!",
+      "server error": "Lỗi máy chủ!",
+    };
+    
+    for (const [key, value] of Object.entries(errorMap)) {
+      if (errorMsgLower.includes(key)) {
+        return value;
+      }
+    }
+    
+    return "Đổi mật khẩu thất bại";
+  };
+
   const onFinish = async (values) => {
     try {
       setSubmitting(true);
@@ -27,8 +52,22 @@ export function PersonalTab({ user }) {
       });
       handleCancel();
     } catch (error) {
+      // Kiểm tra xem có phải lỗi validation từ backend không
+      const isValidationError = 
+        error.response?.status === 400 && 
+        (error.response?.data?.errors || 
+         error.response?.data?.title?.toLowerCase().includes("validation") ||
+         error.response?.data?.message?.toLowerCase().includes("validation"));
+      
+      // Nếu là lỗi validation từ backend, không hiển thị cho user
+      if (isValidationError) {
+        console.error("Lỗi validation từ backend (không hiển thị):", error.response?.data);
+        return;
+      }
+
       const rawMsg = error?.response?.data?.message || "Đổi mật khẩu thất bại";
-      const msg = translateErrorMessage(rawMsg);
+      const msg = translateError(rawMsg);
+      
       if (
         rawMsg.toLowerCase().includes("old password") ||
         rawMsg.toLowerCase().includes("mật khẩu cũ") ||
@@ -97,35 +136,67 @@ export function PersonalTab({ user }) {
           name="change-password-form"
         >
           <Form.Item
-            label="Current Password"
+            label="Mật khẩu hiện tại"
             name="oldPassword"
             rules={[
               { required: true, message: "Vui lòng nhập mật khẩu hiện tại" },
             ]}
             getValueFromEvent={(e) => e?.target?.value}
           >
-            <Input.Password placeholder="Enter current password" />
+            <Input.Password placeholder="Nhập mật khẩu hiện tại" />
           </Form.Item>
 
           <Form.Item
-            label="New Password"
+            label="Mật khẩu mới"
             name="newPassword"
+            validateTrigger={['onBlur', 'onChange']}
             rules={[
-              { required: true, message: "Vui lòng nhập mật khẩu mới" },
-              { min: 8, message: "Mật khẩu tối thiểu 8 ký tự" },
+              { required: true, message: "Vui lòng nhập mật khẩu mới!" },
               {
-                pattern: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$/,
-                message:
-                  "Phải có ít nhất 1 chữ và 1 số; chỉ gồm chữ và số (không khoảng trắng/ký tự đặc biệt)",
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  
+                  // Kiểm tra độ dài
+                  if (value.length < 8) {
+                    return Promise.reject(new Error("Mật khẩu phải có ít nhất 8 ký tự!"));
+                  }
+                  if (value.length > 32) {
+                    return Promise.reject(new Error("Mật khẩu không được vượt quá 32 ký tự!"));
+                  }
+                  
+                  const errors = [];
+                  
+                  // Kiểm tra chữ cái (chữ hoa hoặc chữ thường đều được)
+                  if (!/[A-Za-z]/.test(value)) {
+                    errors.push("chữ cái");
+                  }
+                  
+                  // Kiểm tra số
+                  if (!/[0-9]/.test(value)) {
+                    errors.push("số");
+                  }
+                  
+                  // Kiểm tra ký tự đặc biệt
+                  if (!/[!@#$%^&*(),.?":{}|<>_+\-=\[\]\\;',./]/.test(value)) {
+                    errors.push("ký tự đặc biệt");
+                  }
+                  
+                  if (errors.length > 0) {
+                    const errorMsg = `Mật khẩu phải chứa ít nhất một ${errors.join(", ")}!`;
+                    return Promise.reject(new Error(errorMsg));
+                  }
+                  
+                  return Promise.resolve();
+                },
               },
             ]}
             getValueFromEvent={(e) => e?.target?.value}
           >
-            <Input.Password placeholder="Enter new password" />
+            <Input.Password placeholder="Nhập mật khẩu mới (8-32 ký tự, phải có chữ cái, số và ký tự đặc biệt)" />
           </Form.Item>
 
           <Form.Item
-            label="Confirm New Password"
+            label="Xác nhận mật khẩu mới"
             name="confirmNewPassword"
             dependencies={["newPassword"]}
             hasFeedback
@@ -144,7 +215,7 @@ export function PersonalTab({ user }) {
             ]}
             getValueFromEvent={(e) => e?.target?.value}
           >
-            <Input.Password placeholder="Confirm new password" />
+            <Input.Password placeholder="Nhập lại mật khẩu mới" />
           </Form.Item>
         </Form>
       </Modal>

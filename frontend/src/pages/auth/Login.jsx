@@ -16,6 +16,7 @@ import logo from "@assets/images/logo.png";
 import { useGoogleLogin } from "@react-oauth/google";
 import { ROLES } from "@shared/utils/acl";
 import styles from "@shared/styles/Auth.module.css";
+import { setAutoRedirecting } from "@app/guards/Guards";
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +34,9 @@ export default function Login() {
     return true;
   };
   const redirectAfterLogin = (user) => {
+    // Đánh dấu đang trong quá trình auto redirect để tránh hiển thị warning
+    setAutoRedirecting(true);
+    
     const roles = Array.isArray(user?.roles) ? user.roles : [];
     const returnTo = location.state?.returnTo;
     if (returnTo && canAccessPath(returnTo, roles)) {
