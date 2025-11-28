@@ -412,6 +412,7 @@ namespace ToeicGenius.Services.Implementations
 					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
+
 			// check part 1,2 Listening
 			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
 			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
