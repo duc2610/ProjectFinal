@@ -156,6 +156,41 @@ const AccountManagement = () => {
     }
   };
 
+  // Hàm chuyển đổi thông báo lỗi sang tiếng Việt
+  const translateError = (errorMsg) => {
+    if (!errorMsg) return "Lỗi không xác định khi lưu tài khoản!";
+    
+    const errorMsgLower = errorMsg.toLowerCase();
+    
+    // Mapping các lỗi thường gặp
+    const errorMap = {
+      "email": "Email đã tồn tại trong hệ thống!",
+      "email already exists": "Email đã tồn tại trong hệ thống!",
+      "user already exists": "Người dùng đã tồn tại!",
+      "invalid email": "Email không hợp lệ!",
+      "invalid password": "Mật khẩu không hợp lệ!",
+      "password": "Mật khẩu không đúng định dạng!",
+      "network error": "Lỗi kết nối mạng!",
+      "timeout": "Yêu cầu quá thời gian chờ!",
+      "unauthorized": "Bạn không có quyền thực hiện thao tác này!",
+      "forbidden": "Bạn không có quyền truy cập!",
+      "not found": "Không tìm thấy tài nguyên!",
+      "server error": "Lỗi máy chủ!",
+      "internal server error": "Lỗi máy chủ nội bộ!",
+      "bad request": "Yêu cầu không hợp lệ!",
+    };
+    
+    // Kiểm tra xem có key nào khớp không
+    for (const [key, value] of Object.entries(errorMap)) {
+      if (errorMsgLower.includes(key)) {
+        return value;
+      }
+    }
+    
+    // Nếu không khớp, trả về thông báo mặc định
+    return "Lỗi không xác định khi lưu tài khoản!";
+  };
+
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
@@ -196,13 +231,31 @@ const AccountManagement = () => {
       loadActiveUsers();
       loadBannedUsers();
     } catch (error) {
+      // Bỏ qua lỗi validation từ form (frontend validation)
       if (error.errorFields) return;
 
-      const errMsg =
+      // Kiểm tra xem có phải lỗi validation từ backend không (400 Bad Request với errors)
+      const isValidationError = 
+        error.response?.status === 400 && 
+        (error.response?.data?.errors || 
+         error.response?.data?.title?.toLowerCase().includes("validation") ||
+         error.response?.data?.message?.toLowerCase().includes("validation"));
+      
+      // Nếu là lỗi validation từ backend, không hiển thị cho user (chỉ log)
+      if (isValidationError) {
+        console.error("Lỗi validation từ backend (không hiển thị):", error.response?.data);
+        return; // Không hiển thị lỗi validation
+      }
+
+      // Xử lý các lỗi khác và chuyển sang tiếng Việt
+      let errMsg = 
         error.response?.data?.message ||
         error.response?.data?.error ||
         error.message ||
         "Lỗi không xác định khi lưu tài khoản!";
+
+      // Chuyển đổi sang tiếng Việt
+      errMsg = translateError(errMsg);
 
       message.error(errMsg);
       console.error("Lỗi lưu tài khoản:", error);
@@ -488,17 +541,31 @@ const AccountManagement = () => {
               <Form.Item
                 name="email"
                 label="Email"
-                validateTrigger={['onBlur']}
+                validateTrigger={['onBlur', 'onChange']}
                 rules={[
                   { required: true, message: "Vui lòng nhập email!" },
                   {
-                    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: "Email không hợp lệ",
+                    pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                    message: "Email không đúng định dạng! Ví dụ: example@gmail.com",
+                  },
+                  {
+                    validator: (_, value) => {
+                      if (!value) return Promise.resolve();
+                      const trimmed = value.trim();
+                      if (trimmed !== value) {
+                        return Promise.reject(new Error("Email không được có khoảng trắng ở đầu hoặc cuối!"));
+                      }
+                      if (trimmed.length > 254) {
+                        return Promise.reject(new Error("Email không được vượt quá 254 ký tự!"));
+                      }
+                      return Promise.resolve();
+                    },
                   },
                 ]}
               >
                 <Input 
-                  placeholder="Nhập email"
+                  type="email"
+                  placeholder="Nhập email (ví dụ: example@gmail.com)"
                   onChange={() => {
                     // Xóa lỗi khi đang sửa (nếu có)
                     const errors = form.getFieldsError(['email']);
@@ -524,25 +591,50 @@ const AccountManagement = () => {
               <Form.Item
                 name="password"
                 label="Mật khẩu"
-                validateTrigger={['onBlur']}
+                validateTrigger={['onBlur', 'onChange']}
                 rules={[
                   { required: true, message: "Vui lòng nhập mật khẩu!" },
-                  { min: 6, message: "Mật khẩu phải ít nhất 6 ký tự!" },
                   {
                     validator: (_, value) => {
                       if (!value) return Promise.resolve();
-                      // Kiểm tra ký tự đặc biệt
-                      const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
-                      if (specialCharRegex.test(value)) {
-                        return Promise.reject(new Error("Mật khẩu không được chứa ký tự đặc biệt!"));
+                      
+                      // Kiểm tra độ dài
+                      if (value.length < 8) {
+                        return Promise.reject(new Error("Mật khẩu phải có ít nhất 8 ký tự!"));
                       }
+                      if (value.length > 32) {
+                        return Promise.reject(new Error("Mật khẩu không được vượt quá 32 ký tự!"));
+                      }
+                      
+                      const errors = [];
+                      
+                      // Kiểm tra chữ cái (chữ hoa hoặc chữ thường đều được)
+                      if (!/[A-Za-z]/.test(value)) {
+                        errors.push("chữ cái");
+                      }
+                      
+                      // Kiểm tra số
+                      if (!/[0-9]/.test(value)) {
+                        errors.push("số");
+                      }
+                      
+                      // Kiểm tra ký tự đặc biệt
+                      if (!/[!@#$%^&*(),.?":{}|<>_+\-=\[\]\\;',./]/.test(value)) {
+                        errors.push("ký tự đặc biệt");
+                      }
+                      
+                      if (errors.length > 0) {
+                        const errorMsg = `Mật khẩu phải chứa ít nhất một ${errors.join(", ")}!`;
+                        return Promise.reject(new Error(errorMsg));
+                      }
+                      
                       return Promise.resolve();
                     },
                   },
                 ]}
               >
                 <Input.Password 
-                  placeholder="Nhập mật khẩu"
+                  placeholder="Nhập mật khẩu (8-32 ký tự, phải có chữ cái, số và ký tự đặc biệt)"
                   onChange={() => {
                     // Xóa lỗi khi đang sửa (nếu có)
                     const errors = form.getFieldsError(['password']);
@@ -562,26 +654,49 @@ const AccountManagement = () => {
               <Form.Item
                 name="newPassword"
                 label="Mật khẩu mới (để trống nếu không đổi)"
-                validateTrigger={['onBlur']}
+                validateTrigger={['onBlur', 'onChange']}
                 rules={[
                   ({ getFieldValue }) => ({
                     validator(_, value) {
                       if (!value) return Promise.resolve();
-                      if (value.length < 6) {
-                        return Promise.reject(new Error("Mật khẩu phải ít nhất 6 ký tự!"));
+                      
+                      // Kiểm tra độ dài
+                      if (value.length < 8) {
+                        return Promise.reject(new Error("Mật khẩu phải có ít nhất 8 ký tự!"));
                       }
+                      if (value.length > 32) {
+                        return Promise.reject(new Error("Mật khẩu không được vượt quá 32 ký tự!"));
+                      }
+                      
+                      const errors = [];
+                      
+                      // Kiểm tra chữ cái (chữ hoa hoặc chữ thường đều được)
+                      if (!/[A-Za-z]/.test(value)) {
+                        errors.push("chữ cái");
+                      }
+                      
+                      // Kiểm tra số
+                      if (!/[0-9]/.test(value)) {
+                        errors.push("số");
+                      }
+                      
                       // Kiểm tra ký tự đặc biệt
-                      const specialCharRegex = /[!@#$%^&*(),.?":{}|<>]/;
-                      if (specialCharRegex.test(value)) {
-                        return Promise.reject(new Error("Mật khẩu không được chứa ký tự đặc biệt!"));
+                      if (!/[!@#$%^&*(),.?":{}|<>_+\-=\[\]\\;',./]/.test(value)) {
+                        errors.push("ký tự đặc biệt");
                       }
+                      
+                      if (errors.length > 0) {
+                        const errorMsg = `Mật khẩu phải chứa ít nhất một ${errors.join(", ")}!`;
+                        return Promise.reject(new Error(errorMsg));
+                      }
+                      
                       return Promise.resolve();
                     },
                   }),
                 ]}
               >
                 <Input.Password 
-                  placeholder="Nhập mật khẩu mới"
+                  placeholder="Nhập mật khẩu mới (8-32 ký tự, phải có chữ cái, số và ký tự đặc biệt)"
                   onChange={() => {
                     // Xóa lỗi khi đang sửa (nếu có)
                     const errors = form.getFieldsError(['newPassword']);
