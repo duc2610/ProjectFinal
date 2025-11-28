@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Table,
   Button,
@@ -50,38 +50,60 @@ const AccountManagement = () => {
   const [editingAccount, setEditingAccount] = useState(null);
   const [activeUsers, setActiveUsers] = useState([]);
   const [bannedUsers, setBannedUsers] = useState([]);
-  const [filteredActive, setFilteredActive] = useState([]);
-  const [filteredBanned, setFilteredBanned] = useState([]);
   const [loading, setLoading] = useState({ active: false, banned: false });
   const [activeTab, setActiveTab] = useState("active");
+  const [activePagination, setActivePagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+  const [bannedPagination, setBannedPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+  const [activeQuery, setActiveQuery] = useState({
+    page: 1,
+    pageSize: 10,
+    keyword: "",
+    role: "all",
+  });
+  const [bannedQuery, setBannedQuery] = useState({
+    page: 1,
+    pageSize: 10,
+    keyword: "",
+    role: "all",
+  });
 
-  const [searchText, setSearchText] = useState({ active: "", banned: "" });
-  const [roleFilter, setRoleFilter] = useState({ active: "all", banned: "all" });
-  const [pageSize, setPageSize] = useState({ active: 10, banned: 10 });
+  const normalizeUsers = (items, isActiveList) =>
+    (items ?? []).map(item => ({
+      ...item,
+      role: Array.isArray(item.roles) && item.roles.length > 0 ? item.roles[0] : item.role || "User",
+      isActive: isActiveList,
+    }));
 
-  const loadActiveUsers = async () => {
-    // Kiểm tra authentication và token trước khi gọi API
+  const loadActiveUsers = useCallback(async () => {
     if (!isAuthenticated || !hasCookie("tg_access_token")) {
-      return; // Không gọi API nếu không authenticated hoặc không có token
+      return;
     }
-    
+
     try {
       setLoading(prev => ({ ...prev, active: true }));
-      const res = await getAllUsers();
-      if (Array.isArray(res)) {
-        const normalized = res
-          .filter(item => item.isActive === true || item.status === "Active")
-          .map(item => ({
-            ...item,
-            role: Array.isArray(item.roles) ? item.roles[0] : item.role || "User",
-            isActive: true,
-          }));
-        setActiveUsers(normalized);
-        setFilteredActive(normalized);
-      }
+      const res = await getAllUsers({
+        page: activeQuery.page,
+        pageSize: activeQuery.pageSize,
+        status: "Active",
+        keyword: activeQuery.keyword,
+        role: activeQuery.role,
+      });
+      const normalized = normalizeUsers(res?.items, true);
+      setActiveUsers(normalized);
+      setActivePagination({
+        current: res?.pagination?.currentPage ?? activeQuery.page,
+        pageSize: res?.pagination?.pageSize ?? activeQuery.pageSize,
+        total: res?.pagination?.totalCount ?? normalized.length,
+      });
     } catch (error) {
-      // Chỉ hiển thị lỗi nếu không phải lỗi 401/403 (unauthorized/forbidden)
-      // vì có thể user đã đăng xuất
       const status = error?.response?.status;
       if (status !== 401 && status !== 403) {
         message.error("Lỗi khi tải danh sách tài khoản hoạt động!");
@@ -89,29 +111,29 @@ const AccountManagement = () => {
     } finally {
       setLoading(prev => ({ ...prev, active: false }));
     }
-  };
+  }, [activeQuery, isAuthenticated]);
 
-  const loadBannedUsers = async () => {
-    // Kiểm tra authentication và token trước khi gọi API
+  const loadBannedUsers = useCallback(async () => {
     if (!isAuthenticated || !hasCookie("tg_access_token")) {
-      return; // Không gọi API nếu không authenticated hoặc không có token
+      return;
     }
-    
+
     try {
       setLoading(prev => ({ ...prev, banned: true }));
-      const res = await getBannedUsers();
-      if (Array.isArray(res)) {
-        const normalized = res.map(item => ({
-          ...item,
-          role: Array.isArray(item.roles) ? item.roles[0] : item.role || "User",
-          isActive: false,
-        }));
-        setBannedUsers(normalized);
-        setFilteredBanned(normalized);
-      }
+      const res = await getBannedUsers({
+        page: bannedQuery.page,
+        pageSize: bannedQuery.pageSize,
+        keyword: bannedQuery.keyword,
+        role: bannedQuery.role,
+      });
+      const normalized = normalizeUsers(res?.items, false);
+      setBannedUsers(normalized);
+      setBannedPagination({
+        current: res?.pagination?.currentPage ?? bannedQuery.page,
+        pageSize: res?.pagination?.pageSize ?? bannedQuery.pageSize,
+        total: res?.pagination?.totalCount ?? normalized.length,
+      });
     } catch (error) {
-      // Chỉ hiển thị lỗi nếu không phải lỗi 401/403 (unauthorized/forbidden)
-      // vì có thể user đã đăng xuất
       const status = error?.response?.status;
       if (status !== 401 && status !== 403) {
         message.error("Lỗi khi tải danh sách tài khoản bị ban!");
@@ -119,44 +141,21 @@ const AccountManagement = () => {
     } finally {
       setLoading(prev => ({ ...prev, banned: false }));
     }
-  };
+  }, [bannedQuery, isAuthenticated]);
 
   useEffect(() => {
-    // Chỉ load data khi component mount và user đã authenticated
-    // Kiểm tra authentication và token trước khi gọi API
-    if (isAuthenticated && hasCookie("tg_access_token")) {
-      loadActiveUsers();
-      loadBannedUsers();
+    if (!isAuthenticated || !hasCookie("tg_access_token")) {
+      return;
     }
-  }, [isAuthenticated]);
-
-  const filterData = (type) => {
-    const data = type === "active" ? activeUsers : bannedUsers;
-    const search = searchText[type] || "";
-    const role = roleFilter[type] || "all";
-
-    let filtered = [...data];
-
-    if (search) {
-      const lower = search.toLowerCase();
-      filtered = filtered.filter(
-        item =>
-          item.fullName?.toLowerCase().includes(lower) ||
-          item.email?.toLowerCase().includes(lower)
-      );
-    }
-
-    if (role !== "all") {
-      filtered = filtered.filter(item => item.role === role);
-    }
-
-    if (type === "active") setFilteredActive(filtered);
-    else setFilteredBanned(filtered);
-  };
+    loadActiveUsers();
+  }, [isAuthenticated, loadActiveUsers]);
 
   useEffect(() => {
-    filterData(activeTab);
-  }, [searchText[activeTab], roleFilter[activeTab], activeUsers, bannedUsers, activeTab]);
+    if (!isAuthenticated || !hasCookie("tg_access_token")) {
+      return;
+    }
+    loadBannedUsers();
+  }, [isAuthenticated, loadBannedUsers]);
 
   const handleToggleStatus = async (userId, currentActive) => {
     const user = [...activeUsers, ...bannedUsers].find(u => u.id === userId);
@@ -174,8 +173,8 @@ const AccountManagement = () => {
         await unbanUser(userId);
         message.success("Đã mở khóa tài khoản!");
       }
-      loadActiveUsers();
-      loadBannedUsers();
+      await loadActiveUsers();
+      await loadBannedUsers();
     } catch (error) {
       message.error("Lỗi khi cập nhật trạng thái!");
     } finally {
@@ -255,8 +254,8 @@ const AccountManagement = () => {
       setIsModalVisible(false);
       form.resetFields();
       setEditingAccount(null);
-      loadActiveUsers();
-      loadBannedUsers();
+      await loadActiveUsers();
+      await loadBannedUsers();
     } catch (error) {
       // Bỏ qua lỗi validation từ form (frontend validation)
       if (error.errorFields) return;
@@ -315,7 +314,7 @@ const AccountManagement = () => {
   };
 
   const handleExport = () => {
-    const data = activeTab === "active" ? filteredActive : filteredBanned;
+    const data = activeTab === "active" ? activeUsers : bannedUsers;
     const status = activeTab === "active" ? "Đang hoạt động" : "Bị ban";
 
     const headers = ["Tên", "Email", "Role", "Trạng thái", "Ngày tạo"];
@@ -418,7 +417,7 @@ const AccountManagement = () => {
       ),
     },
   ];
-  const currentData = activeTab === "active" ? filteredActive : filteredBanned;
+  const currentData = activeTab === "active" ? activeUsers : bannedUsers;
   const currentLoading = loading[activeTab];
   const loadingIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
 
@@ -442,22 +441,29 @@ const AccountManagement = () => {
         </div>
 
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane tab={`Tài khoản đang hoạt động (${activeUsers.length})`} key="active">
+          <TabPane
+            tab={`Tài khoản đang hoạt động (${activePagination.total ?? activeUsers.length})`}
+            key="active"
+          >
             <Card className={styles.controlsCard}>
               <Row gutter={[16, 16]} align="middle">
                 <Col xs={24} sm={12} md={8}>
                   <Input
                     placeholder="Tìm kiếm tên, email..."
                     prefix={<SearchOutlined />}
-                    value={searchText.active || ""}
-                    onChange={(e) => setSearchText(prev => ({ ...prev, active: e.target.value }))}
+                    value={activeQuery.keyword}
+                    onChange={(e) =>
+                      setActiveQuery(prev => ({ ...prev, page: 1, keyword: e.target.value }))
+                    }
                     allowClear
                   />
                 </Col>
                 <Col xs={12} sm={6} md={4}>
                   <Select
-                    value={roleFilter.active || "all"}
-                    onChange={(val) => setRoleFilter(prev => ({ ...prev, active: val }))}
+                    value={activeQuery.role}
+                    onChange={(val) =>
+                      setActiveQuery(prev => ({ ...prev, page: 1, role: val }))
+                    }
                     style={{ width: "100%" }}
                   >
                     <Option value="all">Tất cả Role</Option>
@@ -470,35 +476,47 @@ const AccountManagement = () => {
 
             <Table
               columns={columns}
-              dataSource={filteredActive}
+              dataSource={activeUsers}
               rowKey="id"
               pagination={{
-                pageSize: pageSize.active,
+                current: activePagination.current,
+                pageSize: activePagination.pageSize,
+                total: activePagination.total,
                 showSizeChanger: true,
                 showQuickJumper: true,
                 showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} tài khoản`,
-                onShowSizeChange: (_, size) => setPageSize(prev => ({ ...prev, active: size })),
+                onChange: (page, size) =>
+                  setActiveQuery(prev => ({ ...prev, page, pageSize: size })),
+                onShowSizeChange: (_, size) =>
+                  setActiveQuery(prev => ({ ...prev, page: 1, pageSize: size })),
               }}
               scroll={{ x: 1000 }}
             />
           </TabPane>
 
-          <TabPane tab={`Tài khoản bị ban (${bannedUsers.length})`} key="banned">
+          <TabPane
+            tab={`Tài khoản bị ban (${bannedPagination.total ?? bannedUsers.length})`}
+            key="banned"
+          >
             <Card className={styles.controlsCard}>
               <Row gutter={[16, 16]} align="middle">
                 <Col xs={24} sm={12} md={8}>
                   <Input
                     placeholder="Tìm kiếm tên, email..."
                     prefix={<SearchOutlined />}
-                    value={searchText.banned || ""}
-                    onChange={(e) => setSearchText(prev => ({ ...prev, banned: e.target.value }))}
+                    value={bannedQuery.keyword}
+                    onChange={(e) =>
+                      setBannedQuery(prev => ({ ...prev, page: 1, keyword: e.target.value }))
+                    }
                     allowClear
                   />
                 </Col>
                 <Col xs={12} sm={6} md={4}>
                   <Select
-                    value={roleFilter.banned || "all"}
-                    onChange={(val) => setRoleFilter(prev => ({ ...prev, banned: val }))}
+                    value={bannedQuery.role}
+                    onChange={(val) =>
+                      setBannedQuery(prev => ({ ...prev, page: 1, role: val }))
+                    }
                     style={{ width: "100%" }}
                   >
                     <Option value="all">Tất cả Role</Option>
@@ -511,14 +529,19 @@ const AccountManagement = () => {
 
             <Table
               columns={columns}
-              dataSource={filteredBanned}
+              dataSource={bannedUsers}
               rowKey="id"
               pagination={{
-                pageSize: pageSize.banned,
+                current: bannedPagination.current,
+                pageSize: bannedPagination.pageSize,
+                total: bannedPagination.total,
                 showSizeChanger: true,
                 showQuickJumper: true,
                 showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} tài khoản`,
-                onShowSizeChange: (_, size) => setPageSize(prev => ({ ...prev, banned: size })),
+                onChange: (page, size) =>
+                  setBannedQuery(prev => ({ ...prev, page, pageSize: size })),
+                onShowSizeChange: (_, size) =>
+                  setBannedQuery(prev => ({ ...prev, page: 1, pageSize: size })),
               }}
               scroll={{ x: 1000 }}
             />
