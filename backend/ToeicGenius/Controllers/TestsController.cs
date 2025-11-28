@@ -243,12 +243,18 @@ namespace ToeicGenius.Controllers
 			}
 		}
 
-		// List test
+		// List test - TestCreator only sees their own tests
 		[HttpGet]
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> GetTestsList([FromQuery] TestFilterDto request)
 		{
-			var result = await _testService.FilterAllAsync(request);
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+
+			var result = await _testService.FilterAllAsync(request, userId);
 			if (!result.IsSuccess)
 			{
 				return BadRequest(ApiResponse<PaginationResponse<TestListResponseDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
@@ -256,11 +262,18 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<PaginationResponse<TestListResponseDto>>.SuccessResponse(result.Data!));
 		}
 
+		// Get test detail - TestCreator can only see their own tests
 		[HttpGet("{id}")]
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> GetTestDetail(int id)
 		{
-			var result = await _testService.GetDetailAsync(id);
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+
+			var result = await _testService.GetDetailAsync(id, userId, isAdmin: false);
 			if (!result.IsSuccess)
 			{
 				return BadRequest(ApiResponse<TestDetailDto>.ErrorResponse(result.ErrorMessage ?? "Error"));
@@ -268,47 +281,75 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<TestDetailDto>.SuccessResponse(result.Data!));
 		}
 
+		// Update manual test - TestCreator can only update their own tests
 		[HttpPut("manual/{id}")]
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> UpdateManualTest(int id, [FromBody] UpdateManualTestDto dto)
 		{
-			var result = await _testService.UpdateManualTestAsync(id, dto);
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+
+			var result = await _testService.UpdateManualTestAsync(id, dto, userId, isAdmin: false);
 			return result.IsSuccess ? Ok(result) : BadRequest(result);
 		}
 
+		// Update from-bank test - TestCreator can only update their own tests
 		[HttpPut("from-bank/{id}")]
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> UpdateFromBankTest(int id, [FromBody] UpdateTestFromBank dto)
 		{
-			var result = await _testService.UpdateTestFromBankAsync(id, dto);
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+
+			var result = await _testService.UpdateTestFromBankAsync(id, dto, userId, isAdmin: false);
 			return result.IsSuccess ? Ok(result) : BadRequest(result);
 		}
 
+		// Hide test - TestCreator can only hide their own tests
 		[HttpPut("hide/{id}")]
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> HideTest(int id)
 		{
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+
 			var request = new UpdateTestVisibilityStatusDto
 			{
 				TestId = id,
 				VisibilityStatus = Domains.Enums.TestVisibilityStatus.Hidden
 			};
-			var result = await _testService.UpdateStatusAsync(request);
+			var result = await _testService.UpdateStatusAsync(request, userId, isAdmin: false);
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 
+		// Publish test - TestCreator can only publish their own tests
 		[HttpPut("public/{id}")]
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> PublicTest(int id)
 		{
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+
 			var request = new UpdateTestVisibilityStatusDto
 			{
 				TestId = id,
 				VisibilityStatus = Domains.Enums.TestVisibilityStatus.Published
 			};
-			var result = await _testService.UpdateStatusAsync(request);
+			var result = await _testService.UpdateStatusAsync(request, userId, isAdmin: false);
 			if (!result.IsSuccess)
 				return NotFound(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
@@ -388,12 +429,20 @@ namespace ToeicGenius.Controllers
 		/// <summary>
 		/// Update a TestQuestion (snapshot in a specific test)
 		/// Used when fixing reported questions
+		/// Admin can update any, TestCreator can only update their own tests' questions
 		/// </summary>
 		[HttpPut("test-questions/{testQuestionId}")]
 		[Authorize(Roles = "Admin,TestCreator")]
 		public async Task<IActionResult> UpdateTestQuestion(int testQuestionId, [FromForm] UpdateTestQuestionDto request)
 		{
-			var result = await _testService.UpdateTestQuestionAsync(testQuestionId, request);
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+			}
+
+			var isAdmin = User.IsInRole("Admin");
+			var result = await _testService.UpdateTestQuestionAsync(testQuestionId, request, userId, isAdmin);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 

@@ -10,6 +10,10 @@ public class TestCreatorDashboardStatisticsResponseDto
     public decimal AverageScore { get; set; }
     public decimal PublishedPercentage { get; set; }
 
+    // Question Reports statistics
+    public int PendingReports { get; set; }
+    public int TotalReports { get; set; }
+
     // So sánh với kỳ trước
     public int NewTestsComparedToPrevious { get; set; }
     public int NewQuestionsComparedToPrevious { get; set; }

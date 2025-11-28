@@ -415,6 +415,10 @@ namespace ToeicGenius.Services.Implementations
 				if (test == null)
 					return Result<string>.Failure("Test not found");
 
+				// Check ownership - user must be the creator of this test
+				if (test.CreatedById != userId)
+					return Result<string>.Failure("You don't have permission to modify this test");
+
 				if (test.VisibilityStatus == TestVisibilityStatus.Published)
 					return Result<string>.Failure("Cannot edit a published test. Please clone to create a new version.");
 
@@ -552,6 +556,10 @@ namespace ToeicGenius.Services.Implementations
 			if (test == null)
 				return Result<string>.Failure("Test not found");
 
+			// Check ownership - user must be the creator of this test
+			if (test.CreatedById != userId)
+				return Result<string>.Failure("You don't have permission to finalize this test");
+
 			// Validate cấu trúc đầy đủ
 			var questions = await _uow.TestQuestions.GetByTestIdAsync(testId);
 			if (questions.Count == 0)
@@ -590,18 +598,22 @@ namespace ToeicGenius.Services.Implementations
 		/* CREATE - End */
 
 		/* LIST & DETAIL - start */
-		// Get list (for TestCreator)
-		public async Task<Result<PaginationResponse<TestListResponseDto>>> FilterAllAsync(TestFilterDto request)
+		// Get list (for TestCreator) - filter by creatorId
+		public async Task<Result<PaginationResponse<TestListResponseDto>>> FilterAllAsync(TestFilterDto request, Guid? creatorId = null)
 		{
-			var result = await _uow.Tests.FilterQuestionsAsync(request);
+			var result = await _uow.Tests.FilterQuestionsAsync(request, creatorId);
 			return Result<PaginationResponse<TestListResponseDto>>.Success(result);
 		}
 
-		// Get detail (for TestCreator)
-		public async Task<Result<TestDetailDto>> GetDetailAsync(int id)
+		// Get detail (for TestCreator) - check ownership
+		public async Task<Result<TestDetailDto>> GetDetailAsync(int id, Guid? userId = null, bool isAdmin = false)
 		{
 			var test = await _uow.Tests.GetTestByIdAsync(id);
 			if (test == null) return Result<TestDetailDto>.Failure(CommonMessages.DataNotFound);
+
+			// Check ownership if not admin
+			if (!isAdmin && userId.HasValue && test.CreatedById != userId.Value)
+				return Result<TestDetailDto>.Failure("You don't have permission to view this test");
 
 			var result = new TestDetailDto
 			{
@@ -675,11 +687,16 @@ namespace ToeicGenius.Services.Implementations
 		/* LIST & DETAIL - end */
 
 		/* UPDATE - Start */
-		// Update Status
-		public async Task<Result<string>> UpdateStatusAsync(UpdateTestVisibilityStatusDto request)
+		// Update Status - check ownership
+		public async Task<Result<string>> UpdateStatusAsync(UpdateTestVisibilityStatusDto request, Guid userId, bool isAdmin = false)
 		{
 			var test = await _uow.Tests.GetByIdAsync(request.TestId);
 			if (test == null) return Result<string>.Failure(CommonMessages.DataNotFound);
+
+			// Check ownership if not admin
+			if (!isAdmin && test.CreatedById != userId)
+				return Result<string>.Failure("You don't have permission to update this test");
+
 			if (test.CreationStatus != TestCreationStatus.Completed)
 			{
 				return Result<string>.Failure("Chỉ những bài test hoàn chỉnh mới có thể thay đổi trạng thái hiển thị.");
@@ -692,8 +709,8 @@ namespace ToeicGenius.Services.Implementations
 			return Result<string>.Success($"Bài test {test.TestId} đã đổi trạng thái thành {test.VisibilityStatus}.");
 		}
 
-		// Update Test From Bank (practice test)
-		public async Task<Result<string>> UpdateTestFromBankAsync(int testId, UpdateTestFromBank dto)
+		// Update Test From Bank (practice test) - check ownership
+		public async Task<Result<string>> UpdateTestFromBankAsync(int testId, UpdateTestFromBank dto, Guid userId, bool isAdmin = false)
 		{
 			// 1️. Kiểm tra input hợp lệ
 			if ((dto.SingleQuestionIds == null || !dto.SingleQuestionIds.Any()) &&
@@ -704,6 +721,10 @@ namespace ToeicGenius.Services.Implementations
 			var existing = await _uow.Tests.GetByIdAsync(testId);
 			if (existing == null)
 				return Result<string>.Failure("Test not found");
+
+			// Check ownership if not admin
+			if (!isAdmin && existing.CreatedById != userId)
+				return Result<string>.Failure("You don't have permission to update this test");
 
 			var isPublished = existing.VisibilityStatus == TestVisibilityStatus.Published;
 			Test targetTest;
@@ -807,11 +828,15 @@ namespace ToeicGenius.Services.Implementations
 		}
 
 		// Update Test Manual (simulator test)
-		public async Task<Result<string>> UpdateManualTestAsync(int testId, UpdateManualTestDto dto)
+		public async Task<Result<string>> UpdateManualTestAsync(int testId, UpdateManualTestDto dto, Guid userId, bool isAdmin = false)
 		{
 			var existing = await _uow.Tests.GetByIdAsync(testId);
 			if (existing == null)
 				return Result<string>.Failure(CommonMessages.DataNotFound);
+
+			// Check ownership if not admin
+			if (!isAdmin && existing.CreatedById != userId)
+				return Result<string>.Failure("You don't have permission to update this test");
 			int totalQuestion = GetQuantityQuestion(dto);
 			// Nếu test đang PUBLISHED -> tạo bản clone
 			Test targetTest;
@@ -2005,7 +2030,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<Result<string>> UpdateTestQuestionAsync(int testQuestionId, UpdateTestQuestionDto dto)
+		public async Task<Result<string>> UpdateTestQuestionAsync(int testQuestionId, UpdateTestQuestionDto dto, Guid userId, bool isAdmin = false)
 		{
 			await _uow.BeginTransactionAsync();
 			try
@@ -2014,6 +2039,10 @@ namespace ToeicGenius.Services.Implementations
 				var testQuestion = await _uow.TestQuestions.GetByIdWithDetailsAsync(testQuestionId);
 				if (testQuestion == null)
 					return Result<string>.Failure("TestQuestion not found");
+
+				// Check ownership if not admin - verify the test belongs to this user
+				if (!isAdmin && testQuestion.Test?.CreatedById != userId)
+					return Result<string>.Failure("You don't have permission to update this question. Only the test creator can modify.");
 
 				// Try to get version history (new format), or migrate from old format
 				QuestionVersionHistory? versionHistory = null;

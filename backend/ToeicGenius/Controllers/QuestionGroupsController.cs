@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -32,6 +32,10 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> CreateQuestionGroup([FromForm] QuestionGroupRequestDto request)
 		{
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Unauthorized"));
+
 			// Deserialize JSON string sang danh sách object
 			try
 			{
@@ -42,18 +46,23 @@ namespace ToeicGenius.Controllers
 			{
 				return BadRequest(ApiResponse<string>.ErrorResponse($"Invalid Questions JSON: {ex.Message}"));
 			}
-			var result = await _questionGroupService.CreateAsync(request);
+			var result = await _questionGroupService.CreateAsync(request, userId);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<QuestionGroupResponseDto>.ErrorResponse(result.ErrorMessage ?? "Create failed"));
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data!));
 		}
 
-		// GET: api/question-group/{id} -> DONE 
+		// GET: api/question-group/{id} - TestCreator only sees their own question groups
 		[HttpGet("question-group/{id}")]
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> GetQuestionGroup(int id)
 		{
-			var result = await _questionGroupService.GetDetailAsync(id);
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+				return Unauthorized(ApiResponse<QuestionGroupResponseDto>.ErrorResponse("Unauthorized"));
+
+			var isAdmin = User.IsInRole("Admin");
+			var result = await _questionGroupService.GetDetailAsync(id, userId, isAdmin);
 			if (!result.IsSuccess)
 			{
 				return BadRequest(ApiResponse<QuestionGroupResponseDto>.ErrorResponse(result.ErrorMessage));
@@ -62,7 +71,7 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<QuestionGroupResponseDto>.SuccessResponse(result.Data));
 		}
 
-		// GET: api/question-group?part=&page=&pageSize=
+		// GET: api/question-group?part=&page=&pageSize= - TestCreator only sees their own question groups
 		[HttpGet("question-group")]
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> FilterGroupQuestions(
@@ -73,13 +82,17 @@ namespace ToeicGenius.Controllers
 			[FromQuery] int page = NumberConstants.DefaultFirstPage,
 			[FromQuery] int pageSize = NumberConstants.DefaultPageSize)
 		{
-			var result = await _questionGroupService.FilterQuestionGroupAsync(part, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Active);
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+				return Unauthorized(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse("Unauthorized"));
+
+			var result = await _questionGroupService.FilterQuestionGroupAsync(part, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Active, userId);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
 			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));
 		}
 
-		// GET: api/question-group/deleted?part=&page=&pageSize=
+		// GET: api/question-group/deleted?part=&page=&pageSize= - TestCreator only sees their own deleted question groups
 		[HttpGet("question-group/deleted")]
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> FilterGroupQuestionsDeleted(
@@ -90,7 +103,11 @@ namespace ToeicGenius.Controllers
 			[FromQuery] int page = NumberConstants.DefaultFirstPage,
 			[FromQuery] int pageSize = NumberConstants.DefaultPageSize)
 		{
-			var result = await _questionGroupService.FilterQuestionGroupAsync(part, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Inactive);
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+				return Unauthorized(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse("Unauthorized"));
+
+			var result = await _questionGroupService.FilterQuestionGroupAsync(part, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Inactive, userId);
 			if (!result.IsSuccess)
 				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
 			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));
@@ -101,6 +118,12 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> UpdateQuestion(int id, [FromForm] UpdateQuestionGroupDto request)
 		{
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+				return Unauthorized(ApiResponse<string>.ErrorResponse("Unauthorized"));
+
+			var isAdmin = User.IsInRole("Admin");
+
 			// Deserialize JSON string sang danh sách object
 			try
 			{
@@ -111,7 +134,7 @@ namespace ToeicGenius.Controllers
 			{
 				return BadRequest(ApiResponse<string>.ErrorResponse($"Invalid Questions JSON: {ex.Message}"));
 			}
-			var result = await _questionGroupService.UpdateAsync(id, request);
+			var result = await _questionGroupService.UpdateAsync(id, request, userId, isAdmin);
 			if (!result.IsSuccess)
 			{
 				if (result.ErrorMessage?.Contains("Not found", StringComparison.OrdinalIgnoreCase) == true)
