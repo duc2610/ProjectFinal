@@ -1124,6 +1124,7 @@ export default function ExamScreen() {
               isSubmitting={isSubmitting}
               globalAudioUrl={rawTestData.globalAudioUrl}
               testType={rawTestData.testType || "Simulator"}
+              testResultId={rawTestData.testResultId}
               isReported={questions[currentIndex] ? isQuestionReported(questions[currentIndex].testQuestionId) : false}
               onReportSuccess={handleReportSuccess}
             />
