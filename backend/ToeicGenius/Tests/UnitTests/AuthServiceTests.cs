@@ -62,7 +62,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "Login")]
         [Trait("TestCase", "UTCID01")]
         [Fact]
-        public async Task LoginAsync_ValidCredentialsAndActiveUser_ReturnsSuccessWithTokensAndPersistsRefreshToken()
+        public async Task UTCID01_LoginAsync_ValidCredentialsAndActiveUser_ReturnsSuccessWithTokensAndPersistsRefreshToken()
         {
             // ARRANGE
             var loginDto = CreateLoginDto();
@@ -91,7 +91,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "Login")]
         [Trait("TestCase", "UTCID02")]
         [Fact]
-        public async Task LoginAsync_InvalidPassword_ReturnsFailureWithInvalidCredentials()
+        public async Task UTCID02_LoginAsync_InvalidPassword_ReturnsFailureWithInvalidCredentials()
         {
             //ARRANGE
             var loginDto = CreateLoginDto(password: "examinee@123");
@@ -112,7 +112,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "Login")]
         [Trait("TestCase", "UTCID03")]
         [Fact]
-        public async Task LoginAsync_NonExistentEmail_ReturnsFailureWithInvalidCredentials()
+        public async Task UTCID03_LoginAsync_NonExistentEmail_ReturnsFailureWithInvalidCredentials()
         {
             var loginDto = CreateLoginDto(email: "notexist@example.com");
             _userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync((User)null!);
@@ -128,7 +128,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "Login")]
         [Trait("TestCase", "UTCID04")]
         [Fact]
-        public async Task LoginAsync_BannedAccount_ReturnsFailureWithBannedMessage()
+        public async Task UTCID04_LoginAsync_BannedAccount_ReturnsFailureWithBannedMessage()
         {
             var loginDto = CreateLoginDto(email: "banned@example.com");
             var bannedUser = CreateUser(loginDto.Email, status: UserStatus.Banned);
@@ -146,7 +146,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "Login")]
         [Trait("TestCase", "UTCID05")]
         [Fact]
-        public async Task LoginAsync_BlankPassword_ReturnsFailureWithMessage()
+        public async Task UTCID05_LoginAsync_BlankPassword_ReturnsFailureWithMessage()
         {
             var loginDto = CreateLoginDto(password: "");
             var user = CreateUser(loginDto.Email);
@@ -164,7 +164,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "Login")]
         [Trait("TestCase", "UTCID06")]
         [Fact]
-        public async Task LoginAsync_EmptyEmail_ReturnsFailureWithInvalidCredentials()
+        public async Task UTCID06_LoginAsync_EmptyEmail_ReturnsFailureWithInvalidCredentials()
         {
             var loginDto = CreateLoginDto(email: "");
             _userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync((User)null!);
@@ -180,7 +180,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "Login")]
         [Trait("TestCase", "UTCID07")]
         [Fact]
-        public async Task LoginAsync_SoftDeletedAccount_ReturnsInvalidCredentials()
+        public async Task UTCID07_LoginAsync_SoftDeletedAccount_ReturnsInvalidCredentials()
         {
             var loginDto = CreateLoginDto(email: "deleted@example.com");
             var deletedUser = CreateUser(loginDto.Email, status: UserStatus.Deleted);
@@ -197,7 +197,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "Login")]
         [Trait("TestCase", "UTCID08")]
         [Fact]
-        public async Task LoginAsync_BlankIpAddress_ReturnsSuccessWithTokensAndPersistsRefreshToken()
+        public async Task UTCID08_LoginAsync_BlankIpAddress_ReturnsSuccessWithTokensAndPersistsRefreshToken()
         {
             var loginDto = CreateLoginDto();
             var user = CreateUser(loginDto.Email);
@@ -222,7 +222,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ChangePassword")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task ChangePasswordAsync_InvalidUserId_ReturnsIdInvalid()
+		public async Task UTCID01_ChangePasswordAsync_InvalidUserId_ReturnsIdInvalid()
 		{
 			var service = CreateService();
 			var result = await service.ChangePasswordAsync(CreateChangePasswordDto(oldPass:"valid@123", newPass:"valid@34",confirmPass:"valid@34"), "");
@@ -234,7 +234,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ChangePassword")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task ChangePasswordAsync_UserNotFound_ReturnsUserNotFound()
+		public async Task UTCID02_ChangePasswordAsync_UserNotFound_ReturnsUserNotFound()
 		{
 			var userId = Guid.NewGuid();
 			_userRepoMock.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync((User)null!);
@@ -249,7 +249,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ChangePassword")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task ChangePasswordAsync_FirstTimeGoogleUser_SetsPasswordAndReturnsSuccess()
+		public async Task UTCID03_ChangePasswordAsync_FirstTimeGoogleUser_SetsPasswordAndReturnsSuccess()
 		{
 			var userId = Guid.NewGuid();
 			var user = CreateUser("google@example.com");
@@ -270,7 +270,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ChangePassword")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task ChangePasswordAsync_OldPasswordMismatch_ReturnsOldPasswordMismatch()
+		public async Task UTCID04_ChangePasswordAsync_OldPasswordMismatch_ReturnsOldPasswordMismatch()
 		{
 			var userId = Guid.NewGuid();
 			var user = CreateUser("user@example.com", "CorrectOldPass@123");
@@ -289,7 +289,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ChangePassword")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task ChangePasswordAsync_ValidRequest_UpdatesPasswordAndReturnsSuccess()
+		public async Task UTCID05_ChangePasswordAsync_ValidRequest_UpdatesPasswordAndReturnsSuccess()
 		{
 			var userId = Guid.NewGuid();
 			var oldPass = "valid@123";
@@ -316,7 +316,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendRegistrationOtp")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task SendRegistrationOtpAsync_EmailAlreadyExists_ReturnsEmailAlreadyExists()
+		public async Task UTCID01_SendRegistrationOtpAsync_EmailAlreadyExists_ReturnsEmailAlreadyExists()
 		{
 			// Arrange
 			var dto = CreateRegisterRequestDto();
@@ -336,7 +336,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendRegistrationOtp")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task SendRegistrationOtpAsync_ValidRequest_SendsOtpAndReturnsSuccess()
+		public async Task UTCID02_SendRegistrationOtpAsync_ValidRequest_SendsOtpAndReturnsSuccess()
 		{
 			// Arrange
 			var dto = CreateRegisterRequestDto();
@@ -358,7 +358,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendRegistrationOtp")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task SendRegistrationOtpAsync_ExceptionThrown_ReturnsOperationFailed()
+		public async Task UTCID03_SendRegistrationOtpAsync_ExceptionThrown_ReturnsOperationFailed()
 		{
 			// Arrange
 			var dto = CreateRegisterRequestDto();
@@ -381,7 +381,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "VerifyRegistrationOtp")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task VerifyRegistrationOtpAsync_InvalidOtp_ReturnsOtpInvalid()
+		public async Task UTCID01_VerifyRegistrationOtpAsync_InvalidOtp_ReturnsOtpInvalid()
 		{
 			// Arrange
 			var dto = CreateRegisterVerifyDto(otp: "999999");
@@ -408,7 +408,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "VerifyRegistrationOtp")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task VerifyRegistrationOtpAsync_EmailAlreadyExists_ReturnsEmailAlreadyExists()
+		public async Task UTCID02_VerifyRegistrationOtpAsync_EmailAlreadyExists_ReturnsEmailAlreadyExists()
 		{
 			// Arrange
 			var dto = CreateRegisterVerifyDto(email: "exist@gmail.com");
@@ -435,7 +435,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "VerifyRegistrationOtp")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task VerifyRegistrationOtpAsync_ValidRequest_CreatesUserAndReturnsSuccess()
+		public async Task UTCID03_VerifyRegistrationOtpAsync_ValidRequest_CreatesUserAndReturnsSuccess()
 		{
 			// Arrange
 			var dto = CreateRegisterVerifyDto();
@@ -466,7 +466,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "VerifyRegistrationOtp")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task VerifyRegistrationOtpAsync_RoleNotFound_CreatesUserWithoutRole()
+		public async Task UTCID04_VerifyRegistrationOtpAsync_RoleNotFound_CreatesUserWithoutRole()
 		{
 			// Arrange
 			var dto = CreateRegisterVerifyDto();
@@ -495,7 +495,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "VerifyRegistrationOtp")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task VerifyRegistrationOtpAsync_ExceptionThrown_ReturnsOperationFailed()
+		public async Task UTCID05_VerifyRegistrationOtpAsync_ExceptionThrown_ReturnsOperationFailed()
 		{
 			// Arrange
 			var dto = CreateRegisterVerifyDto();
@@ -516,7 +516,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "LoginWithGoogle")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task LoginWithGoogleAsync_TokenExchangeFails_ThrowsException()
+		public async Task UTCID01_LoginWithGoogleAsync_TokenExchangeFails_ThrowsException()
 		{
 			// Arrange
 			var code = "auth_code";
@@ -536,7 +536,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "LoginWithGoogle")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task LoginWithGoogleAsync_TokenValidationFails_ThrowsException()
+		public async Task UTCID02_LoginWithGoogleAsync_TokenValidationFails_ThrowsException()
 		{
 			// Arrange
 			var code = "auth_code";
@@ -559,7 +559,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "LoginWithGoogle")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task LoginWithGoogleAsync_NewUser_CreatesUserAndReturnsSuccess()
+		public async Task UTCID03_LoginWithGoogleAsync_NewUser_CreatesUserAndReturnsSuccess()
 		{
 			// Arrange
 			var code = "auth_code";
@@ -591,7 +591,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "LoginWithGoogle")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task LoginWithGoogleAsync_ExistingUser_UpdatesGoogleIdAndReturnsSuccess()
+		public async Task UTCID04_LoginWithGoogleAsync_ExistingUser_UpdatesGoogleIdAndReturnsSuccess()
 		{
 			// Arrange
 			var code = "auth_code";
@@ -781,7 +781,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendResetPasswordOtp")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task SendResetPasswordOtpAsync_UserNotFoundOrInactive_ReturnsUserNotFound()
+		public async Task UTCID01_SendResetPasswordOtpAsync_UserNotFoundOrInactive_ReturnsUserNotFound()
 		{
 			// Arrange
 			var dto = CreateResetPasswordRequestDto();
@@ -801,7 +801,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendResetPasswordOtp")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task SendResetPasswordOtpAsync_UserInactive_ReturnsUserNotFound()
+		public async Task UTCID02_SendResetPasswordOtpAsync_UserInactive_ReturnsUserNotFound()
 		{
 			// Arrange
 			var dto = CreateResetPasswordRequestDto();
@@ -821,7 +821,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendResetPasswordOtp")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task SendResetPasswordOtpAsync_ValidUser_SendsOtpAndReturnsSuccess()
+		public async Task UTCID03_SendResetPasswordOtpAsync_ValidUser_SendsOtpAndReturnsSuccess()
 		{
 			// Arrange
 			var dto = CreateResetPasswordRequestDto();
@@ -844,7 +844,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendResetPasswordOtp")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task SendResetPasswordOtpAsync_ExceptionThrown_ReturnsOperationFailed()
+		public async Task UTCID04_SendResetPasswordOtpAsync_ExceptionThrown_ReturnsOperationFailed()
 		{
 			// Arrange
 			var dto = CreateResetPasswordRequestDto();
@@ -868,7 +868,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "VerifyResetPasswordOtp")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task VerifyResetPasswordOtpAsync_InvalidOtp_ReturnsOtpInvalid()
+		public async Task UTCID01_VerifyResetPasswordOtpAsync_InvalidOtp_ReturnsOtpInvalid()
 		{
 			// Arrange
 			var dto = CreateResetPasswordVerifyDto();
@@ -895,7 +895,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "VerifyResetPasswordOtp")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task VerifyResetPasswordOtpAsync_ValidOtp_MarksOtpAsUsedAndReturnsSuccess()
+		public async Task UTCID02_VerifyResetPasswordOtpAsync_ValidOtp_MarksOtpAsUsedAndReturnsSuccess()
 		{
 			// Arrange
 			var dto = CreateResetPasswordVerifyDto(otp: "999999");
@@ -928,7 +928,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ConfirmResetPassword")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task ConfirmResetPasswordAsync_UserNotFound_ReturnsUserNotFound()
+		public async Task UTCID01_ConfirmResetPasswordAsync_UserNotFound_ReturnsUserNotFound()
 		{
 			// Arrange
 			var dto = CreateResetPasswordConfirmDto();
@@ -948,7 +948,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ConfirmResetPassword")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task ConfirmResetPasswordAsync_ValidRequest_UpdatesPasswordAndReturnsSuccess()
+		public async Task UTCID02_ConfirmResetPasswordAsync_ValidRequest_UpdatesPasswordAndReturnsSuccess()
 		{
 			// Arrange
 			var dto = CreateResetPasswordConfirmDto();
@@ -972,7 +972,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ConfirmResetPassword")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task ConfirmResetPasswordAsync_ExceptionThrown_ReturnsOperationFailed()
+		public async Task UTCID03_ConfirmResetPasswordAsync_ExceptionThrown_ReturnsOperationFailed()
 		{
 			// Arrange
 			var dto = CreateResetPasswordConfirmDto();

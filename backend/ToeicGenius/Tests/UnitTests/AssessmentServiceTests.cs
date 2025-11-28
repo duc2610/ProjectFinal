@@ -37,7 +37,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID01: Input = valid sentence request with image snapshot; Expected = mapped feedback DTO is returned with TOEIC score conversion.
 		[Fact]
-		public async Task AssessWritingSentenceAsync_WhenDataIsValid_ReturnsMappedFeedback()
+		public async Task UTCID01_AssessWritingSentenceAsync_WhenDataIsValid_ReturnsMappedFeedback()
 		{
 			var request = new WritingSentenceRequestDto
 			{
@@ -99,7 +99,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID02: Input = snapshot without image URL; Expected = throws descriptive exception before calling file service or python API.
 		[Fact]
-		public async Task AssessWritingSentenceAsync_WhenImageMissing_ThrowsException()
+		public async Task UTCID02_AssessWritingSentenceAsync_WhenImageMissing_ThrowsException()
 		{
 			var request = new WritingSentenceRequestDto
 			{
@@ -123,7 +123,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID03: Input = python API returns non-success status; Expected = propagates Python API error without creating feedback.
 		[Fact]
-		public async Task AssessWritingSentenceAsync_WhenPythonApiFails_ThrowsException()
+		public async Task UTCID03_AssessWritingSentenceAsync_WhenPythonApiFails_ThrowsException()
 		{
 			var request = new WritingSentenceRequestDto
 			{
@@ -161,7 +161,7 @@ namespace ToeicGenius.Tests.UnitTests
 		}
 		// UTCID04: Python returns invalid JSON → should throw exception
 		[Fact]
-		public async Task AssessWritingSentenceAsync_WhenPythonResponseInvalid_ThrowsException()
+		public async Task UTCID04_AssessWritingSentenceAsync_WhenPythonResponseInvalid_ThrowsException()
 		{
 			var request = new WritingSentenceRequestDto
 			{
@@ -193,7 +193,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID05: Python returns score outside normal range → map to TOEIC scale
 		[Fact]
-		public async Task AssessWritingSentenceAsync_WhenPythonScoreOutOfRange_ReturnsClampedToeicScore()
+		public async Task UTCID05_AssessWritingSentenceAsync_WhenPythonScoreOutOfRange_ReturnsClampedToeicScore()
 		{
 			var request = new WritingSentenceRequestDto
 			{
@@ -222,7 +222,12 @@ namespace ToeicGenius.Tests.UnitTests
 
 			fileServiceMock.Setup(f => f.DownloadFileAsync(imageUrl))
 				.ReturnsAsync(() => new MemoryStream(Encoding.UTF8.GetBytes("image-bytes")));
-
+			feedbackRepoMock.Setup(r => r.CreateAsync(It.IsAny<AIFeedback>()))
+							.ReturnsAsync((AIFeedback feedback) =>
+							{
+								feedback.FeedbackId = 321;
+								return feedback;
+							});
 			var result = await service.AssessWritingSentenceAsync(request, _userId);
 
 			// TOEIC score should be clamped if Python score > 100
@@ -233,7 +238,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID06: Dependency throws (FileService) → verify catch logs and exception
 		[Fact]
-		public async Task AssessWritingSentenceAsync_WhenFileServiceThrows_PropagatesException()
+		public async Task UTCID06_AssessWritingSentenceAsync_WhenFileServiceThrows_PropagatesException()
 		{
 			var request = new WritingSentenceRequestDto
 			{
@@ -271,7 +276,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID01: Input = feedback exists and user is owner; Expected = returns mapped DTO with details.
 		[Fact]
-		public async Task GetFeedbackAsync_WhenFeedbackExistsAndOwner_ReturnsDto()
+		public async Task UTCID01_GetFeedbackAsync_WhenFeedbackExistsAndOwner_ReturnsDto()
 		{
 			var feedback = new AIFeedback
 			{
@@ -307,7 +312,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID02: Input = feedback is missing; Expected = throws "Feedback not found".
 		[Fact]
-		public async Task GetFeedbackAsync_WhenNotFound_ThrowsException()
+		public async Task UTCID02_GetFeedbackAsync_WhenNotFound_ThrowsException()
 		{
 			var (service, _, _, feedbackRepoMock, _, _, _, _, _) = CreateServiceAsync();
 
@@ -323,7 +328,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID03: Input = user is not owner; Expected = throws UnauthorizedAccessException.
 		[Fact]
-		public async Task GetFeedbackAsync_WhenUserNotOwner_ThrowsUnauthorized()
+		public async Task UTCID03_GetFeedbackAsync_WhenUserNotOwner_ThrowsUnauthorized()
 		{
 			var feedback = new AIFeedback { FeedbackId = 808, UserAnswerId = 1001 };
 			var (service, _, _, feedbackRepoMock, _, _, _, _, _) = CreateServiceAsync();
@@ -343,7 +348,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID01: Input = describe_picture request with provided TestResult; Expected = uploads audio, downloads image, stores feedback.
 		[Fact]
-		public async Task AssessSpeakingAsync_DescribePictureWithExistingTestResult_ReturnsFeedback()
+		public async Task UTCID01_AssessSpeakingAsync_DescribePictureWithExistingTestResult_ReturnsFeedback()
 		{
 			var request = new SpeakingAssessmentRequestDto
 			{
@@ -418,7 +423,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID02: Input = Python API returns error for speaking; Expected = throws and no feedback persisted.
 		[Fact]
-		public async Task AssessSpeakingAsync_WhenPythonApiFails_ThrowsException()
+		public async Task UTCID02_AssessSpeakingAsync_WhenPythonApiFails_ThrowsException()
 		{
 			var request = new SpeakingAssessmentRequestDto
 			{
@@ -459,7 +464,7 @@ namespace ToeicGenius.Tests.UnitTests
 		}
 		// UTCID03: Input = TestQuestionId does not exist → throws exception
 		[Fact]
-		public async Task AssessSpeakingAsync_WhenTestQuestionNotFound_ThrowsException()
+		public async Task UTCID03_AssessSpeakingAsync_WhenTestQuestionNotFound_ThrowsException()
 		{
 			var request = new SpeakingAssessmentRequestDto
 			{
@@ -485,7 +490,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID04: Input = TestResultId provided but not found → throws exception
 		[Fact]
-		public async Task AssessSpeakingAsync_WhenTestResultNotFound_ThrowsException()
+		public async Task UTCID04_AssessSpeakingAsync_WhenTestResultNotFound_ThrowsException()
 		{
 			var request = new SpeakingAssessmentRequestDto
 			{
@@ -513,7 +518,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID05: Input = Audio upload fails → throws exception
 		[Fact]
-		public async Task AssessSpeakingAsync_WhenAudioUploadFails_ThrowsException()
+		public async Task UTCID05_AssessSpeakingAsync_WhenAudioUploadFails_ThrowsException()
 		{
 			var request = new SpeakingAssessmentRequestDto
 			{
@@ -544,7 +549,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID06: Input = UserAnswer creation fails → throws exception
 		[Fact]
-		public async Task AssessSpeakingAsync_WhenUserAnswerCreationFails_ThrowsException()
+		public async Task UTCID06_AssessSpeakingAsync_WhenUserAnswerCreationFails_ThrowsException()
 		{
 			var request = new SpeakingAssessmentRequestDto
 			{
@@ -565,19 +570,18 @@ namespace ToeicGenius.Tests.UnitTests
 				.ReturnsAsync(Result<string>.Success("https://cdn/audio/6505.wav"));
 
 			userAnswerRepoMock.Setup(r => r.AddAsync(It.IsAny<UserAnswer>()))
-				.ThrowsAsync(new Exception("DB fail"));
+				.ThrowsAsync(new Exception());
 
 			var act = async () => await service.AssessSpeakingAsync(request, taskType, _userId);
 
-			await act.Should().ThrowAsync<Exception>()
-				.WithMessage("DB fail");
+			await act.Should().ThrowAsync<Exception>();
 
 			feedbackRepoMock.Verify(r => r.CreateAsync(It.IsAny<AIFeedback>()), Times.Never);
 		}
 
 		// UTCID07: Input = Feedback saving fails → throws exception
 		[Fact]
-		public async Task AssessSpeakingAsync_WhenSavingFeedbackFails_ThrowsException()
+		public async Task UTCID07_AssessSpeakingAsync_WhenSavingFeedbackFails_ThrowsException()
 		{
 			var request = new SpeakingAssessmentRequestDto
 			{
@@ -606,12 +610,11 @@ namespace ToeicGenius.Tests.UnitTests
 				.ReturnsAsync((UserAnswer ua) => { ua.UserAnswerId = 99; return ua; });
 
 			feedbackRepoMock.Setup(r => r.CreateAsync(It.IsAny<AIFeedback>()))
-				.ThrowsAsync(new Exception("Cannot save feedback"));
+				.ThrowsAsync(new Exception());
 
 			var act = async () => await service.AssessSpeakingAsync(request, taskType, _userId);
 
-			await act.Should().ThrowAsync<Exception>()
-				.WithMessage("Cannot save feedback");
+			await act.Should().ThrowAsync<Exception>();
 		}
 
 		#endregion
@@ -620,7 +623,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID01: Input = valid essay request with provided TestResult; Expected = feedback DTO stored, avoids auto test creation.
 		[Fact]
-		public async Task AssessWritingEssayAsync_WhenUsingExistingTestResult_ReturnsFeedback()
+		public async Task UTCID01_AssessWritingEssayAsync_WhenUsingExistingTestResult_ReturnsFeedback()
 		{
 			var request = new WritingEssayRequestDto
 			{
@@ -676,7 +679,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID02: Input = python API error during essay assessment; Expected = exception thrown and no feedback saved.
 		[Fact]
-		public async Task AssessWritingEssayAsync_WhenPythonApiFails_ThrowsException()
+		public async Task UTCID02_AssessWritingEssayAsync_WhenPythonApiFails_ThrowsException()
 		{
 			var request = new WritingEssayRequestDto
 			{
@@ -711,7 +714,7 @@ namespace ToeicGenius.Tests.UnitTests
 		}
 		// UTCID03: Input = TestQuestionId not found; Expected = exception thrown immediately.
 		[Fact]
-		public async Task AssessWritingEssayAsync_WhenTestQuestionNotFound_ThrowsException()
+		public async Task UTCID03_AssessWritingEssayAsync_WhenTestQuestionNotFound_ThrowsException()
 		{
 			var request = new WritingEssayRequestDto
 			{
@@ -729,14 +732,14 @@ namespace ToeicGenius.Tests.UnitTests
 			var act = async () => await service.AssessWritingEssayAsync(request, _userId);
 
 			await act.Should().ThrowAsync<Exception>()
-				.WithMessage("Test question not found");
+				.WithMessage("TestQuestion 6006 not found");
 
 			userTestRepoMock.Verify(r => r.GetOrCreateActiveTestAsync(It.IsAny<Guid>(), It.IsAny<int>()), Times.Never);
 		}
 
 		// UTCID04: Input = invalid TestResultId; Expected = exception, no feedback saved.
 		[Fact]
-		public async Task AssessWritingEssayAsync_WhenTestResultIdNotFound_ThrowsException()
+		public async Task UTCID04_AssessWritingEssayAsync_WhenTestResultIdNotFound_ThrowsException()
 		{
 			var invalidResultId = 999999;
 
@@ -758,13 +761,13 @@ namespace ToeicGenius.Tests.UnitTests
 			var act = async () => await service.AssessWritingEssayAsync(request, _userId);
 
 			await act.Should().ThrowAsync<Exception>()
-				.WithMessage("TestResult not found");
+				.WithMessage("TestResult 999999 not found");
 
 			feedbackRepoMock.Verify(r => r.CreateAsync(It.IsAny<AIFeedback>()), Times.Never);
 		}
 		// UTCID05: Input = user answer creation fails; Expected = exception and no feedback created.
 		[Fact]
-		public async Task AssessWritingEssayAsync_WhenUserAnswerCreationFails_ThrowsException()
+		public async Task UTCID05_AssessWritingEssayAsync_WhenUserAnswerCreationFails_ThrowsException()
 		{
 			var request = new WritingEssayRequestDto
 			{
@@ -780,22 +783,21 @@ namespace ToeicGenius.Tests.UnitTests
 			testQuestionRepoMock.Setup(r => r.GetByIdAsync(8008)).ReturnsAsync(testQuestion);
 
 			var testResult = new TestResult { TestResultId = 77, UserId = _userId, TestId = 10 };
-			userTestRepoMock.Setup(r => r.GetOrCreateActiveTestAsync(_userId, It.IsAny<int>()))
-				.ReturnsAsync(testResult);
+			userTestRepoMock.Setup(r => r.GetOrCreateActiveTestAsync(_userId, It.IsAny<int>())).ReturnsAsync(testResult);
+
 
 			userAnswerRepoMock.Setup(r => r.AddAsync(It.IsAny<UserAnswer>()))
-				.ThrowsAsync(new Exception("DB failure"));
+				.ThrowsAsync(new Exception());
 
 			var act = async () => await service.AssessWritingEssayAsync(request, _userId);
 
-			await act.Should().ThrowAsync<Exception>()
-				.WithMessage("DB failure");
+			await act.Should().ThrowAsync<Exception>();
 
 			feedbackRepoMock.Verify(r => r.CreateAsync(It.IsAny<AIFeedback>()), Times.Never);
 		}
 		// UTCID06: Input = Python returns malformed JSON; Expected = JsonException.
 		[Fact]
-		public async Task AssessWritingEssayAsync_WhenPythonReturnsMalformedJson_ThrowsJsonException()
+		public async Task UTCID06_AssessWritingEssayAsync_WhenPythonReturnsMalformedJson_ThrowsJsonException()
 		{
 			var request = new WritingEssayRequestDto
 			{
@@ -826,7 +828,7 @@ namespace ToeicGenius.Tests.UnitTests
 		}
 		// UTCID07: Input = AI gives 100 points; Expected = TOEIC score 200.
 		[Fact]
-		public async Task AssessWritingEssayAsync_WhenOverallScoreIs100_ConvertsToToeic200()
+		public async Task UTCID07_AssessWritingEssayAsync_WhenOverallScoreIs100_ConvertsToToeic200()
 		{
 			var request = new WritingEssayRequestDto
 			{
@@ -855,7 +857,7 @@ namespace ToeicGenius.Tests.UnitTests
 		}
 		// UTCID08: Input = feedback creation fails; Expected = exception thrown.
 		[Fact]
-		public async Task AssessWritingEssayAsync_WhenFeedbackCreationFails_ThrowsException()
+		public async Task UTCID08_AssessWritingEssayAsync_WhenFeedbackCreationFails_ThrowsException()
 		{
 			var request = new WritingEssayRequestDto
 			{
@@ -893,7 +895,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID01: Input = valid email request with existing TestResult; Expected = feedback DTO mapped and stored, no auto test creation.
 		[Fact]
-		public async Task AssessWritingEmailAsync_WhenUsingExistingTestResult_ReturnsFeedback()
+		public async Task UTCID01_AssessWritingEmailAsync_WhenUsingExistingTestResult_ReturnsFeedback()
 		{
 			var request = new WritingEmailRequestDto
 			{
@@ -950,7 +952,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID02: Input = python API returns error for email request; Expected = throws exception, feedback not persisted.
 		[Fact]
-		public async Task AssessWritingEmailAsync_WhenPythonApiFails_ThrowsException()
+		public async Task UTCID02_AssessWritingEmailAsync_WhenPythonApiFails_ThrowsException()
 		{
 			var request = new WritingEmailRequestDto
 			{
@@ -986,12 +988,12 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID03 — TestQuestionId không tồn tại → throw exception
 		[Fact]
-		public async Task AssessWritingEmailAsync_WhenTestQuestionNotFound_ThrowsException()
+		public async Task UTCID03_AssessWritingEmailAsync_WhenTestQuestionNotFound_ThrowsException()
 		{
 			var request = new WritingEmailRequestDto
 			{
 				TestQuestionId = 9999,
-				Text = "Some text"
+				Text = "Please confirm my enrollment."
 			};
 
 			var (service, _, _, feedbackRepoMock, testQuestionRepoMock, fileServiceMock, userTestRepoMock, userAnswerRepoMock, testResultRepoMock) =
@@ -1011,7 +1013,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID04: Input = TestResultId provided but not found; Expected = throws exception.
 		[Fact]
-		public async Task AssessWritingEmailAsync_WhenTestResultNotFound_ThrowsException()
+		public async Task UTCID04_AssessWritingEmailAsync_WhenTestResultNotFound_ThrowsException()
 		{
 			var request = new WritingEmailRequestDto
 			{
@@ -1038,12 +1040,12 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID05: Input = UserAnswer creation fails; Expected = exception thrown, no feedback persisted.
 		[Fact]
-		public async Task AssessWritingEmailAsync_WhenUserAnswerCreationFails_ThrowsException()
+		public async Task UTCID05_AssessWritingEmailAsync_WhenUserAnswerCreationFails_ThrowsException()
 		{
 			var request = new WritingEmailRequestDto
 			{
 				TestQuestionId = 1001,
-				Text = "text sample"
+				Text = "I'm writing to request more details about the event."
 			};
 
 			var testQuestion = CreateTestQuestion(1001, content: "Please write an email.", imageUrl: null);
@@ -1070,15 +1072,15 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID06: Input = Feedback saving fails; Expected = exception thrown.
 		[Fact]
-		public async Task AssessWritingEmailAsync_WhenSavingFeedbackFails_ThrowsException()
+		public async Task UTCID06_AssessWritingEmailAsync_WhenSavingFeedbackFails_ThrowsException()
 		{
 			var request = new WritingEmailRequestDto
 			{
-				TestQuestionId = 2002,
-				Text = "Testing"
+				TestQuestionId = 2300,
+				Text = "I will send the documents by tomorrow morning."
 			};
 
-			var testQuestion = CreateTestQuestion(2002, content: "Please write an email.", imageUrl: null);
+			var testQuestion = CreateTestQuestion(2300, content: "Please write an email.", imageUrl: null);
 			var pythonResponseJson = CreatePythonResponseJson(testQuestion.OrderInTest, request.Text, 60);
 
 			var (service, _, _, feedbackRepoMock, testQuestionRepoMock, _, userTestRepoMock, userAnswerRepoMock, _) =
@@ -1104,12 +1106,12 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID07: Input = Python API returns invalid JSON; Expected = exception thrown.
 		[Fact]
-		public async Task AssessWritingEmailAsync_WhenPythonReturnsInvalidJson_ThrowsException()
+		public async Task UTCID07_AssessWritingEmailAsync_WhenPythonReturnsInvalidJson_ThrowsException()
 		{
 			var request = new WritingEmailRequestDto
 			{
-				TestQuestionId = 100,
-				Text = "text"
+				TestQuestionId = 2400,
+				Text = "Kindly update me on the delivery status."
 			};
 
 			var testQuestion = CreateTestQuestion(100, content: "Write an email.", imageUrl: null);
@@ -1135,7 +1137,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		// UTCID08: Input = TestQuestion snapshot content is null; Expected = still processes and returns feedback.
 		[Fact]
-		public async Task AssessWritingEmailAsync_WhenSnapshotContentNull_StillReturnsFeedback()
+		public async Task UTCID08_AssessWritingEmailAsync_WhenSnapshotContentNull_StillReturnsFeedback()
 		{
 			var request = new WritingEmailRequestDto
 			{

@@ -18,7 +18,7 @@ namespace ToeicGenius.Tests.UnitTests
 		private readonly Mock<IFlashcardSetRepository> _setRepoMock = new();
 		private readonly Mock<IFlashcardRepository> _cardRepoMock = new();
 		private readonly Mock<IFlashcardProgressRepository> _progressRepoMock = new();
-		private readonly Guid _userId = Guid.NewGuid();
+		private readonly Guid _userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 		private readonly Guid _otherUserId = Guid.NewGuid();
 
 		public FlashcardServiceTests()
@@ -93,7 +93,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "FlashcardSet")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task CreateSetAsync_NotPublish_WhenValid_ReturnsSuccess()
+		public async Task UTCID01_CreateSetAsync_NotPublish_WhenValid_ReturnsSuccess()
 		{
 			_setRepoMock.Setup(r => r.AddAsync(It.IsAny<FlashcardSet>()))
 				.ReturnsAsync((FlashcardSet set) => { set.SetId = 10; return set; });
@@ -112,7 +112,10 @@ namespace ToeicGenius.Tests.UnitTests
 			_uowMock.Verify(u => u.SaveChangesAsync(), Times.Once);
 		}
 		//UTCID02: CreateSetAsync tạo set thành công, IsPublic = true
-		public async Task CreateSetAsync_Publish_WhenValid_ReturnsSuccess()
+		[Trait("Category", "FlashcardSet")]
+		[Trait("TestCase", "UTCID02")]
+		[Fact]
+		public async Task UTCID02_CreateSetAsync_Publish_WhenValid_ReturnsSuccess()
 		{
 			_setRepoMock.Setup(r => r.AddAsync(It.IsAny<FlashcardSet>()))
 				.ReturnsAsync((FlashcardSet set) => { set.SetId = 10; return set; });
@@ -134,7 +137,7 @@ namespace ToeicGenius.Tests.UnitTests
 		#region 2. FlashcardService_GetUserSetsAsync
 		//UTCID01: GetUserSetsAsync trả về danh sách set của user
 		[Trait("Category", "FlashcardSet")]
-		[Trait("TestCase", "UTCID02")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
 		public async Task GetUserSetsAsync_WhenUserHasSets_ReturnsMappedDtos()
 		{
@@ -156,28 +159,29 @@ namespace ToeicGenius.Tests.UnitTests
 		#region 3. FlashcardService_GetUserSetsPaginatedAsync
 		//UTCID01: GetUserSetsPaginatedAsync ánh xạ dữ liệu phân trang đúng
 		[Trait("Category", "FlashcardSet")]
-		[Trait("TestCase", "UTCID03")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task GetUserSetsPaginatedAsync_WhenCalled_ReturnsPaginationResponse()
+		public async Task UTCID01_GetUserSetsPaginatedAsync_WhenCalled_ReturnsPaginationResponse()
 		{
 			var sets = new List<FlashcardSet> { CreateSet(1) };
-			var paginated = new PaginationResponse<FlashcardSet>(sets, totalCount: 5, currentPage: 2, pageSize: 1);
-			_setRepoMock.Setup(r => r.GetByUserIdPaginatedAsync(_userId, "key", "desc", 2, 1))
+			var paginated = new PaginationResponse<FlashcardSet>(sets, totalCount: 5, currentPage: 1, pageSize: 6);
+			_setRepoMock.Setup(r => r.GetByUserIdPaginatedAsync(_userId, "key", "desc", 1, 6))
 				.ReturnsAsync(paginated);
 			var service = CreateService();
 
-			var result = await service.GetUserSetsPaginatedAsync(_userId, "key", "desc", 2, 1);
+			var result = await service.GetUserSetsPaginatedAsync(_userId, "key", "desc", 1, 6);
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data!.TotalCount.Should().Be(5);
 			result.Data.DataPaginated.Should().HaveCount(1);
 			result.Data.DataPaginated.First().Title.Should().Be("Set 1");
 		}
+
 		#endregion
 		#region 4. FlashcardService_GetSetByIdAsync
 		//UTCID01: GetSetByIdAsync trả về lỗi khi không tìm thấy
 		[Trait("Category", "FlashcardSet")]
-		[Trait("TestCase", "UTCID04")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
 		public async Task GetSetByIdAsync_WhenNotFound_ReturnsFailure()
 		{
@@ -192,7 +196,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		//UTCID02: GetSetByIdAsync trả về lỗi khi set private và user không có quyền
 		[Trait("Category", "FlashcardSet")]
-		[Trait("TestCase", "UTCID05")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
 		public async Task GetSetByIdAsync_WhenPrivateAndNotOwner_ReturnsFailure()
 		{
@@ -208,7 +212,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 		//UTCID03: GetSetByIdAsync trả về thành công khi user là owner
 		[Trait("Category", "FlashcardSet")]
-		[Trait("TestCase", "UTCID06")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
 		public async Task GetSetByIdAsync_WhenOwner_ReturnsSuccess()
 		{
@@ -225,9 +229,9 @@ namespace ToeicGenius.Tests.UnitTests
 		#region 5. FlashcardService_UpdateSetAsync
 		//UTCID01: UpdateSetAsync trả về lỗi khi không phải owner
 		[Trait("Category", "FlashcardSet")]
-		[Trait("TestCase", "UTCID07")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task UpdateSetAsync_WhenNotOwner_ReturnsFailure()
+		public async Task UTCID01_UpdateSetAsync_WhenNotOwner_ReturnsFailure()
 		{
 			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(false);
 			var dto = new UpdateFlashcardSetDto { Title = "Updated" };
@@ -241,9 +245,9 @@ namespace ToeicGenius.Tests.UnitTests
 
 		//UTCID02: UpdateSetAsync trả về lỗi khi set không tồn tại
 		[Trait("Category", "FlashcardSet")]
-		[Trait("TestCase", "UTCID08")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task UpdateSetAsync_WhenSetMissing_ReturnsFailure()
+		public async Task UTCID02_UpdateSetAsync_WhenSetMissing_ReturnsFailure()
 		{
 			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(true);
 			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((FlashcardSet)null!);
@@ -258,31 +262,31 @@ namespace ToeicGenius.Tests.UnitTests
 
 		//UTCID03: UpdateSetAsync cập nhật thành công
 		[Trait("Category", "FlashcardSet")]
-		[Trait("TestCase", "UTCID09")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task UpdateSetAsync_WhenValid_UpdatesAndReturnsDto()
+		public async Task UTCID03_UpdateSetAsync_WhenValid_UpdatesAndReturnsDto()
 		{
 			var set = CreateSet(1);
 			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(true);
 			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(set);
 			_setRepoMock.Setup(r => r.UpdateAsync(set)).ReturnsAsync(set);
-			var dto = new UpdateFlashcardSetDto { Title = "Updated Title", Description = "New", Language = "vi-VN", IsPublic = true };
+			var dto = new UpdateFlashcardSetDto { Title = "Updated", Description = "Sample description", Language = "vi-VN", IsPublic = true };
 			var service = CreateService();
 
 			var result = await service.UpdateSetAsync(1, dto, _userId);
 
 			result.IsSuccess.Should().BeTrue();
-			set.Title.Should().Be("Updated Title");
-			_setRepoMock.Verify(r => r.UpdateAsync(It.Is<FlashcardSet>(s => s.Title == "Updated Title")), Times.Once);
+			set.Title.Should().Be("Updated");
+			_setRepoMock.Verify(r => r.UpdateAsync(It.Is<FlashcardSet>(s => s.Title == "Updated")), Times.Once);
 			_uowMock.Verify(u => u.SaveChangesAsync(), Times.Once);
 		}
-#endregion
+		#endregion
 		#region 6. FlashcardService_DeleteSetAsync
 		//UTCID01: DeleteSetAsync trả về lỗi khi không phải owner
 		[Trait("Category", "FlashcardSet")]
-		[Trait("TestCase", "UTCID10")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task DeleteSetAsync_WhenNotOwner_ReturnsFailure()
+		public async Task UTCID01_DeleteSetAsync_WhenNotOwner_ReturnsFailure()
 		{
 			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(false);
 			var service = CreateService();
@@ -295,9 +299,9 @@ namespace ToeicGenius.Tests.UnitTests
 
 		//UTCID02: DeleteSetAsync trả về lỗi khi set không tồn tại
 		[Trait("Category", "FlashcardSet")]
-		[Trait("TestCase", "UTCID11")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task DeleteSetAsync_WhenSetMissing_ReturnsFailure()
+		public async Task UTCID02_DeleteSetAsync_WhenSetMissing_ReturnsFailure()
 		{
 			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(true);
 			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((FlashcardSet)null!);
@@ -311,21 +315,22 @@ namespace ToeicGenius.Tests.UnitTests
 
 		//UTCID03: DeleteSetAsync xóa thành công
 		[Trait("Category", "FlashcardSet")]
-		[Trait("TestCase", "UTCID12")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task DeleteSetAsync_WhenValid_DeletesSetAndCards()
+		public async Task UTCID03_DeleteSetAsync_WhenValid_DeletesSetAndCards()
 		{
 			var set = CreateSet(1);
-			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(true);
-			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(set);
-			_cardRepoMock.Setup(r => r.DeleteBySetIdAsync(1)).Returns(Task.CompletedTask);
+			_setRepoMock.Setup(r => r.IsOwnerAsync(2, _userId)).ReturnsAsync(true);
+			_setRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(set);
+			_cardRepoMock.Setup(r => r.DeleteBySetIdAsync(2)).Returns(Task.CompletedTask);
 			_setRepoMock.Setup(r => r.DeleteAsync(set)).Returns(Task.CompletedTask);
 			var service = CreateService();
 
-			var result = await service.DeleteSetAsync(1, _userId);
+			var result = await service.DeleteSetAsync(2, _userId);
 
 			result.IsSuccess.Should().BeTrue();
-			_cardRepoMock.Verify(r => r.DeleteBySetIdAsync(1), Times.Once);
+			result.Data.Should().BeTrue();
+			_cardRepoMock.Verify(r => r.DeleteBySetIdAsync(2), Times.Once);
 			_setRepoMock.Verify(r => r.DeleteAsync(set), Times.Once);
 			_uowMock.Verify(u => u.SaveChangesAsync(), Times.Once);
 		}
@@ -333,12 +338,12 @@ namespace ToeicGenius.Tests.UnitTests
 		#endregion
 
 		#region Flashcard Operations
-
-		//UTCID13: AddCardAsync trả về lỗi khi không phải owner
+		#region 1. FlashcardService_AddCardAsync
+		//UTCID01: AddCardAsync trả về lỗi khi không phải owner
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID13")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task AddCardAsync_WhenNotOwner_ReturnsFailure()
+		public async Task UTCID01_AddCardAsync_WhenNotOwner_ReturnsFailure()
 		{
 			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(false);
 			var dto = new CreateFlashcardDto { SetId = 1, Term = "term" };
@@ -350,16 +355,16 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Access denied");
 		}
 
-		//UTCID14: AddCardAsync thêm card thành công và cập nhật tổng số thẻ
+		//UTCID02: AddCardAsync thêm card thành công và cập nhật tổng số thẻ
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID14")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task AddCardAsync_WhenValid_AddsCardAndUpdatesTotal()
+		public async Task UTCID02_AddCardAsync_WhenValid_AddsCardAndUpdatesTotal()
 		{
 			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(true);
 			_cardRepoMock.Setup(r => r.AddAsync(It.IsAny<Flashcard>()))
 				.ReturnsAsync((Flashcard c) => { c.CardId = 5; return c; });
-			var dto = new CreateFlashcardDto { SetId = 1, Term = "hello", Examples = new List<string> { "ex" } };
+			var dto = new CreateFlashcardDto { SetId = 1, Term = "hello", Definition = "greeting" };
 			var service = CreateService();
 
 			var result = await service.AddCardAsync(dto, _userId);
@@ -369,12 +374,14 @@ namespace ToeicGenius.Tests.UnitTests
 			_setRepoMock.Verify(r => r.UpdateTotalCardsAsync(1), Times.Once);
 			_uowMock.Verify(u => u.SaveChangesAsync(), Times.Exactly(2));
 		}
+		#endregion
 
-		//UTCID15: AddCardFromTestAsync trả về lỗi khi thiếu thông tin set mới
+		#region 2. FlashcardService_AddCardFromTestAsync
+		//UTCID01: AddCardFromTestAsync trả về lỗi khi thiếu thông tin set mới
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID15")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task AddCardFromTestAsync_WhenSetIdNullAndNewSetMissing_ReturnsFailure()
+		public async Task UTCID01_AddCardFromTestAsync_WhenSetIdNullAndNewSetMissing_ReturnsFailure()
 		{
 			var dto = new AddFlashcardFromTestDto { Term = "term" };
 			var service = CreateService();
@@ -385,11 +392,11 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("NewSet is required when SetId is null");
 		}
 
-		//UTCID16: AddCardFromTestAsync trả về lỗi khi không sở hữu set hiện có
+		//UTCID02: AddCardFromTestAsync trả về lỗi khi không sở hữu set hiện có
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID16")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task AddCardFromTestAsync_WhenExistingSetNotOwned_ReturnsFailure()
+		public async Task UTCID02_AddCardFromTestAsync_WhenExistingSetNotOwned_ReturnsFailure()
 		{
 			_setRepoMock.Setup(r => r.IsOwnerAsync(2, _userId)).ReturnsAsync(false);
 			var dto = new AddFlashcardFromTestDto { SetId = 2, Term = "term" };
@@ -401,14 +408,14 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Access denied");
 		}
 
-		//UTCID17: AddCardFromTestAsync tạo set mới và thêm card
+		//UTCID03: AddCardFromTestAsync tạo set mới và thêm card
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID17")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task AddCardFromTestAsync_WhenCreatingNewSet_AddsCard()
+		public async Task UTCID03_AddCardFromTestAsync_WhenCreatingNewSet_AddsCard()
 		{
 			_setRepoMock.Setup(r => r.AddAsync(It.IsAny<FlashcardSet>()))
-				.ReturnsAsync((FlashcardSet s) => { s.SetId = 7; return s; });
+				.ReturnsAsync((FlashcardSet s) => { s.SetId = 1; return s; });
 			_cardRepoMock.Setup(r => r.AddAsync(It.IsAny<Flashcard>()))
 				.ReturnsAsync((Flashcard c) => { c.CardId = 11; return c; });
 			var dto = new AddFlashcardFromTestDto
@@ -421,16 +428,16 @@ namespace ToeicGenius.Tests.UnitTests
 			var result = await service.AddCardFromTestAsync(dto, _userId);
 
 			result.IsSuccess.Should().BeTrue();
-			result.Data!.SetId.Should().Be(7);
+			result.Data!.SetId.Should().Be(1);
 			_setRepoMock.Verify(r => r.AddAsync(It.IsAny<FlashcardSet>()), Times.Once);
-			_setRepoMock.Verify(r => r.UpdateTotalCardsAsync(7), Times.Once);
+			_setRepoMock.Verify(r => r.UpdateTotalCardsAsync(1), Times.Once);
 		}
 
-		//UTCID18: AddCardFromTestAsync thêm card vào set hiện có
+		//UTCID04: AddCardFromTestAsync thêm card vào set hiện có
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID18")]
+		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task AddCardFromTestAsync_WhenExistingSetOwned_AddsCard()
+		public async Task UTCID04_AddCardFromTestAsync_WhenExistingSetOwned_AddsCard()
 		{
 			_setRepoMock.Setup(r => r.IsOwnerAsync(3, _userId)).ReturnsAsync(true);
 			_cardRepoMock.Setup(r => r.AddAsync(It.IsAny<Flashcard>()))
@@ -444,12 +451,13 @@ namespace ToeicGenius.Tests.UnitTests
 			_setRepoMock.Verify(r => r.UpdateTotalCardsAsync(3), Times.Once);
 			_uowMock.Verify(u => u.SaveChangesAsync(), Times.Exactly(2));
 		}
-
-		//UTCID19: GetCardsBySetIdAsync trả về lỗi khi không tìm thấy set
+		#endregion
+		#region 3. FlashcardService_GetCardsBySetIdAsync
+		//UTCID01: GetCardsBySetIdAsync trả về lỗi khi không tìm thấy set
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID19")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task GetCardsBySetIdAsync_WhenSetMissing_ReturnsFailure()
+		public async Task UTCID01_GetCardsBySetIdAsync_WhenSetMissing_ReturnsFailure()
 		{
 			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((FlashcardSet)null!);
 			var service = CreateService();
@@ -460,27 +468,27 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Flashcard set not found");
 		}
 
-		//UTCID20: GetCardsBySetIdAsync trả về lỗi khi set private và user không có quyền
+		//UTCID02: GetCardsBySetIdAsync trả về lỗi khi set private và user không có quyền
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID20")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task GetCardsBySetIdAsync_WhenPrivateAndUnauthorized_ReturnsFailure()
+		public async Task UTCID02_GetCardsBySetIdAsync_WhenPrivateAndUnauthorized_ReturnsFailure()
 		{
-			var set = CreateSet(1, _userId, isPublic: false);
-			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(set);
+			var set = CreateSet(2, _userId, isPublic: false);
+			_setRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(set);
 			var service = CreateService();
 
-			var result = await service.GetCardsBySetIdAsync(1, _otherUserId);
+			var result = await service.GetCardsBySetIdAsync(2, _otherUserId);
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Access denied. This flashcard set is private.");
 		}
 
-		//UTCID21: GetCardsBySetIdAsync trả về danh sách cards khi hợp lệ
+		//UTCID03: GetCardsBySetIdAsync trả về danh sách cards khi hợp lệ
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID21")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task GetCardsBySetIdAsync_WhenAuthorized_ReturnsCards()
+		public async Task UTCID03_GetCardsBySetIdAsync_WhenAuthorized_ReturnsCards()
 		{
 			var set = CreateSet(1, _userId, isPublic: true);
 			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(set);
@@ -493,52 +501,53 @@ namespace ToeicGenius.Tests.UnitTests
 			result.IsSuccess.Should().BeTrue();
 			result.Data!.Count().Should().Be(2);
 		}
-
-		//UTCID22: UpdateCardAsync trả về lỗi khi không tìm thấy card
+		#endregion
+		#region 4. FlashcardService_UpdateCardAsync
+		//UTCID01: UpdateCardAsync trả về lỗi khi không tìm thấy card
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID22")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task UpdateCardAsync_WhenCardMissing_ReturnsFailure()
+		public async Task UTCID01_UpdateCardAsync_WhenCardMissing_ReturnsFailure()
 		{
-			_cardRepoMock.Setup(r => r.GetByIdAsync(5)).ReturnsAsync((Flashcard)null!);
+			_cardRepoMock.Setup(r => r.GetByIdAsync(0)).ReturnsAsync((Flashcard)null!);
 			var dto = new UpdateFlashcardDto { Term = "term" };
 			var service = CreateService();
 
-			var result = await service.UpdateCardAsync(5, dto, _userId);
+			var result = await service.UpdateCardAsync(0, dto, _userId);
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Flashcard not found");
 		}
 
-		//UTCID23: UpdateCardAsync trả về lỗi khi không phải owner
+		//UTCID02: UpdateCardAsync trả về lỗi khi không phải owner
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID23")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task UpdateCardAsync_WhenNotOwner_ReturnsFailure()
+		public async Task UTCID02_UpdateCardAsync_WhenNotOwner_ReturnsFailure()
 		{
-			var card = CreateCard(5, setId: 1);
-			_cardRepoMock.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(card);
+			var card = CreateCard(1, setId: 1);
+			_cardRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(card);
 			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(false);
 			var dto = new UpdateFlashcardDto { Term = "term" };
 			var service = CreateService();
 
-			var result = await service.UpdateCardAsync(5, dto, _userId);
+			var result = await service.UpdateCardAsync(1, dto, _userId);
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Access denied");
 		}
 
-		//UTCID24: UpdateCardAsync cập nhật card thành công
+		//UTCID03: UpdateCardAsync cập nhật card thành công
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID24")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task UpdateCardAsync_WhenValid_UpdatesCard()
+		public async Task UTCID03_UpdateCardAsync_WhenValid_UpdatesCard()
 		{
 			var card = CreateCard(5, 1);
 			_cardRepoMock.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(card);
 			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(true);
 			_cardRepoMock.Setup(r => r.UpdateAsync(card)).ReturnsAsync(card);
-			var dto = new UpdateFlashcardDto { Term = "updated", Examples = new List<string> { "ex" } };
+			var dto = new UpdateFlashcardDto { Term = "updated", Definition = "updated definition" };
 			var service = CreateService();
 
 			var result = await service.UpdateCardAsync(5, dto, _userId);
@@ -548,12 +557,13 @@ namespace ToeicGenius.Tests.UnitTests
 			_cardRepoMock.Verify(r => r.UpdateAsync(card), Times.Once);
 			_uowMock.Verify(u => u.SaveChangesAsync(), Times.Once);
 		}
-
-		//UTCID25: DeleteCardAsync trả về lỗi khi không tìm thấy card
+		#endregion
+		#region 5. FlashcardService_DeleteCardAsync
+		//UTCID01: DeleteCardAsync trả về lỗi khi không tìm thấy card
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID25")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task DeleteCardAsync_WhenCardMissing_ReturnsFailure()
+		public async Task UTCID01_DeleteCardAsync_WhenCardMissing_ReturnsFailure()
 		{
 			_cardRepoMock.Setup(r => r.GetByIdAsync(5)).ReturnsAsync((Flashcard)null!);
 			var service = CreateService();
@@ -564,46 +574,48 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Flashcard not found");
 		}
 
-		//UTCID26: DeleteCardAsync trả về lỗi khi không phải owner
+		//UTCID02: DeleteCardAsync trả về lỗi khi không phải owner
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID26")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task DeleteCardAsync_WhenNotOwner_ReturnsFailure()
+		public async Task UTCID02_DeleteCardAsync_WhenNotOwner_ReturnsFailure()
 		{
-			var card = CreateCard(5, 1);
-			_cardRepoMock.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(card);
+			var card = CreateCard(1, 1);
+			_cardRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(card);
 			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(false);
 			var service = CreateService();
 
-			var result = await service.DeleteCardAsync(5, _userId);
+			var result = await service.DeleteCardAsync(1, _userId);
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Access denied");
 		}
 
-		//UTCID27: DeleteCardAsync xóa card thành công và cập nhật tổng số thẻ
+		//UTCID03: DeleteCardAsync xóa card thành công và cập nhật tổng số thẻ
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID27")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task DeleteCardAsync_WhenValid_DeletesCard()
+		public async Task UTCID03_DeleteCardAsync_WhenValid_DeletesCard()
 		{
-			var card = CreateCard(5, 1);
-			_cardRepoMock.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(card);
+			var card = CreateCard(3, 1);
+			_cardRepoMock.Setup(r => r.GetByIdAsync(3)).ReturnsAsync(card);
 			_setRepoMock.Setup(r => r.IsOwnerAsync(1, _userId)).ReturnsAsync(true);
 			_cardRepoMock.Setup(r => r.DeleteAsync(card)).Returns(Task.CompletedTask);
 			var service = CreateService();
 
-			var result = await service.DeleteCardAsync(5, _userId);
+			var result = await service.DeleteCardAsync(3, _userId);
 
 			result.IsSuccess.Should().BeTrue();
 			_cardRepoMock.Verify(r => r.DeleteAsync(card), Times.Once);
 			_setRepoMock.Verify(r => r.UpdateTotalCardsAsync(1), Times.Once);
 			_uowMock.Verify(u => u.SaveChangesAsync(), Times.Exactly(2));
 		}
+		#endregion
 
-		//UTCID28: BulkAddCardsAsync trả về lỗi khi không sở hữu set
+		#region 6. FlashcardService_BulkAddCardsAsync
+		//UTCID01: BulkAddCardsAsync trả về lỗi khi không sở hữu set
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID28")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
 		public async Task BulkAddCardsAsync_WhenNotOwner_ReturnsFailure()
 		{
@@ -621,9 +633,9 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Access denied");
 		}
 
-		//UTCID29: BulkAddCardsAsync thêm nhiều card thành công
+		//UTCID02: BulkAddCardsAsync thêm nhiều card thành công
 		[Trait("Category", "Flashcard")]
-		[Trait("TestCase", "UTCID29")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
 		public async Task BulkAddCardsAsync_WhenValid_AddsCards()
 		{
@@ -648,14 +660,15 @@ namespace ToeicGenius.Tests.UnitTests
 			_cardRepoMock.Verify(r => r.AddRangeAsync(It.Is<IEnumerable<Flashcard>>(f => f.Count() == 2)), Times.Once);
 			_setRepoMock.Verify(r => r.UpdateTotalCardsAsync(1), Times.Once);
 		}
-
+		#endregion
 		#endregion
 
 		#region Study Mode Operations
 
-		//UTCID30: GetPublicSetsAsync trả về danh sách khi user chưa đăng nhập
+		#region 1. FlashcardService_GetPublicSetsAsync
+		//UTCID01: GetPublicSetsAsync trả về danh sách khi user chưa đăng nhập
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID30")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
 		public async Task GetPublicSetsAsync_WhenAnonymous_ReturnsSetsWithoutProgress()
 		{
@@ -670,9 +683,9 @@ namespace ToeicGenius.Tests.UnitTests
 			_progressRepoMock.Verify(p => p.GetByUserIdAsync(It.IsAny<Guid>()), Times.Never);
 		}
 
-		//UTCID31: GetPublicSetsAsync đánh dấu IsStudying khi user có progress
+		//UTCID02: GetPublicSetsAsync đánh dấu IsStudying khi user có progress
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID31")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
 		public async Task GetPublicSetsAsync_WhenUserHasProgress_MarksStudying()
 		{
@@ -690,12 +703,14 @@ namespace ToeicGenius.Tests.UnitTests
 			result.IsSuccess.Should().BeTrue();
 			result.Data!.Single(s => s.SetId == 2).IsStudying.Should().BeTrue();
 		}
+		#endregion
 
-		//UTCID32: StartStudySessionAsync trả về lỗi khi không tìm thấy set
+		#region 2. FlashcardService_StartStudySessionAsync
+		//UTCID01: StartStudySessionAsync trả về lỗi khi không tìm thấy set
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID32")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task StartStudySessionAsync_WhenSetMissing_ReturnsFailure()
+		public async Task UTCID01_StartStudySessionAsync_WhenSetMissing_ReturnsFailure()
 		{
 			_setRepoMock.Setup(r => r.GetByIdWithCardsAndProgressAsync(1, _userId)).ReturnsAsync((FlashcardSet)null!);
 			var service = CreateService();
@@ -706,27 +721,27 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Flashcard set not found");
 		}
 
-		//UTCID33: StartStudySessionAsync trả về lỗi khi không có quyền truy cập
+		//UTCID02: StartStudySessionAsync trả về lỗi khi không có quyền truy cập
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID33")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task StartStudySessionAsync_WhenAccessDenied_ReturnsFailure()
+		public async Task UTCID02_StartStudySessionAsync_WhenAccessDenied_ReturnsFailure()
 		{
-			var set = CreateSet(1, _otherUserId, isPublic: false);
-			_setRepoMock.Setup(r => r.GetByIdWithCardsAndProgressAsync(1, _userId)).ReturnsAsync(set);
+			var set = CreateSet(2, _otherUserId, isPublic: false);
+			_setRepoMock.Setup(r => r.GetByIdWithCardsAndProgressAsync(2, _userId)).ReturnsAsync(set);
 			var service = CreateService();
 
-			var result = await service.StartStudySessionAsync(1, _userId);
+			var result = await service.StartStudySessionAsync(2, _userId);
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Access denied. This flashcard set is private.");
 		}
 
-		//UTCID34: StartStudySessionAsync trả về danh sách cards với progress
+		//UTCID03: StartStudySessionAsync trả về danh sách cards với progress
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID34")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task StartStudySessionAsync_WhenValid_ReturnsStudySession()
+		public async Task UTCID03_StartStudySessionAsync_WhenValid_ReturnsStudySession()
 		{
 			var flashcard = CreateCard(1, setId: 1, term: "hello", examplesJson: JsonSerializer.Serialize(new List<string> { "ex" }));
 			flashcard.Progresses.Add(new FlashcardProgress
@@ -738,24 +753,26 @@ namespace ToeicGenius.Tests.UnitTests
 				LastReviewedAt = DateTime.UtcNow.AddDays(-1),
 				NextReviewAt = DateTime.UtcNow.AddDays(1)
 			});
-			var set = CreateSet(1, _userId, isPublic: true);
+			var set = CreateSet(3, _userId, isPublic: true);
 			set.Flashcards = new List<Flashcard> { flashcard };
-			_setRepoMock.Setup(r => r.GetByIdWithCardsAndProgressAsync(1, _userId)).ReturnsAsync(set);
+			_setRepoMock.Setup(r => r.GetByIdWithCardsAndProgressAsync(3, _userId)).ReturnsAsync(set);
 			var service = CreateService();
 
-			var result = await service.StartStudySessionAsync(1, _userId);
+			var result = await service.StartStudySessionAsync(3, _userId);
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data!.Cards.Should().HaveCount(1);
 			result.Data.Cards[0].Status.Should().Be("learning");
 			result.Data.Cards[0].Examples.Should().Contain("ex");
 		}
+		#endregion
 
-		//UTCID35: MarkCardKnowledgeAsync trả về lỗi khi không tìm thấy card
+		#region 3. FlashcardService_MarkCardKnowledgeAsync
+		//UTCID01: MarkCardKnowledgeAsync trả về lỗi khi không tìm thấy card
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID35")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task MarkCardKnowledgeAsync_WhenCardMissing_ReturnsFailure()
+		public async Task UTCID01_MarkCardKnowledgeAsync_WhenCardMissing_ReturnsFailure()
 		{
 			_cardRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((Flashcard)null!);
 			var dto = new MarkCardKnowledgeDto { CardId = 1, IsKnown = true };
@@ -767,16 +784,16 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Flashcard not found");
 		}
 
-		//UTCID36: MarkCardKnowledgeAsync trả về lỗi khi set không tồn tại
+		//UTCID02: MarkCardKnowledgeAsync trả về lỗi khi set không tồn tại
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID36")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task MarkCardKnowledgeAsync_WhenSetMissing_ReturnsFailure()
+		public async Task UTCID02_MarkCardKnowledgeAsync_WhenSetMissing_ReturnsFailure()
 		{
-			var card = CreateCard(1, 1);
-			_cardRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(card);
+			var card = CreateCard(2, 1);
+			_cardRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(card);
 			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((FlashcardSet)null!);
-			var dto = new MarkCardKnowledgeDto { CardId = 1, IsKnown = true };
+			var dto = new MarkCardKnowledgeDto { CardId = 2, IsKnown = true };
 			var service = CreateService();
 
 			var result = await service.MarkCardKnowledgeAsync(dto, _userId);
@@ -785,17 +802,17 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Flashcard set not found");
 		}
 
-		//UTCID37: MarkCardKnowledgeAsync trả về lỗi khi không có quyền
+		//UTCID03: MarkCardKnowledgeAsync trả về lỗi khi không có quyền
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID37")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task MarkCardKnowledgeAsync_WhenAccessDenied_ReturnsFailure()
+		public async Task UTCID03_MarkCardKnowledgeAsync_WhenAccessDenied_ReturnsFailure()
 		{
-			var card = CreateCard(1, 1);
+			var card = CreateCard(3, 1);
 			var set = CreateSet(1, _otherUserId, isPublic: false);
-			_cardRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(card);
+			_cardRepoMock.Setup(r => r.GetByIdAsync(3)).ReturnsAsync(card);
 			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(set);
-			var dto = new MarkCardKnowledgeDto { CardId = 1, IsKnown = true };
+			var dto = new MarkCardKnowledgeDto { CardId = 3, IsKnown = true };
 			var service = CreateService();
 
 			var result = await service.MarkCardKnowledgeAsync(dto, _userId);
@@ -804,18 +821,18 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Access denied");
 		}
 
-		//UTCID38: MarkCardKnowledgeAsync tạo mới progress khi chưa có
+		//UTCID04: MarkCardKnowledgeAsync tạo mới progress khi chưa có
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID38")]
+		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task MarkCardKnowledgeAsync_WhenNoProgress_AddsNew()
+		public async Task UTCID04_MarkCardKnowledgeAsync_WhenNoProgress_AddsNew()
 		{
-			var card = CreateCard(1, 1);
+			var card = CreateCard(4, 1);
 			var set = CreateSet(1, _userId, isPublic: true);
-			_cardRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(card);
+			_cardRepoMock.Setup(r => r.GetByIdAsync(4)).ReturnsAsync(card);
 			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(set);
-			_progressRepoMock.Setup(p => p.GetByCardAndUserAsync(1, _userId)).ReturnsAsync((FlashcardProgress)null!);
-			var dto = new MarkCardKnowledgeDto { CardId = 1, IsKnown = true };
+			_progressRepoMock.Setup(p => p.GetByCardAndUserAsync(4, _userId)).ReturnsAsync((FlashcardProgress)null!);
+			var dto = new MarkCardKnowledgeDto { CardId = 4, IsKnown = true };
 			var service = CreateService();
 
 			var result = await service.MarkCardKnowledgeAsync(dto, _userId);
@@ -825,20 +842,20 @@ namespace ToeicGenius.Tests.UnitTests
 			_uowMock.Verify(u => u.SaveChangesAsync(), Times.Once);
 		}
 
-		//UTCID39: MarkCardKnowledgeAsync cập nhật progress khi đã tồn tại
+		//UTCID05: MarkCardKnowledgeAsync cập nhật progress khi đã tồn tại
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID39")]
+		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task MarkCardKnowledgeAsync_WhenProgressExists_UpdatesCounts()
+		public async Task UTCID05_MarkCardKnowledgeAsync_WhenProgressExists_UpdatesCounts()
 		{
-			var card = CreateCard(1, 1);
+			var card = CreateCard(5, 1);
 			var set = CreateSet(1, _userId, isPublic: true);
 			var progress = CreateProgress(1, _userId, status: "learning", review: 2, correct: 1, incorrect: 1);
-			_cardRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(card);
+			_cardRepoMock.Setup(r => r.GetByIdAsync(5)).ReturnsAsync(card);
 			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(set);
-			_progressRepoMock.Setup(p => p.GetByCardAndUserAsync(1, _userId)).ReturnsAsync(progress);
+			_progressRepoMock.Setup(p => p.GetByCardAndUserAsync(5, _userId)).ReturnsAsync(progress);
 			_progressRepoMock.Setup(p => p.UpdateAsync(progress)).ReturnsAsync(progress);
-			var dto = new MarkCardKnowledgeDto { CardId = 1, IsKnown = false };
+			var dto = new MarkCardKnowledgeDto { CardId = 5, IsKnown = false };
 			var service = CreateService();
 
 			var result = await service.MarkCardKnowledgeAsync(dto, _userId);
@@ -848,12 +865,13 @@ namespace ToeicGenius.Tests.UnitTests
 			_progressRepoMock.Verify(p => p.UpdateAsync(progress), Times.Once);
 			_uowMock.Verify(u => u.SaveChangesAsync(), Times.Once);
 		}
-
-		//UTCID40: GetStudyStatsAsync trả về lỗi khi không tìm thấy set
+		#endregion
+		#region 4. FlashcardService_GetStudyStatsAsync
+		//UTCID01: GetStudyStatsAsync trả về lỗi khi không tìm thấy set
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID40")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task GetStudyStatsAsync_WhenSetMissing_ReturnsFailure()
+		public async Task UTCID01_GetStudyStatsAsync_WhenSetMissing_ReturnsFailure()
 		{
 			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync((FlashcardSet)null!);
 			var service = CreateService();
@@ -864,39 +882,39 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Flashcard set not found");
 		}
 
-		//UTCID41: GetStudyStatsAsync trả về lỗi khi không có quyền
+		//UTCID02: GetStudyStatsAsync trả về lỗi khi không có quyền
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID41")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task GetStudyStatsAsync_WhenAccessDenied_ReturnsFailure()
+		public async Task UTCID02_GetStudyStatsAsync_WhenAccessDenied_ReturnsFailure()
 		{
-			var set = CreateSet(1, _otherUserId, isPublic: false);
-			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(set);
+			var set = CreateSet(2, _otherUserId, isPublic: false);
+			_setRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(set);
 			var service = CreateService();
 
-			var result = await service.GetStudyStatsAsync(1, _userId);
+			var result = await service.GetStudyStatsAsync(2, _userId);
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Access denied");
 		}
 
-		//UTCID42: GetStudyStatsAsync tính toán thống kê chính xác
+		//UTCID03: GetStudyStatsAsync tính toán thống kê chính xác
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID42")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task GetStudyStatsAsync_WhenValid_ReturnsAggregatedStats()
+		public async Task UTCID03_GetStudyStatsAsync_WhenValid_ReturnsAggregatedStats()
 		{
-			var set = CreateSet(1, _userId, isPublic: true);
+			var set = CreateSet(3, _userId, isPublic: true);
 			var progresses = new List<FlashcardProgress>
 			{
 				new FlashcardProgress { CardId = 1, UserId = _userId, CorrectCount = 2, IncorrectCount = 1, Status = "learning" },
 				new FlashcardProgress { CardId = 2, UserId = _userId, CorrectCount = 0, IncorrectCount = 3, Status = "new" }
 			};
-			_setRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(set);
-			_progressRepoMock.Setup(p => p.GetBySetAndUserAsync(1, _userId)).ReturnsAsync(progresses);
+			_setRepoMock.Setup(r => r.GetByIdAsync(3)).ReturnsAsync(set);
+			_progressRepoMock.Setup(p => p.GetBySetAndUserAsync(3, _userId)).ReturnsAsync(progresses);
 			var service = CreateService();
 
-			var result = await service.GetStudyStatsAsync(1, _userId);
+			var result = await service.GetStudyStatsAsync(3, _userId);
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data!.TotalCardsStudied.Should().Be(2);
@@ -904,10 +922,11 @@ namespace ToeicGenius.Tests.UnitTests
 			result.Data.CardsUnknown.Should().Be(4);
 			result.Data.NewCardsLearned.Should().Be(1);
 		}
-
-		//UTCID43: ResetStudyProgressAsync trả về lỗi khi không tìm thấy set
+		#endregion
+		#region 5. FlashcardService_ResetStudyProgressAsync
+		//UTCID01: ResetStudyProgressAsync trả về lỗi khi không tìm thấy set
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID43")]
+		[Trait("TestCase", "UTCID01")]
 		[Fact]
 		public async Task ResetStudyProgressAsync_WhenSetMissing_ReturnsFailure()
 		{
@@ -920,9 +939,9 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Flashcard set not found");
 		}
 
-		//UTCID44: ResetStudyProgressAsync trả về lỗi khi không có quyền
+		//UTCID02: ResetStudyProgressAsync trả về lỗi khi không có quyền
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID44")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
 		public async Task ResetStudyProgressAsync_WhenAccessDenied_ReturnsFailure()
 		{
@@ -936,9 +955,9 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Access denied");
 		}
 
-		//UTCID45: ResetStudyProgressAsync xóa progress thành công
+		//UTCID03: ResetStudyProgressAsync xóa progress thành công
 		[Trait("Category", "Study")]
-		[Trait("TestCase", "UTCID45")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
 		public async Task ResetStudyProgressAsync_WhenValid_DeletesProgress()
 		{
@@ -952,7 +971,7 @@ namespace ToeicGenius.Tests.UnitTests
 			result.IsSuccess.Should().BeTrue();
 			_progressRepoMock.Verify(p => p.DeleteBySetAndUserAsync(1, _userId), Times.Once);
 		}
-
+		#endregion
 		#endregion
 	}
 }

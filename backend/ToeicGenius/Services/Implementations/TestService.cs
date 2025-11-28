@@ -56,26 +56,34 @@ namespace ToeicGenius.Services.Implementations
 					CreatedById = userId
 				};
 
-				var singleQuestions = await _uow.Questions.GetByListIdAsync(dto.SingleQuestionIds);
-				var groupQuestions = await _uow.QuestionGroups.GetByListIdAsync(dto.GroupQuestionIds);
-
-				// Validate all PartIds from fetched questions match TestSkill
-				foreach (var q in singleQuestions)
+				var singleQuestions = new List<QuestionSnapshotDto>();
+				var groupQuestions = new List<QuestionGroupSnapshotDto>();
+				if (dto.SingleQuestionIds != null)
 				{
-					var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(q.PartId, dto.TestSkill);
-					if (!isValid)
+					singleQuestions = await _uow.Questions.GetByListIdAsync(dto.SingleQuestionIds);
+					// Validate all PartIds from fetched questions match TestSkill
+					foreach (var q in singleQuestions)
 					{
-						return Result<string>.Failure($"Question {q.QuestionId}: {errorMessage}");
+						var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(q.PartId, dto.TestSkill);
+						if (!isValid)
+						{
+							return Result<string>.Failure($"Question {q.QuestionId}: {errorMessage}");
+						}
 					}
 				}
-
-				foreach (var g in groupQuestions)
+				if (dto.GroupQuestionIds != null)
 				{
-					var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(g.PartId, dto.TestSkill);
-					if (!isValid)
+					groupQuestions = await _uow.QuestionGroups.GetByListIdAsync(dto.GroupQuestionIds);
+
+					foreach (var g in groupQuestions)
 					{
-						return Result<string>.Failure($"QuestionGroup {g.QuestionGroupId}: {errorMessage}");
+						var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(g.PartId, dto.TestSkill);
+						if (!isValid)
+						{
+							return Result<string>.Failure($"QuestionGroup {g.QuestionGroupId}: {errorMessage}");
+						}
 					}
+
 				}
 
 				var quantityQuestion = 0;
@@ -372,7 +380,7 @@ namespace ToeicGenius.Services.Implementations
 				return Result<string>.Failure($"Error: {ex.Message}");
 			}
 		}
-		
+
 		// Create for each part 
 		// Create draft test
 		public async Task<Result<string>> CreateDraftManualAsync(Guid userId, CreateTestManualDraftDto dto)
@@ -601,7 +609,7 @@ namespace ToeicGenius.Services.Implementations
 		public async Task<Result<TestDetailDto>> GetDetailAsync(int id)
 		{
 			var test = await _uow.Tests.GetTestByIdAsync(id);
-			if (test == null) return Result<TestDetailDto>.Failure("Test not found");
+			if (test == null) return Result<TestDetailDto>.Failure(CommonMessages.DataNotFound);
 
 			var result = new TestDetailDto
 			{
@@ -809,114 +817,122 @@ namespace ToeicGenius.Services.Implementations
 		// Update Test Manual (simulator test)
 		public async Task<Result<string>> UpdateManualTestAsync(int testId, UpdateManualTestDto dto)
 		{
-			var existing = await _uow.Tests.GetByIdAsync(testId);
-			if (existing == null)
-				return Result<string>.Failure("Test not found");
-			int totalQuestion = GetQuantityQuestion(dto);
-			// Nếu test đang PUBLISHED -> tạo bản clone
-			Test targetTest;
-
-			if (existing.VisibilityStatus == TestVisibilityStatus.Published)
+			try
 			{
-				// Lấy version mới
-				int newVersion = await _uow.Tests.GetNextVersionAsync(existing.ParentTestId ?? existing.TestId);
 
-				targetTest = new Test
+				var existing = await _uow.Tests.GetByIdAsync(testId);
+				if (existing == null)
+					return Result<string>.Failure("Test not found");
+				int totalQuestion = GetQuantityQuestion(dto);
+				// Nếu test đang PUBLISHED -> tạo bản clone
+				Test targetTest;
+
+				if (existing.VisibilityStatus == TestVisibilityStatus.Published)
 				{
-					Title = dto.Title,
-					Description = dto.Description,
-					TestSkill = dto.TestSkill,
-					TestType = dto.TestType,
-					AudioUrl = dto.AudioUrl,
-					Duration = GetTestDuration(dto.TestSkill),
-					TotalQuestion = totalQuestion, 
-					VisibilityStatus = TestVisibilityStatus.Hidden,
-					CreationStatus = TestCreationStatus.Completed,
-					ParentTestId = existing.ParentTestId ?? existing.TestId,
-					Version = newVersion,
-					CreatedAt = Now
+					// Lấy version mới
+					int newVersion = await _uow.Tests.GetNextVersionAsync(existing.ParentTestId ?? existing.TestId);
+
+					targetTest = new Test
+					{
+						Title = dto.Title,
+						Description = dto.Description,
+						TestSkill = dto.TestSkill,
+						TestType = dto.TestType,
+						AudioUrl = dto.AudioUrl,
+						Duration = GetTestDuration(dto.TestSkill),
+						TotalQuestion = totalQuestion,
+						VisibilityStatus = TestVisibilityStatus.Hidden,
+						CreationStatus = TestCreationStatus.Completed,
+						ParentTestId = existing.ParentTestId ?? existing.TestId,
+						Version = newVersion,
+						CreatedAt = Now
+					};
+
+					await _uow.Tests.AddAsync(targetTest);
+					await _uow.SaveChangesAsync();
+				}
+				else
+				{
+					// Nếu ko publish, update trực tiếp
+					targetTest = existing;
+					targetTest.Title = dto.Title;
+					targetTest.Description = dto.Description;
+					targetTest.AudioUrl = dto.AudioUrl;
+					targetTest.TestSkill = dto.TestSkill;
+					targetTest.TotalQuestion = totalQuestion;
+					targetTest.UpdatedAt = Now;
+
+					// Xóa test question cũ
+					var oldQuestions = await _uow.TestQuestions.GetByTestIdAsync(targetTest.TestId);
+					_uow.TestQuestions.RemoveRange(oldQuestions);
+				}
+
+				// ✅ Snapshot lại câu hỏi mới
+				var jsonSettings = new JsonSerializerSettings
+				{
+					ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
 				};
 
-				await _uow.Tests.AddAsync(targetTest);
+				var testQuestions = new List<TestQuestion>();
+				int order = 1;
+
+				foreach (var part in dto.Parts)
+				{
+					// Question Groups
+					if (part.Groups?.Any() == true)
+					{
+						foreach (var groupDto in part.Groups)
+						{
+							var groupSnapshot = await HandleQuestionGroupSnapshotAsync(groupDto, part.PartId, dto.TestSkill);
+							string snapshot = JsonConvert.SerializeObject(groupSnapshot, jsonSettings);
+
+							testQuestions.Add(new TestQuestion
+							{
+								Test = targetTest,
+								PartId = part.PartId,
+								OrderInTest = order++,
+								IsQuestionGroup = true,
+								SourceType = QuestionSourceType.Manual,
+								SnapshotJson = snapshot,
+								CreatedAt = Now
+							});
+						}
+					}
+
+					// Single questions
+					if (part.Questions?.Any() == true)
+					{
+						foreach (var qDto in part.Questions)
+						{
+							var questionSnapshot = await HandleSingleQuestionSnapshotAsync(qDto, part.PartId, dto.TestSkill);
+							string snapshot = JsonConvert.SerializeObject(questionSnapshot, jsonSettings);
+
+							testQuestions.Add(new TestQuestion
+							{
+								Test = targetTest,
+								PartId = part.PartId,
+								OrderInTest = order++,
+								SourceType = QuestionSourceType.Manual,
+								SnapshotJson = snapshot,
+								CreatedAt = Now
+							});
+						}
+					}
+				}
+
+				await _uow.TestQuestions.AddRangeAsync(testQuestions);
+
 				await _uow.SaveChangesAsync();
+
+				return Result<string>.Success(
+					existing.VisibilityStatus == TestVisibilityStatus.Published
+						? $"Cloned to new version v{targetTest.Version} (TestId={targetTest.TestId})"
+						: $"Updated successfully TestId={targetTest.TestId}");
 			}
-			else
+			catch (Exception ex)
 			{
-				// Nếu ko publish, update trực tiếp
-				targetTest = existing;
-				targetTest.Title = dto.Title;
-				targetTest.Description = dto.Description;
-				targetTest.AudioUrl = dto.AudioUrl;
-				targetTest.TestSkill = dto.TestSkill;
-				targetTest.TotalQuestion = totalQuestion;
-				targetTest.UpdatedAt = Now;
-
-				// Xóa test question cũ
-				var oldQuestions = await _uow.TestQuestions.GetByTestIdAsync(targetTest.TestId);
-				_uow.TestQuestions.RemoveRange(oldQuestions);
+				return Result<string>.Failure(ex.Message);
 			}
-
-			// ✅ Snapshot lại câu hỏi mới
-			var jsonSettings = new JsonSerializerSettings
-			{
-				ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-			};
-
-			var testQuestions = new List<TestQuestion>();
-			int order = 1;
-
-			foreach (var part in dto.Parts)
-			{
-				// Question Groups
-				if (part.Groups?.Any() == true)
-				{
-					foreach (var groupDto in part.Groups)
-					{
-						var groupSnapshot = await HandleQuestionGroupSnapshotAsync(groupDto, part.PartId, dto.TestSkill);
-						string snapshot = JsonConvert.SerializeObject(groupSnapshot, jsonSettings);
-
-						testQuestions.Add(new TestQuestion
-						{
-							Test = targetTest,
-							PartId = part.PartId,
-							OrderInTest = order++,
-							IsQuestionGroup = true,
-							SourceType = QuestionSourceType.Manual,
-							SnapshotJson = snapshot,
-							CreatedAt = Now
-						});
-					}
-				}
-
-				// Single questions
-				if (part.Questions?.Any() == true)
-				{
-					foreach (var qDto in part.Questions)
-					{
-						var questionSnapshot = await HandleSingleQuestionSnapshotAsync(qDto, part.PartId, dto.TestSkill);
-						string snapshot = JsonConvert.SerializeObject(questionSnapshot, jsonSettings);
-
-						testQuestions.Add(new TestQuestion
-						{
-							Test = targetTest,
-							PartId = part.PartId,
-							OrderInTest = order++,
-							SourceType = QuestionSourceType.Manual,
-							SnapshotJson = snapshot,
-							CreatedAt = Now
-						});
-					}
-				}
-			}
-
-			await _uow.TestQuestions.AddRangeAsync(testQuestions);
-
-			await _uow.SaveChangesAsync();
-
-			return Result<string>.Success(
-				existing.VisibilityStatus == TestVisibilityStatus.Published
-					? $"Cloned to new version v{targetTest.Version} (TestId={targetTest.TestId})"
-					: $"Updated successfully TestId={targetTest.TestId}");
 		}
 
 		// If test visibility status: published => clone new version
@@ -1256,9 +1272,9 @@ namespace ToeicGenius.Services.Implementations
 				Title = test.Title,
 				TestSkill = test.TestSkill,
 				TestType = test.TestType,
-                IsSelectTime = testResult.IsSelectTime,
-                Status = testResult.Status,
-                AudioUrl = test.AudioUrl,
+				IsSelectTime = testResult.IsSelectTime,
+				Status = testResult.Status,
+				AudioUrl = test.AudioUrl,
 				Duration = test.Duration,
 				QuantityQuestion = test.TotalQuestion,
 				CorrectCount = testResult.CorrectCount,
@@ -1406,7 +1422,7 @@ namespace ToeicGenius.Services.Implementations
 				TotalScore = (double)testResult.TotalScore,
 				IsSelectTime = testResult.IsSelectTime,
 				Status = testResult.Status,
-                PerPartFeedbacks = aiFeedbacks.Select(f => new Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto
+				PerPartFeedbacks = aiFeedbacks.Select(f => new Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto
 				{
 					TestQuestionId = f.UserAnswer?.TestQuestionId ?? 0,
 					FeedbackId = f.FeedbackId,

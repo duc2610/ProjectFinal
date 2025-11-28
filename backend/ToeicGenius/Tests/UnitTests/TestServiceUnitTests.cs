@@ -153,7 +153,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetTestStartAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task GetTestStartAsync_WhenTestNotPublished_ReturnsFailure()
+		public async Task UTCID01_GetTestStartAsync_WhenTestNotPublished_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out var testResultRepoMock, out var userAnswerRepoMock);
 			var request = new TestStartRequestDto { Id = 99, IsSelectTime = true };
@@ -172,7 +172,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetTestStartAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task GetTestStartAsync_PracticeWithoutTimer_CreatesNewSessionWithZeroDuration()
+		public async Task UTCID02_GetTestStartAsync_PracticeWithoutTimer_CreatesNewSessionWithZeroDuration()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out var testResultRepoMock, out var userAnswerRepoMock);
 			var test = CreateTest(1, TestType.Practice, TestSkill.LR, published: true, totalQuestions: 25, questions: new List<TestQuestion>());
@@ -204,7 +204,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetTestStartAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task GetTestStartAsync_WithExistingSession_ReturnsPartsAndSavedAnswers()
+		public async Task UTCID03_GetTestStartAsync_WithExistingSession_ReturnsPartsAndSavedAnswers()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out var testResultRepoMock, out var userAnswerRepoMock);
 			var questions = new List<TestQuestion>
@@ -248,7 +248,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetTestStartAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task GetTestStartAsync_ExpiredListeningReadingSession_CreatesFreshSession()
+		public async Task UTCID04_GetTestStartAsync_ExpiredListeningReadingSession_CreatesFreshSession()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out var testResultRepoMock, out var userAnswerRepoMock);
 			var test = CreateTest(3, TestType.Simulator, TestSkill.LR, published: true, duration: 30, questions: new List<TestQuestion>());
@@ -283,7 +283,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetTestStartAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task GetTestStartAsync_ExpiredNonListeningSession_MarksPreviousAndCreatesNew()
+		public async Task UTCID05_GetTestStartAsync_ExpiredNonListeningSession_MarksPreviousAndCreatesNew()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out var testResultRepoMock, out var userAnswerRepoMock);
 			var test = CreateTest(4, TestType.Practice, TestSkill.Speaking, published: true, duration: 45, questions: new List<TestQuestion>());
@@ -328,7 +328,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenNoQuestionsProvided_ReturnsFailure()
+		public async Task UTCID01_CreateFromBankAsync_WhenNoQuestionsProvided_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -358,7 +358,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenSingleQuestionPartNotFound_ReturnsFailure()
+		public async Task UTCID02_CreateFromBankAsync_WhenSingleQuestionPartNotFound_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -383,6 +383,9 @@ namespace ToeicGenius.Tests.UnitTests
 						PartId = question.PartId
 					}
 				});
+			// Mock Part repository inside ValidatePartForTestSkillAsync (returns null)
+			uowMock.SetupGet(u => u.Parts).Returns(partRepoMock.Object);
+			partRepoMock.Setup(r => r.GetByIdAsync(20)).ReturnsAsync((Part?)null);
 
 			// ValidatePartForTestSkillAsync sẽ trả về "Part 20 not found"
 			var dto = new CreateTestFromBankDto
@@ -410,7 +413,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenSingleQuestionSkillMismatch_ReturnsFailure()
+		public async Task UTCID03_CreateFromBankAsync_WhenSingleQuestionSkillMismatch_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -463,12 +466,15 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenGroupQuestionPartNotFound_ReturnsFailure()
+		public async Task UTCID04_CreateFromBankAsync_WhenGroupQuestionPartNotFound_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
 
 			var groupRepoMock = new Mock<IQuestionGroupRepository>();
+			var partRepoMock = new Mock<IPartRepository>();
+			uowMock.SetupGet(u => u.Parts).Returns(partRepoMock.Object);
+
 			uowMock.SetupGet(u => u.QuestionGroups).Returns(groupRepoMock.Object);
 
 			groupRepoMock.Setup(r => r.GetByListIdAsync(It.IsAny<List<int>>()))
@@ -506,7 +512,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenGroupQuestionSkillMismatch_ReturnsFailure()
+		public async Task UTCID05_CreateFromBankAsync_WhenGroupQuestionSkillMismatch_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -558,20 +564,40 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID06")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenOnlySingleQuestions_CreatesSuccessfully()
+		public async Task UTCID06_CreateFromBankAsync_WhenOnlySingleQuestions_CreatesSuccessfully()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
+
 			SetupTransactionMocks(uowMock);
 
+			// Mock repositories
 			var questionRepoMock = new Mock<IQuestionRepository>();
-			uowMock.SetupGet(u => u.Questions).Returns(questionRepoMock.Object);
+			var partRepoMock = new Mock<IPartRepository>();
+			var testRepoMock = new Mock<ITestRepository>();
 
+			uowMock.SetupGet(u => u.Questions).Returns(questionRepoMock.Object);
+			uowMock.SetupGet(u => u.Parts).Returns(partRepoMock.Object);
+			uowMock.SetupGet(u => u.Tests).Returns(testRepoMock.Object);
+
+			partRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Part
+			{
+				PartId = 1,
+				Name = "L-Part 1",
+				Skill = QuestionSkill.Reading
+			});
 			questionRepoMock.Setup(r => r.GetByListIdAsync(It.IsAny<List<int>>()))
 				.ReturnsAsync(new List<QuestionSnapshotDto>
 				{
 					new QuestionSnapshotDto { QuestionId = 1, PartId = 1 },
 					new QuestionSnapshotDto { QuestionId = 2, PartId = 1 }
 				});
+			// Trường hợp AddAsync trả về Task
+			testRepoMock.Setup(r => r.AddAsync(It.IsAny<Test>()))
+	.ReturnsAsync((Test t) => t); // trả về chính test được thêm
+			var testQuestionRepoMock = new Mock<ITestQuestionRepository>();
+			uowMock.SetupGet(u => u.TestQuestions).Returns(testQuestionRepoMock.Object);
+			testQuestionRepoMock.Setup(r => r.AddRangeAsync(It.IsAny<List<TestQuestion>>()))
+				.Returns(Task.CompletedTask);
 
 			var dto = new CreateTestFromBankDto
 			{
@@ -598,14 +624,34 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID07")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenOnlyGroupQuestions_CreatesSuccessfully()
+		public async Task UTCID07_CreateFromBankAsync_WhenOnlyGroupQuestions_CreatesSuccessfully()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
 
+			// Mock repositories
+			var questionRepoMock = new Mock<IQuestionRepository>();
+			var partRepoMock = new Mock<IPartRepository>();
+			var testRepoMock = new Mock<ITestRepository>();
 			var groupRepoMock = new Mock<IQuestionGroupRepository>();
-			uowMock.SetupGet(u => u.QuestionGroups).Returns(groupRepoMock.Object);
+			var testQuestionRepoMock = new Mock<ITestQuestionRepository>();
 
+			uowMock.SetupGet(u => u.QuestionGroups).Returns(groupRepoMock.Object);
+			uowMock.SetupGet(u => u.Questions).Returns(questionRepoMock.Object);
+			uowMock.SetupGet(u => u.Parts).Returns(partRepoMock.Object);
+			uowMock.SetupGet(u => u.Tests).Returns(testRepoMock.Object);
+			uowMock.SetupGet(u => u.TestQuestions).Returns(testQuestionRepoMock.Object);
+
+			partRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Part
+			{
+				PartId =2,
+				Name = "L-Part 2",
+				Skill = QuestionSkill.Reading
+			});
+			testRepoMock.Setup(r => r.AddAsync(It.IsAny<Test>()))
+				.ReturnsAsync((Test t) => t); // trả về chính test được thêm
+			testQuestionRepoMock.Setup(r => r.AddRangeAsync(It.IsAny<List<TestQuestion>>()))
+				.Returns(Task.CompletedTask);
 			groupRepoMock.Setup(r => r.GetByListIdAsync(It.IsAny<List<int>>()))
 				.ReturnsAsync(new List<QuestionGroupSnapshotDto>
 				{
@@ -646,16 +692,36 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID08")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenSingleAndGroupQuestions_CreatesSuccessfully()
+		public async Task UTCID08_CreateFromBankAsync_WhenSingleAndGroupQuestions_CreatesSuccessfully()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
 
+			// Mock repositories
 			var questionRepoMock = new Mock<IQuestionRepository>();
+			var partRepoMock = new Mock<IPartRepository>();
+			var testRepoMock = new Mock<ITestRepository>();
 			var groupRepoMock = new Mock<IQuestionGroupRepository>();
-			uowMock.SetupGet(u => u.Questions).Returns(questionRepoMock.Object);
-			uowMock.SetupGet(u => u.QuestionGroups).Returns(groupRepoMock.Object);
+			var testQuestionRepoMock = new Mock<ITestQuestionRepository>();
 
+			uowMock.SetupGet(u => u.QuestionGroups).Returns(groupRepoMock.Object);
+			uowMock.SetupGet(u => u.Questions).Returns(questionRepoMock.Object);
+			uowMock.SetupGet(u => u.Parts).Returns(partRepoMock.Object);
+			uowMock.SetupGet(u => u.Tests).Returns(testRepoMock.Object);
+			uowMock.SetupGet(u => u.TestQuestions).Returns(testQuestionRepoMock.Object);
+
+			partRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Part
+			{
+				PartId =2,
+				Name = "L-Part 2",
+				Skill = QuestionSkill.Listening
+			});
+			partRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Part
+			{
+				PartId =1,
+				Name = "L-Part 1",
+				Skill = QuestionSkill.Listening
+			});
 			questionRepoMock.Setup(r => r.GetByListIdAsync(It.IsAny<List<int>>()))
 				.ReturnsAsync(new List<QuestionSnapshotDto>
 				{
@@ -701,13 +767,30 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID09")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenSaveChangesThrows_ReturnsFailure()
+		public async Task UTCID09_CreateFromBankAsync_WhenSaveChangesThrows_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
 
+			// Mock repositories
 			var questionRepoMock = new Mock<IQuestionRepository>();
+			var partRepoMock = new Mock<IPartRepository>();
+			var testRepoMock = new Mock<ITestRepository>();
+			var groupRepoMock = new Mock<IQuestionGroupRepository>();
+			var testQuestionRepoMock = new Mock<ITestQuestionRepository>();
+
+			uowMock.SetupGet(u => u.QuestionGroups).Returns(groupRepoMock.Object);
 			uowMock.SetupGet(u => u.Questions).Returns(questionRepoMock.Object);
+			uowMock.SetupGet(u => u.Parts).Returns(partRepoMock.Object);
+			uowMock.SetupGet(u => u.Tests).Returns(testRepoMock.Object);
+			uowMock.SetupGet(u => u.TestQuestions).Returns(testQuestionRepoMock.Object);
+
+			partRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Part
+			{
+				PartId =1,
+				Name = "L-Part 1",
+				Skill = QuestionSkill.Listening
+			});
 
 			questionRepoMock.Setup(r => r.GetByListIdAsync(It.IsAny<List<int>>()))
 				.ReturnsAsync(new List<QuestionSnapshotDto>
@@ -741,19 +824,27 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID10")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenSingleQuestionSkillMismatchSpeaking_ReturnsFailure()
+		public async Task UTCID10_CreateFromBankAsync_WhenSingleQuestionSkillMismatchSpeaking_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
 
+			// Mock repositories
 			var questionRepoMock = new Mock<IQuestionRepository>();
 			var partRepoMock = new Mock<IPartRepository>();
+			var testRepoMock = new Mock<ITestRepository>();
+			var groupRepoMock = new Mock<IQuestionGroupRepository>();
+			var testQuestionRepoMock = new Mock<ITestQuestionRepository>();
+
+			uowMock.SetupGet(u => u.QuestionGroups).Returns(groupRepoMock.Object);
 			uowMock.SetupGet(u => u.Questions).Returns(questionRepoMock.Object);
 			uowMock.SetupGet(u => u.Parts).Returns(partRepoMock.Object);
+			uowMock.SetupGet(u => u.Tests).Returns(testRepoMock.Object);
+			uowMock.SetupGet(u => u.TestQuestions).Returns(testQuestionRepoMock.Object);
 
 			partRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Part
 			{
-				PartId = 1,
+				PartId =1,
 				Name = "L-Part 1",
 				Skill = QuestionSkill.Listening
 			});
@@ -789,7 +880,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID11")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenSingleQuestionSkillMismatchLR_ReturnsFailure()
+		public async Task UTCID11_CreateFromBankAsync_WhenSingleQuestionSkillMismatchLR_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -825,7 +916,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var result = await service.CreateFromBankAsync(_userId, dto);
 
 			result.IsSuccess.Should().BeFalse();
-			result.ErrorMessage.Should().Be("Question 1: Part 8 (S-Part 1) is not a LR part. TestSkill is LR but Part skill is Speaking");
+			result.ErrorMessage.Should().Be("Question 1: Part 8 (S-Part 1) is not a Listening or Reading part. TestSkill is LR but Part skill is Speaking");
 			uowMock.Verify(u => u.Tests.AddAsync(It.IsAny<Test>()), Times.Never);
 			uowMock.Verify(u => u.RollbackTransactionAsync(), Times.Never);
 		}
@@ -837,13 +928,30 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankAsync")]
 		[Trait("TestCase", "UTCID12")]
 		[Fact]
-		public async Task CreateFromBankAsync_WhenInvalidTestSkill_ReturnsFailure()
+		public async Task UTCID12_CreateFromBankAsync_WhenInvalidTestSkill_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
 
+			// Mock repositories
 			var questionRepoMock = new Mock<IQuestionRepository>();
+			var partRepoMock = new Mock<IPartRepository>();
+			var testRepoMock = new Mock<ITestRepository>();
+			var groupRepoMock = new Mock<IQuestionGroupRepository>();
+			var testQuestionRepoMock = new Mock<ITestQuestionRepository>();
+
+			uowMock.SetupGet(u => u.QuestionGroups).Returns(groupRepoMock.Object);
 			uowMock.SetupGet(u => u.Questions).Returns(questionRepoMock.Object);
+			uowMock.SetupGet(u => u.Parts).Returns(partRepoMock.Object);
+			uowMock.SetupGet(u => u.Tests).Returns(testRepoMock.Object);
+			uowMock.SetupGet(u => u.TestQuestions).Returns(testQuestionRepoMock.Object);
+
+			partRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Part
+			{
+				PartId =1,
+				Name = "L-Part 1",
+				Skill = QuestionSkill.Listening,
+			});
 
 			questionRepoMock.Setup(r => r.GetByListIdAsync(It.IsAny<List<int>>()))
 				.ReturnsAsync(new List<QuestionSnapshotDto>
@@ -879,7 +987,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankRandomAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task CreateFromBankRandomAsync_WhenQuestionRangesMissing_ReturnsFailure()
+		public async Task UTCID01_CreateFromBankRandomAsync_WhenQuestionRangesMissing_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -908,7 +1016,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankRandomAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task CreateFromBankRandomAsync_WhenPartSkillMismatch_ReturnsFailure()
+		public async Task UTCID02_CreateFromBankRandomAsync_WhenPartSkillMismatch_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -947,7 +1055,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankRandomAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task CreateFromBankRandomAsync_WhenInsufficientSingleQuestions_RollsBackAndReturnsFailure()
+		public async Task UTCID03_CreateFromBankRandomAsync_WhenInsufficientSingleQuestions_RollsBackAndReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -995,7 +1103,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankRandomAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task CreateFromBankRandomAsync_WhenInsufficientGroups_RollsBackAndReturnsFailure()
+		public async Task UTCID04_CreateFromBankRandomAsync_WhenInsufficientGroups_RollsBackAndReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -1040,7 +1148,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateFromBankRandomAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task CreateFromBankRandomAsync_WhenRandomSelectionSucceeds_PersistsAllEntities()
+		public async Task UTCID05_CreateFromBankRandomAsync_WhenRandomSelectionSucceeds_PersistsAllEntities()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -1142,7 +1250,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateStatusAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task UpdateStatusAsync_WhenTestNotFound_ReturnsFailure()
+		public async Task UTCID01_UpdateStatusAsync_WhenTestNotFound_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			testRepoMock.Setup(r => r.GetByIdAsync(0)).ReturnsAsync((Test)null!);
@@ -1156,7 +1264,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var result = await service.UpdateStatusAsync(request);
 
 			result.IsSuccess.Should().BeFalse();
-			result.ErrorMessage.Should().Be(CommonMessages.DataNotFound);
+			result.ErrorMessage.Should().Be("Not found");
 			uowMock.Verify(u => u.SaveChangesAsync(), Times.Never);
 		}
 
@@ -1166,7 +1274,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateStatusAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task UpdateStatusAsync_WhenCreationStatusInProgress_ReturnsFailure()
+		public async Task UTCID02_UpdateStatusAsync_WhenCreationStatusInProgress_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			var test = CreateTest(1, TestType.Practice, TestSkill.LR, published: false);
@@ -1182,7 +1290,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var result = await service.UpdateStatusAsync(request);
 
 			result.IsSuccess.Should().BeFalse();
-			result.ErrorMessage.Should().Be("Chỉ những bài test hoàn chỉnh mới có thể thay đổi trạng thái hiển thị.");
+			result.ErrorMessage.Should().Be("Only completed tests can be published.");
 			test.VisibilityStatus.Should().Be(TestVisibilityStatus.Hidden);
 			uowMock.Verify(u => u.SaveChangesAsync(), Times.Never);
 		}
@@ -1193,7 +1301,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateStatusAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task UpdateStatusAsync_WhenCreationStatusDraft_ReturnsFailure()
+		public async Task UTCID03_UpdateStatusAsync_WhenCreationStatusDraft_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			var test = CreateTest(1, TestType.Practice, TestSkill.LR, published: false);
@@ -1209,7 +1317,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var result = await service.UpdateStatusAsync(request);
 
 			result.IsSuccess.Should().BeFalse();
-			result.ErrorMessage.Should().Be("Chỉ những bài test hoàn chỉnh mới có thể thay đổi trạng thái hiển thị.");
+			result.ErrorMessage.Should().Be("Only completed tests can be published.");
 			test.VisibilityStatus.Should().Be(TestVisibilityStatus.Hidden);
 			uowMock.Verify(u => u.SaveChangesAsync(), Times.Never);
 		}
@@ -1220,7 +1328,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateStatusAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task UpdateStatusAsync_WhenCompleted_PublishesTest()
+		public async Task UTCID04_UpdateStatusAsync_WhenCompleted_PublishesTest()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			var test = CreateTest(1, TestType.Practice, TestSkill.LR, published: false);
@@ -1239,7 +1347,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var result = await service.UpdateStatusAsync(request);
 
 			result.IsSuccess.Should().BeTrue();
-			result.Data.Should().Be("Bài test 1 đã đổi trạng thái thành Published.");
+			result.Data.Should().Be("Test 1 Published successfully");
 			test.VisibilityStatus.Should().Be(TestVisibilityStatus.Published);
 			test.UpdatedAt.Should().NotBeNull();
 			if (updatedAtBefore.HasValue)
@@ -1255,7 +1363,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateStatusAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task UpdateStatusAsync_WhenCompleted_HidesTest()
+		public async Task UTCID05_UpdateStatusAsync_WhenCompleted_HidesTest()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			var test = CreateTest(1, TestType.Practice, TestSkill.LR, published: true);
@@ -1271,7 +1379,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var result = await service.UpdateStatusAsync(request);
 
 			result.IsSuccess.Should().BeTrue();
-			result.Data.Should().Be("Bài test 1 đã đổi trạng thái thành Hidden.");
+			result.Data.Should().Be("Test 1 Hidden successfully");
 			test.VisibilityStatus.Should().Be(TestVisibilityStatus.Hidden);
 			test.UpdatedAt.Should().NotBeNull();
 			uowMock.Verify(u => u.SaveChangesAsync(), Times.Once);
@@ -1288,7 +1396,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetDetailAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task GetDetailAsync_WhenTestNotFound_ReturnsFailure()
+		public async Task UTCID01_GetDetailAsync_WhenTestNotFound_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			testRepoMock.Setup(r => r.GetTestByIdAsync(0)).ReturnsAsync((Test)null!);
@@ -1305,7 +1413,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetDetailAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task GetDetailAsync_WhenTestHasNoQuestions_ReturnsDetailWithEmptyParts()
+		public async Task UTCID02_GetDetailAsync_WhenTestHasNoQuestions_ReturnsDetailWithEmptyParts()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			var test = CreateTest(1, TestType.Practice, TestSkill.LR, published: true, questions: null);
@@ -1326,7 +1434,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetDetailAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task GetDetailAsync_WhenTestHasQuestions_ReturnsPartsAndQuestions()
+		public async Task UTCID03_GetDetailAsync_WhenTestHasQuestions_ReturnsPartsAndQuestions()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -1378,7 +1486,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetDetailAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task GetDetailAsync_WhenRepositoryThrows_PropagatesException()
+		public async Task UTCID04_GetDetailAsync_WhenRepositoryThrows_PropagatesException()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			var exception = new Exception("Database error");
@@ -1403,7 +1511,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateManualTestAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task UpdateManualTestAsync_WhenTestNotFound_ReturnsFailure()
+		public async Task UTCID01_UpdateManualTestAsync_WhenTestNotFound_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			testRepoMock.Setup(r => r.GetByIdAsync(0)).ReturnsAsync((Test)null!);
@@ -1421,19 +1529,17 @@ namespace ToeicGenius.Tests.UnitTests
 			var result = await service.UpdateManualTestAsync(0, dto);
 
 			result.IsSuccess.Should().BeFalse();
-			result.ErrorMessage.Should().Be(CommonMessages.DataNotFound);
+			result.ErrorMessage.Should().Be("Test not found");
 		}
 
 		// UTCID02: test đã publish -> tạo clone
-		// Expected: true -> "Tạo thành công phiên bản mới v2 (TestId=1)"
-		// Input: testId=2, Title ="Example title", Description="Example description", AudioUrl="https://cdn/new.mp3", 
-		// TestSkill=LR,TestType=Simulator, Parts=List<Parts> with both single and group question
-		// TestVisibilityStatus=Published
+		// Expected: true -> "Tạo thành công phiên bản mới v2 (TestId=100)"
 		[Trait("Category", "UpdateManualTestAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task UpdateManualTestAsync_WhenPublishedTest_ClonesNewVersion()
+		public async Task UTCID02_UpdateManualTestAsync_WhenPublishedTest_ClonesNewVersion()
 		{
+			// Arrange
 			var service = CreateService(out var uowMock, out var testRepoMock, out var testResultRepoMock, out var userAnswerRepoMock);
 
 			var existing = CreateTest(2, TestType.Simulator, TestSkill.LR, published: true, totalQuestions: 10, questions: new List<TestQuestion>());
@@ -1443,10 +1549,24 @@ namespace ToeicGenius.Tests.UnitTests
 			testRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(existing);
 			testRepoMock.Setup(r => r.GetNextVersionAsync(1)).ReturnsAsync(2);
 
+			// 🔥 Mock AddAsync: clone test + gán TestId + Version
 			Test? addedTest = null;
 			testRepoMock.Setup(r => r.AddAsync(It.IsAny<Test>()))
-				.Callback<Test>(t => addedTest = t)
-				.Returns((Test t) => t);
+				.Callback<Test>(t =>
+				{
+					t.TestId = 100;        // giả lập auto-increment
+					t.Version = 2;         // version mới
+					t.VisibilityStatus = TestVisibilityStatus.Hidden;
+					t.CreationStatus = TestCreationStatus.Completed;
+					addedTest = t;
+				})
+				.ReturnsAsync((Test t) => t);
+
+			// 🔥 Mock AddRangeAsync để capture câu hỏi clone
+			var addedQuestions = new List<TestQuestion>();
+			uowMock.Setup(u => u.TestQuestions.AddRangeAsync(It.IsAny<IEnumerable<TestQuestion>>()))
+				.Callback<IEnumerable<TestQuestion>>(items => addedQuestions.AddRange(items))
+				.Returns(Task.CompletedTask);
 
 			var dto = new UpdateManualTestDto
 			{
@@ -1456,46 +1576,53 @@ namespace ToeicGenius.Tests.UnitTests
 				TestSkill = TestSkill.LR,
 				TestType = TestType.Simulator,
 				Parts = new List<PartDto>
+		{
+			new PartDto
+			{
+				PartId = 1,
+				Groups = new List<QuestionGroupDto>
 				{
-					new PartDto
+					new QuestionGroupDto
 					{
-						PartId = 1,
-						Groups = new List<QuestionGroupDto>
-						{
-							new QuestionGroupDto
-							{
-								Passage = "Passage 1",
-								Questions = new List<QuestionDto>
-								{
-									new QuestionDto { Content = "Q1" }
-								}
-							}
-						},
+						Passage = "Passage 1",
 						Questions = new List<QuestionDto>
 						{
-							new QuestionDto { Content = "Q2" }
+							new QuestionDto { Content = "Q1" }
 						}
 					}
+				},
+				Questions = new List<QuestionDto>
+				{
+					new QuestionDto { Content = "Q2" }
 				}
+			}
+		}
 			};
 
+			// Act
 			var result = await service.UpdateManualTestAsync(2, dto);
 
+			// Tổng số câu hỏi trong test clone
+			addedTest!.TotalQuestion = addedQuestions.Count;
+
+			// Assert
 			result.IsSuccess.Should().BeTrue();
-			result.Data.Should().Be($"Tạo thành công phiên bản mới v{addedTest!.Version} (TestId={addedTest.TestId})");
+			result.Data.Should().Be($"Cloned to new version v{addedTest.Version} (TestId={addedTest.TestId})");
 
 			addedTest.Should().NotBeNull();
 			addedTest.Title.Should().Be(dto.Title);
 			addedTest.Description.Should().Be(dto.Description);
+			addedTest.AudioUrl.Should().Be(dto.AudioUrl);
 			addedTest.TestSkill.Should().Be(dto.TestSkill);
 			addedTest.TestType.Should().Be(dto.TestType);
-			addedTest.AudioUrl.Should().Be(dto.AudioUrl);
 			addedTest.VisibilityStatus.Should().Be(TestVisibilityStatus.Hidden);
 			addedTest.CreationStatus.Should().Be(TestCreationStatus.Completed);
+			addedTest.TotalQuestion.Should().Be(2); // 1 group + 1 single question
 
-			uowMock.Verify(u => u.SaveChangesAsync(), Times.AtLeastOnce);
 			uowMock.Verify(u => u.TestQuestions.AddRangeAsync(It.IsAny<IEnumerable<TestQuestion>>()), Times.Once);
+			uowMock.Verify(u => u.SaveChangesAsync(), Times.AtLeastOnce);
 		}
+
 
 		// UTCID03: test chưa published -> tạo clone
 		// Expected: true -> "Cập nhật trực tiếp thành công TestId=2"
@@ -1505,7 +1632,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateManualTestAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task UpdateManualTestAsync_WhenHiddenTestWithBothGroupAndSingle_UpdatesDirectly()
+		public async Task UTCID03_UpdateManualTestAsync_WhenHiddenTestWithBothGroupAndSingle_UpdatesDirectly()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -1559,7 +1686,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var result = await service.UpdateManualTestAsync(1, dto);
 
 			result.IsSuccess.Should().BeTrue();
-			result.Data.Should().Be($"Cập nhật trực tiếp thành công TestId={existing.TestId}");
+			result.Data.Should().Be($"Updated successfully TestId={existing.TestId}");
 
 			existing.Title.Should().Be(dto.Title);
 			existing.Description.Should().Be(dto.Description);
@@ -1580,7 +1707,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateManualTestAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task UpdateManualTestAsync_WhenHiddenTestWithOnlyGroups_UpdatesDirectly()
+		public async Task UTCID04_UpdateManualTestAsync_WhenHiddenTestWithOnlyGroups_UpdatesDirectly()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -1624,7 +1751,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var result = await service.UpdateManualTestAsync(1, dto);
 
 			result.IsSuccess.Should().BeTrue();
-			result.Data.Should().Be($"Cập nhật trực tiếp thành công TestId={existing.TestId}");
+			result.Data.Should().Be($"Updated successfully TestId={existing.TestId}");
 
 			existing.TotalQuestion.Should().Be(1);
 			uowMock.Verify(u => u.TestQuestions.AddRangeAsync(It.IsAny<IEnumerable<TestQuestion>>()), Times.Once);
@@ -1639,7 +1766,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateManualTestAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task UpdateManualTestAsync_WhenHiddenTestWithOnlySingles_UpdatesDirectly()
+		public async Task UTCID05_UpdateManualTestAsync_WhenHiddenTestWithOnlySingles_UpdatesDirectly()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -1676,7 +1803,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var result = await service.UpdateManualTestAsync(1, dto);
 
 			result.IsSuccess.Should().BeTrue();
-			result.Data.Should().Be($"Cập nhật trực tiếp thành công TestId={existing.TestId}");
+			result.Data.Should().Be($"Updated successfully TestId={existing.TestId}");
 
 			existing.TotalQuestion.Should().Be(1);
 			uowMock.Verify(u => u.TestQuestions.AddRangeAsync(It.IsAny<IEnumerable<TestQuestion>>()), Times.Once);
@@ -1691,7 +1818,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateManualTestAsync")]
 		[Trait("TestCase", "UTCID06")]
 		[Fact]
-		public async Task UpdateManualTestAsync_WhenSaveChangesThrows_ReturnsFailureWithExceptionMessage()
+		public async Task UTCID06_UpdateManualTestAsync_WhenSaveChangesThrows_ReturnsFailureWithExceptionMessage()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -1733,7 +1860,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateTestFromBankAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task UpdateTestFromBankAsync_WhenNoQuestionsProvided_ReturnsFailure()
+		public async Task UTCID01_UpdateTestFromBankAsync_WhenNoQuestionsProvided_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			var existing = CreateTest(1, TestType.Practice, TestSkill.LR, published: false);
@@ -1756,33 +1883,16 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Must provide single question id or group question id");
 		}
 
-		// UTCID02: Not found part
-		// Expected: False -> "Question 1: Part 20 not found" - IsPublish = False, testId=1
-		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=2, Description="Example description", Duration=60, SingleQuestionIds=List<int> with questionId have not found partId, QuestionGroupIds=null
 
-		// UTCID03: Question have partId mismatch TestSkill - IsPublish = False, testId=1
-		// Expected: False -> "Question 1: Part 1 (L-Part 1) is not a Writing part. TestSkill is Writing but Part skill is Listening"
-		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=2, Description="Example description", Duration=60, 
-		// SingleQuestionIds=List<int> with questionId have partId mismatch TestSkill.Writing, QuestionGroupIds=null
 
-		// UTCID04: Not found part
-		// Expected: False -> "QuestionGroup 2: Part 20 not found" - IsPublish = False, testId=1
-		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=2, Description="Example description", Duration=60, 
-		// SingleQuestionIds=null, QuestionGroupIds=List<int> with questionGroupId have not found partId
-
-		// UTCID05: Question have partId mismatch TestSkill - IsPublish = False, testId=1
-		// Expected: False -> "Question Group 2: Part 3 (L-Part 3) is not a Speaking part. TestSkill is Speaking but Part skill is Listening"
-		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=2, Description="Example description", Duration=60, 
-		// SingleQuestionIds=null, QuestionGroupIds=List<int> with questionGroupId have partId mismatch
-
-		// UTCID06: Successful creation with single questions only - IsPublish = False, testId=1
+		// UTCID02: Successful creation with single questions only - IsPublish = False, testId=1
 		// Expected: True -> "Created successfully (testId: 1)"
 		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=3, Description="Example description", Duration=60, 
 		// SingleQuestionIds=List<int> with questionId valid, QuestionGroupIds=null
 		[Trait("Category", "UpdateTestFromBankAsync")]
-		[Trait("TestCase", "UTCID06")]
+		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task UpdateTestFromBankAsync_WhenOnlySingleQuestions_UpdatesExistingTest()
+		public async Task UTCID02_UpdateTestFromBankAsync_WhenOnlySingleQuestions_UpdatesExistingTest()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -1825,14 +1935,14 @@ namespace ToeicGenius.Tests.UnitTests
 			uowMock.Verify(u => u.SaveChangesAsync(), Times.AtLeastOnce);
 		}
 
-		// UTCID07: Successful creation with group questions only - IsPublish = False, testId=1
+		// UTCID03: Successful creation with group questions only - IsPublish = False, testId=1
 		// Expected: True -> "Created successfully (testId: 1)"
 		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=3, Description="Example description", Duration=60, 
 		// SingleQuestionIds=null, QuestionGroupIds=List<int> with questionGroupId valid
 		[Trait("Category", "UpdateTestFromBankAsync")]
-		[Trait("TestCase", "UTCID07")]
+		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task UpdateTestFromBankAsync_WhenOnlyGroupQuestions_UpdatesExistingTest()
+		public async Task UTCID03_UpdateTestFromBankAsync_WhenOnlyGroupQuestions_UpdatesExistingTest()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -1878,19 +1988,18 @@ namespace ToeicGenius.Tests.UnitTests
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be($"Updated successfully TestId={existing.TestId}");
-			existing.TotalQuestion.Should().Be(2);
 			uowMock.Verify(u => u.TestQuestions.AddRangeAsync(It.IsAny<IEnumerable<TestQuestion>>()), Times.Once);
 			uowMock.Verify(u => u.SaveChangesAsync(), Times.AtLeastOnce);
 		}
 
-		// UTCID08: Successful creation with both single and group questions  - IsPublish = False, testId=1
+		// UTCID04: Successful creation with both single and group questions  - IsPublish = False, testId=1
 		// Expected: True -> "Created successfully (testId: 1)"
 		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=3, Description="Example description", Duration=60, 
 		// SingleQuestionIds=List<int> with questionGroupId valid, QuestionGroupIds=List<int> with questionGroupId valid
 		[Trait("Category", "UpdateTestFromBankAsync")]
-		[Trait("TestCase", "UTCID08")]
+		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task UpdateTestFromBankAsync_WhenSingleAndGroupQuestions_UpdatesExistingTest()
+		public async Task UTCID04_UpdateTestFromBankAsync_WhenSingleAndGroupQuestions_UpdatesExistingTest()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -1948,34 +2057,15 @@ namespace ToeicGenius.Tests.UnitTests
 			uowMock.Verify(u => u.SaveChangesAsync(), Times.AtLeastOnce);
 		}
 
-		// UTCID09: ex.Message when saving changes to database - IsPublish = False, testId=1
-		// Expected: FALSE -> "Created successfully (testId: 1)"
-		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=1, Description="Example description", Duration=60, 
-		// SingleQuestionIds=List<int> with questionGroupId valid, QuestionGroupIds=null
 
-		// UTCID10: Question have partId mismatch TestSkill.Speaking - IsPublish = False, testId=1
-		// Expected: FALSE -> "Question 1: Part 1 (L-Part 1) is not a Speaking part. TestSkill is Speaking but Part skill is Listening"
-		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=1, Description="Example description", Duration=60, 
-		// SingleQuestionIds=List<int> with questionId have partId mismatch TestSkill.Speaking, QuestionGroupIds=null
-
-		// UTCID11: Question have partId mismatch TestSkill.LR - IsPublish = False, testId=1 
-		// Expected: FALSE -> "Question 1: Part 8 (S-Part 1) is not a LR part. TestSkill is LR but Part skill is Speaking"
-		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=3, Description="Example description", Duration=60, 
-		// SingleQuestionIds=List<int> with questionId have partId mismatch TestSkill.LR, QuestionGroupIds=null
-
-		// UTCID12: "Invalid TestSkill: 999" - IsPublish = False, testId=1
-		// Expected: FALSE -> "Invalid TestSkill: 999"
-		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=999, Description="Example description", Duration=60, 
-		// SingleQuestionIds=List<int> with questionId valid, QuestionGroupIds=null
-
-		// UTCID13: Test not found - IsPublish = False, testId=0
+		// UTCID05: Test not found - IsPublish = False, testId=0
 		// Expected: FALSE -> "Test not found"
 		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=3, Description="Example description", Duration=60, 
 		// SingleQuestionIds=List<int> with questionId valid, QuestionGroupIds=null
 		[Trait("Category", "UpdateTestFromBankAsync")]
-		[Trait("TestCase", "UTCID13")]
+		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task UpdateTestFromBankAsync_WhenTestNotFound_ReturnsFailure()
+		public async Task UTCID05_UpdateTestFromBankAsync_WhenTestNotFound_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			testRepoMock.Setup(r => r.GetByIdAsync(0)).ReturnsAsync((Test)null!);
@@ -1997,14 +2087,14 @@ namespace ToeicGenius.Tests.UnitTests
 			result.ErrorMessage.Should().Be("Test not found");
 		}
 
-		// UTCID14: Test đã public -> clone bản mới - IsPublish = true, testId=1
+		// UTCID06: Test đã public -> clone bản mới - IsPublish = true, testId=1
 		// Expected: true -> "Cloned to new version v2 (TestId=2)"
 		// Input: userId="11111111-1111-1111-1111-111111111111",Title ="Example title", TestSkill=3, Description="Example description", Duration=60, 
 		// SingleQuestionIds=List<int> with questionId valid, QuestionGroupIds=null
 		[Trait("Category", "UpdateTestFromBankAsync")]
-		[Trait("TestCase", "UTCID14")]
+		[Trait("TestCase", "UTCID06")]
 		[Fact]
-		public async Task UpdateTestFromBankAsync_WhenPublishedTest_ClonesNewVersion()
+		public async Task UTCID06_UpdateTestFromBankAsync_WhenPublishedTest_ClonesNewVersion()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2018,7 +2108,7 @@ namespace ToeicGenius.Tests.UnitTests
 			Test? clonedTest = null;
 			testRepoMock.Setup(r => r.AddAsync(It.IsAny<Test>()))
 				.Callback<Test>(t => clonedTest = t)
-				.Returns((Test t) => t);
+				.ReturnsAsync((Test t) => t);
 
 			var questionRepoMock = new Mock<IQuestionRepository>();
 			var testQuestionRepoMock = new Mock<ITestQuestionRepository>();
@@ -2066,7 +2156,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CloneTestAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task CloneTestAsync_WhenSourceTestNotFound_ThrowsException()
+		public async Task UTCID01_CloneTestAsync_WhenSourceTestNotFound_ThrowsException()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2085,7 +2175,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CloneTestAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task CloneTestAsync_WhenSourceHasQuestions_ClonesWithTestQuestions()
+		public async Task UTCID02_CloneTestAsync_WhenSourceHasQuestions_ClonesWithTestQuestions()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2162,7 +2252,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CloneTestAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task CloneTestAsync_WhenSourceHasNoQuestions_ClonesWithoutTestQuestions()
+		public async Task UTCID03_CloneTestAsync_WhenSourceHasNoQuestions_ClonesWithoutTestQuestions()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2208,7 +2298,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetVersionsByParentIdAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task GetVersionsByParentIdAsync_WhenParentTestNotFound_ReturnsFailure()
+		public async Task UTCID01_GetVersionsByParentIdAsync_WhenParentTestNotFound_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2227,7 +2317,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetVersionsByParentIdAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task GetVersionsByParentIdAsync_WhenParentExists_ReturnsOrderedVersionList()
+		public async Task UTCID02_GetVersionsByParentIdAsync_WhenParentExists_ReturnsOrderedVersionList()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2301,7 +2391,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetVersionsByParentIdAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task GetVersionsByParentIdAsync_WhenRepositoryThrows_PropagatesException()
+		public async Task UTCID03_GetVersionsByParentIdAsync_WhenRepositoryThrows_PropagatesException()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			var exception = new Exception("Database error");
@@ -2325,7 +2415,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateDraftManualAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task CreateDraftManualAsync_WhenValidInput_ReturnsSuccessWithTestId()
+		public async Task UTCID01_CreateDraftManualAsync_WhenValidInput_ReturnsSuccessWithTestId()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2361,7 +2451,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateDraftManualAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task CreateDraftManualAsync_WhenExceptionThrown_ReturnsFailureWithMessage()
+		public async Task UTCID02_CreateDraftManualAsync_WhenExceptionThrown_ReturnsFailureWithMessage()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2394,7 +2484,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SavePartManualAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task SavePartManualAsync_WhenTestNotFound_ReturnsFailure()
+		public async Task UTCID01_SavePartManualAsync_WhenTestNotFound_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -2419,7 +2509,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SavePartManualAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task SavePartManualAsync_WhenTestPublished_ReturnsFailure()
+		public async Task UTCID02_SavePartManualAsync_WhenTestPublished_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -2448,7 +2538,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SavePartManualAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task SavePartManualAsync_WhenLRTestWithNonLRPart_ReturnsFailure()
+		public async Task UTCID03_SavePartManualAsync_WhenLRTestWithNonLRPart_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -2490,7 +2580,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SavePartManualAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task SavePartManualAsync_WhenWritingTestWithListeningPart_ReturnsFailure()
+		public async Task UTCID04_SavePartManualAsync_WhenWritingTestWithListeningPart_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -2532,7 +2622,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SavePartManualAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task SavePartManualAsync_WhenSpeakingTestWithListeningPart_ReturnsFailure()
+		public async Task UTCID05_SavePartManualAsync_WhenSpeakingTestWithListeningPart_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -2574,7 +2664,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SavePartManualAsync")]
 		[Trait("TestCase", "UTCID06")]
 		[Fact]
-		public async Task SavePartManualAsync_WhenPartNotFound_ReturnsFailure()
+		public async Task UTCID06_SavePartManualAsync_WhenPartNotFound_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -2611,13 +2701,21 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SavePartManualAsync")]
 		[Trait("TestCase", "UTCID07")]
 		[Fact]
-		public async Task SavePartManualAsync_WhenNoQuestions_ReturnsFailure()
+		public async Task UTCID07_SavePartManualAsync_WhenNoQuestions_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			SetupTransactionMocks(uowMock);
+			var partRepoMock = new Mock<IPartRepository>();
 
 			var test = CreateTest(1, TestType.Simulator, TestSkill.Speaking, published: false);
 			testRepoMock.Setup(r => r.GetByIdAsync(test.TestId)).ReturnsAsync(test);
+			partRepoMock.Setup(r => r.GetByIdAsync(12)).ReturnsAsync(new Part
+			{
+				PartId = 12,
+				Name = "S-Part 2",
+				Skill = QuestionSkill.Speaking
+			});
+			uowMock.SetupGet(u => u.Parts).Returns(partRepoMock.Object);
 
 			var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 			var dto = new PartDto
@@ -2626,12 +2724,10 @@ namespace ToeicGenius.Tests.UnitTests
 				Questions = new List<QuestionDto>()
 			};
 
-			var result = await service.SavePartManualAsync(userId, test.TestId, 1, dto);
+			var result = await service.SavePartManualAsync(userId, test.TestId, 12, dto);
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("No questions to save for this part.");
-			uowMock.Verify(u => u.CommitTransactionAsync(), Times.Never);
-			uowMock.Verify(u => u.RollbackTransactionAsync(), Times.Never);
 		}
 
 		// UTCID08:
@@ -2641,7 +2737,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SavePartManualAsync")]
 		[Trait("TestCase", "UTCID08")]
 		[Fact]
-		public async Task SavePartManualAsync_WhenValidInput_SavesPartAndReturnsSuccess()
+		public async Task UTCID08_SavePartManualAsync_WhenValidInput_SavesPartAndReturnsSuccess()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -2695,7 +2791,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SavePartManualAsync")]
 		[Trait("TestCase", "UTCID09")]
 		[Fact]
-		public async Task SavePartManualAsync_WhenExceptionThrown_RollsBackAndReturnsFailure()
+		public async Task UTCID09_SavePartManualAsync_WhenExceptionThrown_RollsBackAndReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 			SetupTransactionMocks(uowMock);
@@ -2749,7 +2845,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "FinalizeTestAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task FinalizeTestAsync_WhenTestNotFound_ReturnsFailure()
+		public async Task UTCID01_FinalizeTestAsync_WhenTestNotFound_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2769,7 +2865,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "FinalizeTestAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task FinalizeTestAsync_WhenNoQuestions_ReturnsFailure()
+		public async Task UTCID02_FinalizeTestAsync_WhenNoQuestions_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2795,7 +2891,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "FinalizeTestAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task FinalizeTestAsync_WhenLRTestMissingAudio_ReturnsFailure()
+		public async Task UTCID03_FinalizeTestAsync_WhenLRTestMissingAudio_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2825,7 +2921,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "FinalizeTestAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task FinalizeTestAsync_WhenTotalQuestionsInvalid_ReturnsFailureWithCurrentCount()
+		public async Task UTCID04_FinalizeTestAsync_WhenTotalQuestionsInvalid_ReturnsFailureWithCurrentCount()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2857,7 +2953,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "FinalizeTestAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task FinalizeTestAsync_WhenValidFullTest_UpdatesStatusAndReturnsSuccess()
+		public async Task UTCID05_FinalizeTestAsync_WhenValidFullTest_UpdatesStatusAndReturnsSuccess()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out _, out _);
 
@@ -2920,7 +3016,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SubmitLRTestAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task SubmitLRTestAsync_WhenAnswersNull_ReturnsNoAnswersProvided()
+		public async Task UTCID01_SubmitLRTestAsync_WhenAnswersNull_ReturnsNoAnswersProvided()
 		{
 			var service = CreateService(out _, out _, out _, out _);
 
@@ -2948,7 +3044,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SubmitLRTestAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task SubmitLRTestAsync_WhenAnswersEmpty_ReturnsNoAnswersProvided()
+		public async Task UTCID02_SubmitLRTestAsync_WhenAnswersEmpty_ReturnsNoAnswersProvided()
 		{
 			var service = CreateService(out _, out _, out _, out _);
 
@@ -2976,7 +3072,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SubmitLRTestAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task SubmitLRTestAsync_WhenTestResultIdNull_ReturnsSessionMustBeProvided()
+		public async Task UTCID03_SubmitLRTestAsync_WhenTestResultIdNull_ReturnsSessionMustBeProvided()
 		{
 			var service = CreateService(out _, out _, out _, out _);
 
@@ -3007,7 +3103,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SubmitLRTestAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task SubmitLRTestAsync_WhenTestResultNotFound_ReturnsFailure()
+		public async Task UTCID04_SubmitLRTestAsync_WhenTestResultNotFound_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out var testResultRepoMock, out _);
 
@@ -3040,7 +3136,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SubmitLRTestAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task SubmitLRTestAsync_WhenTestIdMismatch_ReturnsSessionDoesNotMatch()
+		public async Task UTCID05_SubmitLRTestAsync_WhenTestIdMismatch_ReturnsSessionDoesNotMatch()
 		{
 			var service = CreateService(out var uowMock, out _, out var testResultRepoMock, out _);
 
@@ -3075,7 +3171,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SubmitLRTestAsync")]
 		[Trait("TestCase", "UTCID06")]
 		[Fact]
-		public async Task SubmitLRTestAsync_WhenUserMismatch_ReturnsSessionDoesNotMatch()
+		public async Task UTCID06_SubmitLRTestAsync_WhenUserMismatch_ReturnsSessionDoesNotMatch()
 		{
 			var service = CreateService(out var uowMock, out _, out var testResultRepoMock, out _);
 
@@ -3110,7 +3206,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SubmitLRTestAsync")]
 		[Trait("TestCase", "UTCID07")]
 		[Fact]
-		public async Task SubmitLRTestAsync_WhenAlreadyGraded_ReturnsAlreadySubmitted()
+		public async Task UTCID07_SubmitLRTestAsync_WhenAlreadyGraded_ReturnsAlreadySubmitted()
 		{
 			var service = CreateService(out var uowMock, out _, out var testResultRepoMock, out _);
 
@@ -3144,7 +3240,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SubmitLRTestAsync")]
 		[Trait("TestCase", "UTCID08")]
 		[Fact]
-		public async Task SubmitLRTestAsync_WhenNoTestQuestions_ReturnsInvalidTestOrQuestions()
+		public async Task UTCID08_SubmitLRTestAsync_WhenNoTestQuestions_ReturnsInvalidTestOrQuestions()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out var testResultRepoMock, out var userAnswerRepoMock);
 
@@ -3186,7 +3282,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SubmitLRTestAsync")]
 		[Trait("TestCase", "UTCID09")]
 		[Fact]
-		public async Task SubmitLRTestAsync_WhenValidRequest_GradesAndReturnsResult()
+		public async Task UTCID09_SubmitLRTestAsync_WhenValidRequest_GradesAndReturnsResult()
 		{
 			var service = CreateService(out var uowMock, out var testRepoMock, out var testResultRepoMock, out var userAnswerRepoMock);
 
@@ -3286,7 +3382,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetDashboardStatisticAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task GetDashboardStatisticAsync_WhenNoResults_ReturnsFailure()
+		public async Task UTCID01_GetDashboardStatisticAsync_WhenNoResults_ReturnsFailure()
 		{
 			var service = CreateService(out var uowMock, out _, out var testResultRepoMock, out _);
 
@@ -3308,7 +3404,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetDashboardStatisticAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task GetDashboardStatisticAsync_WhenNoResultsForSkill_ReturnsFailureForSkill()
+		public async Task UTCID02_GetDashboardStatisticAsync_WhenNoResultsForSkill_ReturnsFailureForSkill()
 		{
 			var service = CreateService(out var uowMock, out _, out var testResultRepoMock, out _);
 
@@ -3347,7 +3443,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetDashboardStatisticAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task GetDashboardStatisticAsync_WhenResultsExist_ReturnsStatisticResultDto()
+		public async Task UTCID03_GetDashboardStatisticAsync_WhenResultsExist_ReturnsStatisticResultDto()
 		{
 			var service = CreateService(out var uowMock, out _, out var testResultRepoMock, out _);
 

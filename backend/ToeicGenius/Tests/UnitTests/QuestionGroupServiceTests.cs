@@ -10,8 +10,11 @@ using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.GroupQuestion;
 using ToeicGenius.Domains.DTOs.Requests.Question;
 using ToeicGenius.Domains.DTOs.Requests.QuestionGroup;
+using ToeicGenius.Domains.DTOs.Responses.Question;
+using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
+using ToeicGenius.Repositories.Implementations;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Implementations;
 using ToeicGenius.Services.Interfaces;
@@ -45,53 +48,379 @@ namespace ToeicGenius.Tests.UnitTests
 		#region 1. QuestionGroupService_GetDetailAsync
 		// UTCID01: Expected: True -> data: null
 		// Input: questionGroupId = -1 (non-existing ID)
+		[Trait("Category", "GetDetailAsync")]
+		[Trait("TestCase", "UTCID01")]
+		[Fact]
+		public async Task UTCID01_GetDetailAsync_IdNegative_ReturnsNull()
+		{
+			// Arrange
+			var questionId = -1;
+			_questionGroupRepo.Setup(u => u.GetGroupWithQuestionsAsync(questionId))
+				.ReturnsAsync((QuestionGroupResponseDto)null!);
 
+			var service = CreateService();
+
+			// Act
+			var result = await service.GetDetailAsync(questionId);
+
+			// Assert
+			result.Data.Should().BeNull();
+			result.IsSuccess.Should().BeTrue();
+		}
 		// UTCID02: Expected: True -> data: null
 		// Input: questionGroupId = 0 (non-existing ID)
+		[Trait("Category", "GetDetailAsync")]
+		[Trait("TestCase", "UTCID02")]
+		[Fact]
+		public async Task UTCID02_GetDetailAsync_IdZero_ReturnsNull()
+		{
+			// Arrange
+			var questionId = 0;
+			_questionGroupRepo.Setup(u => u.GetGroupWithQuestionsAsync(questionId))
+				.ReturnsAsync((QuestionGroupResponseDto)null!);
 
+			var service = CreateService();
+
+			// Act
+			var result = await service.GetDetailAsync(questionId);
+
+			// Assert
+			result.Data.Should().BeNull();
+			result.IsSuccess.Should().BeTrue();
+		}
 		// UTCID03: Expected: True -> data: valid QuestionGroupDetailDto
 		// Input: questionGroupId = 1 (existing ID)
+		[Trait("Category", "GetDetailAsync")]
+		[Trait("TestCase", "UTCID03")]
+		[Fact]
+		public async Task UTCID03_GetDetailAsync_IdExist_Returns()
+		{
+			var questionId = 1;
 
+			var expectedResponse = new QuestionGroupResponseDto
+			{
+				QuestionGroupId = questionId,
+				PassageContent = "Test Question Content",
+				PartId = 1,
+			};
+			// Arrange
+			_questionGroupRepo.Setup(u => u.GetGroupWithQuestionsAsync(questionId))
+				.ReturnsAsync(expectedResponse);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.GetDetailAsync(questionId);
+
+			// Assert
+			// Assert
+			result.Data.Should().NotBeNull();
+			result.Data.QuestionGroupId.Should().Be(questionId);
+			result.Data.PassageContent.Should().Be("Test Question Content");
+			result.Data.PartId.Should().Be(1);
+		}
 		// UTCID04: Expected: False -> ex.Message from exception
 		// Input: questionGroupId = 2
+		[Trait("Category", "GetDetailAsync")]
+		[Trait("TestCase", "UTCID02")]
+		[Fact]
+		public async Task UTCID04_GetDetailAsync_Exception()
+		{
+			// Arrange
+			var questionId = 2;
+			_questionGroupRepo.Setup(u => u.GetGroupWithQuestionsAsync(questionId))
+				.ThrowsAsync(new Exception("DB error"));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.GetDetailAsync(questionId);
+
+			// Assert
+
+			result.Data.Should().BeNull();
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("DB error");
+		}
 		#endregion
 
 		#region 2. QuestionGroupService_FilterQuestionGroupsAsync
+		private PaginationResponse<QuestionListItemDto> CreatePaginationResponse(
+			int count,
+			int totalCount,
+			int currentPage = 1,
+			int pageSize = 6)
+		{
+			var data = Enumerable.Range(1, count).Select(i => new QuestionListItemDto
+			{
+				Id = i,
+				PartId = 1,
+				Content = $"Question {i}",
+				IsGroupQuestion = true,
+				Status = CommonStatus.Active
+			});
+
+			return new PaginationResponse<QuestionListItemDto>(data, totalCount, currentPage, pageSize);
+		}
+
 		// UTCID01: Expected: True -> data: PaginationResponse<QuestionListItemDto> have 3 elements, all elements have IsGroupQuestion = true, status = "Active", skill = "Listening, PartName = "S-Part 1", Content contain "How old"
 		// Input: QuestionGroupFilterDto with PartId=1, keyWord = "How old", skill = 3, sortOrder=desc, page=1,pageSize=6,status=Active
-		
+		[Trait("Category", "FilterQuestionGroupAsync")]
+		[Trait("TestCase", "UTCID01")]
+		[Fact]
+		public async Task UTCID01_FilterQuestionGroupAsync_FullFilter_ReturnsData()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 3, totalCount: 3);
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(1, "How old", 3, "desc", 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(1, "How old", 3, "desc", 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data.Should().NotBeNull();
+			result.Data!.DataPaginated.Should().HaveCount(3);
+			result.Data!.DataPaginated.All(q => q.IsGroupQuestion).Should().BeTrue();
+			_uow.Verify(u => u.QuestionGroups.FilterGroupAsync(
+				1, "How old", 3, "desc", 1, 6, CommonStatus.Active), Times.Once);
+		}
+
+
 		// UTCID02: Expected: True -> data: PaginationResponse<QuestionListItemDto> have 6 elements, total 10 elements, IsGroupQuestion = true, order by CreatedAt desc
 		// Input: QuestionGroupFilterDto with page=1,pageSize=6,status=Active
-		
+		[Trait("Category", "FilterQuestionGroupAsync")]
+		[Trait("TestCase", "UTCID02")]
+		[Fact]
+		public async Task UTCID02_FilterQuestionGroupAsync_EmptyFilter_ReturnsDefaultList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 6, totalCount: 10);
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().HaveCount(6);
+			result.Data.TotalCount.Should().Be(10);
+		}
 		// UTCID03: Expected: True -> data: PaginationResponse<QuestionListItemDto> with empty data
 		// Input: QuestionGroupFilterDto with PartId=0, sortOrder=desc, page=1,pageSize=6,status=Active
+		[Trait("Category", "FilterQuestionGroupAsync")]
+		[Trait("TestCase", "UTCID03")]
+		[Fact]
+		public async Task UTCID03_FilterQuestionGroupAsync_PartIdZero_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(0, null, null, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
 
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(0, null, null, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 		// UTCID04: Expected: True -> PaginationResponse<QuestionListItemDto> with empty data
-		// Input: QuestionGroupFilterDto with PartId=0, sortOrder=desc, page=1,pageSize=6,status=Active
+		// Input: QuestionGroupFilterDto with PartId=null, sortOrder=desc, page=1,pageSize=6,status=Active
+		[Trait("Category", "FilterQuestionGroupAsync")]
+		[Trait("TestCase", "UTCID04")]
+		[Fact]
+		public async Task UTCID04_FilterQuestionGroupAsync_PartIdNull_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
 
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 		// UTCID05: Expected: False -> PaginationResponse<QuestionListItemDto> with empty data
 		// Input: QuestionGroupFilterDto with skill = 0, sortOrder=desc, page=1,pageSize=6,status=Active
+		[Trait("Category", "FilterQuestionGroupAsync")]
+		[Trait("TestCase", "UTCID05")]
+		[Fact]
+		public async Task UTCID05_FilterQuestionGroupAsync_SkillZero_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, 0, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
 
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(null, null, 0, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 		// UTCID06: Expected: False -> ex.Message from exception
 		// Input: QuestionGroupFilterDto with page=0,pageSize=6,status=Active
+		[Trait("Category", "FilterQuestionAsync")]
+		[Trait("TestCase", "UTCID06")]
+		[Fact]
+		public async Task UTCID06_FilterQuestionGroupAsync_PageZero_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0, currentPage: 0);
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 0, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
 
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(null, null, null, null!, 0, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 		// UTCID07: Expected: True -> PaginationResponse<QuestionListItemDto> with empty data
 		// Input: QuestionGroupFilterDto with page=1,pageSize=0,status=Active
+		[Trait("Category", "FilterQuestionGroupAsync")]
+		[Trait("TestCase", "UTCID07")]
+		[Fact]
+		public async Task UTCID07_FilterQuestionGroupAsync_PageSizeZero_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0, pageSize: 0);
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 0, CommonStatus.Active))
+				.ReturnsAsync(response);
 
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(null, null, null, null!, 1, 0, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 		// UTCID08: Expected: True -> PaginationResponse<QuestionListItemDto> with empty data
 		// Input: QuestionGroupFilterDto with partId =-1,sortOrder=desc, page=1,pageSize=6,status=Active
+		[Trait("Category", "FilterQuestionGroupAsync")]
+		[Trait("TestCase", "UTCID08")]
+		[Fact]
+		public async Task UTCID08_FilterQuestionGroupAsync_PartIdNegative_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(-1, null, null, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
 
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(-1, null, null, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 		// UTCID09: Expected: True -> PaginationResponse<QuestionListItemDto> with empty data
 		// Input: QuestionGroupFilterDto with sortOrder=desc, page=1,pageSize=6,status=Active
+		[Trait("Category", "FilterQuestionGroupAsync")]
+		[Trait("TestCase", "UTCID09")]
+		[Fact]
+		public async Task UTCID09_FilterQuestionGroupAsync_QuestionTypeNegative_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
 
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 		// UTCID10: Expected: True -> PaginationResponse<QuestionListItemDto> with empty data
 		// Input: QuestionGroupFilterDto with skill=-1, sortOrder=desc, page=1,pageSize=6,status=Active
+		[Trait("Category", "FilterQuestionGroupAsync")]
+		[Trait("TestCase", "UTCID10")]
+		[Fact]
+		public async Task UTCID10_FilterQuestionGroupAsync_SkillNegative_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, -1, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
 
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(null, null, -1, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 		// UTCID11: Expected: False -> ex.Message from exception
 		// Input: QuestionGroupFilterDto with sortOrder=desc, page=-1,pageSize=6,status=Active
-		
+		[Trait("Category", "FilterQuestionGroupAsync")]
+		[Trait("TestCase", "UTCID11")]
+		[Fact]
+		public async Task UTCID11_FilterQuestionGroupAsync_PageNegative_ReturnsFailure()
+		{
+			// Arrange
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, -1, 6, CommonStatus.Active))
+				.ThrowsAsync(new Exception("Invalid page"));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(null, null, null, null!, -1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Invalid page");
+		}
 		// UTCID12: Expected: False -> ex.Message from exception
 		// Input: QuestionGroupFilterDto with sortOrder=desc, page=1,pageSize=-1,status=Active
+		[Trait("Category", "FilterQuestionGroupAsync")]
+		[Trait("TestCase", "UTCID12")]
+		[Fact]
+		public async Task UTCID12_FilterQuestionGroupAsync_PageSizeNegative_ReturnsFailure()
+		{
+			// Arrange
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, -1, CommonStatus.Active))
+				.ThrowsAsync(new Exception("Invalid page size"));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterQuestionGroupAsync(null, null, null, null!, 1, -1, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Invalid page size");
+		}
+
 		#endregion
 
 		#region 3. QuestionGroupService_CreateAsync
@@ -149,16 +478,13 @@ namespace ToeicGenius.Tests.UnitTests
 
 		private void SetupListeningPart(int partId)
 		{
-			_uow.Setup(u => u.Parts.GetByIdAsync(partId)).ReturnsAsync(new Part
-			{
-				PartId = partId,
-				Skill = QuestionSkill.Listening
-			});
+			_partRepo.Setup(p => p.GetByIdAsync(4))
+				.ReturnsAsync(new Part { PartId = partId, Skill = QuestionSkill.Listening });
 		}
 
 		private void SetupReadingPart(int partId)
 		{
-			_uow.Setup(u => u.Parts.GetByIdAsync(partId)).ReturnsAsync(new Part
+			_partRepo.Setup(p => p.GetByIdAsync(partId)).ReturnsAsync(new Part
 			{
 				PartId = partId,
 				Skill = QuestionSkill.Reading
@@ -279,52 +605,52 @@ namespace ToeicGenius.Tests.UnitTests
 		}
 		// UTCID01: Expected: False -> "Một nhóm câu hỏi phải có từ 2 đến 5 câu hỏi đơn."
 		// QuestionGroupRequestDto: PartId=4, Audio="validAudio.mp3", PassageContent="Example passage content", Questions (1 question with valid option)
-		
+
 		// UTCID02: Expected: True -> "Thao tác thành công."
 		// QuestionGroupRequestDto: PartId=4, Audio="validAudio.mp3",Image="validImage.jpg", PassageContent="Example passage content", Questions (2 question with valid option)
-		
+
 		// UTCID03: Expected: True -> "Thao tác thành công."
 		// QuestionGroupRequestDto: PartId=4, Audio="validAudio.mp3", PassageContent="Example passage content", Questions (5 question with valid option)
-		
+
 		// UTCID04: Expected: False -> "Một nhóm câu hỏi phải có từ 2 đến 5 câu hỏi đơn."
 		// QuestionGroupRequestDto: PartId=4, Audio="validAudio.mp3", PassageContent="Example passage content", Questions (6 question with valid option)
-		
+
 		// UTCID05: Expected: False -> "Định dạng file âm thanh không hợp lệ. Chỉ chấp nhận .mp3, .wav, .ogg và .m4a."
 		// QuestionGroupRequestDto: PartId=4, Audio="invalidType.zip", PassageContent="Example passage content", Questions (2 question with valid option)
-		
+
 		// UTCID06: Expected: False -> "Dung lượng file âm thanh vượt quá 70MB."
 		// QuestionGroupRequestDto: PartId=4, Audio="invalidSize.mp3", PassageContent="Example passage content", Questions (2 question with valid option)
-		
+
 		// UTCID07: Expected: False -> "Phần Listening part yêu cầu phải có file âm thanh."
 		// QuestionGroupRequestDto: PartId=4, Audio=null, PassageContent="Example passage content", Questions (2 question with valid option)
-		
+
 		// UTCID08: Expected: False -> "Định dạng file hình ảnh không hợp lệ. Chỉ chấp nhận .jpg, .jpeg, .png, .bmp, .gif, .webp."
 		// QuestionGroupRequestDto: PartId=7, Image="invalidType.zip", PassageContent="Example passage content", Questions (2 question with valid option)
-		
+
 		// UTCID09: Expected: False -> "Dung lượng file hình ảnh vượt quá 5MB."
 		// QuestionGroupRequestDto: PartId=7, Image="invalidSize.jpg", PassageContent="Example passage content", Questions (2 question with valid option)
-		
+
 		// UTCID10: Expected: True -> "Thao tác thành công."
 		// QuestionGroupRequestDto: PartId=7, PassageContent="Example passage content", Questions (2 question with valid option)
-		
+
 		// UTCID11: Expected: False -> "Các nhãn (label) của đáp án phải là duy nhất, không được trùng nhau."
 		// QuestionGroupRequestDto: PartId=7, PassageContent="Example passage content", Questions (2 question with invalid label option)
-		
+
 		// UTCID12: Expected: False -> "Số lượng đáp án phải đúng bằng 4."
 		// QuestionGroupRequestDto: PartId=7, PassageContent="Example passage content", Questions (2 question with invalid quantity option)
-		
+
 		// UTCID13: Expected: False -> "Phải có ít nhất một đáp án được chọn là đúng."
 		// QuestionGroupRequestDto: PartId=7, PassageContent="Example passage content", Questions (2 question with invalid quantity correct option)
-		
+
 		// UTCID14: Expected: False -> ex.Message from exception
 		// QuestionGroupRequestDto: PartId=7, PassageContent="Example passage content", Questions (5 question with invalid option)
-		
+
 		// UTCID01: Expected: False -> "Một nhóm câu hỏi phải có từ 2 đến 5 câu hỏi đơn."
 		// QuestionGroupRequestDto: PartId=4, Audio="validAudio.mp3", PassageContent="Example passage content", Questions (1 question with valid option)
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task CreateAsync_WithLessThanTwoQuestions_ReturnsFailure()
+		public async Task UTCID01_CreateAsync_WithLessThanTwoQuestions_ReturnsFailure()
 		{
 			var request = BuildRequest(4, questionCount: 1);
 			var service = CreateService();
@@ -341,7 +667,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task CreateAsync_ListeningPartWithValidAudioAndImage_ReturnsSuccess()
+		public async Task UTCID02_CreateAsync_ListeningPartWithValidAudioAndImage_ReturnsSuccess()
 		{
 			var audioFile = CreateMockFile("audio.mp3", "audio/mpeg").Object;
 			var imageFile = CreateMockFile("picture.jpg", "image/jpeg").Object;
@@ -370,7 +696,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task CreateAsync_WithFiveQuestions_ReturnsSuccess()
+		public async Task UTCID03_CreateAsync_WithFiveQuestions_ReturnsSuccess()
 		{
 			var audioFile = CreateMockFile("audio.mp3", "audio/mpeg").Object;
 			var request = BuildRequest(4, questionCount: 5, audio: audioFile);
@@ -392,7 +718,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task CreateAsync_WithMoreThanFiveQuestions_ReturnsFailure()
+		public async Task UTCID04_CreateAsync_WithMoreThanFiveQuestions_ReturnsFailure()
 		{
 			var request = BuildRequest(4, questionCount: 6);
 			var service = CreateService();
@@ -408,7 +734,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task CreateAsync_WithInvalidAudioFormat_ReturnsFailure()
+		public async Task UTCID05_CreateAsync_WithInvalidAudioFormat_ReturnsFailure()
 		{
 			var audioFile = CreateMockFile("invalid.zip", "application/zip").Object;
 			var request = BuildRequest(4, questionCount: 2, audio: audioFile);
@@ -427,7 +753,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID06")]
 		[Fact]
-		public async Task CreateAsync_WithOversizedAudio_ReturnsFailure()
+		public async Task UTCID06_CreateAsync_WithOversizedAudio_ReturnsFailure()
 		{
 			var audioFile = CreateMockFile("audio.mp3", "audio/mpeg", length: 71 * 1024 * 1024).Object;
 			var request = BuildRequest(4, questionCount: 2, audio: audioFile);
@@ -446,8 +772,9 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID07")]
 		[Fact]
-		public async Task CreateAsync_ListeningPartWithoutAudio_ReturnsFailure()
+		public async Task UTCID07_CreateAsync_ListeningPartWithoutAudio_ReturnsFailure()
 		{
+
 			var request = BuildRequest(4, questionCount: 2, audio: null);
 			SetupListeningPart(4);
 			SetupSuccessPersistence();
@@ -464,7 +791,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID08")]
 		[Fact]
-		public async Task CreateAsync_WithInvalidImageFormat_ReturnsFailure()
+		public async Task UTCID08_CreateAsync_WithInvalidImageFormat_ReturnsFailure()
 		{
 			var imageFile = CreateMockFile("invalid.zip", "application/zip").Object;
 			var request = BuildRequest(7, questionCount: 2, image: imageFile);
@@ -483,7 +810,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID09")]
 		[Fact]
-		public async Task CreateAsync_WithOversizedImage_ReturnsFailure()
+		public async Task UTCID09_CreateAsync_WithOversizedImage_ReturnsFailure()
 		{
 			var imageFile = CreateMockFile("image.jpg", "image/jpeg", length: 6 * 1024 * 1024).Object;
 			var request = BuildRequest(7, questionCount: 2, image: imageFile);
@@ -502,7 +829,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID10")]
 		[Fact]
-		public async Task CreateAsync_ReadingPartWithoutMedia_ReturnsSuccess()
+		public async Task UTCID10_CreateAsync_ReadingPartWithoutMedia_ReturnsSuccess()
 		{
 			var request = BuildRequest(7, questionCount: 2);
 			SetupReadingPart(7);
@@ -520,7 +847,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID11")]
 		[Fact]
-		public async Task CreateAsync_WithDuplicateLabels_ReturnsFailure()
+		public async Task UTCID11_CreateAsync_WithDuplicateLabels_ReturnsFailure()
 		{
 			var request = BuildRequest(7, questionCount: 2, questionFactory: _ =>
 			{
@@ -552,7 +879,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID12")]
 		[Fact]
-		public async Task CreateAsync_WithInvalidOptionCount_ReturnsFailure()
+		public async Task UTCID12_CreateAsync_WithInvalidOptionCount_ReturnsFailure()
 		{
 			var request = BuildRequest(7, questionCount: 2, questionFactory: _ =>
 			{
@@ -583,7 +910,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID13")]
 		[Fact]
-		public async Task CreateAsync_WithNoCorrectAnswer_ReturnsFailure()
+		public async Task UTCID13_CreateAsync_WithNoCorrectAnswer_ReturnsFailure()
 		{
 			var request = BuildRequest(7, questionCount: 2, questionFactory: _ =>
 			{
@@ -615,7 +942,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_CreateAsync")]
 		[Trait("TestCase", "UTCID14")]
 		[Fact]
-		public async Task CreateAsync_WhenRepositoryThrows_ReturnsFailureAndRollbackFiles()
+		public async Task UTCID14_CreateAsync_WhenRepositoryThrows_ReturnsFailureAndRollbackFiles()
 		{
 			var audioFile = CreateMockFile("audio.mp3", "audio/mpeg").Object;
 			var request = BuildRequest(7, questionCount: 2, audio: audioFile);
@@ -660,7 +987,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task UpdateAsync_WithLessThanTwoQuestions_ReturnsFailure()
+		public async Task UTCID01_UpdateAsync_WithLessThanTwoQuestions_ReturnsFailure()
 		{
 			var groupId = 1;
 			var partId = 4;
@@ -682,7 +1009,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task UpdateAsync_ListeningPartWithValidAudioAndImage_ReturnsSuccess()
+		public async Task UTCID02_UpdateAsync_ListeningPartWithValidAudioAndImage_ReturnsSuccess()
 		{
 			var groupId = 1;
 			var partId = 4;
@@ -712,7 +1039,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task UpdateAsync_WithFiveQuestions_ReturnsSuccess()
+		public async Task UTCID03_UpdateAsync_WithFiveQuestions_ReturnsSuccess()
 		{
 			var groupId = 1;
 			var partId = 4;
@@ -736,7 +1063,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task UpdateAsync_WithMoreThanFiveQuestions_ReturnsFailure()
+		public async Task UTCID04_UpdateAsync_WithMoreThanFiveQuestions_ReturnsFailure()
 		{
 			var groupId = 1;
 			var partId = 4;
@@ -757,7 +1084,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task UpdateAsync_WithInvalidAudioFormat_ReturnsFailure()
+		public async Task UTCID05_UpdateAsync_WithInvalidAudioFormat_ReturnsFailure()
 		{
 			var groupId = 1;
 			var partId = 4;
@@ -779,7 +1106,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID06")]
 		[Fact]
-		public async Task UpdateAsync_WithOversizedAudio_ReturnsFailure()
+		public async Task UTCID06_UpdateAsync_WithOversizedAudio_ReturnsFailure()
 		{
 			var groupId = 1;
 			var partId = 4;
@@ -801,7 +1128,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID07")]
 		[Fact]
-		public async Task UpdateAsync_ListeningPartWithoutAudio_ReturnsFailure()
+		public async Task UTCID07_UpdateAsync_ListeningPartWithoutAudio_ReturnsFailure()
 		{
 			var groupId = 1;
 			var partId = 4;
@@ -823,7 +1150,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID08")]
 		[Fact]
-		public async Task UpdateAsync_WithInvalidImageFormat_ReturnsFailure()
+		public async Task UTCID08_UpdateAsync_WithInvalidImageFormat_ReturnsFailure()
 		{
 			var groupId = 1;
 			var partId = 7;
@@ -845,7 +1172,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID09")]
 		[Fact]
-		public async Task UpdateAsync_WithOversizedImage_ReturnsFailure()
+		public async Task UTCID09_UpdateAsync_WithOversizedImage_ReturnsFailure()
 		{
 			var groupId = 1;
 			var partId = 7;
@@ -867,7 +1194,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID10")]
 		[Fact]
-		public async Task UpdateAsync_ReadingPartWithoutMedia_ReturnsSuccess()
+		public async Task UTCID10_UpdateAsync_ReadingPartWithoutMedia_ReturnsSuccess()
 		{
 			var groupId = 1;
 			var partId = 7;
@@ -889,7 +1216,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID11")]
 		[Fact]
-		public async Task UpdateAsync_WithDuplicateLabels_ReturnsFailure()
+		public async Task UTCID11_UpdateAsync_WithDuplicateLabels_ReturnsFailure()
 		{
 			var groupId = 1;
 			var partId = 7;
@@ -925,7 +1252,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID12")]
 		[Fact]
-		public async Task UpdateAsync_WithInvalidOptionCount_ReturnsFailure()
+		public async Task UTCID12_UpdateAsync_WithInvalidOptionCount_ReturnsFailure()
 		{
 			var groupId = 1;
 			var partId = 7;
@@ -960,7 +1287,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID13")]
 		[Fact]
-		public async Task UpdateAsync_WithNoCorrectAnswer_ReturnsFailure()
+		public async Task UTCID13_UpdateAsync_WithNoCorrectAnswer_ReturnsFailure()
 		{
 			var groupId = 1;
 			var partId = 7;
@@ -996,7 +1323,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID14")]
 		[Fact]
-		public async Task UpdateAsync_WhenRepositoryThrows_ReturnsFailureAndRollbackFiles()
+		public async Task UTCID14_UpdateAsync_WhenRepositoryThrows_ReturnsFailureAndRollbackFiles()
 		{
 			var groupId = 1;
 			var partId = 7;
@@ -1021,7 +1348,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "QuestionGroupService_UpdateAsync")]
 		[Trait("TestCase", "UTCID15")]
 		[Fact]
-		public async Task UpdateAsync_WhenGroupNotFound_ReturnsFailure()
+		public async Task UTCID15_UpdateAsync_WhenGroupNotFound_ReturnsFailure()
 		{
 			var groupId = 1;
 			var partId = 7;
