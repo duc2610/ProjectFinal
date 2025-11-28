@@ -29,14 +29,15 @@ export default function FlashcardDetail() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [flashcardSet, setFlashcardSet] = useState(null);
   const [flashcards, setFlashcards] = useState([]);
-  const [cardStatusMap, setCardStatusMap] = useState(new Map()); // Map cardId -> status
+  const [cardStatusMap, setCardStatusMap] = useState(new Map());
   const [loading, setLoading] = useState(false);
-  const [studyMode, setStudyMode] = useState("flashcard"); // flashcard, learn
+  const [studyMode, setStudyMode] = useState("flashcard");
   const [addCardModalOpen, setAddCardModalOpen] = useState(false);
   const [editSetModalOpen, setEditSetModalOpen] = useState(false);
   const [editCardModalOpen, setEditCardModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState(null);
   const [showAllVocab, setShowAllVocab] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     if (setId) {
@@ -47,6 +48,7 @@ export default function FlashcardDetail() {
   const fetchFlashcardDetail = async () => {
     try {
       setLoading(true);
+      setAccessDenied(false);
       const [setData, cardsData] = await Promise.all([
         getFlashcardSetById(setId),
         getFlashcardsBySetId(setId),
@@ -68,13 +70,46 @@ export default function FlashcardDetail() {
           }
         } catch (studyError) {
           console.error("Error fetching study session:", studyError);
+          // Kiểm tra nếu lỗi study session cũng là lỗi quyền truy cập
+          const studyErrorMsg = studyError?.response?.data?.message || "";
+          const studyStatus = studyError?.response?.status;
+          const isStudyAccessDenied = studyStatus === 403 || 
+                                     studyErrorMsg.toLowerCase().includes("access denied") ||
+                                     studyErrorMsg.toLowerCase().includes("riêng tư") ||
+                                     studyErrorMsg.toLowerCase().includes("private");
+          
+          if (isStudyAccessDenied) {
+            setAccessDenied(true);
+            message.error("Bạn không có quyền truy cập flashcard này");
+            setTimeout(() => {
+              navigate("/flashcard");
+            }, 1000);
+            return;
+          }
           // Không hiển thị lỗi, chỉ không hiển thị trạng thái
         }
       }
     } catch (error) {
       console.error("Error fetching flashcard detail:", error);
       const errorMsg = error?.response?.data?.message || "Không thể tải chi tiết flashcard";
-      message.error(errorMsg);
+      const status = error?.response?.status;
+      
+      // Kiểm tra nếu là lỗi quyền truy cập (403) hoặc message chứa "Access denied" hoặc "private"
+      const isAccessDenied = status === 403 || 
+                            errorMsg.toLowerCase().includes("access denied") ||
+                            errorMsg.toLowerCase().includes("riêng tư") ||
+                            errorMsg.toLowerCase().includes("private");
+      
+      if (isAccessDenied) {
+        setAccessDenied(true);
+        message.error("Bạn không có quyền truy cập flashcard này");
+        // Tự động chuyển hướng về trang flashcard sau 1 giây
+        setTimeout(() => {
+          navigate("/flashcard");
+        }, 1000);
+      } else {
+        message.error(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -167,7 +202,7 @@ export default function FlashcardDetail() {
   const currentCard = flashcards[currentCardIndex];
   const vocabToRender = showAllVocab ? flashcards : flashcards.slice(0, 10);
 
-  if (loading) {
+  if (loading || accessDenied) {
     return (
       <div style={{ textAlign: "center", padding: "100px 0" }}>
         <Spin size="large" />

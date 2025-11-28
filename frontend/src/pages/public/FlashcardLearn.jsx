@@ -25,6 +25,7 @@ export default function FlashcardLearn() {
   const [isCardAnimating, setIsCardAnimating] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [studyStats, setStudyStats] = useState(null);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     fetchStudySession();
@@ -35,6 +36,7 @@ export default function FlashcardLearn() {
       if (showLoader) {
         setLoading(true);
       }
+      setAccessDenied(false);
       
       // Nếu chưa đăng nhập, chỉ lấy danh sách flashcard thông thường
       if (!isAuthenticated) {
@@ -85,10 +87,31 @@ export default function FlashcardLearn() {
       }
     } catch (error) {
       console.error("Error fetching study session:", error);
-      // Chỉ hiển thị lỗi nếu đã đăng nhập
-      if (isAuthenticated) {
       const errorMsg = error?.response?.data?.message || "Không thể tải phiên học tập";
-      message.error(errorMsg);
+      const status = error?.response?.status;
+      
+      // Kiểm tra nếu là lỗi quyền truy cập (403) hoặc message chứa "Access denied" hoặc "private"
+      const isAccessDenied = status === 403 || 
+                            errorMsg.toLowerCase().includes("access denied") ||
+                            errorMsg.toLowerCase().includes("riêng tư") ||
+                            errorMsg.toLowerCase().includes("private");
+      
+      if (isAccessDenied) {
+        setAccessDenied(true);
+        message.error("Bạn không có quyền truy cập flashcard này");
+        // Tự động chuyển hướng về trang flashcard sau 1 giây
+        setTimeout(() => {
+          navigate("/flashcard");
+        }, 1000);
+        if (showLoader) {
+          setLoading(false);
+        }
+        return;
+      }
+      
+      // Chỉ hiển thị lỗi nếu đã đăng nhập và không phải lỗi quyền truy cập
+      if (isAuthenticated) {
+        message.error(errorMsg);
       }
       // Fallback: thử lấy danh sách flashcard thông thường
       try {
@@ -99,6 +122,21 @@ export default function FlashcardLearn() {
         setFlashcards(allCards);
       } catch (fallbackError) {
         console.error("Fallback error:", fallbackError);
+        // Kiểm tra lại nếu fallback cũng bị lỗi quyền truy cập
+        const fallbackStatus = fallbackError?.response?.status;
+        const fallbackMsg = fallbackError?.response?.data?.message || "";
+        const isFallbackAccessDenied = fallbackStatus === 403 || 
+                                      fallbackMsg.toLowerCase().includes("access denied") ||
+                                      fallbackMsg.toLowerCase().includes("riêng tư") ||
+                                      fallbackMsg.toLowerCase().includes("private");
+        
+        if (isFallbackAccessDenied) {
+          setAccessDenied(true);
+          message.error("Bạn không có quyền truy cập flashcard này");
+          setTimeout(() => {
+            navigate("/flashcard");
+          }, 1000);
+        }
       }
     } finally {
       if (showLoader) {
@@ -346,7 +384,7 @@ export default function FlashcardLearn() {
     currentCard.status === "learning"
   );
 
-  if (loading) {
+  if (loading || accessDenied) {
     return (
       <div style={{ textAlign: "center", padding: "100px 0" }}>
         <Spin size="large" />
