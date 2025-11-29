@@ -747,6 +747,7 @@ namespace ToeicGenius.Services.Implementations
 					VisibilityStatus = TestVisibilityStatus.Hidden,
 					ParentTestId = parentId,
 					Version = newVersion,
+					CreatedById = userId,
 					CreatedAt = Now
 				};
 
@@ -858,6 +859,7 @@ namespace ToeicGenius.Services.Implementations
 					VisibilityStatus = TestVisibilityStatus.Hidden,
 					CreationStatus = TestCreationStatus.Completed,
 					ParentTestId = existing.ParentTestId ?? existing.TestId,
+					CreatedById = userId,
 					Version = newVersion,
 					CreatedAt = Now
 				};

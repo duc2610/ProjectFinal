@@ -1289,10 +1289,19 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                         {/* Single Questions - Chỉ hiển thị cho các part không phải group parts */}
                                         {!isGroupPart(part.partId) && (
                                             <div style={{ marginBottom: 16 }}>
-                                                {[1, 2, 6].includes(part.partId) && (
+                                                {part.partId === 6 && (
                                                     <Alert
                                                         message="Lưu ý"
-                                                        description={`Part ${part.partId} không yêu cầu nội dung câu hỏi. Câu hỏi sẽ dựa vào hình ảnh và đáp án.`}
+                                                        description={`Part ${part.partId} không yêu cầu nội dung câu hỏi. Câu hỏi sẽ dựa vào passage và đáp án.`}
+                                                        type="info"
+                                                        showIcon
+                                                        style={{ marginBottom: 12 }}
+                                                    />
+                                                )}
+                                                {[1, 2].includes(part.partId) && (
+                                                    <Alert
+                                                        message="Lưu ý"
+                                                        description={`Part ${part.partId}: Nội dung câu hỏi là tùy chọn. Bạn có thể nhập hoặc để trống.`}
                                                         type="info"
                                                         showIcon
                                                         style={{ marginBottom: 12 }}
@@ -1300,15 +1309,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                 )}
                                                 <Space style={{ marginBottom: 8 }}>
                                                     <strong>Câu hỏi đơn ({partData.questions?.length || 0})</strong>
-                                                    {!readOnly && (
-                                                        <Button
-                                                            size="small"
-                                                            icon={<PlusOutlined />}
-                                                            onClick={() => addQuestion(part.partId)}
-                                                        >
-                                                            Thêm câu hỏi
-                                                        </Button>
-                                                    )}
                                                 </Space>
                                             <Collapse>
                                                 {(partData.questions || []).map((q, qIdx) => {
@@ -1340,6 +1340,20 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                     );
                                                 })}
                                             </Collapse>
+                                            {/* Nút thêm câu hỏi ở dưới cùng */}
+                                            {!readOnly && (
+                                                <div style={{ marginTop: 16, textAlign: "center" }}>
+                                                    <Button
+                                                        type="dashed"
+                                                        size="large"
+                                                        icon={<PlusOutlined />}
+                                                        onClick={() => addQuestion(part.partId)}
+                                                        style={{ width: "100%" }}
+                                                    >
+                                                        Thêm câu hỏi
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                         )}
 
@@ -1357,15 +1371,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                 )}
                                                 <Space style={{ marginBottom: 8 }}>
                                                     <strong>Nhóm câu hỏi ({partData.groups?.length || 0})</strong>
-                                                    {!readOnly && (
-                                                        <Button
-                                                            size="small"
-                                                            icon={<PlusOutlined />}
-                                                            onClick={() => addGroup(part.partId)}
-                                                        >
-                                                            Thêm nhóm
-                                                        </Button>
-                                                    )}
                                                 </Space>
                                                 <Collapse>
                                                     {(partData.groups || []).map((group, gIdx) => (
@@ -1397,6 +1402,20 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                         </Panel>
                                                     ))}
                                                 </Collapse>
+                                                {/* Nút thêm nhóm ở dưới cùng */}
+                                                {!readOnly && (
+                                                    <div style={{ marginTop: 16, textAlign: "center" }}>
+                                                        <Button
+                                                            type="dashed"
+                                                            size="large"
+                                                            icon={<PlusOutlined />}
+                                                            onClick={() => addGroup(part.partId)}
+                                                            style={{ width: "100%" }}
+                                                        >
+                                                            Thêm nhóm
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
@@ -1446,8 +1465,9 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
     // Writing và Speaking parts không có options (partId 8-15)
     const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
     
-    // Parts 1, 2, 6: không hiển thị trường content
-    const isContentVisible = !([1, 2, 6].includes(partId));
+    // Part 6: không hiển thị trường content
+    // Part 1, 2: hiển thị trường content nhưng là tùy chọn (không bắt buộc)
+    const isContentVisible = partId !== 6;
     
     // Helper để validate string
     const isValidString = (value) => {
@@ -1486,7 +1506,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
     
     return (
         <Space direction="vertical" style={{ width: "100%" }} size="middle">
-            {/* Chỉ hiển thị trường content cho các part không phải 1, 2, 6 */}
+            {/* Chỉ hiển thị trường content cho các part không phải 6 */}
             {isContentVisible && (
                 <Form.Item 
                     label="Nội dung câu hỏi"
@@ -1512,6 +1532,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                         rows={3}
                         disabled={readOnly}
                         status={contentError ? "error" : ""}
+                        placeholder={isContentOptional ? "Nhập nội dung câu hỏi (nếu có)" : "Nhập nội dung câu hỏi"}
                     />
                 </Form.Item>
             )}
@@ -1832,20 +1853,7 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
 
 
             <Form.Item
-                label={
-                    <Space>
-                        <span>Câu hỏi trong nhóm ({group.questions?.length || 0})</span>
-                        {!readOnly && (
-                            <Button
-                                size="small"
-                                icon={<PlusOutlined />}
-                                onClick={onAddQuestion}
-                            >
-                                Thêm câu hỏi
-                            </Button>
-                        )}
-                    </Space>
-                }
+                label={<span>Câu hỏi trong nhóm ({group.questions?.length || 0})</span>}
             >
                 <Collapse>
                     {(group.questions || []).map((q, qIdx) => {
@@ -1877,6 +1885,20 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
                         );
                     })}
                 </Collapse>
+                {/* Nút thêm câu hỏi trong nhóm ở dưới cùng */}
+                {!readOnly && (
+                    <div style={{ marginTop: 16, textAlign: "center" }}>
+                        <Button
+                            type="dashed"
+                            size="large"
+                            icon={<PlusOutlined />}
+                            onClick={onAddQuestion}
+                            style={{ width: "100%" }}
+                        >
+                            Thêm câu hỏi
+                        </Button>
+                    </div>
+                )}
             </Form.Item>
         </Space>
     );
