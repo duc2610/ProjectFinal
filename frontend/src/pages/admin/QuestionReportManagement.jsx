@@ -143,19 +143,37 @@ export default function QuestionReportManagement() {
         pageSize: merged.pageSize,
       });
 
-      const items = res?.data ?? res?.items ?? res?.results ?? res ?? [];
+      let items = res?.data ?? res?.items ?? res?.results ?? res ?? [];
       const pageNumber =
         res?.pageNumber ?? res?.page ?? merged.page ?? pagination.current;
       const pageSize = res?.pageSize ?? merged.pageSize ?? pagination.pageSize;
       const total = res?.totalRecords ?? res?.total ?? items.length ?? 0;
 
-      setDataSource(
-        Array.isArray(items)
-          ? items
-          : Array.isArray(items.data)
-          ? items.data
-          : []
-      );
+      const itemsArray = Array.isArray(items)
+        ? items
+        : Array.isArray(items.data)
+        ? items.data
+        : [];
+
+      // Sắp xếp theo thời gian tạo giảm dần (report mới nhất lên đầu)
+      // Ưu tiên createdAt, nếu không có thì dùng reportId (id lớn hơn = mới hơn)
+      itemsArray.sort((a, b) => {
+        const dateA = a.createdAt || a.CreatedAt;
+        const dateB = b.createdAt || b.CreatedAt;
+        
+        if (dateA && dateB) {
+          return new Date(dateB) - new Date(dateA);
+        }
+        if (dateA) return -1;
+        if (dateB) return 1;
+        
+        // Nếu không có createdAt, sắp xếp theo reportId (id lớn hơn = mới hơn)
+        const idA = a.reportId ?? a.id ?? a.Id ?? 0;
+        const idB = b.reportId ?? b.id ?? b.Id ?? 0;
+        return idB - idA;
+      });
+
+      setDataSource(itemsArray);
       setPagination({
         current: pageNumber,
         pageSize,

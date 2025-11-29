@@ -117,11 +117,14 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             if (newId) {
                 setCurrentTestId(newId);
             }
-            message.success(responseText || "Đã tạo phiên bản mới.");
+            // Không hiển thị message ở đây, để nơi gọi xử lý
             if (onSuccess) {
                 onSuccess();
             }
             return newId;
+        } catch (error) {
+            // Throw lại để xử lý ở nơi gọi
+            throw error;
         } finally {
             if (hide) hide();
             setIsCloningVersion(false);
@@ -871,24 +874,87 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             const errorMessage = getErrorMessage(error);
             const normalizedError = (errorMessage || "").toLowerCase();
 
-            if (normalizedError.includes("cannot edit a published test")) {
+            // Xử lý lỗi permission - người dùng không có quyền chỉnh sửa test này
+            if (normalizedError.includes("don't have permission") || 
+                normalizedError.includes("permission to modify") ||
+                normalizedError.includes("không có quyền") ||
+                normalizedError.includes("không được phép")) {
+                message.error("Bạn không có quyền chỉnh sửa bài thi này. Chỉ người tạo bài thi mới có thể chỉnh sửa.");
+                return;
+            }
+
+            // Xử lý lỗi published test - backend sẽ tự động clone khi update test manual
+            // Frontend chỉ cần gọi updateTestManual để trigger clone, sau đó lưu part với newId
+            if (normalizedError.includes("cannot edit a published test") ||
+                normalizedError.includes("không thể chỉnh sửa bài thi đã xuất bản")) {
                 const shouldClone = await confirmCloneVersion();
                 if (!shouldClone) {
                     message.info("Đã hủy thao tác tạo phiên bản mới.");
                 } else {
                     try {
-                        const newId = await clonePublishedTestToDraft();
+                        // Gọi updateTestManual để backend tự động clone (nếu test đã published)
+                        // Backend sẽ kiểm tra quyền và clone nếu người dùng là người tạo test gốc
+                        const payload = buildFullTestPayload();
+                        const result = await updateTestManual(currentTestId, payload);
+                        const responseText = typeof result === "string" ? result : result?.data || result?.message;
+                        const newId = extractTestIdFromMessage(responseText);
+                        
                         if (newId) {
-                            await saveTestPart(newId, partId, partPayload);
-                            message.success(`Đã tạo phiên bản mới (ID ${newId}) và lưu Part ${partId} thành công!`);
-                            setShowValidation(false);
+                            // Backend đã clone thành công, cập nhật currentTestId
+                            setCurrentTestId(newId);
+                            
+                            // Thử lưu part với newId (version mới)
+                            try {
+                                await saveTestPart(newId, partId, partPayload);
+                                // Nếu lưu thành công, chỉ hiển thị success
+                                message.destroy(); // Xóa tất cả message trước đó
+                                message.success(`Đã tạo phiên bản mới (ID ${newId}) và lưu Part ${partId} thành công!`);
+                                setShowValidation(false);
+                                if (onSuccess) {
+                                    onSuccess();
+                                }
+                            } catch (saveError) {
+                                // Nếu lưu part với newId vẫn lỗi, kiểm tra lại permission
+                                const saveErrorMessage = getErrorMessage(saveError);
+                                const saveNormalizedError = (saveErrorMessage || "").toLowerCase();
+                                
+                                // Xóa message success từ clone trước đó
+                                message.destroy();
+                                
+                                if (saveNormalizedError.includes("don't have permission") || 
+                                    saveNormalizedError.includes("permission to modify") ||
+                                    saveNormalizedError.includes("không có quyền") ||
+                                    saveNormalizedError.includes("không được phép")) {
+                                    message.error("Bạn không có quyền chỉnh sửa bài thi này. Chỉ người tạo bài thi mới có thể chỉnh sửa.");
+                                } else if (saveNormalizedError.includes("cannot edit a published test")) {
+                                    // Nếu version mới vẫn bị published (không nên xảy ra), thử lại
+                                    message.warning("Phiên bản mới vẫn ở trạng thái công khai. Vui lòng thử lại.");
+                                } else {
+                                    message.error(`Đã tạo phiên bản mới nhưng không thể lưu Part ${partId}: ${saveErrorMessage}`);
+                                }
+                            }
                         } else {
-                            message.success("Đã tạo phiên bản mới. Vui lòng mở lại bài thi để tiếp tục chỉnh sửa.");
+                            // Không extract được newId từ response
+                            message.destroy();
+                            message.warning("Đã tạo phiên bản mới nhưng không xác định được ID. Vui lòng mở lại bài thi để tiếp tục chỉnh sửa.");
                         }
                     } catch (cloneError) {
-                        console.error("clonePublishedTestToDraft error:", cloneError);
+                        console.error("Error cloning test:", cloneError);
                         const cloneMessage = getErrorMessage(cloneError);
-                        message.error(`Không thể tạo phiên bản mới: ${cloneMessage}`);
+                        const cloneNormalizedError = (cloneMessage || "").toLowerCase();
+                        
+                        // Xóa message trước đó nếu có
+                        message.destroy();
+                        
+                        // Chỉ hiển thị lỗi permission nếu thực sự là lỗi permission
+                        if (cloneNormalizedError.includes("don't have permission") || 
+                            cloneNormalizedError.includes("permission to modify") ||
+                            cloneNormalizedError.includes("không có quyền") ||
+                            cloneNormalizedError.includes("không được phép")) {
+                            message.error("Bạn không có quyền chỉnh sửa bài thi này. Chỉ người tạo bài thi mới có thể chỉnh sửa.");
+                        } else {
+                            message.error(`Không thể tạo phiên bản mới: ${cloneMessage}`);
+                        }
                     }
                 }
             } else {

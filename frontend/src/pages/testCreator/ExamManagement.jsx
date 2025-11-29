@@ -240,6 +240,24 @@ export default function ExamManagement() {
                 
                 const filtered = Array.from(latestVersions);
                 
+                // Sắp xếp theo thời gian tạo giảm dần (test mới nhất lên đầu)
+                // Ưu tiên createdAt, nếu không có thì dùng id (id lớn hơn = mới hơn)
+                filtered.sort((a, b) => {
+                    const dateA = a.createdAt || a.CreatedAt;
+                    const dateB = b.createdAt || b.CreatedAt;
+                    
+                    if (dateA && dateB) {
+                        return new Date(dateB) - new Date(dateA);
+                    }
+                    if (dateA) return -1;
+                    if (dateB) return 1;
+                    
+                    // Nếu không có createdAt, sắp xếp theo id (id lớn hơn = mới hơn)
+                    const idA = a.id ?? a.Id ?? a.testId ?? a.TestId ?? 0;
+                    const idB = b.id ?? b.Id ?? b.testId ?? b.TestId ?? 0;
+                    return idB - idA;
+                });
+                
                 // Paginate lại sau khi filter
                 const startIndex = (page - 1) * pageSize;
                 const endIndex = startIndex + pageSize;

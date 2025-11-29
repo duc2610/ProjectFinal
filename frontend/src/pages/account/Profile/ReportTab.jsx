@@ -58,7 +58,7 @@ export function ReportTab() {
       const currentPage = response?.data?.pageNumber || response?.pageNumber || page;
       
       // Map dữ liệu để hiển thị đúng
-      const mappedReports = reportsData.map((report) => {
+      let mappedReports = reportsData.map((report) => {
         const snapshot = report.questionSnapshot || {};
         const questionContent = snapshot.content || report.questionContent || null;
         const partLabel = resolvePartLabel(
@@ -85,6 +85,24 @@ export function ReportTab() {
           reviewerNotes: report.reviewerNotes || null,
           reviewedAt: report.reviewedAt || null,
         };
+      });
+      
+      // Sắp xếp theo thời gian tạo giảm dần (report mới nhất lên đầu)
+      // Ưu tiên createdAt, nếu không có thì dùng reportId (id lớn hơn = mới hơn)
+      mappedReports.sort((a, b) => {
+        const dateA = a.createdAt;
+        const dateB = b.createdAt;
+        
+        if (dateA && dateB) {
+          return new Date(dateB) - new Date(dateA);
+        }
+        if (dateA) return -1;
+        if (dateB) return 1;
+        
+        // Nếu không có createdAt, sắp xếp theo reportId (id lớn hơn = mới hơn)
+        const idA = a.reportId ?? a.id ?? 0;
+        const idB = b.reportId ?? b.id ?? 0;
+        return idB - idA;
       });
       
       setReports(mappedReports);

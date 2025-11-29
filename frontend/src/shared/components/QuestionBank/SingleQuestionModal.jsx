@@ -507,7 +507,18 @@ export default function SingleQuestionModal({
     } catch (e) {
       const apiMessage =
         e?.response?.data?.message || e?.response?.data?.data || e?.message;
-      if (apiMessage) message.error(String(apiMessage));
+      const normalizedError = (apiMessage || "").toLowerCase();
+      
+      // Xử lý lỗi permission - người dùng không có quyền chỉnh sửa câu hỏi này
+      if (normalizedError.includes("don't have permission") || 
+          normalizedError.includes("permission to modify") ||
+          normalizedError.includes("không có quyền") ||
+          normalizedError.includes("không được phép")) {
+        message.error("Bạn không có quyền chỉnh sửa câu hỏi này. Chỉ người tạo câu hỏi mới có thể chỉnh sửa.");
+      } else if (apiMessage) {
+        message.error(String(apiMessage));
+      }
+      
       const first = e?.errorFields?.[0]?.name;
       if (first) form.scrollToField(first, { block: "center" });
       console.error("Question submit error:", e);

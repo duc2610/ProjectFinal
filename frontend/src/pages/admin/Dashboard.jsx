@@ -17,7 +17,6 @@ import {
   FileTextOutlined,
   QuestionCircleOutlined,
   TrophyOutlined,
-  ArrowUpOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   LineChartOutlined,
@@ -143,11 +142,6 @@ export default function AdminDashboard() {
       title: "Tổng số người dùng",
       value: stats.totalUsers,
       prefix: <UserOutlined />,
-      suffix: (
-        <span style={{ fontSize: 14, color: "#52c41a" }}>
-          <ArrowUpOutlined /> +{stats.newUsersToday}
-        </span>
-      ),
       valueStyle: { color: "#1890ff" },
     },
     {
@@ -161,11 +155,6 @@ export default function AdminDashboard() {
       title: "Tổng số bài thi",
       value: stats.totalTests,
       prefix: <FileTextOutlined />,
-      suffix: (
-        <span style={{ fontSize: 14, color: "#52c41a" }}>
-          <ArrowUpOutlined /> +{stats.newTestsToday}
-        </span>
-      ),
       valueStyle: { color: "#722ed1" },
     },
     {
