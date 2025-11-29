@@ -387,6 +387,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             message.warning(`Part ${partId} chỉ hỗ trợ nhóm câu hỏi (Group Questions), không thể thêm câu hỏi đơn.`);
             return;
         }
+        setShowValidation(false);
         // Writing và Speaking parts không có options (partId 8-15)
         const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => {
@@ -412,6 +413,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addGroup = (partId) => {
+        setShowValidation(false);
         // Writing và Speaking parts không có options (partId 8-15)
         const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => {
@@ -518,6 +520,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addQuestionToGroup = (partId, groupIndex) => {
+        setShowValidation(false);
         // Writing và Speaking parts không có options (partId 8-15)
         const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => {
@@ -734,6 +737,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         // Validate tất cả câu hỏi trước khi lưu
         const errors = [];
         const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+        const imageConfig = requiresImage(partId, selectedSkill);
+        const requireImage = imageConfig.required;
 
         // Validate questions đơn
         (partData.questions || []).forEach((q, qIdx) => {
@@ -741,6 +746,15 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             const isContentOptional = [1, 2, 6].includes(partId);
             if (!isContentOptional && !validateString(q.content)) {
                 errors.push(`Câu hỏi ${qIdx + 1}: Nội dung không được để trống hoặc chỉ có khoảng trắng!`);
+            }
+
+            // Image bắt buộc cho các part cần ảnh
+            if (requireImage && !validateString(q.imageUrl)) {
+                errors.push(`Câu hỏi ${qIdx + 1}: Image URL là bắt buộc!`);
+            }
+            // Image nếu có thì phải hợp lệ
+            if (q.imageUrl && !validateString(q.imageUrl)) {
+                errors.push(`Câu hỏi ${qIdx + 1}: Image URL không hợp lệ!`);
             }
 
             // Validate options cho L&R
@@ -771,6 +785,15 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             (g.questions || []).forEach((q, qIdx) => {
                 if (!validateString(q.content)) {
                     errors.push(`Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Nội dung không được để trống hoặc chỉ có khoảng trắng!`);
+                }
+
+                // Image bắt buộc cho các part cần ảnh
+                if (requireImage && !validateString(q.imageUrl)) {
+                    errors.push(`Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Image URL là bắt buộc!`);
+                }
+                // Image nếu có thì phải hợp lệ
+                if (q.imageUrl && !validateString(q.imageUrl)) {
+                    errors.push(`Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Image URL không hợp lệ!`);
                 }
 
                 // Validate options cho L&R
@@ -1477,8 +1500,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                                 showUploadList={false}
                                 accept="image/*"
                                 beforeUpload={() => {
-                                    // Validate trường content trước khi upload
-                                    if (!isValidString(question.content)) {
+                                    if (!isContentOptional && !isValidString(question.content)) {
                                         setContentValidated(true);
                                         return false; // Prevent upload
                                     }
@@ -1489,8 +1511,8 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                                     icon={<PictureOutlined />} 
                                     size="small"
                                     onClick={() => {
-                                        // Validate trường content khi click vào Upload button
-                                        if (!isValidString(question.content)) {
+                                        // Chỉ yêu cầu content cho các part mà nội dung là bắt buộc
+                                        if (!isContentOptional && !isValidString(question.content)) {
                                             setContentValidated(true);
                                         }
                                     }}
