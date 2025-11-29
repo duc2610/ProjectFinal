@@ -8,7 +8,7 @@ namespace ToeicGenius.Repositories.Interfaces
 {
 	public interface ITestRepository : IBaseRepository<Test, int>
 	{
-		Task<PaginationResponse<TestListResponseDto>> FilterQuestionsAsync(TestFilterDto request);
+		Task<PaginationResponse<TestListResponseDto>> FilterQuestionsAsync(TestFilterDto request, Guid? creatorId = null);
 		Task<Test> GetTestByIdAsync(int id);
 		Task<List<Test>> GetVersionsByParentIdAsync(int parentTestId);
 		Task<int> GetNextVersionAsync(int parentTestId);

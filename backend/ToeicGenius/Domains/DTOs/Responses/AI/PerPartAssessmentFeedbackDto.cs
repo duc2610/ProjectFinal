@@ -23,5 +23,10 @@ namespace ToeicGenius.Domains.DTOs.Responses.AI
         public string CorrectedText { get; set; } = string.Empty;
         public double? AudioDuration { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        // Question content from TestQuestion
+        public int PartId { get; set; }
+        public string? PartName { get; set; }
+        public object? QuestionContent { get; set; }  // Chứa QuestionSnapshotDto hoặc QuestionGroupSnapshotDto
     }
 }

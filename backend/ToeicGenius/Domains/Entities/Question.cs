@@ -28,6 +28,10 @@ namespace ToeicGenius.Domains.Entities
 		public DateTime CreatedAt { get; set; } = Now;
 		public DateTime? UpdatedAt { get; set; }
 		public CommonStatus Status { get; set; } = CommonStatus.Active;
+
+		// Creator tracking
+		public Guid? CreatedById { get; set; }
+		public User? CreatedBy { get; set; }
 		public ICollection<Option> Options { get; set; } = new List<Option>();
 
     }

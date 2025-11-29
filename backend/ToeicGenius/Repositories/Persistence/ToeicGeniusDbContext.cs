@@ -398,7 +398,8 @@ namespace ToeicGenius.Repositories.Persistence
 					FullName = adminConfig["FullName"]!,
 					PasswordHash = SecurityHelper.HashPassword(adminConfig["Password"]!),
 					Status = UserStatus.Active,
-					CreatedAt = Now
+					CreatedAt = Now,
+					IsRoot = true
 				},
 				new User
 				{

@@ -106,6 +106,12 @@ export default function QuestionGroupModal({
     [selectedPart]
   );
 
+  // Parts 3, 4 không hiển thị trường passageContent
+  const isPassageVisible = useMemo(() => {
+    const partId = Number(selectedPart);
+    return !([3, 4].includes(partId));
+  }, [selectedPart]);
+
   const requiredOptionsPerQuestion = 4;
 
   const loadParts = async (skillId) => {
@@ -324,6 +330,11 @@ export default function QuestionGroupModal({
       })),
     };
     
+    // Xóa passageContent nếu part là 3, 4 (trường bị ẩn)
+    if ([3, 4].includes(partNum)) {
+      updates.passageContent = "";
+    }
+    
     // Xóa audio nếu part mới không cần
     if (!needsAudio) {
       updates.audio = [];
@@ -338,10 +349,11 @@ export default function QuestionGroupModal({
     
     form.setFieldsValue(updates);
     
-    // Xóa lỗi của audio và image khi Part thay đổi (không validate ngay)
+    // Xóa lỗi của audio, image và passageContent khi Part thay đổi (không validate ngay)
     form.setFields([
       { name: "audio", errors: [] },
       { name: "image", errors: [] },
+      { name: "passageContent", errors: [] },
     ]);
   };
 
@@ -393,6 +405,22 @@ export default function QuestionGroupModal({
         : Promise.reject(new Error(msg));
     },
   });
+
+  const handleMediaChange = (field) => (info) => {
+    const fileList = info?.fileList || [];
+    const latest = fileList.slice(-1);
+    form.setFieldsValue({ [field]: latest });
+
+    if (latest.length === 0) {
+      if (field === "audio") setAudioSrc(null);
+      if (field === "image") setImageSrc(null);
+    }
+
+    const errors = form.getFieldsError([field]);
+    if (errors[0]?.errors?.length > 0) {
+      form.setFields([{ name: field, errors: [] }]);
+    }
+  };
 
   const validateGroupAudio = () => ({
     validator(_, value) {
@@ -473,7 +501,9 @@ export default function QuestionGroupModal({
 
       const fd = new FormData();
       fd.append("PartId", String(Number(v.partId)));
-      fd.append("PassageContent", (v.passageContent || "").trim());
+      // Parts 3, 4 không bắt buộc passage - có thể để trống
+      const passageValue = (v.passageContent || "").trim();
+      fd.append("PassageContent", passageValue || "");
       fd.append("QuestionsJson", JSON.stringify(questionsPayload));
       if (audioFile) fd.append("Audio", audioFile);
       if (imageFile) fd.append("Image", imageFile);
@@ -492,7 +522,18 @@ export default function QuestionGroupModal({
     } catch (e) {
       const apiMessage =
         e?.response?.data?.message || e?.response?.data?.data || e?.message;
-      if (apiMessage) message.error(String(apiMessage));
+      const normalizedError = (apiMessage || "").toLowerCase();
+      
+      // Xử lý lỗi permission - người dùng không có quyền chỉnh sửa nhóm câu hỏi này
+      if (normalizedError.includes("don't have permission") || 
+          normalizedError.includes("permission to modify") ||
+          normalizedError.includes("không có quyền") ||
+          normalizedError.includes("không được phép")) {
+        message.error("Bạn không có quyền chỉnh sửa nhóm câu hỏi này. Chỉ người tạo nhóm câu hỏi mới có thể chỉnh sửa.");
+      } else if (apiMessage) {
+        message.error(String(apiMessage));
+      }
+      
       const first = e?.errorFields?.[0]?.name;
       if (first) form.scrollToField(first, { block: "center" });
       console.error("Group submit error:", e);
@@ -625,45 +666,47 @@ export default function QuestionGroupModal({
           />
         )}
 
-        <Form.Item
-          name="passageContent"
-          label="Nội dung đoạn văn / Passage"
-          validateTrigger={['onBlur']}
-          rules={[
-            {
-              validator: (_, value) => {
-                if (!value || !value.trim()) {
-                  return Promise.reject(new Error("Vui lòng nhập nội dung đoạn văn"));
-                }
-                return Promise.resolve();
+        {isPassageVisible && (
+          <Form.Item
+            name="passageContent"
+            label="Nội dung đoạn văn / Passage"
+            validateTrigger={['onBlur']}
+            rules={[
+              {
+                validator: (_, value) => {
+                  if (!value || !value.trim()) {
+                    return Promise.reject(new Error("Vui lòng nhập nội dung đoạn văn"));
+                  }
+                  return Promise.resolve();
+                },
               },
-            },
-          ]}
-        >
-          <Input.TextArea 
-            rows={4} 
-            placeholder="Nhập nội dung đoạn văn..."
-            onChange={() => {
-              // Xóa lỗi khi đang sửa (nếu có)
-              const errors = form.getFieldsError(['passageContent']);
-              if (errors[0]?.errors?.length > 0) {
-                form.setFields([{ name: 'passageContent', errors: [] }]);
-              }
-            }}
-            onFocus={() => {
-              // Validate các trường trước đó khi focus vào trường này
-              form.validateFields(['skill', 'partId']).catch(() => {});
-              // Validate audio nếu bắt buộc
-              if (isAudioRequired) {
-                form.validateFields(['audio']).catch(() => {});
-              }
-              // Validate image nếu bắt buộc
-              if (isImageRequired) {
-                form.validateFields(['image']).catch(() => {});
-              }
-            }}
-          />
-        </Form.Item>
+            ]}
+          >
+            <Input.TextArea 
+              rows={4} 
+              placeholder="Nhập nội dung đoạn văn..."
+              onChange={() => {
+                // Xóa lỗi khi đang sửa (nếu có)
+                const errors = form.getFieldsError(['passageContent']);
+                if (errors[0]?.errors?.length > 0) {
+                  form.setFields([{ name: 'passageContent', errors: [] }]);
+                }
+              }}
+              onFocus={() => {
+                // Validate các trường trước đó khi focus vào trường này
+                form.validateFields(['skill', 'partId']).catch(() => {});
+                // Validate audio nếu bắt buộc
+                if (isAudioRequired) {
+                  form.validateFields(['audio']).catch(() => {});
+                }
+                // Validate image nếu bắt buộc
+                if (isImageRequired) {
+                  form.validateFields(['image']).catch(() => {});
+                }
+              }}
+            />
+          </Form.Item>
+        )}
 
         {(showAudioField || showImageField) && (
           <Row gutter={12}>
@@ -683,17 +726,8 @@ export default function QuestionGroupModal({
                     beforeUpload={() => false}
                     maxCount={1}
                     accept=".mp3,audio/mpeg,audio/mp3"
-                    showUploadList={{
-                      showPreviewIcon: false,
-                      showRemoveIcon: true,
-                    }}
-                    onChange={() => {
-                      // Xóa lỗi khi chọn file (nếu có)
-                      const errors = form.getFieldsError(['audio']);
-                      if (errors[0]?.errors?.length > 0) {
-                        form.setFields([{ name: 'audio', errors: [] }]);
-                      }
-                    }}
+                    showUploadList={false}
+                    onChange={handleMediaChange("audio")}
                     onRemove={() => {
                       form.setFieldsValue({ audio: [] });
                       return true;
@@ -717,7 +751,7 @@ export default function QuestionGroupModal({
                         src={audioSrc}
                         style={{ width: "100%" }}
                       />
-                      {audioList?.[0]?.url && (
+                      {audioList?.length ? (
                         <Button
                           danger
                           type="primary"
@@ -733,7 +767,7 @@ export default function QuestionGroupModal({
                         >
                           Xóa audio
                         </Button>
-                      )}
+                      ) : null}
                     </div>
                   )}
                 </Form.Item>
@@ -755,17 +789,8 @@ export default function QuestionGroupModal({
                     maxCount={1}
                     accept="image/*"
                     listType="picture"
-                    showUploadList={{
-                      showPreviewIcon: false,
-                      showRemoveIcon: true,
-                    }}
-                    onChange={() => {
-                      // Xóa lỗi khi chọn file (nếu có)
-                      const errors = form.getFieldsError(['image']);
-                      if (errors[0]?.errors?.length > 0) {
-                        form.setFields([{ name: 'image', errors: [] }]);
-                      }
-                    }}
+                    showUploadList={false}
+                    onChange={handleMediaChange("image")}
                     onRemove={() => {
                       form.setFieldsValue({ image: [] });
                       return true;
@@ -786,7 +811,7 @@ export default function QuestionGroupModal({
                     </Button>
                   </Upload>
                   {imageSrc && (
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: 8, position: "relative" }}>
                       <img
                         src={imageSrc}
                         alt="preview"
@@ -800,7 +825,7 @@ export default function QuestionGroupModal({
                           background: "#fff",
                         }}
                       />
-                      {imageList?.[0]?.url && (
+                      {imageList?.length ? (
                         <Button
                           danger
                           type="primary"
@@ -816,7 +841,7 @@ export default function QuestionGroupModal({
                         >
                           Xóa ảnh
                         </Button>
-                      )}
+                      ) : null}
                     </div>
                   )}
                 </Form.Item>

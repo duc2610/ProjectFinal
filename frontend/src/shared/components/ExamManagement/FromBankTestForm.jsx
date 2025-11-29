@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Table, Space, Tag, Row, Col, Statistic } from "antd";
+import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Table, Space, Tag, Row, Col, Statistic, Alert } from "antd";
 import { PlusOutlined, DeleteOutlined, CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
-import { createTestFromBank, getTestById, updateTestFromBank } from "@services/testsService";
+import { createTestFromBank, getTestById, updateTestFromBank, createTestFromBankRandom } from "@services/testsService";
 import { getQuestionById } from "@services/questionsService";
 import { getQuestionGroupById } from "@services/questionGroupService";
 import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL } from "@shared/constants/toeicStructure";
 import QuestionBankSelectorModal from "./QuestionBankSelectorModal";
 import QuestionGroupSelectorModal from "./QuestionGroupSelectorModal";
+
+// Parts chỉ dành cho group questions: 3, 4 (Listening), 6, 7 (Reading)
+const GROUP_PARTS = [3, 4, 6, 7];
+const isGroupPart = (p) => GROUP_PARTS.includes(Number(p));
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -23,6 +27,8 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
     const [viewingQuestionId, setViewingQuestionId] = useState(null);
     const [viewingGroupId, setViewingGroupId] = useState(null);
     const [activeTab, setActiveTab] = useState("single");
+    const [selectionMode, setSelectionMode] = useState("manual"); // "manual" or "random"
+    const [questionRanges, setQuestionRanges] = useState([]);
 
     const toSkillId = (val) => {
         if (val == null) return undefined;
@@ -130,6 +136,8 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
             setViewingQuestionId(null);
             setViewingGroupId(null);
             setActiveTab("single");
+            setSelectionMode("manual");
+            setQuestionRanges([]);
         }
 
         const loadForEdit = async (id) => {
@@ -224,6 +232,78 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
         try {
             const values = await form.validateFields();
 
+            // Xử lý mode Random
+            if (selectionMode === "random") {
+                if (!questionRanges || questionRanges.length === 0) {
+                    message.warning("Vui lòng thêm ít nhất 1 cấu hình part!");
+                    return;
+                }
+
+                // Validate question ranges
+                for (const range of questionRanges) {
+                    const partId = Number(range.partId);
+                    const singleCount = Number(range.singleQuestionCount || 0);
+                    const groupCount = Number(range.groupQuestionCount || 0);
+
+                    if (isGroupPart(partId)) {
+                        // Part 3, 4, 6, 7: chỉ cho phép group questions
+                        if (singleCount > 0) {
+                            message.error(`Part ${partId} chỉ có thể chọn nhóm câu hỏi (Group Questions), không thể chọn câu hỏi đơn (Single Questions).`);
+                            return;
+                        }
+                        if (groupCount <= 0) {
+                            message.error(`Part ${partId} cần có ít nhất 1 nhóm câu hỏi.`);
+                            return;
+                        }
+                    } else {
+                        // Các part khác: chỉ cho phép single questions
+                        if (groupCount > 0) {
+                            message.error(`Part ${partId} chỉ có thể chọn câu hỏi đơn (Single Questions), không thể chọn nhóm câu hỏi (Group Questions).`);
+                            return;
+                        }
+                        if (singleCount <= 0) {
+                            message.error(`Part ${partId} cần có ít nhất 1 câu hỏi đơn.`);
+                            return;
+                        }
+                    }
+                }
+
+                const randomPayload = {
+                    Title: values.title,
+                    TestSkill: selectedSkill,
+                    Description: values.description || null,
+                    Duration: values.duration,
+                    QuestionRanges: questionRanges.map(r => ({
+                        PartId: Number(r.partId),
+                        QuestionTypeId: r.questionTypeId ? Number(r.questionTypeId) : null,
+                        SingleQuestionCount: isGroupPart(Number(r.partId)) ? 0 : Number(r.singleQuestionCount || 0),
+                        GroupQuestionCount: isGroupPart(Number(r.partId)) ? Number(r.groupQuestionCount || 0) : 0,
+                    })),
+                };
+
+                setLoading(true);
+                try {
+                    await createTestFromBankRandom(randomPayload);
+                    message.success(`Tạo bài thi random thành công!`);
+                    setTimeout(() => {
+                        onSuccess();
+                        onClose();
+                    }, 300);
+                } catch (error) {
+                    console.error("Error creating random test:", error);
+                    const errorMessage = error?.response?.data?.message || 
+                                      error?.response?.data?.error || 
+                                      error?.message || 
+                                      "Unknown error";
+                    message.error(`Lỗi khi tạo bài thi random: ${errorMessage}`);
+                    throw error; // Re-throw để finally block vẫn chạy
+                } finally {
+                    setLoading(false);
+                }
+                return;
+            }
+
+            // Xử lý mode Manual (chọn thủ công)
             const totalQuestions = selectedSingleQuestions.length + selectedGroupQuestions.length;
             if (totalQuestions === 0) {
                 message.warning("Vui lòng chọn ít nhất 1 câu hỏi!");
@@ -467,42 +547,54 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
 
                 {selectedSkill && (
                     <>
-                        <div style={{ 
-                            marginBottom: 16, 
-                            padding: 16, 
-                            background: "#f0f5ff", 
-                            borderRadius: 8,
-                            border: "1px solid #adc6ff"
-                        }}>
-                            <Row gutter={16}>
-                                <Col span={8}>
-                                    <Statistic 
-                                        title="Câu hỏi đơn đã chọn" 
-                                        value={selectedSingleQuestions.length}
-                                        prefix={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
-                                    />
-                                </Col>
-                                <Col span={8}>
-                                    <Statistic 
-                                        title="Nhóm câu hỏi đã chọn" 
-                                        value={selectedGroupQuestions.length}
-                                        prefix={<CheckCircleOutlined style={{ color: "#1890ff" }} />}
-                                    />
-                                </Col>
-                                <Col span={8}>
-                                    <Statistic 
-                                        title="Tổng số câu" 
-                                        value={totalSelected}
-                                        suffix={`/ ${expectedTotal}`}
-                                        valueStyle={{ 
-                                            color: totalSelected === expectedTotal ? "#52c41a" : "#faad14" 
-                                        }}
-                                    />
-                                </Col>
-                            </Row>
-                        </div>
+                        <Tabs
+                            activeKey={selectionMode}
+                            onChange={setSelectionMode}
+                            items={[
+                                { key: "manual", label: "Chọn thủ công" },
+                                { key: "random", label: "Chọn random" },
+                            ]}
+                            style={{ marginBottom: 16 }}
+                        />
 
-                        <QuestionSelector
+                        {selectionMode === "manual" ? (
+                            <>
+                                <div style={{ 
+                                    marginBottom: 16, 
+                                    padding: 16, 
+                                    background: "#f0f5ff", 
+                                    borderRadius: 8,
+                                    border: "1px solid #adc6ff"
+                                }}>
+                                    <Row gutter={16}>
+                                        <Col span={8}>
+                                            <Statistic 
+                                                title="Câu hỏi đơn đã chọn" 
+                                                value={selectedSingleQuestions.length}
+                                                prefix={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
+                                            />
+                                        </Col>
+                                        <Col span={8}>
+                                            <Statistic 
+                                                title="Nhóm câu hỏi đã chọn" 
+                                                value={selectedGroupQuestions.length}
+                                                prefix={<CheckCircleOutlined style={{ color: "#1890ff" }} />}
+                                            />
+                                        </Col>
+                                        <Col span={8}>
+                                            <Statistic 
+                                                title="Tổng số câu" 
+                                                value={totalSelected}
+                                                suffix={`/ ${expectedTotal}`}
+                                                valueStyle={{ 
+                                                    color: totalSelected === expectedTotal ? "#52c41a" : "#faad14" 
+                                                }}
+                                            />
+                                        </Col>
+                                    </Row>
+                                </div>
+
+                                <QuestionSelector
                             skill={selectedSkill}
                             parts={parts}
                             selectedSingleQuestions={selectedSingleQuestions}
@@ -525,6 +617,16 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                             setActiveTab={setActiveTab}
                             readOnly={readOnly}
                         />
+                            </>
+                        ) : (
+                            <RandomQuestionSelector
+                                skill={selectedSkill}
+                                parts={parts}
+                                questionRanges={questionRanges}
+                                setQuestionRanges={setQuestionRanges}
+                                readOnly={readOnly}
+                            />
+                        )}
                     </>
                 )}
 
@@ -668,7 +770,7 @@ function QuestionSelector({
                                         </Space>
                                         <div style={{ marginTop: 8 }}>
                                             <strong>Câu hỏi #{index + 1}:</strong>
-                                            {content ? (
+                                            {content && content.trim() ? (
                                                 <div style={{ 
                                                     marginTop: 8, 
                                                     padding: 12, 
@@ -681,8 +783,49 @@ function QuestionSelector({
                                                     {content}
                                                 </div>
                                             ) : (
-                                                <div style={{ color: "#999", fontStyle: "italic", marginTop: 4 }}>
-                                                    Đang tải nội dung...
+                                                <div style={{ marginTop: 8 }}>
+                                                    {/* Kiểm tra partId từ partName để xác định có phải part 1, 2, 6 không */}
+                                                    {(() => {
+                                                        const partIdMatch = partName?.match(/Part\s*(\d+)/i);
+                                                        const partId = partIdMatch ? Number(partIdMatch[1]) : null;
+                                                        const isContentOptional = partId && [1, 2, 6].includes(partId);
+                                                        
+                                                        if (isContentOptional) {
+                                                            const info = [];
+                                                            if (detail.audioUrl) {
+                                                                info.push(<Tag key="audio" color="green" style={{ fontSize: 11 }}>🔊 Audio</Tag>);
+                                                            }
+                                                            if (imageUrl) {
+                                                                info.push(<Tag key="image" color="orange" style={{ fontSize: 11 }}>🖼️ Ảnh</Tag>);
+                                                            }
+                                                            if (hasOptions) {
+                                                                info.push(<Tag key="options" color="blue" style={{ fontSize: 11 }}>{options.length} đáp án</Tag>);
+                                                            }
+                                                            
+                                                            if (info.length > 0) {
+                                                                return (
+                                                                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+                                                                        <span style={{ color: "#999", fontStyle: "italic", fontSize: 12, marginRight: 8 }}>
+                                                                            Không có nội dung (Part {partId})
+                                                                        </span>
+                                                                        {info}
+                                                                    </div>
+                                                                );
+                                                            }
+                                                            
+                                                            return (
+                                                                <span style={{ color: "#999", fontStyle: "italic", fontSize: 12 }}>
+                                                                    Không có nội dung (Part {partId})
+                                                                </span>
+                                                            );
+                                                        }
+                                                        
+                                                        return (
+                                                            <div style={{ color: "#999", fontStyle: "italic", marginTop: 4 }}>
+                                                                Đang tải nội dung...
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             )}
                                         </div>
@@ -1060,6 +1203,248 @@ function QuestionSelector({
           />
         )}
     </>
+    );
+}
+
+// Component để chọn random questions
+function RandomQuestionSelector({ 
+    skill, 
+    parts,
+    questionRanges,
+    setQuestionRanges,
+    readOnly,
+}) {
+    const [questionTypes, setQuestionTypes] = useState({}); // { partId: [types] }
+
+    const loadQuestionTypes = async (partId) => {
+        try {
+            const { getQuestionTypesByPart } = await import("@services/questionTypesService");
+            const types = await getQuestionTypesByPart(partId);
+            const typesData = Array.isArray(types) ? types : (types?.data || []);
+            setQuestionTypes(prev => ({
+                ...prev,
+                [partId]: typesData,
+            }));
+        } catch (error) {
+            console.error(`Error loading question types for part ${partId}:`, error);
+        }
+    };
+
+    const handleAddRange = () => {
+        const newRange = {
+            partId: undefined,
+            questionTypeId: undefined,
+            singleQuestionCount: 0,
+            groupQuestionCount: 0,
+        };
+        setQuestionRanges([...questionRanges, newRange]);
+    };
+
+    const handleRemoveRange = (index) => {
+        const newRanges = questionRanges.filter((_, i) => i !== index);
+        setQuestionRanges(newRanges);
+    };
+
+    const handleRangeChange = (index, field, value) => {
+        const newRanges = [...questionRanges];
+        newRanges[index] = {
+            ...newRanges[index],
+            [field]: value,
+        };
+        
+        // Khi partId thay đổi, reset questionTypeId và load question types
+        if (field === "partId") {
+            newRanges[index].questionTypeId = undefined;
+            if (value) {
+                loadQuestionTypes(value);
+            }
+        }
+        
+        // Tự động điều chỉnh single/group count dựa trên part
+        if (field === "partId" && value) {
+            const partId = Number(value);
+            if (isGroupPart(partId)) {
+                // Part group: chỉ cho phép group questions
+                newRanges[index].singleQuestionCount = 0;
+                if (!newRanges[index].groupQuestionCount || newRanges[index].groupQuestionCount === 0) {
+                    newRanges[index].groupQuestionCount = 1;
+                }
+            } else {
+                // Part khác: chỉ cho phép single questions
+                newRanges[index].groupQuestionCount = 0;
+                if (!newRanges[index].singleQuestionCount || newRanges[index].singleQuestionCount === 0) {
+                    newRanges[index].singleQuestionCount = 1;
+                }
+            }
+        }
+        
+        setQuestionRanges(newRanges);
+    };
+
+    // Filter parts: hiển thị tất cả parts
+    const filteredParts = parts || [];
+
+    return (
+        <>
+            <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="Chọn random câu hỏi"
+                description="Cấu hình số lượng câu hỏi random cho từng part. Part 3, 4, 6, 7 chỉ có thể chọn nhóm câu hỏi (Group Questions)."
+            />
+
+            {!readOnly && (
+                <div style={{ marginBottom: 16 }}>
+                    <Button 
+                        type="dashed" 
+                        icon={<PlusOutlined />} 
+                        onClick={handleAddRange}
+                        block
+                    >
+                        Thêm cấu hình Part
+                    </Button>
+                </div>
+            )}
+
+            {questionRanges.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 40, color: "#999" }}>
+                    Chưa có cấu hình part nào. Nhấn "Thêm cấu hình Part" để bắt đầu.
+                </div>
+            ) : (
+                <div style={{ maxHeight: 500, overflowY: "auto" }}>
+                    {questionRanges.map((range, index) => {
+                        const partId = Number(range.partId);
+                        const isGroupPartId = isGroupPart(partId);
+                        const partOptions = filteredParts.map(p => ({
+                            value: Number(p.partId || p.id),
+                            label: p.name || p.partName || `Part ${p.partId || p.id}`,
+                        }));
+
+                        return (
+                            <div
+                                key={index}
+                                style={{
+                                    padding: 16,
+                                    marginBottom: 12,
+                                    border: "1px solid #d9d9d9",
+                                    borderRadius: 6,
+                                    background: "#fafafa",
+                                }}
+                            >
+                                <Row gutter={12} align="middle">
+                                    <Col span={6}>
+                                        <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
+                                            Part
+                                        </div>
+                                        <Select
+                                            placeholder="Chọn Part"
+                                            value={range.partId}
+                                            onChange={(value) => handleRangeChange(index, "partId", value)}
+                                            style={{ width: "100%" }}
+                                            disabled={readOnly}
+                                            options={partOptions}
+                                        />
+                                    </Col>
+                                    <Col span={6}>
+                                        <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
+                                            Loại câu hỏi (tùy chọn)
+                                        </div>
+                                        <Select
+                                            placeholder="Tất cả loại"
+                                            value={range.questionTypeId}
+                                            onChange={(value) => handleRangeChange(index, "questionTypeId", value)}
+                                            style={{ width: "100%" }}
+                                            disabled={readOnly || !range.partId}
+                                            allowClear
+                                            options={questionTypes[range.partId]?.map(t => ({
+                                                value: Number(t.questionTypeId || t.id),
+                                                label: t.typeName || t.name,
+                                            })) || []}
+                                        />
+                                    </Col>
+                                    <Col span={isGroupPartId ? 6 : 8}>
+                                        <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
+                                            {isGroupPartId ? "Số nhóm câu hỏi" : "Số câu hỏi đơn"}
+                                        </div>
+                                        <InputNumber
+                                            min={0}
+                                            value={isGroupPartId ? range.groupQuestionCount : range.singleQuestionCount}
+                                            onChange={(value) => handleRangeChange(
+                                                index, 
+                                                isGroupPartId ? "groupQuestionCount" : "singleQuestionCount", 
+                                                value || 0
+                                            )}
+                                            style={{ width: "100%" }}
+                                            disabled={readOnly || !range.partId}
+                                            placeholder="0"
+                                        />
+                                    </Col>
+                                    {!isGroupPartId && (
+                                        <Col span={4}>
+                                            <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
+                                                &nbsp;
+                                            </div>
+                                            <div style={{ color: "#999", fontSize: 12, paddingTop: 4 }}>
+                                                (Chỉ single)
+                                            </div>
+                                        </Col>
+                                    )}
+                                    {isGroupPartId && (
+                                        <Col span={4}>
+                                            <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
+                                                &nbsp;
+                                            </div>
+                                            <Tag color="purple" style={{ marginTop: 4 }}>
+                                                (Chỉ group)
+                                            </Tag>
+                                        </Col>
+                                    )}
+                                    <Col span={2}>
+                                        <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
+                                            &nbsp;
+                                        </div>
+                                        {!readOnly && (
+                                            <Button
+                                                danger
+                                                type="text"
+                                                icon={<DeleteOutlined />}
+                                                onClick={() => handleRemoveRange(index)}
+                                                disabled={questionRanges.length <= 1}
+                                            />
+                                        )}
+                                    </Col>
+                                </Row>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
+            {questionRanges.length > 0 && (
+                <div style={{ 
+                    marginTop: 16, 
+                    padding: 12, 
+                    background: "#f0f5ff", 
+                    borderRadius: 6,
+                    border: "1px solid #adc6ff"
+                }}>
+                    <Space direction="vertical" size="small" style={{ width: "100%" }}>
+                        <div>
+                            <strong>Tổng số cấu hình:</strong> {questionRanges.length} part(s)
+                        </div>
+                        <div>
+                            <strong>Tổng số câu hỏi đơn:</strong>{" "}
+                            {questionRanges.reduce((sum, r) => sum + Number(r.singleQuestionCount || 0), 0)}
+                        </div>
+                        <div>
+                            <strong>Tổng số nhóm câu hỏi:</strong>{" "}
+                            {questionRanges.reduce((sum, r) => sum + Number(r.groupQuestionCount || 0), 0)}
+                        </div>
+                    </Space>
+                </div>
+            )}
+        </>
     );
 }
 

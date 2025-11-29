@@ -10,6 +10,30 @@ export default function ForgotPassword() {
     const navigate = useNavigate();
     const [loading, setLoading] = React.useState(false);
     const trimOnly = (v) => (typeof v === "string" ? v.trim() : v);
+    // Hàm chuyển đổi thông báo lỗi sang tiếng Việt
+    const translateError = (errorMsg) => {
+        if (!errorMsg) return "Yêu cầu thất bại";
+        
+        const errorMsgLower = errorMsg.toLowerCase();
+        
+        const errorMap = {
+            "email": "Email không tồn tại trong hệ thống!",
+            "user not found": "Email không tồn tại trong hệ thống!",
+            "invalid email": "Email không hợp lệ!",
+            "network error": "Lỗi kết nối mạng!",
+            "timeout": "Yêu cầu quá thời gian chờ!",
+            "server error": "Lỗi máy chủ!",
+        };
+        
+        for (const [key, value] of Object.entries(errorMap)) {
+            if (errorMsgLower.includes(key)) {
+                return value;
+            }
+        }
+        
+        return "Yêu cầu thất bại";
+    };
+
     const onFinish = async (values) => {
         const email = (values.email || "").trim();
         setLoading(true);
@@ -23,7 +47,21 @@ export default function ForgotPassword() {
             navigate("/verify-reset", {state: {email}
             })
         }catch (e) {
-            const msg = e?.response?.data?.message || "Yêu cầu thất bại";
+            // Kiểm tra xem có phải lỗi validation từ backend không
+            const isValidationError = 
+                e.response?.status === 400 && 
+                (e.response?.data?.errors || 
+                 e.response?.data?.title?.toLowerCase().includes("validation") ||
+                 e.response?.data?.message?.toLowerCase().includes("validation"));
+            
+            // Nếu là lỗi validation từ backend, không hiển thị cho user
+            if (isValidationError) {
+                console.error("Lỗi validation từ backend (không hiển thị):", e.response?.data);
+                return;
+            }
+
+            const rawMsg = e?.response?.data?.message || "Yêu cầu thất bại";
+            const msg = translateError(rawMsg);
             form.setFields([{ name: "email", errors: [msg] }]);
         }finally {
             setLoading(false);
@@ -69,26 +107,33 @@ export default function ForgotPassword() {
                 label="Email"
                 name="email"
                 normalize={trimOnly}
+                validateTrigger={['onBlur', 'onChange']}
                 rules={[
+                  { required: true, message: "Vui lòng nhập email!" },
                   {
-                    required: true,
-                    message: "Vui lòng nhập email",
+                    pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                    message: "Email không đúng định dạng! Ví dụ: example@gmail.com",
                   },
-                    {
-                        validator: (_, v) =>
-                            v && /\s/.test(v)
-                                ? Promise.reject(
-                                    new Error("Email không được chứa khoảng trắng")
-                                )
-                                : Promise.resolve(),
+                  {
+                    validator: (_, value) => {
+                      if (!value) return Promise.resolve();
+                      const trimmed = value.trim();
+                      if (trimmed !== value) {
+                        return Promise.reject(new Error("Email không được có khoảng trắng ở đầu hoặc cuối!"));
+                      }
+                      if (trimmed.length > 254) {
+                        return Promise.reject(new Error("Email không được vượt quá 254 ký tự!"));
+                      }
+                      return Promise.resolve();
                     },
-                    {
-                        pattern: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
-                        message: "Email không hợp lệ",
-                    },
+                  },
                 ]}
               >
-                <Input placeholder="Nhập email" size="large" />
+                <Input 
+                  type="email"
+                  placeholder="Nhập email (ví dụ: example@gmail.com)" 
+                  size="large" 
+                />
               </Form.Item>
 
               <Button

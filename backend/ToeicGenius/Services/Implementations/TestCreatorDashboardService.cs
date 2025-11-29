@@ -21,9 +21,10 @@ public class TestCreatorDashboardService : ITestCreatorDashboardService
         var startOfCurrentPeriod = now.AddDays(-30);
         var startOfPreviousPeriod = startOfCurrentPeriod.AddDays(-30);
 
-        // Get all tests by this creator
+        // Get all tests by this creator ONLY
         var allTests = await _unitOfWork.Tests.GetAllAsync();
         var creatorTests = allTests.Where(t => t.CreatedById == creatorId).ToList();
+        var testIds = creatorTests.Select(t => t.TestId).ToList();
 
         // Total tests
         var totalTests = creatorTests.Count;
@@ -31,12 +32,12 @@ public class TestCreatorDashboardService : ITestCreatorDashboardService
         var draftTests = creatorTests.Count(t => t.VisibilityStatus == TestVisibilityStatus.Hidden || t.CreationStatus != TestCreationStatus.Completed);
         var publishedPercentage = totalTests > 0 ? Math.Round((decimal)publishedTests * 100 / totalTests, 0) : 0;
 
-        // Total questions created by this creator
-        var allQuestions = await _unitOfWork.Questions.GetAllAsync();
-        var totalQuestions = allQuestions.Count();
+        // Total questions in creator's tests (TestQuestions belong to their tests)
+        var allTestQuestions = await _unitOfWork.TestQuestions.GetAllAsync();
+        var creatorTestQuestions = allTestQuestions.Where(tq => testIds.Contains(tq.TestId)).ToList();
+        var totalQuestions = creatorTestQuestions.Count;
 
-        // Get test results for creator's tests
-        var testIds = creatorTests.Select(t => t.TestId).ToList();
+        // Get test results for creator's tests ONLY
         var allTestResults = await _unitOfWork.TestResults.GetAllAsync();
         var creatorTestResults = allTestResults
             .Where(tr => testIds.Contains(tr.TestId) && tr.Status == TestResultStatus.Graded)
@@ -47,12 +48,18 @@ public class TestCreatorDashboardService : ITestCreatorDashboardService
             ? Math.Round(creatorTestResults.Average(tr => tr.TotalScore), 1)
             : 0;
 
-        // Compare with previous period
+        // Compare with previous period - tests created by this creator
         var newTestsCurrentPeriod = creatorTests.Count(t => t.CreatedAt >= startOfCurrentPeriod && t.CreatedAt < now);
         var newTestsPreviousPeriod = creatorTests.Count(t => t.CreatedAt >= startOfPreviousPeriod && t.CreatedAt < startOfCurrentPeriod);
 
-        var newQuestionsCurrentPeriod = allQuestions.Count(q => q.CreatedAt >= startOfCurrentPeriod && q.CreatedAt < now);
-        var newQuestionsPreviousPeriod = allQuestions.Count(q => q.CreatedAt >= startOfPreviousPeriod && q.CreatedAt < startOfCurrentPeriod);
+        // Compare with previous period - questions in creator's tests
+        var newQuestionsCurrentPeriod = creatorTestQuestions.Count(tq => tq.CreatedAt >= startOfCurrentPeriod && tq.CreatedAt < now);
+        var newQuestionsPreviousPeriod = creatorTestQuestions.Count(tq => tq.CreatedAt >= startOfPreviousPeriod && tq.CreatedAt < startOfCurrentPeriod);
+
+        // Get question reports for creator's tests (reports về câu hỏi trong tests của họ)
+        var testQuestionIds = creatorTestQuestions.Select(tq => tq.TestQuestionId).ToList();
+        var pendingReports = await _unitOfWork.QuestionReports.GetPendingReportsCountAsync(creatorId);
+        var totalReports = await _unitOfWork.QuestionReports.GetReportsCountAsync(null, null, null, creatorId);
 
         return new TestCreatorDashboardStatisticsResponseDto
         {
@@ -63,6 +70,8 @@ public class TestCreatorDashboardService : ITestCreatorDashboardService
             TotalTestResults = totalTestResults,
             AverageScore = averageScore,
             PublishedPercentage = publishedPercentage,
+            PendingReports = pendingReports,
+            TotalReports = totalReports,
             NewTestsComparedToPrevious = newTestsCurrentPeriod - newTestsPreviousPeriod,
             NewQuestionsComparedToPrevious = newQuestionsCurrentPeriod - newQuestionsPreviousPeriod
         };
@@ -173,16 +182,20 @@ public class TestCreatorDashboardService : ITestCreatorDashboardService
     {
         var activities = new List<TestCreatorRecentActivityResponseDto>();
 
-        // Get creator's tests
+        // Get creator's tests ONLY
         var allTests = await _unitOfWork.Tests.GetAllAsync();
         var creatorTests = allTests
             .Where(t => t.CreatedById == creatorId)
+            .ToList();
+        var testIds = creatorTests.Select(t => t.TestId).ToList();
+
+        // Activity: Tạo bài thi mới (creator's tests only)
+        var recentCreatedTests = creatorTests
             .OrderByDescending(t => t.CreatedAt)
             .Take(limit)
             .ToList();
 
-        // Activity: Tạo bài thi mới
-        foreach (var test in creatorTests)
+        foreach (var test in recentCreatedTests)
         {
             activities.Add(new TestCreatorRecentActivityResponseDto
             {
@@ -194,10 +207,9 @@ public class TestCreatorDashboardService : ITestCreatorDashboardService
             });
         }
 
-        // Activity: Xuất bản bài thi (tests that were published)
-        var publishedTests = allTests
-            .Where(t => t.CreatedById == creatorId
-                && t.VisibilityStatus == TestVisibilityStatus.Published
+        // Activity: Xuất bản bài thi (creator's tests that were published)
+        var publishedTests = creatorTests
+            .Where(t => t.VisibilityStatus == TestVisibilityStatus.Published
                 && t.UpdatedAt.HasValue)
             .OrderByDescending(t => t.UpdatedAt)
             .Take(limit / 2)
@@ -218,10 +230,9 @@ public class TestCreatorDashboardService : ITestCreatorDashboardService
             }
         }
 
-        // Activity: Cập nhật bài thi
-        var updatedTests = allTests
-            .Where(t => t.CreatedById == creatorId
-                && t.UpdatedAt.HasValue
+        // Activity: Cập nhật bài thi (creator's tests only)
+        var updatedTests = creatorTests
+            .Where(t => t.UpdatedAt.HasValue
                 && t.UpdatedAt.Value > t.CreatedAt)
             .OrderByDescending(t => t.UpdatedAt)
             .Take(limit / 3)
@@ -242,22 +253,84 @@ public class TestCreatorDashboardService : ITestCreatorDashboardService
             }
         }
 
-        // Activity: Thêm câu hỏi (recent questions)
-        var allQuestions = await _unitOfWork.Questions.GetAllAsync();
-        var recentQuestions = allQuestions
-            .OrderByDescending(q => q.CreatedAt)
+        // Activity: Thêm câu hỏi vào tests của creator (TestQuestions in their tests)
+        var allTestQuestions = await _unitOfWork.TestQuestions.GetAllAsync();
+        var creatorTestQuestions = allTestQuestions
+            .Where(tq => testIds.Contains(tq.TestId))
+            .OrderByDescending(tq => tq.CreatedAt)
             .Take(limit / 3)
             .ToList();
 
-        foreach (var question in recentQuestions)
+        // Group by test to show meaningful activity
+        var questionsByTest = creatorTestQuestions
+            .GroupBy(tq => new { tq.TestId, Date = tq.CreatedAt.Date })
+            .Take(limit / 3);
+
+        foreach (var group in questionsByTest)
         {
+            var test = creatorTests.FirstOrDefault(t => t.TestId == group.Key.TestId);
+            if (test != null)
+            {
+                var firstQuestion = group.First();
+                activities.Add(new TestCreatorRecentActivityResponseDto
+                {
+                    ActivityType = "Thêm câu hỏi",
+                    Details = $"Bài thi: {test.Title} ({group.Count()} câu)",
+                    Status = "success",
+                    Timestamp = firstQuestion.CreatedAt,
+                    TimeAgo = GetTimeAgo(firstQuestion.CreatedAt)
+                });
+            }
+        }
+
+        // Activity: Có người làm bài thi của creator (test results for their tests)
+        var allTestResults = await _unitOfWork.TestResults.GetAllAsync();
+        var creatorTestResults = allTestResults
+            .Where(tr => testIds.Contains(tr.TestId) && tr.Status == TestResultStatus.Graded && tr.UpdatedAt.HasValue)
+            .OrderByDescending(tr => tr.UpdatedAt)
+            .Take(limit / 3)
+            .ToList();
+
+        foreach (var result in creatorTestResults)
+        {
+            var test = creatorTests.FirstOrDefault(t => t.TestId == result.TestId);
+            if (test != null && result.UpdatedAt.HasValue)
+            {
+                activities.Add(new TestCreatorRecentActivityResponseDto
+                {
+                    ActivityType = "Có người hoàn thành bài thi",
+                    Details = $"Bài thi: {test.Title} - Điểm: {result.TotalScore}",
+                    Status = "success",
+                    Timestamp = result.UpdatedAt.Value,
+                    TimeAgo = GetTimeAgo(result.UpdatedAt.Value)
+                });
+            }
+        }
+
+        // Activity: Có báo cáo lỗi câu hỏi mới cho tests của creator
+        var creatorReports = await _unitOfWork.QuestionReports.GetReportsAsync(null, null, null, creatorId, 0, limit / 3);
+        foreach (var report in creatorReports)
+        {
+            var test = creatorTests.FirstOrDefault(t => t.TestId == report.TestQuestion?.TestId);
+            var testName = test?.Title ?? "Không xác định";
+            var statusText = report.Status switch
+            {
+                ReportStatus.Pending => "Chờ xử lý",
+                ReportStatus.Reviewing => "Đang xem xét",
+                ReportStatus.Resolved => "Đã giải quyết",
+                ReportStatus.Rejected => "Đã từ chối",
+                _ => "Không xác định"
+            };
+            var activityStatus = report.Status == ReportStatus.Pending ? "warning" :
+                                 report.Status == ReportStatus.Resolved ? "success" : "info";
+
             activities.Add(new TestCreatorRecentActivityResponseDto
             {
-                ActivityType = "Thêm câu hỏi",
-                Details = $"Số lượng: 1",
-                Status = "success",
-                Timestamp = question.CreatedAt,
-                TimeAgo = GetTimeAgo(question.CreatedAt)
+                ActivityType = "Báo cáo lỗi câu hỏi",
+                Details = $"Bài thi: {testName} - {report.ReportType} ({statusText})",
+                Status = activityStatus,
+                Timestamp = report.CreatedAt,
+                TimeAgo = GetTimeAgo(report.CreatedAt)
             });
         }
 

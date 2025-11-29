@@ -17,7 +17,6 @@ import {
   FileTextOutlined,
   QuestionCircleOutlined,
   TrophyOutlined,
-  ArrowUpOutlined,
   CheckCircleOutlined,
   ExclamationCircleOutlined,
   LineChartOutlined,
@@ -101,7 +100,7 @@ export default function AdminDashboard() {
           user: item.userName || "",
           test: testMatch ? testMatch[1] : null,
           time: dayjs(item.timestamp),
-          status: item.status || "info",
+          status: item.status || "thông tin",
         };
       });
 
@@ -113,7 +112,7 @@ export default function AdminDashboard() {
       });
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      message.error("Không thể tải dữ liệu dashboard. Vui lòng thử lại.");
+      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
     } finally {
       setLoading(false);
     }
@@ -143,31 +142,19 @@ export default function AdminDashboard() {
       title: "Tổng số người dùng",
       value: stats.totalUsers,
       prefix: <UserOutlined />,
-      suffix: (
-        <span style={{ fontSize: 14, color: "#52c41a" }}>
-          <ArrowUpOutlined /> +{stats.newUsersToday}
-        </span>
-      ),
       valueStyle: { color: "#1890ff" },
     },
     {
       title: "Người dùng hoạt động",
       value: stats.activeUsers,
       prefix: <CheckCircleOutlined />,
-      suffix: stats.totalUsers > 0 
-        ? `${Math.round((stats.activeUsers / stats.totalUsers) * 100)}%`
-        : "0%",
+      
       valueStyle: { color: "#52c41a" },
     },
     {
       title: "Tổng số bài thi",
       value: stats.totalTests,
       prefix: <FileTextOutlined />,
-      suffix: (
-        <span style={{ fontSize: 14, color: "#52c41a" }}>
-          <ArrowUpOutlined /> +{stats.newTestsToday}
-        </span>
-      ),
       valueStyle: { color: "#722ed1" },
     },
     {
@@ -190,15 +177,37 @@ export default function AdminDashboard() {
     },
   ];
 
+  // Chuyển đổi status sang tiếng Việt
+  const translateStatus = (status) => {
+    const statusMap = {
+      "published": "đã xuất bản",
+      "draft": "nháp",
+      "hidden": "đã ẩn",
+      "private": "riêng tư",
+      "public": "công khai",
+      "success": "thành công",
+      "error": "lỗi",
+      "info": "thông tin",
+      "warning": "cảnh báo",
+    };
+    return statusMap[status?.toLowerCase()] || status || "thông tin";
+  };
+
   // Activity status colors
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case "success":
+      case "thành công":
         return "green";
       case "error":
+      case "lỗi":
         return "red";
       case "info":
+      case "thông tin":
         return "blue";
+      case "warning":
+      case "cảnh báo":
+        return "orange";
       default:
         return "default";
     }
@@ -221,7 +230,7 @@ export default function AdminDashboard() {
   return (
     <div style={{ padding: "24px" }} className="animate-fade-in">
       <Title level={2} style={{ marginBottom: 24 }} className="animate-fade-in-down">
-        Bảng điều khiển Admin
+        Bảng điều khiển 
       </Title>
 
       {/* Statistics Cards */}
@@ -382,7 +391,7 @@ export default function AdminDashboard() {
                         <Space>
                           <Text strong>{item.action}</Text>
                           <Tag color={getStatusColor(item.status)}>
-                            {item.status}
+                            {translateStatus(item.status)}
                           </Tag>
                         </Space>
                       }

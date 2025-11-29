@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Layout, Button, Modal, Typography, message, Spin, Alert } from "antd";
 import { MenuOutlined, LoadingOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
@@ -6,11 +6,19 @@ import QuestionNavigator from "./QuestionNavigator";
 import QuestionCard from "./QuestionCard";
 import { submitTest, submitAssessmentBulk, saveProgress, startTest } from "../../../services/testExamService";
 import { uploadFile } from "../../../services/filesService";
+import { getMyQuestionReports } from "../../../services/questionReportService";
+import { translateErrorMessage } from "@shared/utils/translateError";
 import { useNavigate } from "react-router-dom";
 import { SaveOutlined } from "@ant-design/icons";
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
+const MOBILE_NAV_BREAKPOINT = 992;
+
+const getIsCompactViewport = () => {
+  if (typeof window === "undefined") return false;
+  return window.innerWidth < MOBILE_NAV_BREAKPOINT;
+};
 
 export default function ExamScreen() {
   const navigate = useNavigate();
@@ -46,13 +54,6 @@ export default function ExamScreen() {
       ? Math.max(0, totalDurationSeconds - currentElapsedSeconds)
       : totalDurationSeconds;
     
-    console.log("ExamScreen - Continue from history:");
-    console.log("  - createdAt:", rawTestData.createdAt);
-    console.log("  - createdAtTimestamp:", new Date(createdAtTimestamp).toISOString());
-    console.log("  - currentElapsedSeconds:", currentElapsedSeconds, "seconds");
-    console.log("  - isSelectTime:", isSelectTime);
-    console.log("  - initialTimeLeft:", initialTimeLeft, "seconds");
-    console.log("  - initialElapsedSeconds:", initialElapsedSeconds, "seconds");
   } else {
     // Làm test mới: dùng logic cũ
     const startTimestampValue = rawTestData.startedAt ? Number(rawTestData.startedAt) : Date.now();
@@ -66,7 +67,9 @@ export default function ExamScreen() {
   
   const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
   const [timeElapsed, setTimeElapsed] = useState(initialElapsedSeconds);
-  const [isNavVisible, setIsNavVisible] = useState(true);
+  const [isCompactView, setIsCompactView] = useState(() => getIsCompactViewport());
+  const [isNavVisible, setIsNavVisible] = useState(() => !getIsCompactViewport());
+  const lastCompactStateRef = useRef(isCompactView);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -76,6 +79,7 @@ export default function ExamScreen() {
   const [offlineAnswers, setOfflineAnswers] = useState(null);
   const [offlineTimestamp, setOfflineTimestamp] = useState(null);
   const [showSaveInfoAlert, setShowSaveInfoAlert] = useState(true);
+  const [reportedQuestionIds, setReportedQuestionIds] = useState(new Set()); // Set các testQuestionId đã report
   const timerRef = useRef(null);
   const isSubmittingRef = useRef(false);
   const startTimestampRef = useRef(safeStartTimestamp);
@@ -83,7 +87,6 @@ export default function ExamScreen() {
   // Cập nhật startTimestampRef khi safeStartTimestamp thay đổi (ví dụ: khi tiếp tục từ history)
   useEffect(() => {
     startTimestampRef.current = safeStartTimestamp;
-    console.log("ExamScreen - Updated startTimestampRef.current to:", new Date(safeStartTimestamp).toISOString());
   }, [safeStartTimestamp]);
   const warningTimeoutRef = useRef(null);
   const originalPushStateRef = useRef(null);
@@ -177,7 +180,6 @@ export default function ExamScreen() {
             savedData.lastBackendLoadTime = Date.now();
             sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
             
-            console.log("ExamScreen - Reload: Loaded answers from API startTest only:", savedAnswersObj);
           } else {
             // Nếu không có savedAnswers từ API, set answers rỗng
             setAnswers({});
@@ -185,12 +187,10 @@ export default function ExamScreen() {
             savedData.answers = {};
             savedData.lastBackendLoadTime = Date.now();
             sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
-            console.log("ExamScreen - Reload: No savedAnswers from API, cleared answers");
           }
         } catch (error) {
           console.error("Error loading answers from backend on reload:", error);
           // Nếu lỗi, vẫn dùng answers từ sessionStorage (fallback)
-          console.log("ExamScreen - Reload: Error loading from API, using sessionStorage as fallback");
         } finally {
           setIsLoadingAnswers(false);
           hasLoadedFromBackendRef.current = true;
@@ -203,6 +203,42 @@ export default function ExamScreen() {
     
     loadAnswersFromBackend();
   }, []); // Chỉ chạy một lần khi component mount
+
+  // Load danh sách reports để biết câu hỏi nào đã được report
+  useEffect(() => {
+    const loadReports = async () => {
+      try {
+        // Load tất cả reports (có thể cần pagination nếu có nhiều)
+        const response = await getMyQuestionReports(1, 1000); // Load nhiều để lấy hết
+        const reportsData = response?.data || [];
+        
+        // Tạo Set các testQuestionId đã report
+        const reportedIds = new Set();
+        reportsData.forEach(report => {
+          if (report.testQuestionId) {
+            reportedIds.add(report.testQuestionId);
+          }
+        });
+        
+        setReportedQuestionIds(reportedIds);
+      } catch (error) {
+        console.error("Error loading reports:", error);
+        // Không hiển thị error vì đây là tính năng phụ
+      }
+    };
+    
+    loadReports();
+  }, []);
+
+  // Function để check xem câu hỏi đã report chưa
+  const isQuestionReported = (testQuestionId) => {
+    return reportedQuestionIds.has(testQuestionId);
+  };
+
+  // Callback khi report thành công
+  const handleReportSuccess = (testQuestionId) => {
+    setReportedQuestionIds(prev => new Set([...prev, testQuestionId]));
+  };
 
   useEffect(() => {
     const handlePopState = () => {
@@ -385,6 +421,26 @@ export default function ExamScreen() {
     totalDurationSeconds,
   ]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => {
+      const compact = getIsCompactViewport();
+      setIsCompactView(compact);
+      if (lastCompactStateRef.current !== compact) {
+        if (compact) {
+          setIsNavVisible(false);
+        } else {
+          setIsNavVisible(true);
+        }
+        lastCompactStateRef.current = compact;
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const onAnswer = (testQuestionId, value) => {
     setAnswers((prev) => {
       // Nếu value là null, undefined, hoặc empty string, xóa key khỏi answers
@@ -489,7 +545,7 @@ export default function ExamScreen() {
   };
 
   // Hàm lưu tiến độ làm bài (cho tất cả loại bài thi)
-  const handleSaveProgress = async () => {
+  const handleSaveProgress = useCallback(async () => {
     const testResultId = rawTestData.testResultId;
     if (!testResultId) {
       message.warning("Không tìm thấy testResultId");
@@ -533,12 +589,12 @@ export default function ExamScreen() {
         message.warning("Tính năng lưu tiến độ chưa được kích hoạt. Vui lòng liên hệ quản trị viên.");
         console.warn("Save progress endpoint may not be implemented on backend");
       } else {
-        message.error("Không thể lưu tiến độ: " + (error.response?.data?.message || error.message));
+        message.error("Không thể lưu tiến độ: " + translateErrorMessage(error.response?.data?.message || error.message));
       }
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [answers, rawTestData.testResultId]);
 
   // Map partId sang partType cho S&W
   const getPartType = (partId) => {
@@ -561,7 +617,6 @@ export default function ExamScreen() {
     const finalAnswers = answersToSubmit || answers;
     // Prevent multiple submissions
     if (isSubmitting) {
-      console.log("Submit already in progress, ignoring duplicate call");
       return;
     }
 
@@ -686,11 +741,6 @@ export default function ExamScreen() {
       // Nếu không, ưu tiên testResultId do server trả về sau submit (trong trường hợp backend tạo bản ghi mới)
       let finalTestResultId = testResultId;
       
-      console.log("ExamScreen - Submit: testResultId from sessionStorage:", testResultId);
-      console.log("ExamScreen - Submit: isContinueFromHistory:", isContinueFromHistory);
-      if (isContinueFromHistory) {
-        console.log("ExamScreen - Submit: originalTestResultId from history:", rawTestData.originalTestResultId);
-      }
       
       if (lrAnswers.length > 0) {
         const lrPayload = {
@@ -701,9 +751,7 @@ export default function ExamScreen() {
           testType: testType,
           answers: lrAnswers,
         };
-        console.log("Submitting L&R with testResultId:", finalTestResultId);
         lrResult = await submitTest(lrPayload);
-        console.log("L&R submit response:", lrResult);
 
         // CHỈ cập nhật testResultId từ response nếu KHÔNG phải tiếp tục từ history
         // Nếu tiếp tục từ history, luôn giữ nguyên testResultId từ history
@@ -718,7 +766,6 @@ export default function ExamScreen() {
             console.error("Error syncing testResultId to sessionStorage:", e);
           }
         } else if (isContinueFromHistory) {
-          console.log("ExamScreen - Continue from history: Keeping original testResultId:", finalTestResultId);
         }
       }
 
@@ -731,13 +778,8 @@ export default function ExamScreen() {
           duration: durationMinutes,
           parts: swAnswers,
         };
-        console.log("Submitting S&W with testResultId:", finalTestResultId);
-        if (isContinueFromHistory) {
-          console.log("ExamScreen - S&W Submit: Using testResultId from history (continue test)");
-        }
         swResult = await submitAssessmentBulk(swPayload);
         // KHÔNG cập nhật testResultId từ response - luôn dùng testResultId ban đầu hoặc từ history
-        console.log("S&W submit response:", swResult);
       }
 
       // Kiểm tra lại nếu không có câu nào được trả lời (sau khi format)
@@ -749,31 +791,36 @@ export default function ExamScreen() {
         return;
       }
 
-      // Merge kết quả: ưu tiên L&R result vì nó có đầy đủ thông tin
-      // Nếu tiếp tục từ history, dùng testResultId từ history, không phải từ response
-      const fullResult = {
-        ...(lrResult || {}),
-        ...(swResult || {}),
-        testResultId: finalTestResultId, // Dùng testResultId từ history nếu tiếp tục test, nếu không thì dùng từ response
-        testId: rawTestData.testId, // Lưu testId để có thể làm lại bài thi
-        questions: questions,
-        answers: finalAnswers, // Lưu answers để hiển thị câu trả lời gốc trong result
-        duration: durationMinutes,
+      // Lưu metadata cơ bản để màn kết quả có thể lấy lại thông tin test
+      const resultMeta = {
+        testResultId: finalTestResultId,
+        testId: rawTestData.testId,
         testType,
+        testSkill: rawTestData.testSkill,
+        duration: durationMinutes,
+        questionQuantity:
+          rawTestData.questionQuantity ||
+          rawTestData.quantityQuestion ||
+          questions.length,
         isSelectTime,
+        title: rawTestData.title || rawTestData.testTitle || "",
       };
-      
-      console.log("ExamScreen - Final result testResultId:", fullResult.testResultId);
-      if (isContinueFromHistory) {
-        console.log("ExamScreen - Final result: Using testResultId from history for continue test");
+
+      try {
+        sessionStorage.setItem("toeic_resultMeta", JSON.stringify(resultMeta));
+      } catch (e) {
+        console.error("Error saving result meta to sessionStorage:", e);
       }
+
 
       setTimeout(() => {
         setShowSubmitModal(false);
-        navigate("/result", { state: { resultData: fullResult, autoSubmit: auto } });
+        navigate("/result", {
+          state: { testResultId: finalTestResultId, testMeta: resultMeta, autoSubmit: auto },
+        });
       }, 900);
     } catch (error) {
-      message.error("Nộp bài thất bại: " + (error.response?.data?.message || error.message));
+      message.error("Nộp bài thất bại: " + translateErrorMessage(error.response?.data?.message || error.message));
       setShowSubmitModal(false);
       setIsSubmitting(false); // Reset flag on error
     }
@@ -833,37 +880,97 @@ export default function ExamScreen() {
 
   // Auto-save tiến độ mỗi 5 phút (cho tất cả loại bài thi)
   useEffect(() => {
-    if (!rawTestData.testResultId) return;
+    if (!rawTestData.testResultId) {
+      return;
+    }
 
-    // Chỉ auto-save nếu có ít nhất 1 câu trả lời và có mạng
-    const hasAnswers = questions.some(q => {
-      const answerKey = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
-        ? `${q.testQuestionId}_${q.subQuestionIndex}`
-        : q.testQuestionId;
-      const answerValue = answers[answerKey];
-      
-      // Kiểm tra có answer hợp lệ
-      if (!answerValue) return false;
-      
-      // L&R: có chosenOptionLabel
-      if (q.partId >= 1 && q.partId <= 7) return true;
-      
-      // Writing: có answerText (string)
-      if (q.partId >= 8 && q.partId <= 10 && typeof answerValue === "string") return true;
-      
-      // Speaking: có answerAudioUrl (URL string)
-      if (q.partId >= 11 && q.partId <= 15 && typeof answerValue === "string" && answerValue.startsWith("http")) return true;
+    // Clear interval cũ nếu có
+    if (autoSaveIntervalRef.current) {
+      clearInterval(autoSaveIntervalRef.current);
+      autoSaveIntervalRef.current = null;
+    }
+
+    // Hàm kiểm tra có câu trả lời hợp lệ không
+    const checkHasAnswers = () => {
+      if (!answers || Object.keys(answers).length === 0) {
+        return false;
+      }
+
+      // Kiểm tra xem có ít nhất 1 câu trả lời hợp lệ
+      for (const [answerKey, answerValue] of Object.entries(answers)) {
+        if (!answerValue) continue;
+
+        // Parse answerKey để tìm question
+        let testQuestionId, subQuestionIndex;
+        if (answerKey.includes('_')) {
+          const parts = answerKey.split('_');
+          testQuestionId = parseInt(parts[0]);
+          subQuestionIndex = parseInt(parts[1]);
+        } else {
+          testQuestionId = parseInt(answerKey);
+          subQuestionIndex = 0;
+        }
+
+        // Tìm question tương ứng
+        const q = questions.find((q) => 
+          q.testQuestionId === testQuestionId && 
+          (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === 0 && !q.subQuestionIndex))
+        );
+        
+        if (!q) continue;
+
+        // L&R: có chosenOptionLabel (bất kỳ giá trị nào)
+        if (q.partId >= 1 && q.partId <= 7) {
+          return true;
+        }
+        
+        // Writing: có answerText (string không rỗng)
+        if (q.partId >= 8 && q.partId <= 10 && typeof answerValue === "string" && answerValue.trim() !== "") {
+          return true;
+        }
+        
+        // Speaking: có answerAudioUrl (URL string) hoặc Blob
+        if (q.partId >= 11 && q.partId <= 15) {
+          if (typeof answerValue === "string" && answerValue.startsWith("http")) {
+            return true;
+          }
+          if (answerValue instanceof Blob) {
+            return true;
+          }
+        }
+      }
       
       return false;
-    });
+    };
 
-    if (!hasAnswers || !navigator.onLine) return;
+    // Kiểm tra lần đầu
+    const hasAnswers = checkHasAnswers();
+    if (!hasAnswers) {
+      return;
+    }
+
+    if (!navigator.onLine) {
+      return;
+    }
+
 
     // Auto-save mỗi 5 phút (300000 ms)
     autoSaveIntervalRef.current = setInterval(() => {
-      if (!isSubmittingRef.current && navigator.onLine) {
-        handleSaveProgress();
+      // Kiểm tra lại trước mỗi lần save
+      const stillHasAnswers = checkHasAnswers();
+      if (!stillHasAnswers) {
+        return;
       }
+
+      if (!navigator.onLine) {
+        return;
+      }
+
+      if (isSubmittingRef.current) {
+        return;
+      }
+
+      handleSaveProgress();
     }, 5 * 60 * 1000); // 5 phút
 
     return () => {
@@ -872,8 +979,7 @@ export default function ExamScreen() {
         autoSaveIntervalRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawTestData.testResultId]);
+  }, [rawTestData.testResultId, answers, questions, handleSaveProgress]);
 
   const formatTime = (value) => {
     const safeSeconds = Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
@@ -885,6 +991,61 @@ export default function ExamScreen() {
   const totalCount = questions.length;
 
   const loadingIcon = <LoadingOutlined style={{ fontSize: 24 }} spin />;
+
+  const renderNavigator = () => (
+    <div
+      className={`${styles.sideNav} ${isCompactView ? styles.sideNavCompact : ""}`}
+    >
+      <QuestionNavigator
+        questions={questions}
+        currentIndex={currentIndex}
+        answers={answers}
+        goToQuestionByIndex={goToQuestionByIndex}
+      />
+      </div>
+    );
+
+  const renderActionButtons = (variant = "desktop") => {
+    const containerClass =
+      variant === "mobile" ? styles.mobileActionBar : styles.headerRight;
+    const btnClassExtra =
+      variant === "mobile" ? styles.actionBtnMobile : "";
+    const metricClass =
+      variant === "mobile"
+        ? `${styles.answerCounter} ${styles.mobileMetric}`
+        : styles.answerCounter;
+
+  return (
+      <div className={containerClass}>
+            <Button 
+              icon={<SaveOutlined />}
+              onClick={handleSaveProgress}
+              disabled={isSaving || isSubmitting}
+              loading={isSaving}
+          className={`${styles.actionBtn} ${styles.saveBtn} ${btnClassExtra}`}
+            >
+              Lưu
+            </Button>
+            <Button 
+              onClick={() => handleSubmit(false)}
+              disabled={isSubmitting}
+              loading={isSubmitting}
+          className={`${styles.actionBtn} ${styles.submitBtn} ${btnClassExtra}`}
+            >
+              Nộp bài
+            </Button>
+            <Button 
+          className={`${styles.actionBtn} ${styles.timerBtn} ${btnClassExtra}`}
+              type="dashed"
+            >
+              {formatTime(isSelectTime ? timeLeft : timeElapsed)}
+            </Button>
+        <Text className={metricClass}>
+              {answeredCount}/{totalCount} câu
+            </Text>
+          </div>
+    );
+  };
 
   if (questions.length === 0) {
     return (
@@ -908,79 +1069,29 @@ export default function ExamScreen() {
               TOEIC - {rawTestData.title || "Bài thi"}
             </Text>
           </div>
-          <div className={styles.headerRight}>
-            <Button 
-              icon={<SaveOutlined />}
-              onClick={handleSaveProgress}
-              disabled={isSaving || isSubmitting}
-              loading={isSaving}
-              style={{
-                borderRadius: "8px",
-                height: "36px",
-                fontWeight: 600,
-                background: "rgba(255, 255, 255, 0.2)",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
-                color: "#fff"
-              }}
-            >
-              Lưu
-            </Button>
-            <Button 
-              onClick={() => handleSubmit(false)}
-              disabled={isSubmitting}
-              loading={isSubmitting}
-              style={{
-                borderRadius: "8px",
-                height: "36px",
-                fontWeight: 600,
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
-                marginLeft: 8
-              }}
-            >
-              Nộp bài
-            </Button>
-            <Button 
-              style={{ 
-                marginLeft: 8,
-                borderRadius: "8px",
-                height: "36px",
-                fontWeight: 600,
-                background: "rgba(255, 255, 255, 0.2)",
-                border: "1px solid rgba(255, 255, 255, 0.3)",
-                color: "#fff"
-              }} 
-              type="dashed"
-            >
-              {formatTime(isSelectTime ? timeLeft : timeElapsed)}
-            </Button>
-            <Text style={{ 
-              color: "#fff", 
-              marginLeft: 12,
-              fontSize: "14px",
-              fontWeight: 600,
-              background: "rgba(255, 255, 255, 0.2)",
-              padding: "6px 12px",
-              borderRadius: "8px"
-            }}>
-              {answeredCount}/{totalCount} câu
-            </Text>
-          </div>
+          {!isCompactView && renderActionButtons("desktop")}
         </div>
       </Header>
 
+      {isCompactView && (
+        <div className={styles.mobileActionWrapper}>
+          {renderActionButtons("mobile")}
+        </div>
+      )}
+
       <Content className={styles.contentArea}>
-        <div className={styles.examBody}>
-          {isNavVisible && (
-            <div className={styles.sideNav}>
-              <QuestionNavigator
-                questions={questions}
-                currentIndex={currentIndex}
-                answers={answers}
-                goToQuestionByIndex={goToQuestionByIndex}
-              />
-            </div>
+        {isCompactView && isNavVisible && (
+          <>
+            <div
+              className={styles.navBackdrop}
+              onClick={() => setIsNavVisible(false)}
+            />
+            {renderNavigator()}
+          </>
           )}
-          <div className={styles.questionArea} style={{ flex: isNavVisible ? 1 : "auto" }}>
+        <div className={styles.examBody}>
+          {!isCompactView && isNavVisible && renderNavigator()}
+          <div className={styles.questionArea}>
             {/* Thông tin về nút Save */}
             {showSaveInfoAlert && (
               <Alert
@@ -1012,6 +1123,10 @@ export default function ExamScreen() {
               handleSubmit={() => handleSubmit(false)}
               isSubmitting={isSubmitting}
               globalAudioUrl={rawTestData.globalAudioUrl}
+              testType={rawTestData.testType || "Simulator"}
+              testResultId={rawTestData.testResultId}
+              isReported={questions[currentIndex] ? isQuestionReported(questions[currentIndex].testQuestionId) : false}
+              onReportSuccess={handleReportSuccess}
             />
           </div>
         </div>

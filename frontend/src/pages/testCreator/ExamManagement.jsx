@@ -240,6 +240,24 @@ export default function ExamManagement() {
                 
                 const filtered = Array.from(latestVersions);
                 
+                // Sắp xếp theo thời gian tạo giảm dần (test mới nhất lên đầu)
+                // Ưu tiên createdAt, nếu không có thì dùng id (id lớn hơn = mới hơn)
+                filtered.sort((a, b) => {
+                    const dateA = a.createdAt || a.CreatedAt;
+                    const dateB = b.createdAt || b.CreatedAt;
+                    
+                    if (dateA && dateB) {
+                        return new Date(dateB) - new Date(dateA);
+                    }
+                    if (dateA) return -1;
+                    if (dateB) return 1;
+                    
+                    // Nếu không có createdAt, sắp xếp theo id (id lớn hơn = mới hơn)
+                    const idA = a.id ?? a.Id ?? a.testId ?? a.TestId ?? 0;
+                    const idB = b.id ?? b.Id ?? b.testId ?? b.TestId ?? 0;
+                    return idB - idA;
+                });
+                
                 // Paginate lại sau khi filter
                 const startIndex = (page - 1) * pageSize;
                 const endIndex = startIndex + pageSize;
@@ -743,17 +761,34 @@ export default function ExamManagement() {
             width: 160,
             align: "center",
             render: (_, rec) => {
-                // Chỉ hiển thị visibilityStatus (Đã công khai hoặc Đã ẩn)
-                const visibility = normalizeVisibilityStatusValue(rec?.visibilityStatus ?? rec?.VisibilityStatus);
+                const normalizedStatus = deriveStatusKey(rec);
+                const statusColorMap = {
+                    "Published": "success",
+                    "Active": "success", // Alias cho Published
+                    "Completed": "success",
+                    "InProgress": "processing",
+                    "Draft": "warning",
+                    "Hidden": "default",
+                    "Inactive": "default" // Alias cho Hidden
+                };
+                const statusLabelMap = {
+                    "Published": "Đã công khai",
+                    "Active": "Đang hoạt động",
+                    "Completed": "Hoàn thành",
+                    "InProgress": "Đang tiến hành",
+                    "Draft": "Bản nháp",
+                    "Hidden": "Đã ẩn",
+                    "Inactive": "Đã ẩn"
+                };
                 
-                if (visibility === "Published") {
-                    return <Tag color="success">Đã công khai</Tag>;
-                } else if (visibility === "Hidden") {
-                    return <Tag color="default">Đã ẩn</Tag>;
-                } else {
-                    // Nếu không có visibilityStatus, mặc định là "Đã ẩn"
-                    return <Tag color="default">Đã ẩn</Tag>;
-                }
+                const statusColor = statusColorMap[normalizedStatus] || "default";
+                const statusLabel = statusLabelMap[normalizedStatus] || normalizedStatus;
+                
+                return (
+                    <Tag color={statusColor}>
+                        {statusLabel}
+                    </Tag>
+                );
             } 
         },
         {

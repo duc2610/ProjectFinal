@@ -18,7 +18,6 @@ import {
   FileTextOutlined,
   QuestionCircleOutlined,
   TrophyOutlined,
-  ArrowUpOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   BarChartOutlined,
@@ -84,7 +83,7 @@ export default function TestCreatorDashboard() {
         name: item.title,
         completed: item.completedCount || 0,
         averageScore: item.averagePercentage || item.averageScore || 0,
-        status: item.visibilityStatusText?.toLowerCase() || "published",
+        status: item.visibilityStatusText?.toLowerCase() || "đã xuất bản",
       }));
 
       // Transform activities data
@@ -107,7 +106,7 @@ export default function TestCreatorDashboard() {
           test: testMatch ? testMatch[1] : null,
           count: countMatch ? parseInt(countMatch[1]) : null,
           time: dayjs(item.timestamp),
-          status: item.status || "info",
+          status: item.status || "thông tin",
         };
       });
 
@@ -119,7 +118,7 @@ export default function TestCreatorDashboard() {
       });
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      message.error("Không thể tải dữ liệu dashboard. Vui lòng thử lại.");
+      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
     } finally {
       setLoading(false);
     }
@@ -141,20 +140,12 @@ export default function TestCreatorDashboard() {
       title: "Tổng số bài thi",
       value: stats.totalTests,
       prefix: <FileTextOutlined />,
-      suffix: (
-        <span style={{ fontSize: 14, color: "#52c41a" }}>
-          <ArrowUpOutlined /> +{stats.newTestsToday}
-        </span>
-      ),
       valueStyle: { color: "#1890ff" },
     },
     {
       title: "Bài thi đã xuất bản",
       value: stats.publishedTests,
       prefix: <CheckCircleOutlined />,
-      suffix: stats.totalTests > 0 
-        ? `${Math.round((stats.publishedTests / stats.totalTests) * 100)}%`
-        : "0%",
       valueStyle: { color: "#52c41a" },
     },
     {
@@ -167,11 +158,6 @@ export default function TestCreatorDashboard() {
       title: "Tổng số câu hỏi",
       value: stats.totalQuestions,
       prefix: <QuestionCircleOutlined />,
-      suffix: (
-        <span style={{ fontSize: 14, color: "#52c41a" }}>
-          <ArrowUpOutlined /> +{stats.newQuestionsToday}
-        </span>
-      ),
       valueStyle: { color: "#722ed1" },
     },
     {
@@ -189,15 +175,37 @@ export default function TestCreatorDashboard() {
     },
   ];
 
+  // Chuyển đổi status sang tiếng Việt
+  const translateStatus = (status) => {
+    const statusMap = {
+      "published": "đã xuất bản",
+      "draft": "nháp",
+      "hidden": "đã ẩn",
+      "private": "riêng tư",
+      "public": "công khai",
+      "success": "thành công",
+      "error": "lỗi",
+      "info": "thông tin",
+      "warning": "cảnh báo",
+    };
+    return statusMap[status?.toLowerCase()] || status || "thông tin";
+  };
+
   // Activity status colors
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case "success":
+      case "thành công":
         return "green";
       case "error":
+      case "lỗi":
         return "red";
       case "info":
+      case "thông tin":
         return "blue";
+      case "warning":
+      case "cảnh báo":
+        return "orange";
       default:
         return "default";
     }
@@ -220,7 +228,7 @@ export default function TestCreatorDashboard() {
   return (
     <div style={{ padding: "24px" }} className="animate-fade-in">
       <Title level={2} style={{ marginBottom: 24 }} className="animate-fade-in-down">
-        Bảng điều khiển Test Creator
+        Bảng điều khiển 
       </Title>
 
       {/* Statistics Cards */}
@@ -315,7 +323,7 @@ export default function TestCreatorDashboard() {
                     title={
                       <Space>
                         <Text strong>{item.name}</Text>
-                        <Tag color="green">{item.status}</Tag>
+                        <Tag color="green">{translateStatus(item.status)}</Tag>
                       </Space>
                     }
                     description={
@@ -379,7 +387,7 @@ export default function TestCreatorDashboard() {
                         <Space>
                           <Text strong>{item.action}</Text>
                           <Tag color={getStatusColor(item.status)}>
-                            {item.status}
+                            {translateStatus(item.status)}
                           </Tag>
                         </Space>
                       }

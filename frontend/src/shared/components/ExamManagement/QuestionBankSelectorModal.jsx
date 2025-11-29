@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Modal, Table, Input, Select, Space, Tag, message } from "antd";
+import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { getQuestions, buildQuestionListParams } from "@services/questionsService";
 import { getPartsBySkill } from "@services/partsService";
 
 const { Option } = Select;
+
+// Parts chỉ dành cho group questions: 3, 4 (Listening), 6, 7 (Reading)
+const GROUP_PARTS = [3, 4, 6, 7];
+const isGroupPart = (p) => GROUP_PARTS.includes(Number(p));
 
 export default function QuestionBankSelectorModal({ 
     open, 
@@ -39,7 +43,12 @@ export default function QuestionBankSelectorModal({
     const loadParts = async () => {
         try {
             const loadedParts = await getPartsBySkill(skill);
-            setParts(loadedParts || []);
+            // Filter: loại bỏ các part group (3, 4, 6, 7) - chỉ dành cho group questions
+            const filteredParts = (loadedParts || []).filter(p => {
+                const pid = Number(p.partId || p.id);
+                return !isGroupPart(pid);
+            });
+            setParts(filteredParts);
         } catch (error) {
             console.error("Error loading parts:", error);
         }
@@ -64,27 +73,41 @@ export default function QuestionBankSelectorModal({
             const size = payload.pageSize || pageSize;
             const totalCount = payload.totalCount || payload.total || data.length || 0;
 
-            const mapped = (data || []).map((q) => {
-                const rawStatus = q.status;
-                let statusNum;
-                if (typeof rawStatus === "number") {
-                    // BE: 1 = Active, -1 = Inactive
-                    statusNum = rawStatus === 1 ? 1 : -1;
-                } else if (typeof rawStatus === "string") {
-                    const s = rawStatus.toLowerCase();
-                    statusNum = s === "active" ? 1 : -1;
-                } else {
-                    statusNum = q.isActive === true ? 1 : -1;
-                }
+            const mapped = (data || [])
+                .filter((q) => {
+                    // Filter: loại bỏ single questions có part group (3, 4, 6, 7)
+                    const partId = Number(q.partId || q.part?.id);
+                    return !isGroupPart(partId);
+                })
+                .map((q) => {
+                    const rawStatus = q.status;
+                    let statusNum;
+                    if (typeof rawStatus === "number") {
+                        // BE: 1 = Active, -1 = Inactive
+                        statusNum = rawStatus === 1 ? 1 : -1;
+                    } else if (typeof rawStatus === "string") {
+                        const s = rawStatus.toLowerCase();
+                        statusNum = s === "active" ? 1 : -1;
+                    } else {
+                        statusNum = q.isActive === true ? 1 : -1;
+                    }
 
-                return {
-                    id: q.questionId ?? q.id,
-                    partName: q.partName ?? q.part ?? q.partId,
-                    questionTypeName: q.questionTypeName ?? q.typeName ?? q.name,
-                    content: q.content ?? "",
-                    status: statusNum,
-                };
-            });
+                    const partId = Number(q.partId || q.part?.id);
+                    const isContentOptional = [1, 2, 6].includes(partId);
+
+                    return {
+                        id: q.questionId ?? q.id,
+                        partName: q.partName ?? q.part ?? q.partId,
+                        questionTypeName: q.questionTypeName ?? q.typeName ?? q.name,
+                        content: q.content ?? "",
+                        status: statusNum,
+                        partId: partId,
+                        hasAudio: !!(q.audioUrl || q.audioName),
+                        hasImage: !!(q.imageUrl || q.imageName),
+                        optionsCount: Array.isArray(q.options) ? q.options.length : 0,
+                        isContentOptional: isContentOptional,
+                    };
+                });
 
             setQuestions(mapped);
             setPagination({ current: currentPage, pageSize: size, total: totalCount });
@@ -167,8 +190,42 @@ export default function QuestionBankSelectorModal({
             title: "Nội dung",
             dataIndex: "content",
             key: "content",
-            ellipsis: true,
-            render: (text) => text || <span style={{ color: "#999" }}>Không có nội dung</span>
+            ellipsis: { showTitle: false },
+            render: (text, record) => {
+                if (text && text.trim()) {
+                    return (
+                        <Tooltip title={text}>
+                            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                                {text}
+                            </span>
+                        </Tooltip>
+                    );
+                } else if (record.isContentOptional) {
+                    // Part 1, 2, 6 không có content: hiển thị thông tin khác
+                    const info = [];
+                    if (record.hasAudio) {
+                        info.push(<Tag key="audio" color="green" style={{ fontSize: 11 }}>🔊 Audio</Tag>);
+                    }
+                    if (record.hasImage) {
+                        info.push(<Tag key="image" color="orange" style={{ fontSize: 11 }}>🖼️ Ảnh</Tag>);
+                    }
+                    if (record.optionsCount > 0) {
+                        info.push(<Tag key="options" color="blue" style={{ fontSize: 11 }}>{record.optionsCount} đáp án</Tag>);
+                    }
+                    
+                    if (info.length > 0) {
+                        return (
+                            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+                                {info}
+                            </div>
+                        );
+                    }
+                    
+                    return <span style={{ color: "#999", fontStyle: "italic", fontSize: 12 }}>Không có nội dung (Part {record.partId})</span>;
+                } else {
+                    return <span style={{ color: "#999" }}>Không có nội dung</span>;
+                }
+            }
         },
         {
             title: "Trạng thái",
@@ -194,6 +251,14 @@ export default function QuestionBankSelectorModal({
             okText={`Chọn (${selectedRowKeys.length})`}
             cancelText="Hủy"
         >
+            <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="Câu hỏi đơn"
+                description="Chỉ hiển thị các câu hỏi đơn. Part 3, 4 (Nghe) và Part 6, 7 (Đọc) chỉ có thể chọn dưới dạng nhóm câu hỏi."
+            />
+            
             <Space direction="vertical" style={{ width: "100%", marginBottom: 16 }} size="middle">
                 <Space>
                     <Input

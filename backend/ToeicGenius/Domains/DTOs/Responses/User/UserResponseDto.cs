@@ -15,5 +15,6 @@ namespace ToeicGenius.Domains.DTOs.Responses.User
 		public List<string> Roles { get; set; } = new();
 
 		public DateTime CreatedAt { get; set; }
+		public bool IsRoot { get; set; } = false;
 	}
 }

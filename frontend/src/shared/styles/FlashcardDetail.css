@@ -148,10 +148,11 @@
 }
 
 /* Navigation Buttons */
-.quizlet-nav-button {
+.quizlet-nav-button,
+.quizlet-nav-button.ant-btn {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
+  border-radius: 50% !important; /* đảm bảo luôn là hình tròn */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -161,6 +162,7 @@
   border: 2px solid #e0e0e0;
   transition: all 0.2s ease;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 0 !important; /* bỏ padding mặc định của ant-btn để không bị méo */
 }
 
 .quizlet-nav-button:hover:not(:disabled) {
@@ -230,11 +232,57 @@
 }
 
 .quizlet-card-word {
-  font-size: 48px;
+  font-size: 44px;
   font-weight: 700;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   line-height: 1.2;
+}
+
+.quizlet-card-meta {
+  font-size: 18px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  opacity: 0.95;
+}
+
+.quizlet-card-pron {
+  margin-right: 6px;
+  font-style: italic;
+}
+
+.quizlet-card-type {
+  font-size: 15px;
+  opacity: 0.9;
+}
+
+.quizlet-card-section {
+  margin-top: 12px;
+}
+
+.quizlet-card-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.quizlet-card-examples {
+  list-style: disc;
+  display: inline-block; /* Khối ví dụ nằm giữa card */
+  padding-left: 28px;
+  margin: 0 auto 8px auto; /* Căn giữa cả khối */
+  text-align: left; /* Nhưng từng câu vẫn căn trái, đầu dòng thẳng nhau */
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.quizlet-card-notes-text {
+  font-size: 14px;
+  line-height: 1.6;
+  opacity: 0.95;
+  margin-bottom: 12px; /* tạo khoảng cách với dòng 'Nhấn để xem từ' bên dưới */
 }
 
 .quizlet-card-hint {
@@ -350,6 +398,39 @@
   line-height: 1.4;
 }
 
+.quizlet-vocab-meta {
+  font-size: 13px;
+  color: #8b95b2;
+  margin-bottom: 4px;
+}
+
+.quizlet-vocab-pron {
+  font-style: italic;
+}
+
+.quizlet-vocab-example {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.quizlet-vocab-example-list {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 2px 0 0 0;
+}
+
+.quizlet-vocab-notes {
+  margin-top: 2px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.quizlet-vocab-label {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
 .quizlet-vocab-actions {
   display: flex;
   gap: 8px;
@@ -451,7 +532,7 @@
 }
 
 .quizlet-learn-card.learned {
-  border: 3px solid #3ccfcf;
+  border: none;
 }
 
 .quizlet-learn-card.swipe-complete {

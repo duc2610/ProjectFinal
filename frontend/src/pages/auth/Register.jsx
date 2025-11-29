@@ -28,6 +28,31 @@ export default function Register() {
     return s.replace(/\s+/g, " ");
   };
 
+  // Hàm chuyển đổi thông báo lỗi sang tiếng Việt
+  const translateError = (errorMsg) => {
+    if (!errorMsg) return "Gửi OTP thất bại";
+    
+    const errorMsgLower = errorMsg.toLowerCase();
+    
+    const errorMap = {
+      "email": "Email đã tồn tại trong hệ thống!",
+      "email already exists": "Email đã tồn tại trong hệ thống!",
+      "user already exists": "Người dùng đã tồn tại!",
+      "invalid email": "Email không hợp lệ!",
+      "network error": "Lỗi kết nối mạng!",
+      "timeout": "Yêu cầu quá thời gian chờ!",
+      "server error": "Lỗi máy chủ!",
+    };
+    
+    for (const [key, value] of Object.entries(errorMap)) {
+      if (errorMsgLower.includes(key)) {
+        return value;
+      }
+    }
+    
+    return "Gửi OTP thất bại";
+  };
+
   const onFinish = async (values) => {
     // Chỉ normalize và trim khi submit
     const fullName = (values.fullName || "").replace(/\s+/g, " ").trim();
@@ -45,7 +70,21 @@ export default function Register() {
       sessionStorage.setItem("regDraft", JSON.stringify(payload));
       navigate("/verify-register", { state: payload });
     } catch (err) {
-      const msg = err?.response?.data?.message || "Gửi OTP thất bại";
+      // Kiểm tra xem có phải lỗi validation từ backend không
+      const isValidationError = 
+        err.response?.status === 400 && 
+        (err.response?.data?.errors || 
+         err.response?.data?.title?.toLowerCase().includes("validation") ||
+         err.response?.data?.message?.toLowerCase().includes("validation"));
+      
+      // Nếu là lỗi validation từ backend, không hiển thị cho user
+      if (isValidationError) {
+        console.error("Lỗi validation từ backend (không hiển thị):", err.response?.data);
+        return;
+      }
+
+      const rawMsg = err?.response?.data?.message || "Gửi OTP thất bại";
+      const msg = translateError(rawMsg);
       form.setFields([{ name: "email", errors: [msg] }]);
     }
   };
@@ -117,17 +156,31 @@ export default function Register() {
                 label="Email"
                 name="email"
                 normalize={(v) => (v ? v.trim() : v)}
-                validateTrigger={['onBlur']}
+                validateTrigger={['onBlur', 'onChange']}
                 rules={[
-                  { required: true, message: "Vui lòng nhập email" },
+                  { required: true, message: "Vui lòng nhập email!" },
                   {
-                    pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                    message: "Email không hợp lệ",
+                    pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                    message: "Email không đúng định dạng! Ví dụ: example@gmail.com",
+                  },
+                  {
+                    validator: (_, value) => {
+                      if (!value) return Promise.resolve();
+                      const trimmed = value.trim();
+                      if (trimmed !== value) {
+                        return Promise.reject(new Error("Email không được có khoảng trắng ở đầu hoặc cuối!"));
+                      }
+                      if (trimmed.length > 254) {
+                        return Promise.reject(new Error("Email không được vượt quá 254 ký tự!"));
+                      }
+                      return Promise.resolve();
+                    },
                   },
                 ]}
               >
                 <Input 
-                  placeholder="Nhập email" 
+                  type="email"
+                  placeholder="Nhập email (ví dụ: example@gmail.com)" 
                   size="large"
                   onChange={() => {
                     // Xóa lỗi khi đang sửa (nếu có)
@@ -152,19 +205,50 @@ export default function Register() {
                 label="Mật khẩu"
                 name="password"
                 normalize={(v) => (v ? v.trim() : v)}
-                validateTrigger={['onBlur']}
+                validateTrigger={['onBlur', 'onChange']}
                 rules={[
-                  { required: true, message: "Vui lòng nhập mật khẩu" },
-                  { min: 8, message: "Mật khẩu tối thiểu 8 ký tự" },
+                  { required: true, message: "Vui lòng nhập mật khẩu!" },
                   {
-                    pattern: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$/,
-                    message:
-                      "Phải có ít nhất 1 chữ và 1 số; chỉ gồm chữ và số (không khoảng trắng/ký tự đặc biệt)",
+                    validator: (_, value) => {
+                      if (!value) return Promise.resolve();
+                      
+                      // Kiểm tra độ dài
+                      if (value.length < 8) {
+                        return Promise.reject(new Error("Mật khẩu phải có ít nhất 8 ký tự!"));
+                      }
+                      if (value.length > 32) {
+                        return Promise.reject(new Error("Mật khẩu không được vượt quá 32 ký tự!"));
+                      }
+                      
+                      const errors = [];
+                      
+                      // Kiểm tra chữ cái (chữ hoa hoặc chữ thường đều được)
+                      if (!/[A-Za-z]/.test(value)) {
+                        errors.push("chữ cái");
+                      }
+                      
+                      // Kiểm tra số
+                      if (!/[0-9]/.test(value)) {
+                        errors.push("số");
+                      }
+                      
+                      // Kiểm tra ký tự đặc biệt
+                      if (!/[!@#$%^&*(),.?":{}|<>_+\-=\[\]\\;',./]/.test(value)) {
+                        errors.push("ký tự đặc biệt");
+                      }
+                      
+                      if (errors.length > 0) {
+                        const errorMsg = `Mật khẩu phải chứa ít nhất một ${errors.join(", ")}!`;
+                        return Promise.reject(new Error(errorMsg));
+                      }
+                      
+                      return Promise.resolve();
+                    },
                   },
                 ]}
               >
                 <Input.Password 
-                  placeholder="Nhập mật khẩu" 
+                  placeholder="Nhập mật khẩu (8-32 ký tự, phải có chữ cái, số và ký tự đặc biệt)" 
                   size="large"
                   onChange={() => {
                     // Xóa lỗi khi đang sửa (nếu có)

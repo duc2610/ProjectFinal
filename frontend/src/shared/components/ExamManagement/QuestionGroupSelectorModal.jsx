@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Modal, Table, Input, Select, Space, Tag, message, Tooltip } from "antd";
+import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert } from "antd";
 import { SearchOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import { buildQuestionListParams } from "@services/questionsService";
 import { getQuestionGroups } from "@services/questionGroupService";
 import { getPartsBySkill } from "@services/partsService";
 
 const { Option } = Select;
+
+// Parts chỉ dành cho group questions: 3, 4 (Listening), 6, 7 (Reading)
+const GROUP_PARTS = [3, 4, 6, 7];
+const isGroupPart = (p) => GROUP_PARTS.includes(Number(p));
 
 export default function QuestionGroupSelectorModal({ 
     open, 
@@ -40,7 +44,12 @@ export default function QuestionGroupSelectorModal({
     const loadParts = async () => {
         try {
             const loadedParts = await getPartsBySkill(skill);
-            setParts(loadedParts || []);
+            // Filter: chỉ hiển thị các part group (3, 4, 6, 7)
+            const filteredParts = (loadedParts || []).filter(p => {
+                const pid = Number(p.partId || p.id);
+                return isGroupPart(pid);
+            });
+            setParts(filteredParts);
         } catch (error) {
             console.error("Error loading parts:", error);
         }
@@ -66,13 +75,26 @@ export default function QuestionGroupSelectorModal({
             const size = payload.pageSize || pageSize;
             const totalCount = payload.totalCount || payload.total || data.length || 0;
 
-            const mapped = (data || []).map((g) => ({
-                id: g.questionGroupId ?? g.groupId ?? g.id,
-                partName: g.partName,
-                passage: g.passageContent ?? g.passage ?? g.content ?? "",
-                imageUrl: g.imageUrl,
-                questionCount: g.questionCount ?? (Array.isArray(g.questions) ? g.questions.length : undefined),
-            }));
+            const mapped = (data || [])
+                .filter((g) => {
+                    // Filter: chỉ hiển thị group questions có part group (3, 4, 6, 7)
+                    const partId = Number(g.partId || g.part?.id);
+                    return isGroupPart(partId);
+                })
+                .map((g) => {
+                    const partId = Number(g.partId || g.part?.id);
+                    const isPassageOptional = [3, 4].includes(partId);
+                    
+                    return {
+                        id: g.questionGroupId ?? g.groupId ?? g.id,
+                        partName: g.partName,
+                        passage: g.passageContent ?? g.passage ?? g.content ?? "",
+                        imageUrl: g.imageUrl,
+                        questionCount: g.questionCount ?? (Array.isArray(g.questions) ? g.questions.length : undefined),
+                        partId: partId,
+                        isPassageOptional: isPassageOptional,
+                    };
+                });
 
             setQuestionGroups(mapped);
             setPagination({ current: currentPage, pageSize: size, total: totalCount });
@@ -159,23 +181,57 @@ export default function QuestionGroupSelectorModal({
             title: "Đoạn văn / Passage",
             dataIndex: "passage",
             key: "passage",
-            ellipsis: true,
-            render: (text, record) => (
-                <Space>
-                    {text && text.length > 100 ? (
-                        <Tooltip title={text}>
-                            <span>{text.substring(0, 100)}...</span>
-                        </Tooltip>
-                    ) : (
-                        <span>{text}</span>
-                    )}
-                    {record.imageUrl && (
-                        <Tooltip title="Có hình ảnh">
-                            <InfoCircleOutlined style={{ color: "#1890ff" }} />
-                        </Tooltip>
-                    )}
-                </Space>
-            )
+            ellipsis: { showTitle: false },
+            render: (text, record) => {
+                if (text && text.trim()) {
+                    return (
+                        <Space>
+                            {text.length > 100 ? (
+                                <Tooltip title={text}>
+                                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                                        {text.substring(0, 100)}...
+                                    </span>
+                                </Tooltip>
+                            ) : (
+                                <span>{text}</span>
+                            )}
+                            {record.imageUrl && (
+                                <Tooltip title="Có hình ảnh">
+                                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                                </Tooltip>
+                            )}
+                        </Space>
+                    );
+                } else if (record.isPassageOptional) {
+                    // Part 3, 4 không có passage: hiển thị thông báo
+                    return (
+                        <Space>
+                            <span style={{ color: "#999", fontStyle: "italic", fontSize: 12 }}>
+                                Không có đoạn văn (Part {record.partId})
+                            </span>
+                            {record.imageUrl && (
+                                <Tooltip title="Có hình ảnh">
+                                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                                </Tooltip>
+                            )}
+                        </Space>
+                    );
+                } else {
+                    // Part 6, 7 bắt buộc có passage
+                    return (
+                        <Space>
+                            <span style={{ color: "#ff4d4f", fontStyle: "italic", fontSize: 12 }}>
+                                ⚠️ Chưa có đoạn văn
+                            </span>
+                            {record.imageUrl && (
+                                <Tooltip title="Có hình ảnh">
+                                    <InfoCircleOutlined style={{ color: "#1890ff" }} />
+                                </Tooltip>
+                            )}
+                        </Space>
+                    );
+                }
+            }
         },
     ];
 
@@ -189,6 +245,14 @@ export default function QuestionGroupSelectorModal({
             okText={`Chọn (${selectedRowKeys.length})`}
             cancelText="Hủy"
         >
+            <Alert
+                type="info"
+                showIcon
+                style={{ marginBottom: 16 }}
+                message="Nhóm câu hỏi"
+                description="Chỉ hiển thị các nhóm câu hỏi. Chỉ hiển thị Part 3, 4 (Nghe) và Part 6, 7 (Đọc)."
+            />
+            
             <Space direction="vertical" style={{ width: "100%", marginBottom: 16 }} size="middle">
                 <Space>
                     <Input

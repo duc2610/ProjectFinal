@@ -14,7 +14,8 @@ namespace ToeicGenius.Domains.DTOs.Requests.Auth
 
 		[Required(ErrorMessage = ErrorMessages.NewPasswordRequired)]
 		[MinLength(NumberConstants.MinPasswordLength, ErrorMessage = ErrorMessages.PasswordMinLength)]
-		[MaxLength(NumberConstants.MaxPasswordLength, ErrorMessage = ErrorMessages.PasswordMinLength)]
+		[MaxLength(NumberConstants.MaxPasswordLength, ErrorMessage = ErrorMessages.PasswordMaxLength)]
+		[RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).+$", ErrorMessage = ErrorMessages.PasswordInvalidRegex)]
 		public string NewPassword { get; set; }
 
 		[Required(ErrorMessage = "Confirm new password is required")]

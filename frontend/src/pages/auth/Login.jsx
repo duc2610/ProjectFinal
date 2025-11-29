@@ -16,15 +16,32 @@ import logo from "@assets/images/logo.png";
 import { useGoogleLogin } from "@react-oauth/google";
 import { ROLES } from "@shared/utils/acl";
 import styles from "@shared/styles/Auth.module.css";
+import { setAutoRedirecting } from "@app/guards/Guards";
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const [form] = Form.useForm();
   const { signIn, signInWithGoogle, loading } = useAuth();
+
+  const canAccessPath = (path, roles = []) => {
+    if (!path) return false;
+    if (path.startsWith("/admin")) {
+      return roles.includes(ROLES.Admin);
+    }
+    if (path.startsWith("/test-creator")) {
+      return roles.includes(ROLES.TestCreator) || roles.includes(ROLES.Admin);
+    }
+    return true;
+  };
   const redirectAfterLogin = (user) => {
-    const returnTo = location.state?.returnTo;
-    if (returnTo) return navigate(returnTo, { replace: true });
+    // Đánh dấu đang trong quá trình auto redirect để tránh hiển thị warning
+    setAutoRedirecting(true);
+    
     const roles = Array.isArray(user?.roles) ? user.roles : [];
+    const returnTo = location.state?.returnTo;
+    if (returnTo && canAccessPath(returnTo, roles)) {
+      return navigate(returnTo, { replace: true });
+    }
     if (roles.includes(ROLES.Admin))
       return navigate("/admin/dashboard", { replace: true });
     if (roles.includes(ROLES.TestCreator))

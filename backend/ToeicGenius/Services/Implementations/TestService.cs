@@ -423,6 +423,10 @@ namespace ToeicGenius.Services.Implementations
 				if (test == null)
 					return Result<string>.Failure("Test not found");
 
+				// Check ownership - user must be the creator of this test
+				if (test.CreatedById != userId)
+					return Result<string>.Failure("You don't have permission to modify this test");
+
 				if (test.VisibilityStatus == TestVisibilityStatus.Published)
 					return Result<string>.Failure("Cannot edit a published test. Please clone to create a new version.");
 
@@ -560,6 +564,10 @@ namespace ToeicGenius.Services.Implementations
 			if (test == null)
 				return Result<string>.Failure("Test not found");
 
+			// Check ownership - user must be the creator of this test
+			if (test.CreatedById != userId)
+				return Result<string>.Failure("You don't have permission to finalize this test");
+
 			// Validate cấu trúc đầy đủ
 			var questions = await _uow.TestQuestions.GetByTestIdAsync(testId);
 			if (questions.Count == 0)
@@ -598,18 +606,22 @@ namespace ToeicGenius.Services.Implementations
 		/* CREATE - End */
 
 		/* LIST & DETAIL - start */
-		// Get list (for TestCreator)
-		public async Task<Result<PaginationResponse<TestListResponseDto>>> FilterAllAsync(TestFilterDto request)
+		// Get list (for TestCreator) - filter by creatorId
+		public async Task<Result<PaginationResponse<TestListResponseDto>>> FilterAllAsync(TestFilterDto request, Guid? creatorId = null)
 		{
-			var result = await _uow.Tests.FilterQuestionsAsync(request);
+			var result = await _uow.Tests.FilterQuestionsAsync(request, creatorId);
 			return Result<PaginationResponse<TestListResponseDto>>.Success(result);
 		}
 
-		// Get detail (for TestCreator)
-		public async Task<Result<TestDetailDto>> GetDetailAsync(int id)
+		// Get detail (for TestCreator) - check ownership
+		public async Task<Result<TestDetailDto>> GetDetailAsync(int id, Guid? userId = null, bool isAdmin = false)
 		{
 			var test = await _uow.Tests.GetTestByIdAsync(id);
 			if (test == null) return Result<TestDetailDto>.Failure(CommonMessages.DataNotFound);
+
+			// Check ownership if not admin
+			if (!isAdmin && userId.HasValue && test.CreatedById != userId.Value)
+				return Result<TestDetailDto>.Failure("You don't have permission to view this test");
 
 			var result = new TestDetailDto
 			{
@@ -683,25 +695,30 @@ namespace ToeicGenius.Services.Implementations
 		/* LIST & DETAIL - end */
 
 		/* UPDATE - Start */
-		// Update Status
-		public async Task<Result<string>> UpdateStatusAsync(UpdateTestVisibilityStatusDto request)
+		// Update Status - check ownership
+		public async Task<Result<string>> UpdateStatusAsync(UpdateTestVisibilityStatusDto request, Guid userId, bool isAdmin = false)
 		{
 			var test = await _uow.Tests.GetByIdAsync(request.TestId);
-			if (test == null) return Result<string>.Failure("Not found");
+			if (test == null) return Result<string>.Failure(CommonMessages.DataNotFound);
+
+			// Check ownership if not admin
+			if (!isAdmin && test.CreatedById != userId)
+				return Result<string>.Failure("You don't have permission to update this test");
+
 			if (test.CreationStatus != TestCreationStatus.Completed)
 			{
-				return Result<string>.Failure("Only completed tests can be published.");
+				return Result<string>.Failure("Chỉ những bài test hoàn chỉnh mới có thể thay đổi trạng thái hiển thị.");
 			}
 
 			test.VisibilityStatus = request.VisibilityStatus;
 			test.UpdatedAt = DateTime.Now;
 			await _uow.SaveChangesAsync();
 
-			return Result<string>.Success($"Test {test.TestId} {test.VisibilityStatus} successfully");
+			return Result<string>.Success($"Bài test {test.TestId} đã đổi trạng thái thành {test.VisibilityStatus}.");
 		}
 
-		// Update Test From Bank (practice test)
-		public async Task<Result<string>> UpdateTestFromBankAsync(int testId, UpdateTestFromBank dto)
+		// Update Test From Bank (practice test) - check ownership
+		public async Task<Result<string>> UpdateTestFromBankAsync(int testId, UpdateTestFromBank dto, Guid userId, bool isAdmin = false)
 		{
 			// 1️. Kiểm tra input hợp lệ
 			if ((dto.SingleQuestionIds == null || !dto.SingleQuestionIds.Any()) &&
@@ -712,6 +729,10 @@ namespace ToeicGenius.Services.Implementations
 			var existing = await _uow.Tests.GetByIdAsync(testId);
 			if (existing == null)
 				return Result<string>.Failure("Test not found");
+
+			// Check ownership if not admin
+			if (!isAdmin && existing.CreatedById != userId)
+				return Result<string>.Failure("You don't have permission to update this test");
 
 			var isPublished = existing.VisibilityStatus == TestVisibilityStatus.Published;
 			Test targetTest;
@@ -734,6 +755,7 @@ namespace ToeicGenius.Services.Implementations
 					VisibilityStatus = TestVisibilityStatus.Hidden,
 					ParentTestId = parentId,
 					Version = newVersion,
+					CreatedById = userId,
 					CreatedAt = Now
 				};
 
@@ -815,7 +837,7 @@ namespace ToeicGenius.Services.Implementations
 		}
 
 		// Update Test Manual (simulator test)
-		public async Task<Result<string>> UpdateManualTestAsync(int testId, UpdateManualTestDto dto)
+		public async Task<Result<string>> UpdateManualTestAsync(int testId, UpdateManualTestDto dto, Guid userId, bool isAdmin = false)
 		{
 			try
 			{
@@ -832,21 +854,22 @@ namespace ToeicGenius.Services.Implementations
 					// Lấy version mới
 					int newVersion = await _uow.Tests.GetNextVersionAsync(existing.ParentTestId ?? existing.TestId);
 
-					targetTest = new Test
-					{
-						Title = dto.Title,
-						Description = dto.Description,
-						TestSkill = dto.TestSkill,
-						TestType = dto.TestType,
-						AudioUrl = dto.AudioUrl,
-						Duration = GetTestDuration(dto.TestSkill),
-						TotalQuestion = totalQuestion,
-						VisibilityStatus = TestVisibilityStatus.Hidden,
-						CreationStatus = TestCreationStatus.Completed,
-						ParentTestId = existing.ParentTestId ?? existing.TestId,
-						Version = newVersion,
-						CreatedAt = Now
-					};
+				targetTest = new Test
+				{
+					Title = dto.Title,
+					Description = dto.Description,
+					TestSkill = dto.TestSkill,
+					TestType = dto.TestType,
+					AudioUrl = dto.AudioUrl,
+					Duration = GetTestDuration(dto.TestSkill),
+					TotalQuestion = totalQuestion, 
+					VisibilityStatus = TestVisibilityStatus.Hidden,
+					CreationStatus = TestCreationStatus.Completed,
+					ParentTestId = existing.ParentTestId ?? existing.TestId,
+					CreatedById = userId,
+					Version = newVersion,
+					CreatedAt = Now
+				};
 
 					await _uow.Tests.AddAsync(targetTest);
 					await _uow.SaveChangesAsync();
@@ -926,8 +949,8 @@ namespace ToeicGenius.Services.Implementations
 
 				return Result<string>.Success(
 					existing.VisibilityStatus == TestVisibilityStatus.Published
-						? $"Cloned to new version v{targetTest.Version} (TestId={targetTest.TestId})"
-						: $"Updated successfully TestId={targetTest.TestId}");
+						? $"Tạo thành công phiên bản mới v{targetTest.Version} (TestId={targetTest.TestId})"
+						: $"Cập nhật trực tiếp thành công TestId={targetTest.TestId}");
 			}
 			catch (Exception ex)
 			{
@@ -1265,6 +1288,10 @@ namespace ToeicGenius.Services.Implementations
 
 			var test = testResult.Test;
 
+			// Get Listening and Reading scores from SkillScores
+			var listeningScore = testResult.SkillScores?.FirstOrDefault(s => s.Skill == "Listening");
+			var readingScore = testResult.SkillScores?.FirstOrDefault(s => s.Skill == "Reading");
+
 			var dto = new TestResultDetailDto
 			{
 				TestResultId = testResult.TestResultId,
@@ -1276,8 +1303,11 @@ namespace ToeicGenius.Services.Implementations
 				Status = testResult.Status,
 				AudioUrl = test.AudioUrl,
 				Duration = test.Duration,
-				QuantityQuestion = test.TotalQuestion,
+                TimeResult = testResult.Duration,
+                QuantityQuestion = test.TotalQuestion,
 				CorrectCount = testResult.CorrectCount,
+				ListeningScore = listeningScore != null ? (int?)listeningScore.Score : null,
+				ReadingScore = readingScore != null ? (int?)readingScore.Score : null,
 				TotalScore = (int)testResult.TotalScore
 			};
 
@@ -1413,39 +1443,90 @@ namespace ToeicGenius.Services.Implementations
 			var writingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Writing");
 			var speakingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Speaking");
 
-			// Map sang SubmitBulkAssessmentResponseDto
-			var response = new Domains.DTOs.Responses.AI.SubmitBulkAssessmentResponseDto
+			// Lấy tất cả TestQuestionId từ feedbacks
+			var testQuestionIds = aiFeedbacks
+				.Select(f => f.UserAnswer?.TestQuestionId ?? 0)
+				.Where(id => id > 0)
+				.Distinct()
+				.ToList();
+
+			// Lấy TestQuestions với Part
+			var testQuestions = await _uow.TestQuestions.GetByIdsWithPartAsync(testQuestionIds);
+
+			// Map sang TestResultDetailSWDto
+			var response = new Domains.DTOs.Responses.Test.TestResultDetailSWDto
 			{
+				// Test basic info
+				TestResultId = testResult.TestResultId,
+				TestId = testResult.TestId,
+				Title = testResult.Test?.Title ?? string.Empty,
+				TestType = testResult.Test?.TestType ?? TestType.Practice,
+				TestSkill = testResult.Test?.TestSkill ?? TestSkill.LR,
+				Duration = testResult.Test?.Duration ?? 0,
+                TimeResuilt = testResult.Duration,
+                QuantityQuestion = testResult.Test?.TotalQuestion ?? 0,
+
 				// Lấy điểm từ SkillScores (TOEIC scale: 0-200)
 				WritingScore = writingSkillScore != null ? (double?)writingSkillScore.Score : null,
 				SpeakingScore = speakingSkillScore != null ? (double?)speakingSkillScore.Score : null,
 				TotalScore = (double)testResult.TotalScore,
 				IsSelectTime = testResult.IsSelectTime,
 				Status = testResult.Status,
-				PerPartFeedbacks = aiFeedbacks.Select(f => new Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto
+                PerPartFeedbacks = aiFeedbacks.Select(f =>
 				{
-					TestQuestionId = f.UserAnswer?.TestQuestionId ?? 0,
-					FeedbackId = f.FeedbackId,
-					UserAnswerId = f.UserAnswerId,
-					// User's original answer
-					AnswerText = f.UserAnswer?.AnswerText,
-					AnswerAudioUrl = f.UserAnswer?.AnswerAudioUrl,
-					Score = (double)f.Score,  // Raw score 0-100 cho từng câu
-					Content = f.Content ?? string.Empty,
-					AIScorer = f.AIScorer ?? string.Empty,
-					DetailedScores = string.IsNullOrEmpty(f.DetailedScoresJson)
-						? new Dictionary<string, object>()
-						: System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.DetailedScoresJson) ?? new Dictionary<string, object>(),
-					DetailedAnalysis = string.IsNullOrEmpty(f.DetailedAnalysisJson)
-						? new Dictionary<string, object>()
-						: System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.DetailedAnalysisJson) ?? new Dictionary<string, object>(),
-					Recommendations = string.IsNullOrEmpty(f.RecommendationsJson)
-						? new List<string>()
-						: System.Text.Json.JsonSerializer.Deserialize<List<string>>(f.RecommendationsJson) ?? new List<string>(),
-					Transcription = f.Transcription ?? string.Empty,
-					CorrectedText = f.CorrectedText ?? string.Empty,
-					AudioDuration = f.AudioDuration,
-					CreatedAt = f.CreatedAt
+					var testQuestionId = f.UserAnswer?.TestQuestionId ?? 0;
+					var testQuestion = testQuestions.FirstOrDefault(tq => tq.TestQuestionId == testQuestionId);
+
+					// Deserialize QuestionContent
+					object? questionContent = null;
+					if (testQuestion != null && !string.IsNullOrEmpty(testQuestion.SnapshotJson))
+					{
+						try
+						{
+							if (testQuestion.IsQuestionGroup)
+							{
+								questionContent = System.Text.Json.JsonSerializer.Deserialize<Domains.DTOs.Responses.QuestionGroup.QuestionGroupSnapshotDto>(testQuestion.SnapshotJson);
+							}
+							else
+							{
+								questionContent = System.Text.Json.JsonSerializer.Deserialize<Domains.DTOs.Responses.Question.QuestionSnapshotDto>(testQuestion.SnapshotJson);
+							}
+						}
+						catch
+						{
+							// If deserialization fails, keep questionContent as null
+						}
+					}
+
+					return new Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto
+					{
+						TestQuestionId = testQuestionId,
+						FeedbackId = f.FeedbackId,
+						UserAnswerId = f.UserAnswerId,
+						// User's original answer
+						AnswerText = f.UserAnswer?.AnswerText,
+						AnswerAudioUrl = f.UserAnswer?.AnswerAudioUrl,
+						Score = (double)f.Score,  // Raw score 0-100 cho từng câu
+						Content = f.Content ?? string.Empty,
+						AIScorer = f.AIScorer ?? string.Empty,
+						DetailedScores = string.IsNullOrEmpty(f.DetailedScoresJson)
+							? new Dictionary<string, object>()
+							: System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.DetailedScoresJson) ?? new Dictionary<string, object>(),
+						DetailedAnalysis = string.IsNullOrEmpty(f.DetailedAnalysisJson)
+							? new Dictionary<string, object>()
+							: System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(f.DetailedAnalysisJson) ?? new Dictionary<string, object>(),
+						Recommendations = string.IsNullOrEmpty(f.RecommendationsJson)
+							? new List<string>()
+							: System.Text.Json.JsonSerializer.Deserialize<List<string>>(f.RecommendationsJson) ?? new List<string>(),
+						Transcription = f.Transcription ?? string.Empty,
+						CorrectedText = f.CorrectedText ?? string.Empty,
+						AudioDuration = f.AudioDuration,
+						CreatedAt = f.CreatedAt,
+						// Question content
+						PartId = testQuestion?.PartId ?? 0,
+						PartName = testQuestion?.Part?.Name,
+						QuestionContent = questionContent
+					};
 				}).ToList()
 			};
 
@@ -1963,7 +2044,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<Result<string>> UpdateTestQuestionAsync(int testQuestionId, UpdateTestQuestionDto dto)
+		public async Task<Result<string>> UpdateTestQuestionAsync(int testQuestionId, UpdateTestQuestionDto dto, Guid userId, bool isAdmin = false)
 		{
 			await _uow.BeginTransactionAsync();
 			try
@@ -1972,6 +2053,10 @@ namespace ToeicGenius.Services.Implementations
 				var testQuestion = await _uow.TestQuestions.GetByIdWithDetailsAsync(testQuestionId);
 				if (testQuestion == null)
 					return Result<string>.Failure("TestQuestion not found");
+
+				// Check ownership if not admin - verify the test belongs to this user
+				if (!isAdmin && testQuestion.Test?.CreatedById != userId)
+					return Result<string>.Failure("You don't have permission to update this question. Only the test creator can modify.");
 
 				// Try to get version history (new format), or migrate from old format
 				QuestionVersionHistory? versionHistory = null;

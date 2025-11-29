@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Button, Card, Row, Col, Tag, Space, Empty, message, Spin } from "antd";
-import { PlusOutlined, EditOutlined, EyeOutlined } from "@ant-design/icons";
+import { Button, Card, Row, Col, Tag, Space, Empty, message, Spin, Modal } from "antd";
+import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { getUserFlashcardSets, getPublicFlashcardSets } from "@services/flashcardService";
+import { getUserFlashcardSets, getPublicFlashcardSets, deleteFlashcardSet } from "@services/flashcardService";
 import { useAuth } from "@shared/hooks/useAuth";
 import CreateFlashcardSetModal from "@shared/components/Flashcard/CreateFlashcardSetModal";
 import UpdateFlashcardSetModal from "@shared/components/Flashcard/UpdateFlashcardSetModal";
-import "./Flashcard.css";
+import "../../shared/styles/Flashcard.css";
 
 export default function Flashcard() {
-  const [activeTab, setActiveTab] = useState("flashcard");
+  const { isAuthenticated } = useAuth();
+  const [activeTab, setActiveTab] = useState(isAuthenticated ? "flashcard" : "discover");
   const [flashcardSets, setFlashcardSets] = useState([]);
   const [publicSets, setPublicSets] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -17,9 +18,19 @@ export default function Flashcard() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingSetId, setEditingSetId] = useState(null);
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+
+  const normalizeSets = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.dataPaginated)) return payload.dataPaginated;
+    return [];
+  };
 
   useEffect(() => {
+    // Nếu chưa đăng nhập và đang ở tab flashcard, tự động chuyển sang discover
+    if (!isAuthenticated && activeTab === "flashcard") {
+      setActiveTab("discover");
+    }
     fetchFlashcardSets();
   }, [activeTab, isAuthenticated]);
 
@@ -29,18 +40,17 @@ export default function Flashcard() {
       if (activeTab === "flashcard") {
         if (isAuthenticated) {
           const data = await getUserFlashcardSets();
-          setFlashcardSets(Array.isArray(data) ? data : []);
+          setFlashcardSets(normalizeSets(data));
         } else {
           setFlashcardSets([]);
         }
       } else if (activeTab === "discover") {
         const data = await getPublicFlashcardSets();
-        setPublicSets(Array.isArray(data) ? data : []);
+        setPublicSets(normalizeSets(data));
       }
     } catch (error) {
       console.error("Error fetching flashcard sets:", error);
-      const errorMsg = error?.response?.data?.message || "Không thể tải danh sách flashcard";
-      message.error(errorMsg);
+      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
     } finally {
       setLoading(false);
     }
@@ -63,6 +73,26 @@ export default function Flashcard() {
     } catch {
       return dateString;
     }
+  };
+
+  const handleDeleteSet = (setId, title) => {
+    Modal.confirm({
+      title: "Xác nhận xóa",
+      content: `Bạn có chắc chắn muốn xóa flashcard "${title}"? Hành động này không thể hoàn tác.`,
+      okText: "Xóa",
+      okType: "danger",
+      cancelText: "Hủy",
+      onOk: async () => {
+        try {
+          await deleteFlashcardSet(setId);
+          message.success("Đã xóa flashcard thành công");
+          fetchFlashcardSets();
+        } catch (error) {
+          console.error("Error deleting flashcard set:", error);
+          message.error("Xóa flashcard thất bại. Vui lòng thử lại.");
+        }
+      },
+    });
   };
 
   return (
@@ -91,24 +121,11 @@ export default function Flashcard() {
 
         {/* Navigation Tabs */}
         <Space size="middle" style={{ marginTop: 24 }}>
-          <Button
-            type={activeTab === "flashcard" ? "primary" : "default"}
-            size="large"
-            onClick={() => setActiveTab("flashcard")}
-            style={{
-              borderRadius: 8,
-              height: 44,
-              paddingLeft: 24,
-              paddingRight: 24,
-              fontWeight: 500,
-            }}
-            >
-              Flashcard của tôi
-            </Button>
+          {isAuthenticated && (
             <Button
-              type={activeTab === "discover" ? "primary" : "default"}
+              type={activeTab === "flashcard" ? "primary" : "default"}
               size="large"
-              onClick={() => setActiveTab("discover")}
+              onClick={() => setActiveTab("flashcard")}
               style={{
                 borderRadius: 8,
                 height: 44,
@@ -117,8 +134,23 @@ export default function Flashcard() {
                 fontWeight: 500,
               }}
             >
-              Khám phá
+              Flashcard của tôi
             </Button>
+          )}
+          <Button
+            type={activeTab === "discover" ? "primary" : "default"}
+            size="large"
+            onClick={() => setActiveTab("discover")}
+            style={{
+              borderRadius: 8,
+              height: 44,
+              paddingLeft: 24,
+              paddingRight: 24,
+              fontWeight: 500,
+            }}
+          >
+            Khám phá
+          </Button>
         </Space>
       </div>
 
@@ -227,6 +259,7 @@ export default function Flashcard() {
                       >
                         {set.title}
                       </h3>
+                      <Space size="small">
                       <Button
                         type="text"
                         icon={<EditOutlined />}
@@ -239,6 +272,19 @@ export default function Flashcard() {
                         }}
                         style={{ color: "#666" }}
                       />
+                        <Button
+                          type="text"
+                          icon={<DeleteOutlined />}
+                          size="small"
+                          className="flashcard-delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteSet(set.setId, set.title);
+                          }}
+                          style={{ color: "#ff4d4f" }}
+                          danger
+                        />
+                      </Space>
                     </div>
 
                     <p
@@ -381,6 +427,12 @@ export default function Flashcard() {
                       <span style={{ fontSize: 12, color: "#999" }}>
                         {set.totalCards || 0} thẻ
                       </span>
+                    </div>
+                    <div style={{ fontSize: 13, color: "#666", marginTop: 12 }}>
+                      Tác giả: <strong>{set.creatorName || "Ẩn danh"}</strong>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
+                      Tạo: {formatDate(set.createdAt)}
                     </div>
                   </Card>
                 </Col>

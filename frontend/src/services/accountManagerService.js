@@ -1,11 +1,46 @@
 import { api } from "./apiClient";
 
-// Lấy danh sách tất cả user
-export async function getAllUsers() {
-  const url = `/api/Users`;
+function buildUserQuery({
+  page = 1,
+  pageSize = 10,
+  status,
+  keyword,
+  role,
+} = {}) {
+  const params = new URLSearchParams();
+  params.append("page", page);
+  params.append("pageSize", pageSize);
+
+  if (status) params.append("Status", status);
+  if (keyword) params.append("Keyword", keyword.trim());
+  if (role && role !== "all") params.append("Role", role);
+
+  return params;
+}
+
+function mapUsersResponse(res, fallback) {
+  const payload = res?.data?.data ?? {};
+  return {
+    items: payload?.dataPaginated ?? fallback ?? [],
+    pagination: {
+      currentPage: payload?.currentPage ?? 1,
+      pageSize: payload?.pageSize ?? 10,
+      totalCount: payload?.totalCount ?? (fallback?.length ?? 0),
+      totalPages: payload?.totalPages ?? 1,
+      hasNextPage: payload?.hasNextPage ?? false,
+      hasPreviousPage: payload?.hasPreviousPage ?? false,
+    },
+  };
+}
+
+// Lấy danh sách tất cả user (có hỗ trợ phân trang & filter)
+export async function getAllUsers(options = {}) {
+  const params = buildUserQuery(options);
+  const url = `/api/Users?${params.toString()}`;
+
   try {
     const res = await api.get(url);
-    return res?.data?.data?.dataPaginated ?? [];
+    return mapUsersResponse(res, []);
   } catch (error) {
     console.error("Error fetching all users:", error);
     throw error;
@@ -13,18 +48,8 @@ export async function getAllUsers() {
 }
 
 // Lấy danh sách tài khoản bị ban (Status=Banned)
-export async function getBannedUsers() {
-  const params = new URLSearchParams();
-  params.append("Status", "Banned");
-
-  const url = `/api/Users?${params.toString()}`;
-  try {
-    const res = await api.get(url);
-    return res?.data?.data?.dataPaginated ?? [];
-  } catch (error) {
-    console.error("Error fetching banned users:", error);
-    throw error;
-  }
+export async function getBannedUsers(options = {}) {
+  return getAllUsers({ ...options, status: "Banned" });
 }
 
 // Lấy thông tin user theo ID

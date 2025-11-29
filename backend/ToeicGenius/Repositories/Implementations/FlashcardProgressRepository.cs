@@ -18,6 +18,7 @@ namespace ToeicGenius.Repositories.Implementations
         public async Task<IEnumerable<FlashcardProgress>> GetByUserIdAsync(Guid userId)
         {
             return await _dbSet
+				.Include(fp => fp.Flashcard)
                 .Where(fp => fp.UserId == userId)
                 .ToListAsync();
         }

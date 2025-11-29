@@ -8,6 +8,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getSimulatorTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_LABELS } from "@services/testsService";
+import { startTest } from "@services/testExamService";
 import styles from "@shared/styles/PracticeLR.module.css";
 
 const { Title, Paragraph } = Typography;
@@ -61,7 +62,8 @@ export default function TestList() {
                         questionQuantity: test.questionQuantity || 0,
                         status: test.status,
                         version: test.version,
-                        description: test.description || "Bài thi mô phỏng TOEIC"
+                        description: test.description || "Bài thi mô phỏng TOEIC",
+                        resultProgress: test.resultProgress || null // Lưu resultProgress để kiểm tra InProgress
                     }));
                 
                 setAllTests(processed);
@@ -72,14 +74,9 @@ export default function TestList() {
             }
         } catch (error) {
             console.error("Error fetching simulator tests:", error);
-            if (error.response?.status === 404) {
-                setAllTests([]);
-                setTests([]);
-            } else {
-                message.error("Không thể tải danh sách bài test. Vui lòng thử lại sau.");
-                setAllTests([]);
-                setTests([]);
-            }
+            // Không hiển thị thông báo lỗi, chỉ set data rỗng
+            setAllTests([]);
+            setTests([]);
         } finally {
             setLoading(false);
         }
@@ -148,6 +145,173 @@ export default function TestList() {
         navigate(`/toeic-exam?testId=${test.id}`, { state: { from: location.pathname, testMeta: test } });
     };
 
+    const handleContinueTest = async (test) => {
+        if (!test.resultProgress || test.resultProgress.status !== "InProgress") {
+            message.error("Không tìm thấy thông tin bài test đang làm dở");
+            return;
+        }
+
+        try {
+            message.loading({ content: "Đang tải bài thi...", key: "continueTest" });
+            
+            const testIdNum = Number(test.id);
+            if (Number.isNaN(testIdNum)) {
+                message.error({ content: "TestId không hợp lệ", key: "continueTest" });
+                return;
+            }
+
+            // Lấy isSelectTime từ resultProgress
+            const isSelectTime = test.resultProgress.isSelectTime !== undefined ? !!test.resultProgress.isSelectTime : true;
+            const createdAt = test.resultProgress.createdAt;
+            
+            const data = await startTest(testIdNum, isSelectTime);
+            
+            if (!data) {
+                message.error({ content: "Không thể tải bài thi. Vui lòng thử lại.", key: "continueTest" });
+                return;
+            }
+
+            if (!data.parts || !Array.isArray(data.parts) || data.parts.length === 0) {
+                message.error({ content: "Không có câu hỏi trong bài thi. Vui lòng thử lại.", key: "continueTest" });
+                return;
+            }
+
+            // Build questions
+            const buildQuestions = (parts = []) => {
+                const questions = [];
+                let globalIndex = 1;
+                const sortedParts = [...parts].sort((a, b) => (a.partId || 0) - (b.partId || 0));
+                sortedParts.forEach((part) => {
+                    part?.testQuestions?.forEach((tq) => {
+                        if (tq.isGroup && tq.questionGroupSnapshotDto) {
+                            const group = tq.questionGroupSnapshotDto;
+                            group.questionSnapshots?.forEach((qs, idx) => {
+                                questions.push({
+                                    testQuestionId: tq.testQuestionId,
+                                    subQuestionIndex: idx,
+                                    partId: part.partId,
+                                    partName: part.partName,
+                                    partDescription: part.description,
+                                    globalIndex: globalIndex++,
+                                    type: "group",
+                                    question: qs.content,
+                                    passage: group.passage,
+                                    imageUrl: qs.imageUrl,
+                                    audioUrl: qs.audioUrl,
+                                    options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+                                    correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+                                    userAnswer: qs.userAnswer,
+                                });
+                            });
+                        } else if (!tq.isGroup && tq.questionSnapshotDto) {
+                            const qs = tq.questionSnapshotDto;
+                            questions.push({
+                                testQuestionId: tq.testQuestionId,
+                                subQuestionIndex: 0,
+                                partId: part.partId,
+                                partName: part.partName,
+                                partDescription: part.description,
+                                globalIndex: globalIndex++,
+                                type: "single",
+                                question: qs.content,
+                                imageUrl: qs.imageUrl,
+                                audioUrl: qs.audioUrl,
+                                options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+                                correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+                                userAnswer: qs.userAnswer,
+                            });
+                        }
+                    });
+                });
+                return questions;
+            };
+
+            const questions = buildQuestions(data.parts);
+            
+            if (!questions || questions.length === 0) {
+                message.error({ content: "Không thể tạo danh sách câu hỏi. Vui lòng thử lại.", key: "continueTest" });
+                return;
+            }
+
+            // Xử lý savedAnswers
+            const savedAnswers = data.savedAnswers || [];
+            const answersMap = new Map();
+            
+            savedAnswers.forEach((saved) => {
+                const subIndex = saved.subQuestionIndex !== undefined && saved.subQuestionIndex !== null 
+                    ? saved.subQuestionIndex 
+                    : 0;
+                
+                const testQuestionIdStr = String(saved.testQuestionId);
+                const answerKey = subIndex !== 0
+                    ? `${testQuestionIdStr}_${subIndex}`
+                    : testQuestionIdStr;
+                
+                const timestamp = saved.updatedAt 
+                    ? new Date(saved.updatedAt).getTime()
+                    : new Date(saved.createdAt || 0).getTime();
+                
+                const existing = answersMap.get(answerKey);
+                if (!existing || timestamp > existing.timestamp) {
+                    let answerValue = null;
+                    if (saved.chosenOptionLabel) {
+                        answerValue = saved.chosenOptionLabel;
+                    } else if (saved.answerText) {
+                        answerValue = saved.answerText;
+                    } else if (saved.answerAudioUrl) {
+                        answerValue = saved.answerAudioUrl;
+                    }
+                    
+                    if (answerValue !== null) {
+                        answersMap.set(answerKey, { value: answerValue, timestamp });
+                    }
+                }
+            });
+            
+            const answers = {};
+            answersMap.forEach((item, key) => {
+                answers[key] = item.value;
+            });
+
+            // Lấy testResultId từ API startTest response
+            const testResultId = data.testResultId;
+            if (!testResultId) {
+                message.error({ content: "Không tìm thấy testResultId. Vui lòng thử lại.", key: "continueTest" });
+                return;
+            }
+
+            const payload = {
+                ...data,
+                testId: testIdNum,
+                testResultId: testResultId,
+                originalTestResultId: testResultId,
+                createdAt: createdAt, // Lưu createdAt từ resultProgress để tính thời gian đã làm bài
+                testType: test.testType || "Simulator",
+                testSkill: data.testSkill || test.testSkill,
+                duration: data.duration ?? test.duration ?? 0,
+                questionQuantity: data.quantityQuestion ?? data.questionQuantity ?? test.questionQuantity ?? 0,
+                questions,
+                answers,
+                isSelectTime: isSelectTime,
+                timerMode: isSelectTime ? "countdown" : "countup",
+                startedAt: Date.now(),
+                globalAudioUrl: data.audioUrl || null,
+                lastBackendLoadTime: Date.now(),
+            };
+
+            sessionStorage.setItem("toeic_testData", JSON.stringify(payload));
+            
+            message.success({ content: "Đã tải bài thi thành công", key: "continueTest" });
+            navigate("/exam");
+        } catch (error) {
+            console.error("Error continuing test:", error);
+            message.error({ 
+                content: error.response?.data?.message || "Không thể tiếp tục bài test. Vui lòng thử lại.", 
+                key: "continueTest" 
+            });
+        }
+    };
+
     const getSkillColor = (skill) => {
         switch(skill) {
             case "Speaking":
@@ -192,10 +356,10 @@ export default function TestList() {
                 {/* Header Section */}
                 <div className={styles.headerSection}>
                     <h1 className={styles.headerTitle}>
-                        Simulator Tests
+                        Bài thi mô phỏng TOEIC
                     </h1>
                     <p className={styles.headerDescription}>
-                        Làm bài thi mô phỏng TOEIC với format giống như bài thi thật, đánh giá năng lực toàn diện
+                        Làm bài thi mô phỏng TOEIC với đề thi thật, đánh giá năng lực toàn diện
                     </p>
                 </div>
 
@@ -240,15 +404,31 @@ export default function TestList() {
                                         flexDirection: "column"
                                     }}
                                     actions={[
-                                        <Button
-                                            type="primary"
-                                            icon={<PlayCircleOutlined />}
-                                            size="middle"
-                                            onClick={() => handleStartTest(test)}
-                                            className={styles.testStartButton}
-                                        >
-                                            Bắt đầu làm bài
-                                        </Button>
+                                        test.resultProgress?.status === "InProgress" ? (
+                                            <Button
+                                                type="default"
+                                                size="middle"
+                                                onClick={() => handleContinueTest(test)}
+                                                className={styles.testStartButton}
+                                            >
+                                                <Space>
+                                                    <PlayCircleOutlined />
+                                                    <span>Chưa hoàn thành</span>
+                                                </Space>
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                type="primary"
+                                                size="middle"
+                                                onClick={() => handleStartTest(test)}
+                                                className={styles.testStartButton}
+                                            >
+                                                <Space>
+                                                    <PlayCircleOutlined />
+                                                    <span>Bắt đầu làm bài</span>
+                                                </Space>
+                                            </Button>
+                                        )
                                     ]}
                                 >
                                     <div className={styles.testTagsContainer}>

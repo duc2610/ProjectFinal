@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Repositories.Persistence;
@@ -34,6 +34,14 @@ namespace ToeicGenius.Repositories.Implementations
 				.Include(tq => tq.Test)
 				.Include(tq => tq.Part)
 				.FirstOrDefaultAsync(tq => tq.TestQuestionId == testQuestionId);
+		}
+
+		public async Task<List<TestQuestion>> GetByIdsWithPartAsync(List<int> testQuestionIds)
+		{
+			return await _context.TestQuestions
+				.Include(tq => tq.Part)
+				.Where(tq => testQuestionIds.Contains(tq.TestQuestionId))
+				.ToListAsync();
 		}
 
 		public async Task UpdateTestQuestionAsync(TestQuestion testQuestion)

@@ -35,6 +35,31 @@ export default function ResetPassword() {
 
     const trimOnly = (v) => (typeof v === "string" ? v.trim() : v);
 
+    // Hàm chuyển đổi thông báo lỗi sang tiếng Việt
+    const translateError = (errorMsg) => {
+        if (!errorMsg) return "Đổi mật khẩu thất bại";
+        
+        const errorMsgLower = errorMsg.toLowerCase();
+        
+        const errorMap = {
+            "invalid password": "Mật khẩu không hợp lệ!",
+            "password": "Mật khẩu không đúng định dạng!",
+            "otp": "Mã OTP không hợp lệ hoặc đã hết hạn!",
+            "expired": "Mã OTP đã hết hạn!",
+            "network error": "Lỗi kết nối mạng!",
+            "timeout": "Yêu cầu quá thời gian chờ!",
+            "server error": "Lỗi máy chủ!",
+        };
+        
+        for (const [key, value] of Object.entries(errorMap)) {
+            if (errorMsgLower.includes(key)) {
+                return value;
+            }
+        }
+        
+        return "Đổi mật khẩu thất bại";
+    };
+
     const onFinish = async ({ newPassword, confirmNewPassword }) => {
         const payload = {
             email: step2.email,
@@ -54,7 +79,21 @@ export default function ResetPassword() {
             });
             navigate("/login");
         } catch (err) {
-            const msg = err?.response?.data?.message || "Đổi mật khẩu thất bại";
+            // Kiểm tra xem có phải lỗi validation từ backend không
+            const isValidationError = 
+                err.response?.status === 400 && 
+                (err.response?.data?.errors || 
+                 err.response?.data?.title?.toLowerCase().includes("validation") ||
+                 err.response?.data?.message?.toLowerCase().includes("validation"));
+            
+            // Nếu là lỗi validation từ backend, không hiển thị cho user
+            if (isValidationError) {
+                console.error("Lỗi validation từ backend (không hiển thị):", err.response?.data);
+                return;
+            }
+
+            const rawMsg = err?.response?.data?.message || "Đổi mật khẩu thất bại";
+            const msg = translateError(rawMsg);
             form.setFields([{ name: "newPassword", errors: [msg] }]);
         } finally {
             setLoading(false);
@@ -100,16 +139,52 @@ export default function ResetPassword() {
                                 label="Mật khẩu mới"
                                 name="newPassword"
                                 normalize={trimOnly}
+                                validateTrigger={['onBlur', 'onChange']}
                                 rules={[
-                                    { required: true, message: "Vui lòng nhập mật khẩu mới" },
-                                    { min: 6, message: "Tối thiểu 6 ký tự" },
+                                    { required: true, message: "Vui lòng nhập mật khẩu mới!" },
                                     {
-                                        pattern: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$/,
-                                        message: "Chỉ gồm chữ + số, có ít nhất 1 chữ và 1 số",
+                                        validator: (_, value) => {
+                                            if (!value) return Promise.resolve();
+                                            
+                                            // Kiểm tra độ dài
+                                            if (value.length < 8) {
+                                                return Promise.reject(new Error("Mật khẩu phải có ít nhất 8 ký tự!"));
+                                            }
+                                            if (value.length > 32) {
+                                                return Promise.reject(new Error("Mật khẩu không được vượt quá 32 ký tự!"));
+                                            }
+                                            
+                                            const errors = [];
+                                            
+                                            // Kiểm tra chữ cái (chữ hoa hoặc chữ thường đều được)
+                                            if (!/[A-Za-z]/.test(value)) {
+                                                errors.push("chữ cái");
+                                            }
+                                            
+                                            // Kiểm tra số
+                                            if (!/[0-9]/.test(value)) {
+                                                errors.push("số");
+                                            }
+                                            
+                                            // Kiểm tra ký tự đặc biệt
+                                            if (!/[!@#$%^&*(),.?":{}|<>_+\-=\[\]\\;',./]/.test(value)) {
+                                                errors.push("ký tự đặc biệt");
+                                            }
+                                            
+                                            if (errors.length > 0) {
+                                                const errorMsg = `Mật khẩu phải chứa ít nhất một ${errors.join(", ")}!`;
+                                                return Promise.reject(new Error(errorMsg));
+                                            }
+                                            
+                                            return Promise.resolve();
+                                        },
                                     },
                                 ]}
                             >
-                                <Input.Password placeholder="Nhập mật khẩu mới" size="large" />
+                                <Input.Password 
+                                    placeholder="Nhập mật khẩu mới (8-32 ký tự, phải có chữ cái, số và ký tự đặc biệt)" 
+                                    size="large" 
+                                />
                             </Form.Item>
 
                             <Form.Item

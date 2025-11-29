@@ -1,11 +1,18 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Card, Typography, Radio, Button, Image, Progress, Input, message } from "antd";
-import { AudioOutlined, StopOutlined, PlayCircleOutlined } from "@ant-design/icons";
+import { Card, Typography, Radio, Button, Image, Progress, Input, message, Modal, Select, Tooltip, Radio as AntRadio } from "antd";
+import { AudioOutlined, StopOutlined, PlayCircleOutlined, FlagOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import { uploadFile } from "../../../services/filesService";
+import { reportQuestion } from "../../../services/questionReportService";
+import { translateErrorMessage } from "@shared/utils/translateError";
+import { getUserFlashcardSets, createFlashcardSet, addFlashcardFromTest } from "../../../services/flashcardService";
+import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+
+// Bảng màu highlight
+const HIGHLIGHT_COLORS = ["#fef08a", "#bfdbfe", "#bbf7d0", "#fed7aa"];
 
 // Hàm chuyển đổi WebM Blob sang WAV File
 const convertWebmToWav = async (webmBlob) => {
@@ -103,6 +110,11 @@ const convertWebmToWav = async (webmBlob) => {
   });
 };
 
+const formatQuestionText = (text) => {
+  if (typeof text !== "string") return text || "";
+  return text.replace(/\r\n/g, "\n");
+};
+
 export default function QuestionCard({
   question,
   currentIndex,
@@ -113,6 +125,11 @@ export default function QuestionCard({
   handleSubmit,
   isSubmitting = false,
   globalAudioUrl,
+  testType = "Simulator", // Thêm prop testType để xác định loại bài thi
+  testResultId, // testResultId để lưu trạng thái đã phát audio
+  isIncorrect = undefined, // Prop để xác định câu hỏi làm sai (undefined = trong quá trình làm bài, true = làm sai ở result, false = làm đúng ở result)
+  isReported = false, // Prop để xác định câu hỏi đã được report
+  onReportSuccess, // Callback khi report thành công
 }) {
   const audioRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -127,24 +144,180 @@ export default function QuestionCard({
   const [recordedAudioUrl, setRecordedAudioUrl] = useState(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [reportType, setReportType] = useState("IncorrectAnswer");
+  const [reportDescription, setReportDescription] = useState("");
+  const [reporting, setReporting] = useState(false);
+
+  // Flashcard from exam
+  const { isAuthenticated } = useAuth();
+  const [flashcardModalVisible, setFlashcardModalVisible] = useState(false);
+  const [flashcardSets, setFlashcardSets] = useState([]);
+  const [flashcardLoading, setFlashcardLoading] = useState(false);
+  const [flashcardMode, setFlashcardMode] = useState("existing"); // 'existing' | 'new'
+  const [selectedSetId, setSelectedSetId] = useState(null);
+  const [newSetTitle, setNewSetTitle] = useState("");
+  const [newSetDescription, setNewSetDescription] = useState("");
+  const [flashcardTerm, setFlashcardTerm] = useState("");
+  const [flashcardDefinition, setFlashcardDefinition] = useState("");
+  const [flashcardPronunciation, setFlashcardPronunciation] = useState("");
+  const [flashcardWordType, setFlashcardWordType] = useState("");
+  const [flashcardExamplesInput, setFlashcardExamplesInput] = useState("");
+  const [flashcardNotes, setFlashcardNotes] = useState("");
+
+  // Highlight text
+  const [highlights, setHighlights] = useState([]);
+  const [highlightColor, setHighlightColor] = useState(HIGHLIGHT_COLORS[0]);
+  const [highlightToolbarVisible, setHighlightToolbarVisible] = useState(false);
+  const [highlightToolbarPos, setHighlightToolbarPos] = useState({ top: 0, left: 0 });
+  const [pendingSelection, setPendingSelection] = useState({ start: 0, end: 0, text: "" });
+  const questionTextContainerRef = useRef(null);
 
   const isListeningPart = question.partId >= 1 && question.partId <= 4;
   const isWritingPart = question.partId >= 8 && question.partId <= 10;
   const isSpeakingPart = question.partId >= 11 && question.partId <= 15;
   const isLrPart = question.partId >= 1 && question.partId <= 7;
+  const isPart1Or2 = question.partId === 1 || question.partId === 2;
   const hasGlobalAudio = globalAudioUrl && globalAudioUrl.trim() !== "";
   const hasImage = question.imageUrl && question.imageUrl.trim() !== "";
+  const isPractice = testType && testType.toLowerCase() === "practice";
+  const isSimulator = testType && testType.toLowerCase() === "simulator";
+  // Xác định audio URL: Practice dùng audioUrl riêng của từng câu, Simulator dùng globalAudioUrl
+  const questionAudioUrl = question.audioUrl && question.audioUrl.trim() !== "" ? question.audioUrl : null;
+  // Logic: Practice dùng audioUrl riêng của từng câu (nếu có), Simulator dùng globalAudioUrl (nếu có)
+  let effectiveAudioUrl = null;
+  if (isPractice && questionAudioUrl) {
+    effectiveAudioUrl = questionAudioUrl;
+  } else if (isSimulator && hasGlobalAudio) {
+    effectiveAudioUrl = globalAudioUrl;
+  } else if (questionAudioUrl) {
+    // Fallback: nếu có questionAudioUrl thì dùng
+    effectiveAudioUrl = questionAudioUrl;
+  } else if (hasGlobalAudio) {
+    // Fallback: nếu có globalAudioUrl thì dùng
+    effectiveAudioUrl = globalAudioUrl;
+  }
+
+  // Hàm lấy key để lưu trạng thái đã phát audio vào sessionStorage
+  const getAudioPlayedKey = () => {
+    if (!testResultId || !isSimulator || !effectiveAudioUrl) return null;
+    // Với simulator, 1 file audio dùng cho tất cả các part listening (1, 2, 3, 4)
+    // Mỗi test result chỉ có 1 globalAudioUrl duy nhất, nên chỉ cần lưu theo testResultId
+    return `toeic_audio_played_${testResultId}`;
+  };
+  
+  // Hàm kiểm tra xem đã phát audio chưa từ sessionStorage
+  const checkAudioPlayedFromStorage = () => {
+    const key = getAudioPlayedKey();
+    if (!key) return false;
+    try {
+      const played = sessionStorage.getItem(key);
+      return played === "true";
+    } catch (error) {
+      console.error("Error reading audio played state from sessionStorage:", error);
+      return false;
+    }
+  };
+  
+  // Hàm lưu trạng thái đã phát audio vào sessionStorage
+  const saveAudioPlayedToStorage = () => {
+    const key = getAudioPlayedKey();
+    if (!key) return;
+    try {
+      sessionStorage.setItem(key, "true");
+    } catch (error) {
+      console.error("Error saving audio played state to sessionStorage:", error);
+    }
+  };
+  
+  const [hasPlayedAudio, setHasPlayedAudio] = useState(() => checkAudioPlayedFromStorage()); // Track xem đã phát audio chưa (cho simulator)
+
+  // Chuyển node + offset thành offset toàn cục trong text
+  const getGlobalOffset = (root, node, localOffset) => {
+    if (!root || !node) return 0;
+    let total = 0;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    while (walker.nextNode()) {
+      const current = walker.currentNode;
+      if (current === node) {
+        return total + localOffset;
+      }
+      total += current.textContent.length;
+    }
+    return total;
+  };
+
+  // Render câu hỏi với highlight
+  const renderQuestionWithHighlights = () => {
+    const raw = formatQuestionText(question.question || "");
+    if (!highlights || highlights.length === 0) {
+      return raw;
+    }
+
+    const sorted = [...highlights].sort((a, b) => a.start - b.start);
+    const segments = [];
+    let cursor = 0;
+
+    sorted.forEach((h, idx) => {
+      const start = Math.max(0, Math.min(raw.length, h.start));
+      const end = Math.max(start, Math.min(raw.length, h.end));
+
+      if (start > cursor) {
+        segments.push({
+          text: raw.slice(cursor, start),
+          highlight: null,
+          key: `n-${idx}-${cursor}`,
+        });
+      }
+
+      if (end > start) {
+        segments.push({
+          text: raw.slice(start, end),
+          highlight: h.color,
+          key: `h-${idx}-${start}`,
+        });
+      }
+
+      cursor = end;
+    });
+
+    if (cursor < raw.length) {
+      segments.push({
+        text: raw.slice(cursor),
+        highlight: null,
+        key: `n-end-${cursor}`,
+      });
+    }
+
+    return segments.map((seg) =>
+      seg.highlight ? (
+        <span
+          key={seg.key}
+          style={{
+            backgroundColor: seg.highlight,
+            borderRadius: 2,
+            padding: "0 1px",
+          }}
+        >
+          {seg.text}
+        </span>
+      ) : (
+        seg.text
+      )
+    );
+  };
 
   useEffect(() => {
     let previousUrl = recordedAudioUrl;
 
-    // Kiểm tra xem có phải chuyển câu trong cùng phần nghe không
+    // Kiểm tra xem có phải chuyển câu trong cùng phần nghe không (chỉ áp dụng cho Simulator với globalAudioUrl)
     // Nếu previousGlobalAudioUrlRef.current là null, đó là lần đầu tiên, nên không phải cùng audio
-    const isSameAudio = previousGlobalAudioUrlRef.current !== null && previousGlobalAudioUrlRef.current === globalAudioUrl;
+    const isSameAudio = previousGlobalAudioUrlRef.current !== null && previousGlobalAudioUrlRef.current === effectiveAudioUrl && isSimulator;
     const isAudioCurrentlyPlaying = audioRef.current && !audioRef.current.paused && !audioRef.current.ended;
-    const shouldKeepAudioPlaying = isListeningPart && hasGlobalAudio && isAudioCurrentlyPlaying && isSameAudio;
+    const shouldKeepAudioPlaying = isListeningPart && isSimulator && hasGlobalAudio && isAudioCurrentlyPlaying && isSameAudio;
 
     // Chỉ reset trạng thái playing nếu không phải giữ audio phát
+    // Với Practice mode, mỗi câu có audio riêng nên luôn reset khi chuyển câu
     if (!shouldKeepAudioPlaying) {
       setIsPlaying(false);
       setCurrentTime(0);
@@ -152,6 +325,14 @@ export default function QuestionCard({
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
       }
+    }
+
+    // Với simulator, kiểm tra trạng thái đã phát audio từ sessionStorage
+    // Nếu đã phát audio trong part này rồi (từ sessionStorage), set hasPlayedAudio = true
+    // Với Practice mode, mỗi câu có audio riêng nên không cần kiểm tra
+    if (isSimulator && !shouldKeepAudioPlaying) {
+      const playedFromStorage = checkAudioPlayedFromStorage();
+      setHasPlayedAudio(playedFromStorage);
     }
 
     setImageError(false);
@@ -164,8 +345,8 @@ export default function QuestionCard({
       mediaRecorderRef.current.stop();
     }
 
-    // Lưu globalAudioUrl hiện tại để so sánh lần sau
-    previousGlobalAudioUrlRef.current = globalAudioUrl;
+    // Lưu audio URL hiện tại để so sánh lần sau
+    previousGlobalAudioUrlRef.current = effectiveAudioUrl;
 
     // Load lại answer đã lưu nếu có
     // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
@@ -198,14 +379,28 @@ export default function QuestionCard({
         URL.revokeObjectURL(previousUrl);
       }
     };
-  }, [question.testQuestionId, answers, isSpeakingPart, globalAudioUrl, isListeningPart, hasGlobalAudio]);
+  }, [question.testQuestionId, answers, isSpeakingPart, globalAudioUrl, isListeningPart, hasGlobalAudio, isPractice, isSimulator, questionAudioUrl]);
+
+  // Reset highlight khi chuyển câu hỏi
+  useEffect(() => {
+    setHighlights([]);
+    setHighlightToolbarVisible(false);
+    setPendingSelection({ start: 0, end: 0, text: "" });
+  }, [question.testQuestionId, question.subQuestionIndex]);
 
   useEffect(() => {
-    if (!audioRef.current || !hasGlobalAudio) return;
+    if (!audioRef.current || !effectiveAudioUrl) return;
     const audio = audioRef.current;
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => setDuration(audio.duration);
-    const handleEnd = () => setIsPlaying(false);
+    const handleEnd = () => {
+      setIsPlaying(false);
+      // Khi audio kết thúc, đánh dấu đã phát (chỉ với simulator) và lưu vào sessionStorage
+      if (isSimulator) {
+        setHasPlayedAudio(true);
+        saveAudioPlayedToStorage();
+      }
+    };
     const handleError = () => setAudioError(true);
 
     audio.addEventListener("timeupdate", updateTime);
@@ -219,14 +414,37 @@ export default function QuestionCard({
       audio.removeEventListener("ended", handleEnd);
       audio.removeEventListener("error", handleError);
     };
-  }, [globalAudioUrl, question]);
+  }, [effectiveAudioUrl, question]);
 
   const toggleAudio = () => {
     if (!audioRef.current || audioError) return;
-    // Khi làm bài thi, chỉ cho phép phát audio, không cho phép dừng
-    if (!isPlaying) {
+    
+    // Kiểm tra loại bài thi
+    const isPractice = testType && testType.toLowerCase() === "practice";
+    
+    if (isPlaying) {
+      // Nếu là Practice thì cho phép pause
+      if (isPractice) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+      // Nếu là Simulator thì không cho pause (không làm gì)
+    } else {
+      // Kiểm tra xem đã phát audio chưa (chỉ với simulator)
+      if (isSimulator && hasPlayedAudio) {
+        // Đã phát rồi, không cho phép phát lại
+        return;
+      }
+      
+      // Phát audio
       audioRef.current.play().catch(() => setAudioError(true));
       setIsPlaying(true);
+      
+      // Đánh dấu đã phát audio (chỉ với simulator) và lưu vào sessionStorage
+      if (isSimulator) {
+        setHasPlayedAudio(true);
+        saveAudioPlayedToStorage();
+      }
     }
   };
 
@@ -302,7 +520,7 @@ export default function QuestionCard({
           message.success("Đã upload audio thành công");
         } catch (error) {
           console.error("Error uploading audio:", error);
-          const errorMessage = error.response?.data?.message || error.message || "Không thể upload audio";
+          const errorMessage = translateErrorMessage(error.response?.data?.message || error.message) || "Không thể upload audio";
           message.error(`Lỗi upload audio: ${errorMessage}. Vui lòng thử lại.`);
           // Nếu upload thất bại, vẫn lưu Blob để có thể upload lại khi submit
           onAnswer(answerKey, audioBlob);
@@ -341,21 +559,180 @@ export default function QuestionCard({
     }
   };
 
+  // === REPORT QUESTION ===
+  const handleOpenReportModal = () => {
+    // Kiểm tra xem đã report chưa
+    if (isReported) {
+      message.info("Bạn đã báo cáo câu hỏi này rồi");
+      return;
+    }
+    setReportModalVisible(true);
+    setReportType("IncorrectAnswer");
+    setReportDescription("");
+  };
+
+  const handleCloseReportModal = () => {
+    setReportModalVisible(false);
+    setReportType("IncorrectAnswer");
+    setReportDescription("");
+  };
+
+  const handleSubmitReport = async () => {
+    if (!reportDescription.trim()) {
+      message.warning("Vui lòng nhập mô tả chi tiết");
+      return;
+    }
+
+    try {
+      setReporting(true);
+      await reportQuestion(question.testQuestionId, reportType, reportDescription);
+      message.success("Đã gửi báo cáo thành công");
+      handleCloseReportModal();
+      if (onReportSuccess) {
+        onReportSuccess(question.testQuestionId);
+      }
+    } catch (error) {
+      console.error("Error reporting question:", error);
+      let errorMsg = translateErrorMessage(error?.response?.data?.message || error?.message) || "Không thể gửi báo cáo";
+      
+      // Chuyển đổi thông báo lỗi tiếng Anh sang tiếng Việt
+      if (errorMsg.toLowerCase().includes("already reported") || 
+          errorMsg.toLowerCase().includes("đã báo cáo")) {
+        errorMsg = "Bạn đã báo cáo câu hỏi này rồi";
+        // Cập nhật trạng thái isReported nếu có callback
+        if (onReportSuccess) {
+          onReportSuccess(question.testQuestionId);
+        }
+      }
+      
+      message.error(errorMsg);
+    } finally {
+      setReporting(false);
+    }
+  };
+
+  const handleSaveFlashcard = async () => {
+    if (!flashcardTerm || !flashcardTerm.trim()) {
+      message.warning("Vui lòng nhập từ / cụm từ để lưu vào flashcard.");
+      return;
+    }
+    if (flashcardMode === "existing" && !selectedSetId) {
+      message.warning("Vui lòng chọn bộ flashcard.");
+      return;
+    }
+    if (flashcardMode === "new" && !newSetTitle.trim()) {
+      message.warning("Vui lòng nhập tên bộ flashcard mới.");
+      return;
+    }
+
+    try {
+      setFlashcardLoading(true);
+      let targetSetId = selectedSetId;
+
+      if (flashcardMode === "new") {
+        const payload = {
+          title: newSetTitle.trim(),
+          description: newSetDescription?.trim() || null,
+          language: "en-US",
+          isPublic: false,
+        };
+        const created = await createFlashcardSet(payload);
+        targetSetId = created?.setId || created?.id;
+        if (!targetSetId) {
+          message.error("Không lấy được ID bộ flashcard vừa tạo.");
+          return;
+        }
+        const sets = await getUserFlashcardSets();
+        setFlashcardSets(Array.isArray(sets) ? sets : []);
+        setSelectedSetId(targetSetId);
+      }
+
+      const examples =
+        flashcardExamplesInput
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+      const cardPayload = {
+        setId: targetSetId,
+        term: flashcardTerm.trim(),
+        definition: flashcardDefinition?.trim() || flashcardTerm.trim(),
+        pronunciation: flashcardPronunciation?.trim() || null,
+        wordType: flashcardWordType?.trim() || null,
+        examples,
+        notes:
+          flashcardNotes?.trim() ||
+          `Found in TOEIC ${testType} test, question ${
+            question.globalIndex ?? question.index ?? ""
+          }`,
+      };
+
+      await addFlashcardFromTest(cardPayload);
+      message.success("Đã thêm thẻ flashcard từ bài thi!");
+      setFlashcardModalVisible(false);
+    } catch (error) {
+      console.error("Lỗi khi lưu flashcard từ bài thi:", error);
+      const errorMsg =
+        error?.response?.data?.message || "Không thể lưu flashcard từ bài thi.";
+      message.error(errorMsg);
+    } finally {
+      setFlashcardLoading(false);
+    }
+  };
+
   return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "row",
+        gap: 24,
+        alignItems: "flex-start",
+        flexWrap: "wrap",
+      }}
+    >
     <Card
       style={{
         margin: 0,
         borderRadius: "16px",
         boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
         border: "none",
-        overflow: "hidden"
+          overflow: "hidden",
+          flex: "1 1 520px",
       }}
       bodyStyle={{ padding: "32px" }}
     >
       <div className={styles.questionHeader}>
-        <Title level={4} style={{ margin: 0, color: "#2d3748", fontSize: "24px" }}>
-          Câu {question.globalIndex}
-        </Title>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Title level={4} style={{ margin: 0, color: "#2d3748", fontSize: "24px" }}>
+            Câu {question.globalIndex}
+          </Title>
+          {/* Nút Report - gọn gàng, chỉ icon với tooltip, ở sau text "Câu..." */}
+          <Tooltip title={isReported ? "Đã báo cáo câu hỏi này" : "Báo cáo câu hỏi"}>
+            {isReported ? (
+              <FlagOutlined 
+                style={{ 
+                  color: "#52c41a", 
+                  fontSize: "18px", 
+                  cursor: "default" 
+                }} 
+              />
+            ) : (
+              <Button
+                type="text"
+                icon={<FlagOutlined />}
+                size="small"
+                onClick={handleOpenReportModal}
+                style={{ 
+                  padding: "0 4px",
+                  height: "auto",
+                  minWidth: "auto",
+                  color: "#666",
+                  fontSize: "18px"
+                }}
+              />
+            )}
+          </Tooltip>
+        </div>
         <div className={styles.partBadge}>
           {question.partName}
           {question.partDescription && ` - ${question.partDescription}`}
@@ -379,17 +756,17 @@ export default function QuestionCard({
           </div>
         )}
 
-        {isListeningPart && hasGlobalAudio && (
+        {isListeningPart && effectiveAudioUrl && (
           <div className={styles.audioBox} style={{ margin: "0 0 20px 0" }}>
             {!audioError ? (
               <>
-                <audio ref={audioRef} src={globalAudioUrl} />
+                <audio ref={audioRef} src={effectiveAudioUrl} />
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <Button
                     size="large"
                     onClick={toggleAudio}
                     type={isPlaying ? "primary" : "default"}
-                    disabled={isPlaying}
+                    disabled={(isPlaying && !isPractice) || (isSimulator && hasPlayedAudio && !isPlaying)}
                     style={{
                       borderRadius: "8px",
                       height: "40px",
@@ -398,7 +775,9 @@ export default function QuestionCard({
                       boxShadow: isPlaying ? "0 4px 12px rgba(102, 126, 234, 0.3)" : "none"
                     }}
                   >
-                    {isPlaying ? "Đang phát..." : "Nghe"}
+                      {isPlaying 
+                        ? (isPractice ? "Tạm dừng" : "Đang phát...") 
+                        : (isSimulator && hasPlayedAudio ? "Đã nghe" : "Nghe")}
                   </Button>
                   <div style={{ flex: 1 }}>
                     <Progress
@@ -429,6 +808,122 @@ export default function QuestionCard({
             )}
           </div>
         )}
+
+          {/* Thanh công cụ highlight + flashcard */}
+          {highlightToolbarVisible && (
+            <div
+              style={{
+                position: "fixed",
+                top: highlightToolbarPos.top,
+                left: highlightToolbarPos.left,
+                background: "#111827",
+                color: "#fff",
+                padding: "6px 8px",
+                borderRadius: 999,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                boxShadow: "0 4px 10px rgba(15,23,42,0.35)",
+                zIndex: 20,
+              }}
+            >
+              {HIGHLIGHT_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    if (pendingSelection.end > pendingSelection.start) {
+                      const start = pendingSelection.start;
+                      const end = pendingSelection.end;
+                      setHighlights((prev) => {
+                        // Loại bỏ mọi highlight cũ bị chồng lấn với vùng mới
+                        const cleaned = prev.filter(
+                          (h) => h.end <= start || h.start >= end
+                        );
+                        return [...cleaned, { start, end, color: c }];
+                      });
+                      setHighlightColor(c);
+                    }
+                  }}
+                  style={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: 4,
+                    border: c === highlightColor ? "2px solid #fff" : "1px solid #e5e7eb",
+                    backgroundColor: c,
+                    cursor: "pointer",
+                  }}
+                />
+              ))}
+              <span
+                style={{
+                  width: 1,
+                  height: 18,
+                  background: "rgba(148,163,184,0.7)",
+                  margin: "0 4px",
+                }}
+              />
+              <Button
+                size="small"
+                type="primary"
+                style={{ borderRadius: 16, padding: "0 10px" }}
+                onClick={async () => {
+                  if (!pendingSelection.text) return;
+                  if (!isAuthenticated) {
+                    message.warning("Vui lòng đăng nhập để lưu flashcard.");
+                    return;
+                  }
+                  try {
+                    setFlashcardTerm(pendingSelection.text);
+                    setFlashcardDefinition("");
+                    setFlashcardMode("existing");
+                    setNewSetTitle("");
+                    setNewSetDescription("");
+                    setSelectedSetId(null);
+                    setFlashcardPronunciation("");
+                    setFlashcardWordType("");
+                    setFlashcardExamplesInput("");
+                    setFlashcardNotes(
+                      `Found in TOEIC ${testType} test, question ${
+                        question.globalIndex ?? question.index ?? ""
+                      }`
+                    );
+                    setFlashcardModalVisible(true);
+                    setFlashcardLoading(true);
+                    const sets = await getUserFlashcardSets();
+                    setFlashcardSets(Array.isArray(sets) ? sets : []);
+                    if (Array.isArray(sets) && sets.length > 0) {
+                      setSelectedSetId(sets[0].setId);
+                    }
+                  } catch (error) {
+                    console.error("Không thể tải danh sách flashcard:", error);
+                    const errorMsg =
+                      error?.response?.data?.message || "Không thể tải danh sách flashcard";
+                    message.error(errorMsg);
+                  } finally {
+                    setFlashcardLoading(false);
+                    setHighlightToolbarVisible(false);
+                  }
+                }}
+              >
+                + Thẻ
+              </Button>
+              <button
+                type="button"
+                onClick={() => setHighlightToolbarVisible(false)}
+                style={{
+                  marginLeft: 4,
+                  background: "transparent",
+                  border: "none",
+                  color: "#e5e7eb",
+                  cursor: "pointer",
+                  fontSize: 12,
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
 
         {hasImage && !imageError ? (
           <div style={{
@@ -466,30 +961,79 @@ export default function QuestionCard({
           </div>
         ) : null}
 
-        <div style={{
-          marginTop: "0",
-          padding: "20px",
-          background: "#ffffff",
-          borderRadius: "12px",
-          border: "1px solid #e2e8f0",
-          fontSize: "16px",
-          lineHeight: "1.8",
-          color: "#2d3748",
-          whiteSpace: "pre-line" // Giữ nguyên xuống dòng từ \r\n và \n
-        }}>
-          <Text strong style={{ fontSize: "16px", color: "#2d3748" }}>
-            {question.question}
-          </Text>
-        </div>
-      </div>
+          {/* Chỉ hiển thị nội dung câu hỏi nếu không phải Part 1 hoặc Part 2 */}
+          {!isPart1Or2 && (
+            <div
+              ref={questionTextContainerRef}
+              style={{
+            marginTop: "0",
+            padding: "20px",
+            background: "#ffffff",
+            borderRadius: "12px",
+            border: "1px solid #e2e8f0",
+            fontSize: "16px",
+            lineHeight: "1.8",
+            color: "#2d3748",
+                whiteSpace: "pre-line", // Giữ nguyên xuống dòng từ \r\n và \n
+                cursor: "text",
+              }}
+              onMouseUp={() => {
+                if (typeof window === "undefined" || !window.getSelection) return;
+                const selection = window.getSelection();
+                if (!selection || selection.rangeCount === 0) return;
 
+                const range = selection.getRangeAt(0);
+                const text = selection.toString().trim();
+                if (!text) {
+                  setHighlightToolbarVisible(false);
+                  return;
+                }
+
+                const rootEl = questionTextContainerRef.current;
+                // Tính offset toàn cục trong toàn bộ câu hỏi, không chỉ trong text node hiện tại
+                const start = getGlobalOffset(
+                  rootEl,
+                  range.startContainer,
+                  range.startOffset
+                );
+                const end = getGlobalOffset(rootEl, range.endContainer, range.endOffset);
+                setPendingSelection({ start, end, text });
+
+                // Tính vị trí toolbar theo viewport (hiển thị ngay trên vùng bôi đen)
+                const rect = range.getBoundingClientRect();
+                setHighlightToolbarPos({
+                  top: rect.top + window.scrollY - 40,
+                  left: rect.left + window.scrollX,
+                });
+                setHighlightToolbarVisible(true);
+              }}
+            >
+            <Text strong style={{ fontSize: "16px", color: "#2d3748" }}>
+                {renderQuestionWithHighlights()}
+            </Text>
+          </div>
+          )}
+      </div>
+      </Card>
+
+      <Card
+        style={{
+          margin: 0,
+          borderRadius: "16px",
+          boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+          border: "none",
+          overflow: "hidden",
+          flex: "1 1 420px",
+        }}
+        bodyStyle={{ padding: "32px" }}
+      >
       {/* PHẦN TRẢ LỜI */}
       {isWritingPart ? (
-        <div className={styles.aBox} style={{ marginTop: 24 }}>
+          <div className={styles.aBox} style={{ marginTop: 0 }}>
           <Text strong style={{ fontSize: "16px", color: "#2d3748", display: "block", marginBottom: "16px" }}>
             Viết câu trả lời
           </Text>
-          <div>
+          <div style={{ position: "relative" }}>
             <TextArea
               rows={8}
               placeholder="Nhập câu trả lời của bạn..."
@@ -505,7 +1049,6 @@ export default function QuestionCard({
                   ? `${testQuestionIdStr}_${subIndex}`
                   : testQuestionIdStr;
                 const answerValue = typeof answers[answerKey] === "string" ? answers[answerKey] : "";
-                console.log(`QuestionCard Writing - Question ${question.globalIndex} (testQuestionId: ${question.testQuestionId}, subQuestionIndex: ${question.subQuestionIndex}): answerKey="${answerKey}", answerValue="${answerValue}"`);
                 return answerValue;
               })()}
               onChange={(e) => {
@@ -524,13 +1067,58 @@ export default function QuestionCard({
               style={{
                 fontSize: 14,
                 borderRadius: "8px",
-                border: "2px solid #e2e8f0"
+                border: "2px solid #e2e8f0",
+                paddingBottom: 40
               }}
             />
+            {/* Đếm từ và ký tự */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: 8,
+                right: 12,
+                fontSize: 12,
+                color: "#999",
+                display: "flex",
+                gap: 16,
+                background: "rgba(255, 255, 255, 0.9)",
+                padding: "4px 8px",
+                borderRadius: "4px"
+              }}
+            >
+              <span>
+                Từ: {(() => {
+                  const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+                    ? question.subQuestionIndex
+                    : 0;
+                  const testQuestionIdStr = String(question.testQuestionId);
+                  const answerKey = subIndex !== 0
+                    ? `${testQuestionIdStr}_${subIndex}`
+                    : testQuestionIdStr;
+                  const answerValue = typeof answers[answerKey] === "string" ? answers[answerKey] : "";
+                  // Đếm từ: split bằng khoảng trắng và filter các từ không rỗng
+                  const wordCount = answerValue.trim() === "" ? 0 : answerValue.trim().split(/\s+/).length;
+                  return wordCount;
+                })()}
+              </span>
+              <span>
+                Ký tự: {(() => {
+                  const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+                    ? question.subQuestionIndex
+                    : 0;
+                  const testQuestionIdStr = String(question.testQuestionId);
+                  const answerKey = subIndex !== 0
+                    ? `${testQuestionIdStr}_${subIndex}`
+                    : testQuestionIdStr;
+                  const answerValue = typeof answers[answerKey] === "string" ? answers[answerKey] : "";
+                  return answerValue.length;
+                })()}
+              </span>
+            </div>
           </div>
         </div>
       ) : isSpeakingPart ? (
-        <div className={styles.aBox} style={{ marginTop: 24 }}>
+        <div className={styles.aBox} style={{ marginTop: 0 }}>
           <Text strong style={{ fontSize: "16px", color: "#2d3748", display: "block", marginBottom: "16px" }}>
             Ghi âm câu trả lời
           </Text>
@@ -661,7 +1249,7 @@ export default function QuestionCard({
           </div>
         </div>
       ) : (
-        <div className={styles.aBox} style={{ marginTop: 24 }}>
+        <div className={styles.aBox} style={{ marginTop: 0 }}>
           <Text strong style={{ fontSize: "16px", color: "#2d3748", display: "block", marginBottom: "16px" }}>
             Chọn đáp án
           </Text>
@@ -679,7 +1267,6 @@ export default function QuestionCard({
                   ? `${testQuestionIdStr}_${subIndex}`
                   : testQuestionIdStr;
                 const answerValue = answers[answerKey];
-                console.log(`QuestionCard - Question ${question.globalIndex} (testQuestionId: ${question.testQuestionId}, subQuestionIndex: ${question.subQuestionIndex}): answerKey="${answerKey}", answerValue="${answerValue}"`);
                 return answerValue;
               })()}
               onChange={(e) => {
@@ -758,9 +1345,12 @@ export default function QuestionCard({
                       <Text strong style={{ color: "#667eea", marginRight: "8px" }}>
                         {opt.key}.
                       </Text>
-                      <Text style={{ fontSize: "15px", color: "#4a5568" }}>
-                        {opt.text}
-                      </Text>
+                      {/* Chỉ hiển thị nội dung đáp án nếu không phải Part 1 hoặc Part 2 */}
+                      {!isPart1Or2 && (
+                        <Text style={{ fontSize: "15px", color: "#4a5568" }}>
+                          {opt.text}
+                        </Text>
+                      )}
                     </Radio>
                   </div>
                 );
@@ -815,6 +1405,242 @@ export default function QuestionCard({
           Nộp bài
         </Button>
       </div>
+
+      {/* Modal Report Question */}
+      <Modal
+        title="Báo cáo câu hỏi"
+        open={reportModalVisible}
+        onOk={handleSubmitReport}
+        onCancel={handleCloseReportModal}
+        okText="Gửi báo cáo"
+        cancelText="Hủy"
+        confirmLoading={reporting}
+        width={600}
+        style={{ paddingBottom: 0 }}
+        bodyStyle={{ paddingBottom: 24 }}
+      >
+        {question?.question && (
+          <div style={{ marginBottom: 16 }}>
+            <Text strong style={{ display: "block", marginBottom: 8 }}>
+              Câu hỏi:
+            </Text>
+            <div
+              style={{
+                padding: 12,
+                background: "#fafafa",
+                borderRadius: 8,
+                border: "1px solid #f0f0f0",
+                whiteSpace: "pre-wrap",
+                lineHeight: 1.6,
+              }}
+            >
+              {formatQuestionText(question.question)}
+            </div>
+          </div>
+        )}
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Loại báo cáo:
+          </Text>
+          <Select
+            value={reportType}
+            onChange={setReportType}
+            style={{ width: "100%" }}
+            size="large"
+          >
+            <Select.Option value="IncorrectAnswer">Đáp án sai</Select.Option>
+            <Select.Option value="Typo">Lỗi chính tả</Select.Option>
+            <Select.Option value="AudioIssue">Vấn đề về âm thanh</Select.Option>
+            <Select.Option value="ImageIssue">Vấn đề về hình ảnh</Select.Option>
+            <Select.Option value="Unclear">Câu hỏi không rõ ràng</Select.Option>
+            <Select.Option value="Other">Khác</Select.Option>
+          </Select>
+        </div>
+        <div>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Mô tả chi tiết:
+          </Text>
+          <div style={{ position: "relative" }}>
+            <TextArea
+              rows={4}
+              placeholder="Vui lòng mô tả chi tiết vấn đề bạn gặp phải..."
+              value={reportDescription}
+              onChange={(e) => setReportDescription(e.target.value)}
+              maxLength={500}
+              style={{ paddingBottom: 28 }}
+            />
+            <span
+              style={{
+                position: "absolute",
+                right: 8,
+                bottom: 6,
+                fontSize: 12,
+                color: "#999",
+              }}
+            >
+              {(reportDescription || "").length}/500
+            </span>
+          </div>
+        </div>
+      </Modal>
+      
+      {/* Modal thêm vào Flashcard */}
+      <Modal
+        title="Thêm vào flashcard"
+        open={flashcardModalVisible}
+        onOk={handleSaveFlashcard}
+        onCancel={() => setFlashcardModalVisible(false)}
+        okText="Lưu"
+        cancelText="Hủy"
+        confirmLoading={flashcardLoading}
+        width={640}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Nội dung đã chọn
+          </Text>
+          <div
+            style={{
+              padding: 12,
+              background: "#f7fafc",
+              borderRadius: 8,
+              border: "1px solid #e2e8f0",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {flashcardTerm}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <Text strong style={{ display: "block", marginBottom: 8 }}>
+            Bộ flashcard
+          </Text>
+          <AntRadio.Group
+            value={flashcardMode}
+            onChange={(e) => setFlashcardMode(e.target.value)}
+            style={{ marginBottom: 8 }}
+          >
+            <AntRadio value="existing">Thêm vào bộ có sẵn</AntRadio>
+            <AntRadio value="new">Tạo bộ mới</AntRadio>
+          </AntRadio.Group>
+
+          {flashcardMode === "existing" ? (
+            <Select
+              style={{ width: "100%", marginTop: 8 }}
+              placeholder="Chọn bộ flashcard"
+              value={selectedSetId}
+              onChange={setSelectedSetId}
+              loading={flashcardLoading && flashcardSets.length === 0}
+              allowClear
+            >
+              {flashcardSets.map((set) => (
+                <Select.Option key={set.setId} value={set.setId}>
+                  {set.title}
+                </Select.Option>
+              ))}
+            </Select>
+          ) : (
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+              <Input
+                placeholder="Nhập tên bộ flashcard mới"
+                value={newSetTitle}
+                onChange={(e) => setNewSetTitle(e.target.value)}
+                maxLength={255}
+              />
+              <TextArea
+                rows={2}
+                placeholder="Mô tả (tùy chọn) cho bộ flashcard"
+                value={newSetDescription}
+                onChange={(e) => setNewSetDescription(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <Text strong style={{ display: "block", marginBottom: 4 }}>
+                Từ vựng / Thuật ngữ
+              </Text>
+              <Input
+                value={flashcardTerm}
+                onChange={(e) => setFlashcardTerm(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Text strong style={{ display: "block", marginBottom: 4 }}>
+                Định nghĩa
+              </Text>
+              <TextArea
+                rows={3}
+                value={flashcardDefinition}
+                onChange={(e) => setFlashcardDefinition(e.target.value)}
+                maxLength={1000}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 16 }}>
+            <div style={{ flex: 1 }}>
+              <Text strong style={{ display: "block", marginBottom: 4 }}>
+                Phiên âm (tùy chọn)
+              </Text>
+              <Input
+                placeholder="/ˈkwɔː.tə.li/"
+                value={flashcardPronunciation}
+                onChange={(e) => setFlashcardPronunciation(e.target.value)}
+                maxLength={255}
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <Text strong style={{ display: "block", marginBottom: 4 }}>
+                Loại từ (tùy chọn)
+              </Text>
+              <Input
+                placeholder="ADJ, N, V..."
+                value={flashcardWordType}
+                onChange={(e) => setFlashcardWordType(e.target.value)}
+                maxLength={50}
+              />
+            </div>
+          </div>
+
+          <div>
+            <Text strong style={{ display: "block", marginBottom: 4 }}>
+              Ví dụ (mỗi dòng một câu, tùy chọn)
+            </Text>
+            <Text type="secondary" style={{ fontSize: 12, display: "block", marginBottom: 4 }}>
+              Gợi ý: nhập 1–2 câu hoàn chỉnh thể hiện cách dùng của từ ở trên. Mỗi câu một dòng.
+            </Text>
+            <TextArea
+              rows={3}
+              placeholder={
+                "Ví dụ:\nThe company holds quarterly meetings.\nQuarterly sales increased by 10%."
+              }
+              value={flashcardExamplesInput}
+              onChange={(e) => setFlashcardExamplesInput(e.target.value)}
+              maxLength={1000}
+            />
+          </div>
+
+          <div>
+            <Text strong style={{ display: "block", marginBottom: 4 }}>
+              Ghi chú (notes, tùy chọn)
+            </Text>
+            <TextArea
+              rows={2}
+              value={flashcardNotes}
+              onChange={(e) => setFlashcardNotes(e.target.value)}
+              maxLength={500}
+            />
+          </div>
+        </div>
+      </Modal>
     </Card>
+  </div>
   );
 }

@@ -8,6 +8,7 @@ using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
 using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 using ToeicGenius.Shared.Validators;
+using Azure.Core;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -39,15 +40,29 @@ namespace ToeicGenius.Services.Implementations
 			return await _uow.Questions.GetAllAsync();
 		}
 
-		public async Task<Result<string>> CreateAsync(CreateQuestionDto request)
+		public async Task<Result<string>> CreateAsync(CreateQuestionDto request, Guid creatorId)
 		{
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(request.PartId);
+
+			bool isListeningPart = part != null && part.Skill == QuestionSkill.Listening;
+			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
+
+			// Listening part yêu cầu file audio
 			if (part != null && part.Skill == QuestionSkill.Listening)
 			{
 				if (request.Audio == null || request.Audio.Length == 0)
 				{
 					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
+				}
+			}
+
+			// Nếu không phải part 1,2 của LR thì check content question
+			if (!isLRPart12)
+			{
+				if (string.IsNullOrWhiteSpace(request.Content))
+				{
+					return Result<string>.Failure("Content của câu hỏi không được để trống.");
 				}
 			}
 
@@ -92,24 +107,35 @@ namespace ToeicGenius.Services.Implementations
 					Content = request.Content,
 					AudioUrl = audioUrl,
 					ImageUrl = imageUrl,
-					Explanation = request.Solution
+					Explanation = request.Solution,
+					CreatedById = creatorId
 				};
 
 				await _uow.Questions.AddAsync(question);
+				// Tạo options
 				var options = new List<Option>();
+				var requireQuantityOptions = (isListeningPart && part.PartNumber == 2)
+					? NumberConstants.MinQuantityOption
+					: NumberConstants.MaxQuantityOption;
 
-				var requireQuantityOptions = (part.Skill == QuestionSkill.Listening && part.PartNumber == 2) ? NumberConstants.MinQuantityOption : NumberConstants.MaxQuantityOption;
-
-				// Options (nếu có)
 				if (request.AnswerOptions != null && request.AnswerOptions.Any())
 				{
-					options.AddRange(request.AnswerOptions.Select(opt => new Option
+					foreach (var opt in request.AnswerOptions)
 					{
-						Content = opt.Content,
-						Label = opt.Label,
-						IsCorrect = opt.IsCorrect,
-						Question = question
-					}));
+						// Nếu không phải part 1,2 của LR thì content là bắt buộc
+						if (!isLRPart12 && string.IsNullOrWhiteSpace(opt.Content))
+						{
+							return Result<string>.Failure("Content của option không được để trống.");
+						}
+
+						options.Add(new Option
+						{
+							Content = isLRPart12 ? null : opt.Content,
+							Label = opt.Label,
+							IsCorrect = opt.IsCorrect,
+							Question = question
+						});
+					}
 				}
 
 				// Check validate options
@@ -132,12 +158,16 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<Result<string>> UpdateAsync(int questionId, UpdateQuestionDto dto)
+		public async Task<Result<string>> UpdateAsync(int questionId, UpdateQuestionDto dto, Guid userId, bool isAdmin = false)
 		{
 			// Check question
 			var currentQuestion = await _uow.Questions.GetQuestionByIdAndStatus(questionId, CommonStatus.Active);
 			if (currentQuestion == null)
 				return Result<string>.Failure("Không tìm thấy câu hỏi để cập nhật.");
+
+			// Check ownership - only creator or admin can update
+			if (!isAdmin && currentQuestion.CreatedById != userId)
+				return Result<string>.Failure("Bạn không có quyền sửa câu hỏi này.");
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(dto.PartId);
@@ -151,6 +181,18 @@ namespace ToeicGenius.Services.Implementations
 					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
+
+			bool isListeningPart = part != null && part.Skill == QuestionSkill.Listening;
+			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
+			// Nếu không phải part 1,2 của LR thì check content question
+			if (!isLRPart12)
+			{
+				if (string.IsNullOrWhiteSpace(dto.Content))
+				{
+					return Result<string>.Failure("Content của câu hỏi không được để trống.");
+				}
+			}
+
 			await _uow.BeginTransactionAsync();
 
 			var uploadedFiles = new List<string>();   // file mới để rollback nếu fail
@@ -221,7 +263,11 @@ namespace ToeicGenius.Services.Implementations
 						// đúng 1 đáp án đúng
 						if (dto.AnswerOptions.Count(o => o.IsCorrect) != 1)
 							return Result<string>.Failure("Cần có duy nhất một đáp án đúng.");
-
+						// Nếu không phải part 1,2 của LR thì content là bắt buộc
+						if (!isLRPart12 && string.IsNullOrWhiteSpace(dto.Content))
+						{
+							return Result<string>.Failure("Content của option không được để trống.");
+						}
 						// rule số lượng theo Part (LR Part 2 = 3; còn lại = 4)
 						var isLR = Convert.ToInt32(part.Skill) == (int)TestSkill.LR;
 						var required = (isLR && Convert.ToInt32(part.PartNumber) == 2)
@@ -303,7 +349,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<Result<string>> UpdateStatusAsync(int id, bool isGroupQuestion, bool isRestore)
+		public async Task<Result<string>> UpdateStatusAsync(int id, bool isGroupQuestion, bool isRestore, Guid userId, bool isAdmin = false)
 		{
 			await _uow.BeginTransactionAsync();
 
@@ -322,6 +368,10 @@ namespace ToeicGenius.Services.Implementations
 						string notFoundType = isRestore ? "Inactive" : "Active";
 						return Result<string>.Failure($"Không tìm thấy câu hỏi có ID {id} hoặc câu hỏi đã ở trạng thái {targetStatus}.");
 					}
+
+					// Check ownership - only creator or admin can delete/restore
+					if (!isAdmin && question.CreatedById != userId)
+						return Result<string>.Failure("Bạn không có quyền thực hiện thao tác này.");
 
 					// Cập nhật trạng thái
 					question.Status = targetStatus;
@@ -343,6 +393,10 @@ namespace ToeicGenius.Services.Implementations
 						string notFoundType = isRestore ? "Inactive" : "Active";
 						return Result<string>.Failure($"Không tìm thấy nhóm câu hỏi có ID {id} hoặc nhóm đã ở trạng thái {targetStatus}.");
 					}
+
+					// Check ownership - only creator or admin can delete/restore
+					if (!isAdmin && group.CreatedById != userId)
+						return Result<string>.Failure("Bạn không có quyền thực hiện thao tác này.");
 
 					group.Status = targetStatus;
 					group.UpdatedAt = Now;
@@ -374,17 +428,27 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		public async Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id)
+		public async Task<QuestionResponseDto?> GetQuestionResponseByIdAsync(int id, Guid? userId = null, bool isAdmin = false)
 		{
-			return await _uow.Questions.GetQuestionResponseByIdAsync(id);
+			var question = await _uow.Questions.GetQuestionResponseByIdAsync(id);
+
+			// Check ownership - only creator or admin can view
+			if (question != null && !isAdmin && userId.HasValue)
+			{
+				var questionEntity = await _uow.Questions.GetQuestionByIdAndStatus(id, CommonStatus.Active);
+				if (questionEntity != null && questionEntity.CreatedById != userId.Value)
+					return null; // Return null if not owner
+			}
+
+			return question;
 		}
 
 		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterSingleQuestionAsync(
-			int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status)
+			int? partId, int? questionTypeId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status, Guid? creatorId = null)
 		{
 			try
 			{
-				var result = await _uow.Questions.FilterSingleAsync(partId, questionTypeId, keyWord, skill, sortOrder, page, pageSize, status);
+				var result = await _uow.Questions.FilterSingleAsync(partId, questionTypeId, keyWord, skill, sortOrder, page, pageSize, status, creatorId);
 				return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
 			}
 			catch (Exception ex)

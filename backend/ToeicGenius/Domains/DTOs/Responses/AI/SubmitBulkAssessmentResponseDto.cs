@@ -5,13 +5,13 @@ namespace ToeicGenius.Domains.DTOs.Responses.AI
 {
     public class SubmitBulkAssessmentResponseDto
     {
+        public int TestId { get; set; }
+        public int TestResultId { get; set; }
         // Aggregated skill scores
         public double? WritingScore { get; set; }
         public double? SpeakingScore { get; set; }
         public double TotalScore { get; set; }
 
-        public bool? IsSelectTime { get; set; }
-        public TestResultStatus? Status { get; set; }
         public List<PerPartAssessmentFeedbackDto> PerPartFeedbacks { get; set; } = new();
     }
 }

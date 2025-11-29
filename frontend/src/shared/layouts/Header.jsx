@@ -15,9 +15,9 @@ const { Header: AntHeader } = Layout;
 const { Text } = Typography;
 
 const nav = [
-  { to: "/practice-lr", label: "Practice L&R" },
-  { to: "/practice-sw", label: "Practice S&W" },
-  { to: "/test-list", label: "Test" },
+  { to: "/practice-lr", label: "Luyện tập L&R" },
+  { to: "/practice-sw", label: "Luyện tập S&W" },
+  { to: "/test-list", label: "Bài thi" },
   { to: "/flashcard", label: "Flashcard" },
 ];
 

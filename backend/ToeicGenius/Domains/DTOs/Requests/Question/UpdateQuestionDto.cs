@@ -8,7 +8,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Question
     {
 		public int? QuestionId { get; set; } 
 
-		public string Content { get; set; } = string.Empty;
+		public string? Content { get; set; }
 
 		[Required(ErrorMessage = "Question Type ID is required.")]
 		[Range(1, int.MaxValue, ErrorMessage = "Question Type ID must be a positive integer.")]
@@ -26,8 +26,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.Question
 	{
 		public int? Id { get; set; } // Null for new options
 
-		[Required]
-		public string Content { get; set; } = string.Empty;
+		public string? Content { get; set; }
 
 		[Required]
 		public string Label { get; set; } = string.Empty;
