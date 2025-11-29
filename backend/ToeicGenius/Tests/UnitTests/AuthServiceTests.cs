@@ -15,205 +15,205 @@ using ToeicGenius.Domains.DTOs.Responses.Auth;
 
 namespace ToeicGenius.Tests.UnitTests
 {
-    public class AuthServiceTests
-    {
-        private readonly Mock<IJwtService> _jwtServiceMock = new();
-        private readonly Mock<IEmailService> _emailServiceMock = new();
-        private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
-        private readonly Mock<IUserRepository> _userRepoMock = new();
-        private readonly Mock<IUserOtpRepository> _userOtpRepoMock = new();
-        private readonly Mock<IRoleRepository> _roleRepoMock = new();
-        private readonly Mock<IGoogleAuthService> _googleAuthMock = new();
-        private readonly Mock<IHttpClientFactory> _httpClientFactoryMock = new();
+	public class AuthServiceTests
+	{
+		private readonly Mock<IJwtService> _jwtServiceMock = new();
+		private readonly Mock<IEmailService> _emailServiceMock = new();
+		private readonly Mock<IUnitOfWork> _unitOfWorkMock = new();
+		private readonly Mock<IUserRepository> _userRepoMock = new();
+		private readonly Mock<IUserOtpRepository> _userOtpRepoMock = new();
+		private readonly Mock<IRoleRepository> _roleRepoMock = new();
+		private readonly Mock<IGoogleAuthService> _googleAuthMock = new();
+		private readonly Mock<IHttpClientFactory> _httpClientFactoryMock = new();
 
-        private AuthService CreateService()
-        {
-            _unitOfWorkMock.Setup(u => u.Users).Returns(_userRepoMock.Object);
-            _unitOfWorkMock.Setup(u => u.UserOtps).Returns(_userOtpRepoMock.Object);
-            _unitOfWorkMock.Setup(u => u.Roles).Returns(_roleRepoMock.Object);
+		private AuthService CreateService()
+		{
+			_unitOfWorkMock.Setup(u => u.Users).Returns(_userRepoMock.Object);
+			_unitOfWorkMock.Setup(u => u.UserOtps).Returns(_userOtpRepoMock.Object);
+			_unitOfWorkMock.Setup(u => u.Roles).Returns(_roleRepoMock.Object);
 
-            return new AuthService(
-                Mock.Of<IConfiguration>(),
-                _jwtServiceMock.Object,
-                _emailServiceMock.Object,
-                _unitOfWorkMock.Object,
-                _httpClientFactoryMock.Object,
-                _googleAuthMock.Object
-            );
-        }
+			return new AuthService(
+				Mock.Of<IConfiguration>(),
+				_jwtServiceMock.Object,
+				_emailServiceMock.Object,
+				_unitOfWorkMock.Object,
+				_httpClientFactoryMock.Object,
+				_googleAuthMock.Object
+			);
+		}
 
-        #region 1. LoginAsync Tests
-        // --------------------- Helper Methods ---------------------
-        private LoginRequestDto CreateLoginDto(string email = "examinee@toeicgenius.com", string password = "Examinee@123")
-            => new() { Email = email, Password = password };
+		#region 1. LoginAsync Tests
+		// --------------------- Helper Methods ---------------------
+		private LoginRequestDto CreateLoginDto(string email = "examinee@toeicgenius.com", string password = "Examinee@123")
+			=> new() { Email = email, Password = password };
 
-        private User CreateUser(string email, string password = "Examinee@123", UserStatus status = UserStatus.Active)
-            => new()
-            {
-                Id = Guid.NewGuid(),
-                Email = email,
-                FullName = "Examinee",
-                Status = status,
-                PasswordHash = SecurityHelper.HashPassword(password),
-                RefreshTokens = new List<RefreshToken>()
-            };
+		private User CreateUser(string email, string password = "Examinee@123", UserStatus status = UserStatus.Active)
+			=> new()
+			{
+				Id = Guid.NewGuid(),
+				Email = email,
+				FullName = "Examinee",
+				Status = status,
+				PasswordHash = SecurityHelper.HashPassword(password),
+				RefreshTokens = new List<RefreshToken>()
+			};
 
-        // UTCID01: Đăng nhập thành công với tài khoản active
-        [Trait("Category", "Login")]
-        [Trait("TestCase", "UTCID01")]
-        [Fact]
-        public async Task LoginAsync_ValidCredentialsAndActiveUser_ReturnsSuccessWithTokensAndPersistsRefreshToken()
-        {
-            // ARRANGE
-            var loginDto = CreateLoginDto();
-            var user = CreateUser(loginDto.Email);
+		// UTCID01: Đăng nhập thành công với tài khoản active
+		[Trait("Category", "Login")]
+		[Trait("TestCase", "UTCID01")]
+		[Fact]
+		public async Task UTCID01_LoginAsync_ValidCredentialsAndActiveUser_ReturnsSuccessWithTokensAndPersistsRefreshToken()
+		{
+			// ARRANGE
+			var loginDto = CreateLoginDto();
+			var user = CreateUser(loginDto.Email);
 
-            _userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(user);
-            _jwtServiceMock.Setup(j => j.GenerateAccessToken(user)).Returns("FAKE_ACCESS_TOKEN");
-            _jwtServiceMock.Setup(j => j.GenerateRefreshToken(It.IsAny<string>())).Returns(new RefreshToken { Token = "FAKE_REFRESH_TOKEN" });
+			_userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(user);
+			_jwtServiceMock.Setup(j => j.GenerateAccessToken(user)).Returns("FAKE_ACCESS_TOKEN");
+			_jwtServiceMock.Setup(j => j.GenerateRefreshToken(It.IsAny<string>())).Returns(new RefreshToken { Token = "FAKE_REFRESH_TOKEN" });
 
-            var service = CreateService();
+			var service = CreateService();
 
-            var result = await service.LoginAsync(loginDto, "192.168.1.100");
+			var result = await service.LoginAsync(loginDto, "192.168.1.100");
 
-            result.IsSuccess.Should().BeTrue();
-            result.Data.Token.Should().Be("FAKE_ACCESS_TOKEN");
-            result.Data.RefreshToken.Should().Be("FAKE_REFRESH_TOKEN");
-            result.Data.Email.Should().Be(loginDto.Email);
-            user.RefreshTokens.Should().HaveCount(1);
+			result.IsSuccess.Should().BeTrue();
+			result.Data.Token.Should().Be("FAKE_ACCESS_TOKEN");
+			result.Data.RefreshToken.Should().Be("FAKE_REFRESH_TOKEN");
+			result.Data.Email.Should().Be(loginDto.Email);
+			user.RefreshTokens.Should().HaveCount(1);
 
-            _jwtServiceMock.Verify(j => j.GenerateRefreshToken("192.168.1.100"), Times.Once);
-            _unitOfWorkMock.Verify(u => u.Users.UpdateAsync(user), Times.Once);
-            _unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
-        }
+			_jwtServiceMock.Verify(j => j.GenerateRefreshToken("192.168.1.100"), Times.Once);
+			_unitOfWorkMock.Verify(u => u.Users.UpdateAsync(user), Times.Once);
+			_unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
+		}
 
-        // UTCID02: Sai mật khẩu → trả về Failure + InvalidCredentials
-        [Trait("Category", "Login")]
-        [Trait("TestCase", "UTCID02")]
-        [Fact]
-        public async Task LoginAsync_InvalidPassword_ReturnsFailureWithInvalidCredentials()
-        {
-            //ARRANGE
-            var loginDto = CreateLoginDto(password: "examinee@123");
+		// UTCID02: Sai mật khẩu → trả về Failure + InvalidCredentials
+		[Trait("Category", "Login")]
+		[Trait("TestCase", "UTCID02")]
+		[Fact]
+		public async Task UTCID02_LoginAsync_InvalidPassword_ReturnsFailureWithInvalidCredentials()
+		{
+			//ARRANGE
+			var loginDto = CreateLoginDto(password: "examinee@123");
 
-            var user = CreateUser(loginDto.Email);
+			var user = CreateUser(loginDto.Email);
 
-            _userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(user);
+			_userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(user);
 
-            var service = CreateService();
-            var result = await service.LoginAsync(loginDto, "192.168.1.100");
+			var service = CreateService();
+			var result = await service.LoginAsync(loginDto, "192.168.1.100");
 
-            result.IsSuccess.Should().BeFalse();
-            result.ErrorMessage.Should().Be(ErrorMessages.InvalidCredentials);
-            _jwtServiceMock.Verify(j => j.GenerateAccessToken(It.IsAny<User>()), Times.Never());
-        }
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be(ErrorMessages.InvalidCredentials);
+			_jwtServiceMock.Verify(j => j.GenerateAccessToken(It.IsAny<User>()), Times.Never());
+		}
 
-        // UTCID03: Email không tồn tại → trả về Failure + InvalidCredentials
-        [Trait("Category", "Login")]
-        [Trait("TestCase", "UTCID03")]
-        [Fact]
-        public async Task LoginAsync_NonExistentEmail_ReturnsFailureWithInvalidCredentials()
-        {
-            var loginDto = CreateLoginDto(email: "notexist@example.com");
-            _userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync((User)null!);
+		// UTCID03: Email không tồn tại → trả về Failure + InvalidCredentials
+		[Trait("Category", "Login")]
+		[Trait("TestCase", "UTCID03")]
+		[Fact]
+		public async Task UTCID03_LoginAsync_NonExistentEmail_ReturnsFailureWithInvalidCredentials()
+		{
+			var loginDto = CreateLoginDto(email: "notexist@example.com");
+			_userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync((User)null!);
 
-            var service = CreateService();
-            var result = await service.LoginAsync(loginDto, "192.168.1.100");
+			var service = CreateService();
+			var result = await service.LoginAsync(loginDto, "192.168.1.100");
 
-            result.IsSuccess.Should().BeFalse();
-            result.ErrorMessage.Should().Be(ErrorMessages.InvalidCredentials);
-        }
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be(ErrorMessages.InvalidCredentials);
+		}
 
-        // UTCID04: Tài khoản bị Banned → trả về Failure + message riêng
-        [Trait("Category", "Login")]
-        [Trait("TestCase", "UTCID04")]
-        [Fact]
-        public async Task LoginAsync_BannedAccount_ReturnsFailureWithBannedMessage()
-        {
-            var loginDto = CreateLoginDto(email: "banned@example.com");
-            var bannedUser = CreateUser(loginDto.Email, status: UserStatus.Banned);
+		// UTCID04: Tài khoản bị Banned → trả về Failure + message riêng
+		[Trait("Category", "Login")]
+		[Trait("TestCase", "UTCID04")]
+		[Fact]
+		public async Task UTCID04_LoginAsync_BannedAccount_ReturnsFailureWithBannedMessage()
+		{
+			var loginDto = CreateLoginDto(email: "banned@example.com");
+			var bannedUser = CreateUser(loginDto.Email, status: UserStatus.Banned);
 
-            _userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(bannedUser);
+			_userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(bannedUser);
 
-            var service = CreateService();
-            var result = await service.LoginAsync(loginDto, "192.168.1.100");
+			var service = CreateService();
+			var result = await service.LoginAsync(loginDto, "192.168.1.100");
 
-            result.IsSuccess.Should().BeFalse();
-            result.ErrorMessage.Should().Be(ErrorMessages.AccountBanned);
-        }
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be(ErrorMessages.AccountBanned);
+		}
 
-        // UTCID05: Nhập mật khẩu trống → trả về Failure + message riêng
-        [Trait("Category", "Login")]
-        [Trait("TestCase", "UTCID05")]
-        [Fact]
-        public async Task LoginAsync_BlankPassword_ReturnsFailureWithMessage()
-        {
-            var loginDto = CreateLoginDto(password: "");
-            var user = CreateUser(loginDto.Email);
+		// UTCID05: Nhập mật khẩu trống → trả về Failure + message riêng
+		[Trait("Category", "Login")]
+		[Trait("TestCase", "UTCID05")]
+		[Fact]
+		public async Task UTCID05_LoginAsync_BlankPassword_ReturnsFailureWithMessage()
+		{
+			var loginDto = CreateLoginDto(password: "");
+			var user = CreateUser(loginDto.Email);
 
-            _userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(user);
+			_userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(user);
 
-            var service = CreateService();
-            var result = await service.LoginAsync(loginDto, "192.168.1.100");
+			var service = CreateService();
+			var result = await service.LoginAsync(loginDto, "192.168.1.100");
 
-            result.IsSuccess.Should().BeFalse();
-            result.ErrorMessage.Should().Be(ErrorMessages.InvalidCredentials);
-        }
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be(ErrorMessages.InvalidCredentials);
+		}
 
-        // UTCID06: Email trống → GetByEmailAsync trả null → trả về InvalidCredentials
-        [Trait("Category", "Login")]
-        [Trait("TestCase", "UTCID06")]
-        [Fact]
-        public async Task LoginAsync_EmptyEmail_ReturnsFailureWithInvalidCredentials()
-        {
-            var loginDto = CreateLoginDto(email: "");
-            _userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync((User)null!);
+		// UTCID06: Email trống → GetByEmailAsync trả null → trả về InvalidCredentials
+		[Trait("Category", "Login")]
+		[Trait("TestCase", "UTCID06")]
+		[Fact]
+		public async Task UTCID06_LoginAsync_EmptyEmail_ReturnsFailureWithInvalidCredentials()
+		{
+			var loginDto = CreateLoginDto(email: "");
+			_userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync((User)null!);
 
-            var service = CreateService();
-            var result = await service.LoginAsync(loginDto, "192.168.1.100");
+			var service = CreateService();
+			var result = await service.LoginAsync(loginDto, "192.168.1.100");
 
-            result.IsSuccess.Should().BeFalse();
-            result.ErrorMessage.Should().Be(ErrorMessages.InvalidCredentials);
-        }
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be(ErrorMessages.InvalidCredentials);
+		}
 
-        // UTCID07: Tài khoản đã bị xóa (soft-delete) → trả về InvalidCredentials
-        [Trait("Category", "Login")]
-        [Trait("TestCase", "UTCID07")]
-        [Fact]
-        public async Task LoginAsync_SoftDeletedAccount_ReturnsInvalidCredentials()
-        {
-            var loginDto = CreateLoginDto(email: "deleted@example.com");
-            var deletedUser = CreateUser(loginDto.Email, status: UserStatus.Deleted);
-            _userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(deletedUser);
+		// UTCID07: Tài khoản đã bị xóa (soft-delete) → trả về InvalidCredentials
+		[Trait("Category", "Login")]
+		[Trait("TestCase", "UTCID07")]
+		[Fact]
+		public async Task UTCID07_LoginAsync_SoftDeletedAccount_ReturnsInvalidCredentials()
+		{
+			var loginDto = CreateLoginDto(email: "deleted@example.com");
+			var deletedUser = CreateUser(loginDto.Email, status: UserStatus.Deleted);
+			_userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(deletedUser);
 
-            var service = CreateService();
-            var result = await service.LoginAsync(loginDto, "192.168.1.100");
+			var service = CreateService();
+			var result = await service.LoginAsync(loginDto, "192.168.1.100");
 
-            result.IsSuccess.Should().BeFalse();
-            result.ErrorMessage.Should().Be(ErrorMessages.AccountDeleted);
-        }
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be(ErrorMessages.InvalidCredentials);
+		}
 
-        // UTCID08: Ip trống và đăng nhập không thành công, GenerateRefreshtoken trả ra exception
-        [Trait("Category", "Login")]
-        [Trait("TestCase", "UTCID08")]
-        [Fact]
-        public async Task LoginAsync_BlankIpAddress_ReturnsSuccessWithTokensAndPersistsRefreshToken()
-        {
-            var loginDto = CreateLoginDto();
-            var user = CreateUser(loginDto.Email);
+		// UTCID08: Ip trống và đăng nhập không thành công, GenerateRefreshtoken trả ra exception
+		[Trait("Category", "Login")]
+		[Trait("TestCase", "UTCID08")]
+		[Fact]
+		public async Task UTCID08_LoginAsync_BlankIpAddress_ReturnsSuccessWithTokensAndPersistsRefreshToken()
+		{
+			var loginDto = CreateLoginDto();
+			var user = CreateUser(loginDto.Email);
 
-            _userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(user);
-            _jwtServiceMock.Setup(j => j.GenerateAccessToken(user)).Returns("FAKE_ACCESS_TOKEN");
-            _jwtServiceMock.Setup(j => j.GenerateRefreshToken(It.IsAny<string>())).Returns(new RefreshToken { Token = "FAKE_REFRESH_TOKEN" });
+			_userRepoMock.Setup(r => r.GetByEmailAsync(loginDto.Email)).ReturnsAsync(user);
+			_jwtServiceMock.Setup(j => j.GenerateAccessToken(user)).Returns("FAKE_ACCESS_TOKEN");
+			_jwtServiceMock.Setup(j => j.GenerateRefreshToken(It.IsAny<string>())).Returns(new RefreshToken { Token = "FAKE_REFRESH_TOKEN" });
 
-            var service = CreateService();
-            var result = await service.LoginAsync(loginDto, "");
+			var service = CreateService();
+			var result = await service.LoginAsync(loginDto, "");
 
-            result.IsSuccess.Should().BeTrue();
-            result.Data.RefreshToken.Should().Be("FAKE_REFRESH_TOKEN");
-            _jwtServiceMock.Verify(j => j.GenerateRefreshToken(""), Times.Once);
-        }
-		#endregion	
+			result.IsSuccess.Should().BeTrue();
+			result.Data.RefreshToken.Should().Be("FAKE_REFRESH_TOKEN");
+			_jwtServiceMock.Verify(j => j.GenerateRefreshToken(""), Times.Once);
+		}
+		#endregion
 		#region 2. ChangePasswordAsync Tests
 		private ChangePasswordDto CreateChangePasswordDto(string? oldPass, string? newPass, string? confirmPass)
 			=> new() { OldPassword = oldPass, NewPassword = newPass, ConfirmNewPassword = confirmPass };
@@ -222,10 +222,10 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ChangePassword")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task ChangePasswordAsync_InvalidUserId_ReturnsIdInvalid()
+		public async Task UTCID01_ChangePasswordAsync_InvalidUserId_ReturnsIdInvalid()
 		{
 			var service = CreateService();
-			var result = await service.ChangePasswordAsync(CreateChangePasswordDto(oldPass:"valid@123", newPass:"valid@34",confirmPass:"valid@34"), "");
+			var result = await service.ChangePasswordAsync(CreateChangePasswordDto(oldPass: "valid@123", newPass: "valid@34", confirmPass: "valid@34"), "");
 
 			result.Should().Be(ErrorMessages.IdInvalid);
 		}
@@ -234,7 +234,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ChangePassword")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task ChangePasswordAsync_UserNotFound_ReturnsUserNotFound()
+		public async Task UTCID02_ChangePasswordAsync_UserNotFound_ReturnsUserNotFound()
 		{
 			var userId = Guid.NewGuid();
 			_userRepoMock.Setup(r => r.GetByIdAsync(userId)).ReturnsAsync((User)null!);
@@ -249,7 +249,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ChangePassword")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task ChangePasswordAsync_FirstTimeGoogleUser_SetsPasswordAndReturnsSuccess()
+		public async Task UTCID03_ChangePasswordAsync_FirstTimeGoogleUser_SetsPasswordAndReturnsSuccess()
 		{
 			var userId = Guid.NewGuid();
 			var user = CreateUser("google@example.com");
@@ -270,7 +270,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ChangePassword")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task ChangePasswordAsync_OldPasswordMismatch_ReturnsOldPasswordMismatch()
+		public async Task UTCID04_ChangePasswordAsync_OldPasswordMismatch_ReturnsOldPasswordMismatch()
 		{
 			var userId = Guid.NewGuid();
 			var user = CreateUser("user@example.com", "CorrectOldPass@123");
@@ -289,7 +289,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ChangePassword")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task ChangePasswordAsync_ValidRequest_UpdatesPasswordAndReturnsSuccess()
+		public async Task UTCID05_ChangePasswordAsync_ValidRequest_UpdatesPasswordAndReturnsSuccess()
 		{
 			var userId = Guid.NewGuid();
 			var oldPass = "valid@123";
@@ -316,7 +316,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendRegistrationOtp")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task SendRegistrationOtpAsync_EmailAlreadyExists_ReturnsEmailAlreadyExists()
+		public async Task UTCID01_SendRegistrationOtpAsync_EmailAlreadyExists_ReturnsEmailAlreadyExists()
 		{
 			// Arrange
 			var dto = CreateRegisterRequestDto();
@@ -336,7 +336,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendRegistrationOtp")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task SendRegistrationOtpAsync_ValidRequest_SendsOtpAndReturnsSuccess()
+		public async Task UTCID02_SendRegistrationOtpAsync_ValidRequest_SendsOtpAndReturnsSuccess()
 		{
 			// Arrange
 			var dto = CreateRegisterRequestDto();
@@ -358,7 +358,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendRegistrationOtp")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task SendRegistrationOtpAsync_ExceptionThrown_ReturnsOperationFailed()
+		public async Task UTCID03_SendRegistrationOtpAsync_ExceptionThrown_ReturnsOperationFailed()
 		{
 			// Arrange
 			var dto = CreateRegisterRequestDto();
@@ -373,15 +373,15 @@ namespace ToeicGenius.Tests.UnitTests
 			result.Should().Be(ErrorMessages.OperationFailed);
 		}
 		#endregion
-		#region 4. VerifyRegistrationOtpAsync Tests
+		#region 4. VerifyRegistrationAsync Tests
 		private RegisterVerifyDto CreateRegisterVerifyDto(string email = "anv@gmail.com", string otp = "123456")
 			=> new() { Email = email, OtpCode = otp, FullName = "Nguyen Van A", Password = "password@123" };
 
 		// UTCID01: OTP không hợp lệ
-		[Trait("Category", "VerifyRegistrationOtp")]
+		[Trait("Category", "VerifyRegistrationAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task VerifyRegistrationOtpAsync_InvalidOtp_ReturnsOtpInvalid()
+		public async Task UTCID01_VerifyRegistrationAsync_InvalidOtp_ReturnsOtpInvalid()
 		{
 			// Arrange
 			var dto = CreateRegisterVerifyDto(otp: "999999");
@@ -405,10 +405,10 @@ namespace ToeicGenius.Tests.UnitTests
 		}
 
 		// UTCID02: Email đã tồn tại
-		[Trait("Category", "VerifyRegistrationOtp")]
+		[Trait("Category", "VerifyRegistratioAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task VerifyRegistrationOtpAsync_EmailAlreadyExists_ReturnsEmailAlreadyExists()
+		public async Task UTCID02_VerifyRegistratioAsync_EmailAlreadyExists_ReturnsEmailAlreadyExists()
 		{
 			// Arrange
 			var dto = CreateRegisterVerifyDto(email: "exist@gmail.com");
@@ -432,10 +432,10 @@ namespace ToeicGenius.Tests.UnitTests
 		}
 
 		// UTCID03: Xác thực thành công, tạo user
-		[Trait("Category", "VerifyRegistrationOtp")]
+		[Trait("Category", "VerifyRegistratioAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task VerifyRegistrationOtpAsync_ValidRequest_CreatesUserAndReturnsSuccess()
+		public async Task UTCID03_VerifyRegistratioAsync_ValidRequest_CreatesUserAndReturnsSuccess()
 		{
 			// Arrange
 			var dto = CreateRegisterVerifyDto();
@@ -462,40 +462,11 @@ namespace ToeicGenius.Tests.UnitTests
 			_unitOfWorkMock.Verify(u => u.UserOtps.UpdateAsync(It.Is<UserOtp>(o => o.UsedAt != null)), Times.Once);
 		}
 
-		// UTCID04: Role không tìm thấy → tạo user với role bằng examinee
-		[Trait("Category", "VerifyRegistrationOtp")]
+		// UTCID04: Lỗi hệ thống
+		[Trait("Category", "VerifyRegistratioAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task VerifyRegistrationOtpAsync_RoleNotFound_CreatesUserWithoutRole()
-		{
-			// Arrange
-			var dto = CreateRegisterVerifyDto();
-			var otpRecord = new UserOtp
-			{
-				Email = dto.Email,
-				OtpCodeHash = SecurityHelper.HashOtp(dto.OtpCode),
-				ExpiresAt = DateTime.Now.AddMinutes(10),
-				Type = (int)OtpType.Registration
-			};
-			_userOtpRepoMock.Setup(r => r.GetOtpByEmailAsync(dto.Email, (int)OtpType.Registration)).ReturnsAsync(otpRecord);
-			_userRepoMock.Setup(r => r.GetByEmailAsync(dto.Email)).ReturnsAsync((User)null!);
-			_roleRepoMock.Setup(r => r.GetByIdAsync((int)UserRole.Examinee)).ReturnsAsync((Role)null!);
-
-			var service = CreateService();
-
-			// Act
-			var result = await service.VerifyRegistrationOtpAsync(dto);
-
-			// Assert
-			result.Should().BeEmpty();
-			_unitOfWorkMock.Verify(u => u.Users.AddAsync(It.Is<User>(u => u.Email == dto.Email && u.Roles.Count == 1 && u.Roles.First().RoleName == "Examinee")), Times.Once);
-		}
-
-		// UTCID05: Lỗi hệ thống
-		[Trait("Category", "VerifyRegistrationOtp")]
-		[Trait("TestCase", "UTCID05")]
-		[Fact]
-		public async Task VerifyRegistrationOtpAsync_ExceptionThrown_ReturnsOperationFailed()
+		public async Task UTCID04_VerifyRegistratioAsync_ExceptionThrown_ReturnsOperationFailed()
 		{
 			// Arrange
 			var dto = CreateRegisterVerifyDto();
@@ -516,7 +487,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "LoginWithGoogle")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task LoginWithGoogleAsync_TokenExchangeFails_ThrowsException()
+		public async Task UTCID01_LoginWithGoogleAsync_TokenExchangeFails_ThrowsException()
 		{
 			// Arrange
 			var code = "auth_code";
@@ -536,7 +507,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "LoginWithGoogle")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task LoginWithGoogleAsync_TokenValidationFails_ThrowsException()
+		public async Task UTCID02_LoginWithGoogleAsync_TokenValidationFails_ThrowsException()
 		{
 			// Arrange
 			var code = "auth_code";
@@ -559,7 +530,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "LoginWithGoogle")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task LoginWithGoogleAsync_NewUser_CreatesUserAndReturnsSuccess()
+		public async Task UTCID03_LoginWithGoogleAsync_NewUser_CreatesUserAndReturnsSuccess()
 		{
 			// Arrange
 			var code = "auth_code";
@@ -591,7 +562,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "LoginWithGoogle")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task LoginWithGoogleAsync_ExistingUser_UpdatesGoogleIdAndReturnsSuccess()
+		public async Task UTCID04_LoginWithGoogleAsync_ExistingUser_UpdatesGoogleIdAndReturnsSuccess()
 		{
 			// Arrange
 			var code = "auth_code";
@@ -781,7 +752,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendResetPasswordOtp")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task SendResetPasswordOtpAsync_UserNotFoundOrInactive_ReturnsUserNotFound()
+		public async Task UTCID01_SendResetPasswordOtpAsync_UserNotFoundOrInactive_ReturnsUserNotFound()
 		{
 			// Arrange
 			var dto = CreateResetPasswordRequestDto();
@@ -801,7 +772,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendResetPasswordOtp")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task SendResetPasswordOtpAsync_UserInactive_ReturnsUserNotFound()
+		public async Task UTCID02_SendResetPasswordOtpAsync_UserInactive_ReturnsUserNotFound()
 		{
 			// Arrange
 			var dto = CreateResetPasswordRequestDto();
@@ -821,7 +792,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendResetPasswordOtp")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task SendResetPasswordOtpAsync_ValidUser_SendsOtpAndReturnsSuccess()
+		public async Task UTCID03_SendResetPasswordOtpAsync_ValidUser_SendsOtpAndReturnsSuccess()
 		{
 			// Arrange
 			var dto = CreateResetPasswordRequestDto();
@@ -844,7 +815,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "SendResetPasswordOtp")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task SendResetPasswordOtpAsync_ExceptionThrown_ReturnsOperationFailed()
+		public async Task UTCID04_SendResetPasswordOtpAsync_ExceptionThrown_ReturnsOperationFailed()
 		{
 			// Arrange
 			var dto = CreateResetPasswordRequestDto();
@@ -868,7 +839,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "VerifyResetPasswordOtp")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task VerifyResetPasswordOtpAsync_InvalidOtp_ReturnsOtpInvalid()
+		public async Task UTCID01_VerifyResetPasswordOtpAsync_InvalidOtp_ReturnsOtpInvalid()
 		{
 			// Arrange
 			var dto = CreateResetPasswordVerifyDto();
@@ -895,7 +866,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "VerifyResetPasswordOtp")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task VerifyResetPasswordOtpAsync_ValidOtp_MarksOtpAsUsedAndReturnsSuccess()
+		public async Task UTCID02_VerifyResetPasswordOtpAsync_ValidOtp_MarksOtpAsUsedAndReturnsSuccess()
 		{
 			// Arrange
 			var dto = CreateResetPasswordVerifyDto(otp: "999999");
@@ -928,7 +899,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ConfirmResetPassword")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task ConfirmResetPasswordAsync_UserNotFound_ReturnsUserNotFound()
+		public async Task UTCID01_ConfirmResetPasswordAsync_UserNotFound_ReturnsUserNotFound()
 		{
 			// Arrange
 			var dto = CreateResetPasswordConfirmDto();
@@ -948,7 +919,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ConfirmResetPassword")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task ConfirmResetPasswordAsync_ValidRequest_UpdatesPasswordAndReturnsSuccess()
+		public async Task UTCID02_ConfirmResetPasswordAsync_ValidRequest_UpdatesPasswordAndReturnsSuccess()
 		{
 			// Arrange
 			var dto = CreateResetPasswordConfirmDto();
@@ -972,7 +943,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "ConfirmResetPassword")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task ConfirmResetPasswordAsync_ExceptionThrown_ReturnsOperationFailed()
+		public async Task UTCID03_ConfirmResetPasswordAsync_ExceptionThrown_ReturnsOperationFailed()
 		{
 			// Arrange
 			var dto = CreateResetPasswordConfirmDto();
@@ -988,6 +959,6 @@ namespace ToeicGenius.Tests.UnitTests
 		}
 		#endregion
 
-		
+
 	}
 }

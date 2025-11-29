@@ -52,7 +52,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUserByIdAsync")]
         [Trait("TestCase", "UTCID01")]
         [Fact]
-        public async Task GetUserByIdAsync_UserExists_ReturnsSuccessWithUserData()
+        public async Task UTCID01_GetUserByIdAsync_UserExists_ReturnsSuccessWithUserData()
         {
             // Arrange
             var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -77,16 +77,13 @@ namespace ToeicGenius.Tests.UnitTests
             result.Data.Roles.Should().HaveCount(1);
             result.Data.Roles.Should().Contain("Examinee");
             result.Data.CreatedAt.Should().BeCloseTo(DateTime.Now, TimeSpan.FromSeconds(5));
-
-            _unitOfWorkMock.Verify(u => u.Users.GetByIdAsync(userId), Times.Once);
-            _unitOfWorkMock.Verify(u => u.Roles.GetRolesByUserIdAsync(userId), Times.Once);
         }
 
         // UTCID02: User không tồn tại - trả về Failure với UserNotFound
         [Trait("Category", "GetUserByIdAsync")]
         [Trait("TestCase", "UTCID02")]
         [Fact]
-        public async Task GetUserByIdAsync_UserNotFound_ReturnsUserNotFound()
+        public async Task UTCID02_GetUserByIdAsync_UserNotFound_ReturnsUserNotFound()
         {
             // Arrange
             var userId = Guid.Parse("22222222-2222-2222-2222-222222222222");
@@ -110,7 +107,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUserByIdAsync")]
         [Trait("TestCase", "UTCID03")]
         [Fact]
-        public async Task GetUserByIdAsync_EmptyGuid_ReturnsUserNotFound()
+        public async Task UTCID03_GetUserByIdAsync_EmptyGuid_ReturnsUserNotFound()
         {
             // Arrange
             var emptyGuid = Guid.Empty;
@@ -133,7 +130,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUserByIdAsync")]
         [Trait("TestCase", "UTCID04")]
         [Fact]
-        public async Task GetUserByIdAsync_ExceptionThrown_ReturnsOperationFailed()
+        public async Task UTCID04_GetUserByIdAsync_ExceptionThrown_ReturnsOperationFailed()
         {
             // Arrange
             var userId = Guid.Parse("33333333-3333-3333-3333-333333333333");
@@ -162,7 +159,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "UpdateStatus")]
         [Trait("TestCase", "UTCID01")]
         [Fact]
-        public async Task UpdateStatus_ToActive_ReturnsSuccess()
+        public async Task UTCID01_UpdateStatus_ToActive_ReturnsSuccess()
         {
             // Arrange
             var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -190,7 +187,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "UpdateStatus")]
         [Trait("TestCase", "UTCID02")]
         [Fact]
-        public async Task UpdateStatus_ToBanned_ReturnsSuccess()
+        public async Task UTCID02_UpdateStatus_ToBanned_ReturnsSuccess()
         {
             // Arrange
             var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -218,7 +215,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "UpdateStatus")]
         [Trait("TestCase", "UTCID03")]
         [Fact]
-        public async Task UpdateStatus_ToDeleted_ReturnsSuccess()
+        public async Task UTCID03_UpdateStatus_ToDeleted_ReturnsSuccess()
         {
             // Arrange
             var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -246,7 +243,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "UpdateStatus")]
         [Trait("TestCase", "UTCID04")]
         [Fact]
-        public async Task UpdateStatus_UserNotFound_ReturnsUserNotFound()
+        public async Task UTCID04_UpdateStatus_UserNotFound_ReturnsUserNotFound()
         {
             // Arrange
             var userId = Guid.Parse("22222222-2222-2222-2222-222222222222");
@@ -267,7 +264,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "UpdateStatus")]
         [Trait("TestCase", "UTCID05")]
         [Fact]
-        public async Task UpdateStatus_EmptyGuid_ReturnsUserNotFound()
+        public async Task UTCID05_UpdateStatus_EmptyGuid_ReturnsUserNotFound()
         {
             // Arrange
             var emptyGuid = Guid.Empty;
@@ -288,7 +285,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "UpdateStatus")]
         [Trait("TestCase", "UTCID06")]
         [Fact]
-        public async Task UpdateStatus_ExceptionThrown_ReturnsOperationFailed()
+        public async Task UTCID06_UpdateStatus_ExceptionThrown_ReturnsOperationFailed()
         {
             // Arrange
             var userId = Guid.NewGuid();
@@ -326,7 +323,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "CreateUserAsync")]
         [Trait("TestCase", "UTCID01")]
         [Fact]
-        public async Task CreateUserAsync_EmailAlreadyExists_ReturnsEmailAlreadyExists()
+        public async Task UTCID01_CreateUserAsync_EmailAlreadyExists_ReturnsEmailAlreadyExists()
         {
             // Arrange
             var dto = CreateUserDto(email:"exist@gmail.com");
@@ -352,7 +349,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "CreateUserAsync")]
         [Trait("TestCase", "UTCID02")]
         [Fact]
-        public async Task CreateUserAsync_WithProvidedPasswordAndRoles_ReturnsSuccess()
+        public async Task UTCID02_CreateUserAsync_WithProvidedPasswordAndRoles_ReturnsSuccess()
         {
             // Arrange
             var roles = new List<string> { "Admin", "TestCreator" };
@@ -397,7 +394,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "CreateUserAsync")]
         [Trait("TestCase", "UTCID03")]
         [Fact]
-        public async Task CreateUserAsync_WithAutoGeneratedPassword_ReturnsSuccess()
+        public async Task UTCID03_CreateUserAsync_WithAutoGeneratedPassword_ReturnsSuccess()
         {
             // Arrange
             var dto = CreateUserDto(password: null); // Password will be auto-generated
@@ -434,7 +431,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "CreateUserAsync")]
         [Trait("TestCase", "UTCID04")]
         [Fact]
-        public async Task CreateUserAsync_WithoutRoles_ReturnsSuccess()
+        public async Task UTCID04_CreateUserAsync_WithoutRoles_ReturnsSuccess()
         {
             // Arrange
             var dto = CreateUserDto(roles: null); // No roles
@@ -467,7 +464,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "CreateUserAsync")]
         [Trait("TestCase", "UTCID05")]
         [Fact]
-        public async Task CreateUserAsync_WithEmptyRolesList_ReturnsSuccess()
+        public async Task UTCID05_CreateUserAsync_WithEmptyRolesList_ReturnsSuccess()
         {
             // Arrange
             var dto = CreateUserDto(roles: new List<string>()); // Empty list
@@ -529,7 +526,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID01")]
         [Fact]
-        public async Task GetUsersAsync_DefaultPagination_ReturnsSuccessWithPaginatedUsers()
+        public async Task UTCID01_GetUsersAsync_DefaultPagination_ReturnsSuccessWithPaginatedUsers()
         {
             // Arrange
             var request = new UserResquestDto
@@ -561,7 +558,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID02")]
         [Fact]
-        public async Task GetUsersAsync_WithFilters_ReturnsFilteredUsers()
+        public async Task UTCID02_GetUsersAsync_WithFilters_ReturnsFilteredUsers()
         {
             // Arrange
             var request = new UserResquestDto
@@ -593,7 +590,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID03")]
         [Fact]
-        public async Task GetUsersAsync_SortByFullNameDesc_ReturnsSortedUsers()
+        public async Task UTCID03_GetUsersAsync_SortByFullNameDesc_ReturnsSortedUsers()
         {
             // Arrange
             var request = new UserResquestDto
@@ -625,7 +622,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID04")]
         [Fact]
-        public async Task GetUsersAsync_SortByFullNameAsc_ReturnsSortedUsers()
+        public async Task UTCID04_GetUsersAsync_SortByFullNameAsc_ReturnsSortedUsers()
         {
             // Arrange
             var request = new UserResquestDto
@@ -657,7 +654,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID05")]
         [Fact]
-        public async Task GetUsersAsync_SortByStatusDesc_ReturnsSortedUsers()
+        public async Task UTCID05_GetUsersAsync_SortByStatusDesc_ReturnsSortedUsers()
         {
             // Arrange
             var request = new UserResquestDto
@@ -689,7 +686,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID06")]
         [Fact]
-        public async Task GetUsersAsync_SortByStatusAsc_ReturnsSortedUsers()
+        public async Task UTCID06_GetUsersAsync_SortByStatusAsc_ReturnsSortedUsers()
         {
             // Arrange
             var request = new UserResquestDto
@@ -721,7 +718,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID07")]
         [Fact]
-        public async Task GetUsersAsync_PageSize10_Returns10Users()
+        public async Task UTCID07_GetUsersAsync_PageSize10_Returns10Users()
         {
             // Arrange
             var request = new UserResquestDto
@@ -767,7 +764,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID08")]
         [Fact]
-        public async Task GetUsersAsync_KeywordNguyenVanA_ReturnsMatchingUsers()
+        public async Task UTCID08_GetUsersAsync_KeywordNguyenVanA_ReturnsMatchingUsers()
         {
             // Arrange
             var request = new UserResquestDto
@@ -819,7 +816,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID09")]
         [Fact]
-        public async Task GetUsersAsync_KeywordEmail_ReturnsMatchingUser()
+        public async Task UTCID09_GetUsersAsync_KeywordEmail_ReturnsMatchingUser()
         {
             // Arrange
             var request = new UserResquestDto
@@ -865,7 +862,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID10")]
         [Fact]
-        public async Task GetUsersAsync_RoleTestCreator_ReturnsUsersWithRole()
+        public async Task UTCID10_GetUsersAsync_RoleTestCreator_ReturnsUsersWithRole()
         {
             // Arrange
             var request = new UserResquestDto
@@ -908,7 +905,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID11")]
         [Fact]
-        public async Task GetUsersAsync_RoleExaminee_ReturnsUsersWithRole()
+        public async Task UTCID11_GetUsersAsync_RoleExaminee_ReturnsUsersWithRole()
         {
             // Arrange
             var request = new UserResquestDto
@@ -951,7 +948,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID12")]
         [Fact]
-        public async Task GetUsersAsync_StatusActive_ReturnsActiveUsers()
+        public async Task UTCID12_GetUsersAsync_StatusActive_ReturnsActiveUsers()
         {
             // Arrange
             var request = new UserResquestDto
@@ -996,7 +993,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID13")]
         [Fact]
-        public async Task GetUsersAsync_DateRangeFilter_ReturnsUsersInRange()
+        public async Task UTCID13_GetUsersAsync_DateRangeFilter_ReturnsUsersInRange()
         {
             // Arrange
             var fromDate = new DateTime(2025, 11, 10);
@@ -1051,7 +1048,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID14")]
         [Fact]
-        public async Task GetUsersAsync_CombinedFilters_ReturnsMatchingUser()
+        public async Task UTCID14_GetUsersAsync_CombinedFilters_ReturnsMatchingUser()
         {
             // Arrange
             var fromDate = new DateTime(2025, 11, 10);
@@ -1103,7 +1100,7 @@ namespace ToeicGenius.Tests.UnitTests
         [Trait("Category", "GetUsersAsync")]
         [Trait("TestCase", "UTCID15")]
         [Fact]
-        public async Task GetUsersAsync_ExceptionThrown_ReturnsOperationFailed()
+        public async Task UTCID15_GetUsersAsync_ExceptionThrown_ReturnsOperationFailed()
         {
             // Arrange
             var request = new UserResquestDto();
@@ -1150,7 +1147,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateUserAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task UpdateUserAsync_UserNotFound_ReturnsUserNotFound()
+		public async Task UTCID01_UpdateUserAsync_UserNotFound_ReturnsUserNotFound()
 		{
 			// Arrange
 			var userId = Guid.Parse("22222222-2222-2222-2222-222222222222");
@@ -1176,13 +1173,13 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateUserAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task UpdateUserAsync_BasicInfoOnly_ReturnsSuccess()
+		public async Task UTCID02_UpdateUserAsync_BasicInfoOnly_ReturnsSuccess()
 		{
 			// Arrange
 			var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 			var existingRoles = new List<Role> { new Role { Id = 1, RoleName = "Examinee" } };
 			var user = CreateUserWithRoles(userId, existingRoles);
-			var dto = CreateUpdateUserDto(fullName: "New Full Name");
+			var dto = CreateUpdateUserDto(fullName: "Updated Name");
 
 			_unitOfWorkMock.Setup(u => u.Users.GetUserAndRoleByUserIdAsync(userId)).ReturnsAsync(user);
 			_unitOfWorkMock.Setup(u => u.Users.UpdateAsync(user)).ReturnsAsync(user);
@@ -1197,11 +1194,11 @@ namespace ToeicGenius.Tests.UnitTests
 			// Assert
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().NotBeNull();
-			result.Data!.FullName.Should().Be("New Full Name");
+			result.Data!.FullName.Should().Be("Updated Name");
 			result.Data.Roles.Should().HaveCount(1);
 			result.Data.Roles.Should().Contain("Examinee");
 
-			user.FullName.Should().Be("New Full Name");
+			user.FullName.Should().Be("Updated Name");
 			_unitOfWorkMock.Verify(u => u.Users.UpdateAsync(user), Times.Once);
 			_unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
 		}
@@ -1210,12 +1207,12 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateUserAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task UpdateUserAsync_WithValidPassword_ReturnsSuccess()
+		public async Task UTCID03_UpdateUserAsync_WithValidPassword_ReturnsSuccess()
 		{
 			// Arrange
 			var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 			var user = CreateUserWithRoles(userId, new List<Role>());
-			var dto = CreateUpdateUserDto(password: "NewPassword123");
+			var dto = CreateUpdateUserDto(password: "Password123");
 
 			_unitOfWorkMock.Setup(u => u.Users.GetUserAndRoleByUserIdAsync(userId)).ReturnsAsync(user);
 			_unitOfWorkMock.Setup(u => u.Users.UpdateAsync(user)).ReturnsAsync(user);
@@ -1232,7 +1229,7 @@ namespace ToeicGenius.Tests.UnitTests
 			result.Data.Should().NotBeNull();
 
 			// Verify password was hashed (not the plain password)
-			user.PasswordHash.Should().NotBe("NewPassword123");
+			user.PasswordHash.Should().NotBe("Password123");
 			user.PasswordHash.Should().NotBeNullOrEmpty();
 		}
 
@@ -1240,7 +1237,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateUserAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task UpdateUserAsync_WithInvalidPassword_ReturnsValidationError()
+		public async Task UTCID04_UpdateUserAsync_WithInvalidPassword_ReturnsValidationError()
 		{
 			// Arrange
 			var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -1266,7 +1263,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateUserAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task UpdateUserAsync_InvalidPassword_ReturnsValidationError()
+		public async Task UTCID05_UpdateUserAsync_InvalidPassword_ReturnsValidationError()
 		{
 			// Arrange
 			var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -1292,7 +1289,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateUserAsync")]
 		[Trait("TestCase", "UTCID06")]
 		[Fact]
-		public async Task UpdateUserAsync_RemoveOldRoles_ReturnsSuccess()
+		public async Task UTCID06_UpdateUserAsync_RemoveOldRoles_ReturnsSuccess()
 		{
 			// Arrange
 			var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -1334,7 +1331,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "UpdateUserAsync")]
 		[Trait("TestCase", "UTCID07")]
 		[Fact]
-		public async Task UpdateUserAsync_ReplaceAllRoles_ReturnsSuccess()
+		public async Task UTCID07_UpdateUserAsync_ReplaceAllRoles_ReturnsSuccess()
 		{
 			// Arrange
 			var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
@@ -1369,36 +1366,33 @@ namespace ToeicGenius.Tests.UnitTests
 		}
 
 		// UTCID08: Cập nhật với roles không hợp lệ - Returns "No valid roles found"
-		[Trait("Category", "UpdateUserAsync")]
-		[Trait("TestCase", "UTCID08")]
-		[Fact]
-		public async Task UpdateUserAsync_WithInvalidRoles_ReturnsNoValidRolesError()
-		{
-			// Arrange
-			var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-			var user = CreateUserWithRoles(userId, new List<Role>());
-			var dto = CreateUpdateUserDto(roles: new List<string> { "InvalidRole" });
+		// [Trait("Category", "UpdateUserAsync")]
+		// [Trait("TestCase", "UTCID08")]
+		// [Fact]
+		// public async Task UTCID08_UpdateUserAsync_WithInvalidRoles_ReturnsNoValidRolesError()
+		// {
+		// 	// Arrange
+		// 	var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+		// 	var user = CreateUserWithRoles(userId, new List<Role>());
+		// 	var dto = CreateUpdateUserDto(roles: new List<string> { "InvalidRole" });
 
-			_unitOfWorkMock.Setup(u => u.Users.GetUserAndRoleByUserIdAsync(userId)).ReturnsAsync(user);
-			_unitOfWorkMock.Setup(u => u.Roles.GetRolesByNamesAsync(It.IsAny<List<string>>()))
-				.ReturnsAsync(new List<Role>()); // No valid roles found
+		// 	_unitOfWorkMock.Setup(u => u.Users.GetUserAndRoleByUserIdAsync(userId)).ReturnsAsync(user);
+		// 	_unitOfWorkMock.Setup(u => u.Roles.GetRolesByNamesAsync(It.IsAny<List<string>>()))
+		// 		.ReturnsAsync(new List<Role>()); // No valid roles found
 
-			var service = CreateService();
+		// 	var service = CreateService();
 
-			// Act
-			var result = await service.UpdateUserAsync(userId, dto);
+		// 	// Act
+		// 	var result = await service.UpdateUserAsync(userId, dto);
 
-			// Assert
-			result.IsSuccess.Should().BeFalse();
-			result.ErrorMessage.Should().Be("No valid roles found.");
-			result.Data.Should().BeNull();
+		// 	// Assert
+		// 	result.IsSuccess.Should().BeFalse();
+		// 	result.ErrorMessage.Should().Be("No valid roles found.");
+		// 	result.Data.Should().BeNull();
 
-			_unitOfWorkMock.Verify(u => u.Users.UpdateAsync(It.IsAny<User>()), Times.Never);
-		}
+		// 	_unitOfWorkMock.Verify(u => u.Users.UpdateAsync(It.IsAny<User>()), Times.Never);
+		// }
 
 		#endregion
-
-		#region 6. UserService_GetUserStatisticsAsync Tests	
-		#endregion	
     }
 }

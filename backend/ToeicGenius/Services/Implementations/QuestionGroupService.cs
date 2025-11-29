@@ -149,8 +149,14 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterQuestionGroupAsync(int? partId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status, Guid? creatorId = null)
 		{
-			var result = await _uow.QuestionGroups.FilterGroupAsync(partId, keyWord, skill, sortOrder, page, pageSize, status, creatorId);
+            try
+            {
+                	var result = await _uow.QuestionGroups.FilterGroupAsync(partId, keyWord, skill, sortOrder, page, pageSize, status);
 			return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
+            } catch (Exception ex)
+			{
+				return Result<PaginationResponse<QuestionListItemDto>>.Failure(ex.Message);
+			}
 		}
 
 		public async Task<Result<string>> UpdateAsync(int questionGroupId, UpdateQuestionGroupDto dto, Guid userId, bool isAdmin = false)

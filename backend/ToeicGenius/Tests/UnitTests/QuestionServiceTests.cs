@@ -1,4 +1,5 @@
 ﻿using FluentAssertions;
+using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore.Storage;
 using Moq;
@@ -33,7 +34,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetByIdAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task GetByIdAsync_QuestionExists_ReturnsQuestionResponseDto()
+		public async Task UTCID01_GetByIdAsync_QuestionExists_ReturnsQuestionResponseDto()
 		{
 			// Arrange
 			var questionId = 1;
@@ -67,7 +68,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetByIdAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task GetByIdAsync_QuestionNotFound_ReturnsNull()
+		public async Task UTCID02_GetByIdAsync_QuestionNotFound_ReturnsNull()
 		{
 			// Arrange
 			var questionId = 999;
@@ -89,7 +90,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetByIdAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task GetByIdAsync_IdEqualZero_ReturnsNull()
+		public async Task UTCID03_GetByIdAsync_IdEqualZero_ReturnsNull()
 		{
 			// Arrange
 			var questionId = 0;
@@ -111,7 +112,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetByIdAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task GetByIdAsync_IdNegative_ReturnsNull()
+		public async Task UTCID04_GetByIdAsync_IdNegative_ReturnsNull()
 		{
 			// Arrange
 			var questionId = -1;
@@ -133,7 +134,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "GetByIdAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task GetByIdAsync_WhenRepositoryThrows_ExceptionIsThrown()
+		public async Task UTCID05_GetByIdAsync_WhenRepositoryThrows_ExceptionIsThrown()
 		{
 			// Arrange
 			var questionId = -1;
@@ -169,7 +170,7 @@ namespace ToeicGenius.Tests.UnitTests
 		private CreateQuestionDto CreateQuestionDto(
 			int partId = 1,
 			int questionTypeId = 1,
-			string content = "Test Question",
+			string content = "example content",
 			IFormFile? audio = null,
 			IFormFile? image = null,
 			List<AnswerOptionDto>? options = null)
@@ -218,7 +219,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID01")]
 		[Fact]
-		public async Task CreateAsync_ListeningPartWithoutAudio_ReturnsError()
+		public async Task UTCID01_CreateAsync_ListeningPartWithoutAudio_ReturnsError()
 		{
 			// Arrange
 			var part = CreatePart(1, QuestionSkill.Listening);
@@ -242,11 +243,11 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID02")]
 		[Fact]
-		public async Task CreateAsync_InvalidAudioFormat_ReturnsError()
+		public async Task UTCID02_CreateAsync_InvalidAudioFormat_ReturnsError()
 		{
 			// Arrange
 			var part = CreatePart(1, QuestionSkill.Listening);
-			var audioFile = CreateMockFormFile("test.txt", "text/plain").Object;
+			var audioFile = CreateMockFormFile("invalidType.txt", "text/plain").Object;
 			var dto = CreateQuestionDto(partId: 1, audio: audioFile);
 			var mockTransaction = new Mock<IDbContextTransaction>();
 			_unitOfWorkMock.Setup(u => u.Parts.GetByIdAsync(1)).ReturnsAsync(part);
@@ -271,11 +272,11 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID03")]
 		[Fact]
-		public async Task CreateAsync_AudioFileTooLarge_ReturnsError()
+		public async Task UTCID03_CreateAsync_AudioFileTooLarge_ReturnsError()
 		{
 			// Arrange
 			var part = CreatePart(1, QuestionSkill.Listening);
-			var audioFile = CreateMockFormFile("test.mp3", "audio/mpeg", 71 * 1024 * 1024).Object; // 71MB
+			var audioFile = CreateMockFormFile("BigFileMore70mb.mp3", "audio/mpeg", 71 * 1024 * 1024).Object; // 71MB
 			var dto = CreateQuestionDto(partId: 1, audio: audioFile);
 			var mockTransaction = new Mock<IDbContextTransaction>();
 
@@ -297,11 +298,11 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID04")]
 		[Fact]
-		public async Task CreateAsync_InvalidImageFormat_ReturnsError()
+		public async Task UTCID04_CreateAsync_InvalidImageFormat_ReturnsError()
 		{
 			// Arrange
 			var part = CreatePart(1, QuestionSkill.Reading);
-			var imageFile = CreateMockFormFile("test.txt", "text/plain").Object;
+			var imageFile = CreateMockFormFile("invalidImageType.txt", "text/plain").Object;
 			var dto = CreateQuestionDto(partId: 1, image: imageFile);
 			var mockTransaction = new Mock<IDbContextTransaction>();
 
@@ -324,11 +325,11 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID05")]
 		[Fact]
-		public async Task CreateAsync_ImageFileTooLarge_ReturnsError()
+		public async Task UTCID05_CreateAsync_ImageFileTooLarge_ReturnsError()
 		{
 			// Arrange
 			var part = CreatePart(1, QuestionSkill.Reading);
-			var imageFile = CreateMockFormFile("test.jpg", "image/jpeg", 6 * 1024 * 1024).Object; // 6MB
+			var imageFile = CreateMockFormFile("BigFileMore5mb.jpg", "image/jpeg", 6 * 1024 * 1024).Object; // 6MB
 			var dto = CreateQuestionDto(partId: 1, image: imageFile);
 			var mockTransaction = new Mock<IDbContextTransaction>();
 
@@ -351,11 +352,11 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID06")]
 		[Fact]
-		public async Task CreateAsync_Part1With3OptionsAnd1Correct_Success()
+		public async Task UTCID06_CreateAsync_Part1With3OptionsAnd1Correct_Success()
 		{
 			// Arrange
 			var part = CreatePart(1, QuestionSkill.Listening, 2); // Part 2 requires 3 options
-			var audioFile = CreateMockFormFile("test.mp3", "audio/mpeg").Object;
+			var audioFile = CreateMockFormFile("validExample.mp3", "audio/mpeg").Object;
 			var options = CreateAnswerOptions(3, 0); // 3 options, first is correct
 			var dto = CreateQuestionDto(partId: 1, audio: audioFile, options: options);
 			var mockTransaction = new Mock<IDbContextTransaction>();
@@ -386,7 +387,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID07")]
 		[Fact]
-		public async Task CreateAsync_TwoCorrectAnswers_ReturnsError()
+		public async Task UTCID07_CreateAsync_TwoCorrectAnswers_ReturnsError()
 		{
 			// Arrange
 			var part = CreatePart(1, QuestionSkill.Reading, 5);
@@ -422,7 +423,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID08")]
 		[Fact]
-		public async Task CreateAsync_NoCorrectAnswer_ReturnsError()
+		public async Task UTCID08_CreateAsync_NoCorrectAnswer_ReturnsError()
 		{
 			// Arrange
 			var part = CreatePart(1, QuestionSkill.Reading, 5);
@@ -458,11 +459,11 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID09")]
 		[Fact]
-		public async Task CreateAsync_Part1WithOnly2Options_ReturnsError()
+		public async Task UTCID09_CreateAsync_Part1WithOnly2Options_ReturnsError()
 		{
 			// Arrange
 			var part = CreatePart(1, QuestionSkill.Listening, 2); // Part 2 requires 3 options
-			var audioFile = CreateMockFormFile("test.mp3", "audio/mpeg").Object;
+			var audioFile = CreateMockFormFile("validExample.mp3", "audio/mpeg").Object;
 			var options = CreateAnswerOptions(2, 0); // Only 2 options
 			var dto = CreateQuestionDto(partId: 1, audio: audioFile, options: options);
 
@@ -491,7 +492,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID10")]
 		[Fact]
-		public async Task CreateAsync_DuplicateLabels_ReturnsError()
+		public async Task UTCID10_CreateAsync_DuplicateLabels_ReturnsError()
 		{
 			// Arrange
 			var part = CreatePart(1, QuestionSkill.Reading, 5);
@@ -527,7 +528,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID11")]
 		[Fact]
-		public async Task CreateAsync_Part5With4OptionsAnd1Correct_Success()
+		public async Task UTCID11_CreateAsync_Part5With4OptionsAnd1Correct_Success()
 		{
 			// Arrange
 			var part = CreatePart(5, QuestionSkill.Reading, 5);
@@ -560,7 +561,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID12")]
 		[Fact]
-		public async Task CreateAsync_Part5WithOnly3Options_ReturnsError()
+		public async Task UTCID12_CreateAsync_Part5WithOnly3Options_ReturnsError()
 		{
 			// Arrange
 			var part = CreatePart(5, QuestionSkill.Reading, 5);
@@ -590,7 +591,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID13")]
 		[Fact]
-		public async Task CreateAsync_Part8WithoutOptions_Success()
+		public async Task UTCID13_CreateAsync_Part8WithoutOptions_Success()
 		{
 			// Arrange
 			var part = CreatePart(8, QuestionSkill.Writing, 8);
@@ -621,7 +622,7 @@ namespace ToeicGenius.Tests.UnitTests
 		[Trait("Category", "CreateAsync")]
 		[Trait("TestCase", "UTCID14")]
 		[Fact]
-		public async Task CreateAsync_ExceptionDuringProcess_ReturnsError()
+		public async Task UTCID14_CreateAsync_ExceptionDuringProcess_ReturnsError()
 		{
 			// Arrange
 			var part = CreatePart(8, QuestionSkill.Reading, 5);
@@ -651,97 +652,1236 @@ namespace ToeicGenius.Tests.UnitTests
 		#endregion
 
 		#region 3. QuestionService_UpdateAsync Tests
+		// Helper method
+		private UpdateQuestionDto CreateUpdateQuestionDto(
+			int partId = 1,
+			int questionTypeId = 1,
+			IFormFile? audio = null,
+			IFormFile? image = null,
+			List<UpdateAnswerOptionDto>? options = null)
+		{
+			return new UpdateQuestionDto
+			{
+				QuestionId = 1,
+				PartId = partId,
+				QuestionTypeId = questionTypeId,
+				Content = "Updated question content",
+				Audio = audio,
+				Image = image,
+				AnswerOptions = options,
+				Solution = "Updated solution"
+			};
+		}
+
+		private Question CreateQuestionEntity(
+			int questionId = 1,
+			int partId = 1,
+			int questionTypeId = 1,
+			string? audioUrl = "https://cdn/old-audio.mp3",
+			string? imageUrl = "https://cdn/old-image.png",
+			List<Option>? options = null)
+		{
+			var question = new Question
+			{
+				QuestionId = questionId,
+				PartId = partId,
+				QuestionTypeId = questionTypeId,
+				Content = "Original content",
+				AudioUrl = audioUrl,
+				ImageUrl = imageUrl,
+				Explanation = "Original solution",
+				Status = CommonStatus.Active,
+				Options = new List<Option>()
+			};
+
+			if (options != null)
+			{
+				foreach (var option in options)
+				{
+					option.QuestionId = questionId;
+					option.Question = question;
+					question.Options.Add(option);
+				}
+			}
+
+			return question;
+		}
+
+		private List<Option> CreateExistingOptions(int count, int correctIndex = 0)
+		{
+			var list = new List<Option>();
+			for (int i = 0; i < count; i++)
+			{
+				list.Add(new Option
+				{
+					OptionId = i + 1,
+					Label = ((char)('A' + i)).ToString(),
+					Content = $"Existing option {i + 1}",
+					IsCorrect = i == correctIndex,
+					Status = CommonStatus.Active
+				});
+			}
+
+			return list;
+		}
+
+		private void SetupUpdateDependencies(Question question, Part part)
+		{
+			var transaction = new Mock<IDbContextTransaction>();
+
+			_unitOfWorkMock.Setup(u => u.Questions.GetQuestionByIdAndStatus(question.QuestionId, CommonStatus.Active))
+				.ReturnsAsync(question);
+			_unitOfWorkMock.Setup(u => u.Parts.GetByIdAsync(part.PartId))
+				.ReturnsAsync(part);
+			_unitOfWorkMock.Setup(u => u.BeginTransactionAsync())
+				.ReturnsAsync(transaction.Object);
+			_unitOfWorkMock.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
+			_unitOfWorkMock.Setup(u => u.CommitTransactionAsync()).Returns(Task.CompletedTask);
+		}
+
 		//UTCID01: Không tìm thấy câu hỏi để cập nhật (id =999) -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID01")]
+		[Fact]
+		public async Task UTCID01_UpdateAsync_QuestionNotFound_ReturnsErrorMessage()
+		{
+			// Arrange
+			var dto = CreateUpdateQuestionDto();
+
+			_unitOfWorkMock.Setup(u => u.Questions.GetQuestionByIdAndStatus(999, CommonStatus.Active))
+				.ReturnsAsync((Question)null!);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(999, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Không tìm thấy câu hỏi để cập nhật.");
+			_unitOfWorkMock.Verify(u => u.BeginTransactionAsync(), Times.Never);
+		}
 
 		//UTCID02: Phần Listening part yêu cầu phải có file âm thanh -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID02")]
+		[Fact]
+		public async Task UTCID02_UpdateAsync_ListeningPartWithoutAudio_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(1, QuestionSkill.Listening, 2);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId, audioUrl: null);
+			var dto = CreateUpdateQuestionDto(part.PartId);
+
+			_unitOfWorkMock.Setup(u => u.Questions.GetQuestionByIdAndStatus(question.QuestionId, CommonStatus.Active))
+				.ReturnsAsync(question);
+			_unitOfWorkMock.Setup(u => u.Parts.GetByIdAsync(part.PartId)).ReturnsAsync(part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Phần Listening part yêu cầu phải có file âm thanh.");
+			_unitOfWorkMock.Verify(u => u.BeginTransactionAsync(), Times.Never);
+		}
 
 		//UTCID03: Cập nhật thành công: OldAudio bị xóa, Audio mới được tải lên và cập nhật đúng đường dẫn
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID03")]
+		[Fact]
+		public async Task UTCID03_UpdateAsync_WithNewAudio_ReplacesOldAudioSuccessfully()
+		{
+			// Arrange
+			var part = CreatePart(1, QuestionSkill.Listening, 2);
+			var oldAudioUrl = "https://cdn/old.mp3";
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId, audioUrl: oldAudioUrl);
+			var audioMock = CreateMockFormFile("new.mp3", "audio/mpeg");
+			var dto = CreateUpdateQuestionDto(part.PartId, audio: audioMock.Object);
+
+			SetupUpdateDependencies(question, part);
+
+			var newAudioUrl = "https://cdn/new.mp3";
+			_fileService.Setup(f => f.UploadFileAsync(audioMock.Object, "audio"))
+				.ReturnsAsync(Result<string>.Success(newAudioUrl));
+			_fileService.Setup(f => f.DeleteFileAsync(oldAudioUrl))
+				.ReturnsAsync(Result<string>.Success("deleted"));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data.Should().Be($"Câu hỏi {question.QuestionId} cập nhật thành công.");
+			question.AudioUrl.Should().Be(newAudioUrl);
+
+			_fileService.Verify(f => f.UploadFileAsync(audioMock.Object, "audio"), Times.Once);
+			_fileService.Verify(f => f.DeleteFileAsync(oldAudioUrl), Times.Once);
+			_unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
+			_unitOfWorkMock.Verify(u => u.CommitTransactionAsync(), Times.Once);
+		}
 
 		//UTCID04: Cập nhật thành công: Audio cũ không có, cập nhật audio mới 
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID04")]
+		[Fact]
+		public async Task UTCID04_UpdateAsync_AddsAudioWhenNoExistingAudio()
+		{
+			// Arrange
+			var part = CreatePart(1, QuestionSkill.Listening, 2);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId, audioUrl: null);
+			var audioMock = CreateMockFormFile("new.mp3", "audio/mpeg");
+			var dto = CreateUpdateQuestionDto(part.PartId, audio: audioMock.Object);
+
+			SetupUpdateDependencies(question, part);
+
+			var newAudioUrl = "https://cdn/new-audio.mp3";
+			_fileService.Setup(f => f.UploadFileAsync(audioMock.Object, "audio"))
+				.ReturnsAsync(Result<string>.Success(newAudioUrl));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			question.AudioUrl.Should().Be(newAudioUrl);
+			_fileService.Verify(f => f.DeleteFileAsync(It.IsAny<string>()), Times.Never);
+		}
 
 		//UTCID05: Cập nhật thành công: Giữ nguyên audio cũ, không cập nhật gì thêm
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID05")]
+		[Fact]
+		public async Task UTCID05_UpdateAsync_WithoutNewAudio_KeepsExistingAudio()
+		{
+			// Arrange
+			var part = CreatePart(1, QuestionSkill.Listening, 2);
+			var oldAudioUrl = "https://cdn/old.mp3";
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId, audioUrl: oldAudioUrl);
+			var dto = CreateUpdateQuestionDto(part.PartId);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			question.AudioUrl.Should().Be(oldAudioUrl);
+			_fileService.Verify(f => f.UploadFileAsync(It.IsAny<IFormFile>(), It.IsAny<string>()), Times.Never);
+		}
 
 		//UTCID06: Định dạng file âm thanh không hợp lệ -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID06")]
+		[Fact]
+		public async Task UTCID06_UpdateAsync_InvalidAudioFormat_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(2, QuestionSkill.Reading, 5);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId);
+			var audioMock = CreateMockFormFile("invalid.txt", "text/plain");
+			var dto = CreateUpdateQuestionDto(part.PartId, audio: audioMock.Object);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Định dạng file âm thanh không hợp lệ. Chỉ chấp nhận .mp3, .wav, .ogg và .m4a.");
+			_fileService.Verify(f => f.UploadFileAsync(It.IsAny<IFormFile>(), It.IsAny<string>()), Times.Never);
+		}
 
 		//UTCID07: File âm thanh vượt quá 70mb -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID07")]
+		[Fact]
+		public async Task UTCID07_UpdateAsync_AudioTooLarge_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(2, QuestionSkill.Reading, 5);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId);
+			var audioMock = CreateMockFormFile("huge.mp3", "audio/mpeg", 71 * 1024 * 1024);
+			var dto = CreateUpdateQuestionDto(part.PartId, audio: audioMock.Object);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Dung lượng file âm thanh vượt quá 70MB.");
+			_fileService.Verify(f => f.UploadFileAsync(It.IsAny<IFormFile>(), It.IsAny<string>()), Times.Never);
+		}
 
 		//UTCID08: Định dạng file ảnh không hơp lệ -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID08")]
+		[Fact]
+		public async Task UTCID08_UpdateAsync_InvalidImageFormat_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(2, QuestionSkill.Reading, 5);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId);
+			var imageMock = CreateMockFormFile("invalid.txt", "text/plain");
+			var dto = CreateUpdateQuestionDto(part.PartId, image: imageMock.Object);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Định dạng file hình ảnh không hợp lệ. Chỉ chấp nhận .jpg, .jpeg, .png, .bmp, .gif, .webp.");
+			_fileService.Verify(f => f.UploadFileAsync(It.IsAny<IFormFile>(), It.IsAny<string>()), Times.Never);
+		}
 
 		//UTCID09: File ảnh vượt quá 5mb -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID09")]
+		[Fact]
+		public async Task UTCID09_UpdateAsync_ImageTooLarge_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(2, QuestionSkill.Reading, 5);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId);
+			var imageMock = CreateMockFormFile("huge.png", "image/png", 6 * 1024 * 1024);
+			var dto = CreateUpdateQuestionDto(part.PartId, image: imageMock.Object);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Dung lượng file hình ảnh vượt quá 5MB.");
+			_fileService.Verify(f => f.UploadFileAsync(It.IsAny<IFormFile>(), It.IsAny<string>()), Times.Never);
+		}
 
 		//UTCID10: Lỗi khi tải lên file âm thanh mới -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID10")]
+		[Fact]
+		public async Task UTCID10_UpdateAsync_FailedAudioUpload_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(2, QuestionSkill.Reading, 5);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId);
+			var audioMock = CreateMockFormFile("new.mp3", "audio/mpeg");
+			var dto = CreateUpdateQuestionDto(part.PartId, audio: audioMock.Object);
+
+			SetupUpdateDependencies(question, part);
+
+			_fileService.Setup(f => f.UploadFileAsync(audioMock.Object, "audio"))
+				.ReturnsAsync(Result<string>.Failure("upload failed"));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Lỗi khi tải lên file âm thanh.");
+		}
 
 		//UTCID11: Lỗi khi tải lên file ảnh mới -> trả về ErrorMessage	
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID11")]
+		[Fact]
+		public async Task UTCID11_UpdateAsync_FailedImageUpload_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(2, QuestionSkill.Reading, 5);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId);
+			var imageMock = CreateMockFormFile("new.png", "image/png");
+			var dto = CreateUpdateQuestionDto(part.PartId, image: imageMock.Object);
+
+			SetupUpdateDependencies(question, part);
+
+			_fileService.Setup(f => f.UploadFileAsync(imageMock.Object, "image"))
+				.ReturnsAsync(Result<string>.Failure("upload failed"));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Lỗi khi tải lên file ảnh.");
+		}
 
 		//UTCID12: Exception trong quá trình cập nhật câu hỏi -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID12")]
+		[Fact]
+		public async Task UTCID12_UpdateAsync_WhenExceptionThrown_RollsBackAndReturnsError()
+		{
+			// Arrange
+			var part = CreatePart(2, QuestionSkill.Reading, 5);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId);
+			var audioMock = CreateMockFormFile("new.mp3", "audio/mpeg");
+			var imageMock = CreateMockFormFile("new.png", "image/png");
+			var dto = CreateUpdateQuestionDto(part.PartId, audio: audioMock.Object, image: imageMock.Object);
+
+			SetupUpdateDependencies(question, part);
+
+			var newAudioUrl = "https://cdn/new.mp3";
+			var newImageUrl = "https://cdn/new.png";
+			_fileService.Setup(f => f.UploadFileAsync(audioMock.Object, "audio"))
+				.ReturnsAsync(Result<string>.Success(newAudioUrl));
+			_fileService.Setup(f => f.UploadFileAsync(imageMock.Object, "image"))
+				.ReturnsAsync(Result<string>.Success(newImageUrl));
+
+			var exceptionMessage = "Database error";
+			_unitOfWorkMock.Setup(u => u.SaveChangesAsync()).ThrowsAsync(new Exception(exceptionMessage));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be(exceptionMessage);
+			_fileService.Verify(f => f.RollbackAndCleanupAsync(It.Is<List<string>>(files =>
+				files.Contains(newAudioUrl) && files.Contains(newImageUrl))), Times.Once);
+			_unitOfWorkMock.Verify(u => u.CommitTransactionAsync(), Times.Never);
+		}
 
 		//UTCID13: Câu hỏi part 1 có 3 đáp án và 2 đáp án đúng -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID13")]
+		[Fact]
+		public async Task UTCID13_UpdateAsync_Part1WithTwoCorrectAnswers_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(1, QuestionSkill.Listening, 2);
+			var options = CreateExistingOptions(3);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId, audioUrl: "audio.mp3", options: options);
+			var dtoOptions = new List<UpdateAnswerOptionDto>
+			{
+				new() { Id = options[0].OptionId, Label = "A", Content = "Option 1", IsCorrect = true },
+				new() { Id = options[1].OptionId, Label = "B", Content = "Option 2", IsCorrect = true },
+				new() { Id = options[2].OptionId, Label = "C", Content = "Option 3", IsCorrect = false }
+			};
+			var dto = CreateUpdateQuestionDto(part.PartId, options: dtoOptions);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Cần có duy nhất một đáp án đúng.");
+			_unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Never);
+		}
 
 		//UTCID14: Câu hỏi part 1 có 3 đáp án và 0 đáp án đúng -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID14")]
+		[Fact]
+		public async Task UTCID14_UpdateAsync_Part1WithoutCorrectAnswer_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(1, QuestionSkill.Listening, 2);
+			var options = CreateExistingOptions(3, correctIndex: 0);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId, audioUrl: "audio.mp3", options: options);
+			var dtoOptions = new List<UpdateAnswerOptionDto>
+			{
+				new() { Id = options[0].OptionId, Label = "A", Content = "Option 1", IsCorrect = false },
+				new() { Id = options[1].OptionId, Label = "B", Content = "Option 2", IsCorrect = false },
+				new() { Id = options[2].OptionId, Label = "C", Content = "Option 3", IsCorrect = false }
+			};
+			var dto = CreateUpdateQuestionDto(part.PartId, options: dtoOptions);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Cần có duy nhất một đáp án đúng.");
+			_unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Never);
+		}
 
 		//UTCID15: Câu hỏi part 1 có 2 đáp án -> trả về lỗi không đủ đáp án
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID15")]
+		[Fact]
+		public async Task UTCID15_UpdateAsync_Part1WithOnlyTwoOptions_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(1, QuestionSkill.Listening, 2);
+			var options = CreateExistingOptions(3);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId, audioUrl: "audio.mp3", options: options);
+			var dtoOptions = new List<UpdateAnswerOptionDto>
+			{
+				new() { Id = options[0].OptionId, Label = "A", Content = "Option 1", IsCorrect = true },
+				new() { Id = options[1].OptionId, Label = "B", Content = "Option 2", IsCorrect = false }
+			};
+			var dto = CreateUpdateQuestionDto(part.PartId, options: dtoOptions);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Số lượng đáp án phải đúng bằng 3.");
+		}
 
 		//UTCID16: Câu hỏi part 5 cần 4 đáp án và 1 đáp án đúng nhưng chỉ có 3 đáp án -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID16")]
+		[Fact]
+		public async Task UTCID16_UpdateAsync_Part5WithOnlyThreeOptions_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(5, QuestionSkill.Reading, 5);
+			var options = CreateExistingOptions(4);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId, options: options);
+			var dtoOptions = new List<UpdateAnswerOptionDto>
+			{
+				new() { Id = options[0].OptionId, Label = "A", Content = "Option 1", IsCorrect = true },
+				new() { Id = options[1].OptionId, Label = "B", Content = "Option 2", IsCorrect = false },
+				new() { Id = options[2].OptionId, Label = "C", Content = "Option 3", IsCorrect = false }
+			};
+			var dto = CreateUpdateQuestionDto(part.PartId, options: dtoOptions);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Số lượng đáp án phải đúng bằng 4.");
+		}
 
 		//UTCID17: Câu hỏi part 1 có 3 đáp án và 1 đáp án đúng, nhưng có 2 label trùng -> trả về ErrorMessage
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID17")]
+		[Fact]
+		public async Task UTCID17_UpdateAsync_Part1WithDuplicateLabels_ReturnsErrorMessage()
+		{
+			// Arrange
+			var part = CreatePart(1, QuestionSkill.Listening, 2);
+			var options = CreateExistingOptions(3);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId, audioUrl: "audio.mp3", options: options);
+			var dtoOptions = new List<UpdateAnswerOptionDto>
+			{
+				new() { Id = options[0].OptionId, Label = "A", Content = "Option 1", IsCorrect = true },
+				new() { Id = options[1].OptionId, Label = "A", Content = "Option 2", IsCorrect = false },
+				new() { Id = options[2].OptionId, Label = "C", Content = "Option 3", IsCorrect = false }
+			};
+			var dto = CreateUpdateQuestionDto(part.PartId, options: dtoOptions);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Các nhãn (label) của đáp án phải là duy nhất, không được trùng nhau.");
+		}
 
 		//UTCID18: Câu hỏi part 5 có 4 đáp án và 1 đáp án đúng -> cập nhật thành công
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID18")]
+		[Fact]
+		public async Task UTCID18_UpdateAsync_Part5WithValidOptions_Succeeds()
+		{
+			// Arrange
+			var part = CreatePart(5, QuestionSkill.Reading, 5);
+			var options = CreateExistingOptions(4);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId, options: options);
+			var dtoOptions = new List<UpdateAnswerOptionDto>
+			{
+				new() { Id = options[0].OptionId, Label = "A", Content = "Option 1", IsCorrect = false },
+				new() { Id = options[1].OptionId, Label = "B", Content = "Option 2", IsCorrect = true },
+				new() { Id = options[2].OptionId, Label = "C", Content = "Option 3", IsCorrect = false },
+				new() { Id = options[3].OptionId, Label = "D", Content = "Option 4", IsCorrect = false }
+			};
+			var dto = CreateUpdateQuestionDto(part.PartId, options: dtoOptions);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data.Should().Be($"Câu hỏi {question.QuestionId} cập nhật thành công.");
+			question.Options.Single(o => o.OptionId == options[1].OptionId).IsCorrect.Should().BeTrue();
+			_unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
+			_unitOfWorkMock.Verify(u => u.CommitTransactionAsync(), Times.Once);
+		}
 
 		//UTCID19: Câu hỏi partid=8 không yêu cầu đáp án -> cập nhật thành công
-		
+		[Trait("Category", "UpdateAsync")]
+		[Trait("TestCase", "UTCID19")]
+		[Fact]
+		public async Task UTCID19_UpdateAsync_Part8WithoutAnswerOptions_Succeeds()
+		{
+			// Arrange
+			var part = CreatePart(8, QuestionSkill.Writing, 8);
+			var question = CreateQuestionEntity(questionId: 1, partId: part.PartId, audioUrl: null);
+			var dto = CreateUpdateQuestionDto(part.PartId, options: null);
+
+			SetupUpdateDependencies(question, part);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateAsync(question.QuestionId, dto);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data.Should().Be($"Câu hỏi {question.QuestionId} cập nhật thành công.");
+			_unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
+			_unitOfWorkMock.Verify(u => u.CommitTransactionAsync(), Times.Once);
+		}
+
 		#endregion
 
 		#region 4. QuestionService_UpdateStatusAsync Tests
+		// Helper method
+		private Question CreateQuestionWithStatus(int questionId, CommonStatus questionStatus, CommonStatus optionStatus, int optionCount = 2)
+		{
+			var question = CreateQuestionEntity(
+				questionId: questionId,
+				options: CreateExistingOptions(optionCount));
+
+			question.Status = questionStatus;
+			foreach (var option in question.Options)
+			{
+				option.Status = optionStatus;
+			}
+
+			return question;
+		}
+
+		private QuestionGroup CreateQuestionGroupWithStatus(
+			int groupId,
+			CommonStatus groupStatus,
+			CommonStatus questionStatus,
+			CommonStatus optionStatus,
+			int questionCount = 2,
+			int optionCount = 2)
+		{
+			var group = new QuestionGroup
+			{
+				QuestionGroupId = groupId,
+				PartId = 1,
+				Status = groupStatus,
+				Questions = new List<Question>()
+			};
+
+			for (int i = 0; i < questionCount; i++)
+			{
+				var question = CreateQuestionWithStatus(
+					questionId: groupId * 100 + i + 1,
+					questionStatus: questionStatus,
+					optionStatus: optionStatus,
+					optionCount: optionCount);
+
+				question.QuestionGroupId = groupId;
+				question.QuestionGroup = group;
+				group.Questions.Add(question);
+			}
+
+			return group;
+		}
+
+		private void SetupStatusTransactionMocks()
+		{
+			var transaction = new Mock<IDbContextTransaction>();
+			_unitOfWorkMock.Setup(u => u.BeginTransactionAsync()).ReturnsAsync(transaction.Object);
+			_unitOfWorkMock.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
+			_unitOfWorkMock.Setup(u => u.CommitTransactionAsync()).Returns(Task.CompletedTask);
+			_unitOfWorkMock.Setup(u => u.RollbackTransactionAsync()).Returns(Task.CompletedTask);
+		}
 		//UTCID01: Id=1, isQuestionGroup = false, isRestore = false -> Cập nhật trạng thái thành công từ Active sang Inactive
+		[Trait("Category", "UpdateStatusAsync")]
+		[Trait("TestCase", "UTCID01")]
+		[Fact]
+		public async Task UTCID01_UpdateStatusAsync_SingleQuestionDeactivate_Succeeds()
+		{
+			// Arrange
+			var question = CreateQuestionWithStatus(1, CommonStatus.Active, CommonStatus.Active);
+			SetupStatusTransactionMocks();
+
+			_unitOfWorkMock.Setup(u => u.Questions.GetQuestionByIdAndStatus(question.QuestionId, CommonStatus.Active))
+				.ReturnsAsync(question);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateStatusAsync(question.QuestionId, isGroupQuestion: false, isRestore: false);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data.Should().Be("Xóa thành công.");
+			question.Status.Should().Be(CommonStatus.Inactive);
+			question.Options.Should().OnlyContain(o => o.Status == CommonStatus.Inactive);
+			_unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
+			_unitOfWorkMock.Verify(u => u.CommitTransactionAsync(), Times.Once);
+		}
+
 		//UTCID02: Id=1, isQuestionGroup = false, isRestore = true -> Cập nhật trạng thái thành công từ Inactive sang Active
+		[Trait("Category", "UpdateStatusAsync")]
+		[Trait("TestCase", "UTCID02")]
+		[Fact]
+		public async Task UTCID02_UpdateStatusAsync_SingleQuestionRestore_Succeeds()
+		{
+			// Arrange
+			var question = CreateQuestionWithStatus(2, CommonStatus.Inactive, CommonStatus.Inactive);
+			SetupStatusTransactionMocks();
+
+			_unitOfWorkMock.Setup(u => u.Questions.GetQuestionByIdAndStatus(question.QuestionId, CommonStatus.Inactive))
+				.ReturnsAsync(question);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateStatusAsync(question.QuestionId, isGroupQuestion: false, isRestore: true);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data.Should().Be("Khôi phục thành công.");
+			question.Status.Should().Be(CommonStatus.Active);
+			question.Options.Should().OnlyContain(o => o.Status == CommonStatus.Active);
+		}
+
 		//UTCID03: Id=1, isQuestionGroup = true, isRestore = false -> Cập nhật trạng thái thành công từ Active sang Inactive
+		[Trait("Category", "UpdateStatusAsync")]
+		[Trait("TestCase", "UTCID03")]
+		[Fact]
+		public async Task UTCID03_UpdateStatusAsync_QuestionGroupDeactivate_Succeeds()
+		{
+			// Arrange
+			var group = CreateQuestionGroupWithStatus(
+				groupId: 3,
+				groupStatus: CommonStatus.Active,
+				questionStatus: CommonStatus.Active,
+				optionStatus: CommonStatus.Active);
+			SetupStatusTransactionMocks();
+
+			_unitOfWorkMock.Setup(u => u.QuestionGroups.GetByIdAndStatusAsync(group.QuestionGroupId, CommonStatus.Active))
+				.ReturnsAsync(group);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: false);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data.Should().Be("Xóa thành công.");
+			group.Status.Should().Be(CommonStatus.Inactive);
+			group.Questions.Should().OnlyContain(q => q.Status == CommonStatus.Inactive);
+			group.Questions.SelectMany(q => q.Options).Should().OnlyContain(o => o.Status == CommonStatus.Inactive);
+		}
+
 		//UTCID04: Id=1, isQuestionGroup = true, isRestore = true -> Cập nhật trạng thái thành công từ Inactive sang Active
+		[Trait("Category", "UpdateStatusAsync")]
+		[Trait("TestCase", "UTCID04")]
+		[Fact]
+		public async Task UTCID04_UpdateStatusAsync_QuestionGroupRestore_Succeeds()
+		{
+			// Arrange
+			var group = CreateQuestionGroupWithStatus(
+				groupId: 4,
+				groupStatus: CommonStatus.Inactive,
+				questionStatus: CommonStatus.Inactive,
+				optionStatus: CommonStatus.Inactive);
+			SetupStatusTransactionMocks();
+
+			_unitOfWorkMock.Setup(u => u.QuestionGroups.GetByIdAndStatusAsync(group.QuestionGroupId, CommonStatus.Inactive))
+				.ReturnsAsync(group);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: true);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data.Should().Be("Khôi phục thành công.");
+			group.Status.Should().Be(CommonStatus.Active);
+			group.Questions.Should().OnlyContain(q => q.Status == CommonStatus.Active);
+			group.Questions.SelectMany(q => q.Options).Should().OnlyContain(o => o.Status == CommonStatus.Active);
+		}
+
 		//UTCID05: Id=999, isQuestionGroup = false, isRestore = false -> Không tìm thấy câu hỏi -> trả về ErrorMessage
+		[Trait("Category", "UpdateStatusAsync")]
+		[Trait("TestCase", "UTCID05")]
+		[Fact]
+		public async Task UTCID05_UpdateStatusAsync_SingleQuestionDeactivate_NotFound_ReturnsError()
+		{
+			// Arrange
+			SetupStatusTransactionMocks();
+			_unitOfWorkMock.Setup(u => u.Questions.GetQuestionByIdAndStatus(999, CommonStatus.Active))
+				.ReturnsAsync((Question)null!);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateStatusAsync(999, isGroupQuestion: false, isRestore: false);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Contain("Không tìm thấy câu hỏi có ID 999");
+			_unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Never);
+			_unitOfWorkMock.Verify(u => u.CommitTransactionAsync(), Times.Never);
+		}
+
 		//UTCID06: Id=999, isQuestionGroup = false, isRestore = true -> Không tìm thấy câu hỏi -> trả về ErrorMessage
+		[Trait("Category", "UpdateStatusAsync")]
+		[Trait("TestCase", "UTCID06")]
+		[Fact]
+		public async Task UTCID06_UpdateStatusAsync_SingleQuestionRestore_NotFound_ReturnsError()
+		{
+			// Arrange
+			SetupStatusTransactionMocks();
+			_unitOfWorkMock.Setup(u => u.Questions.GetQuestionByIdAndStatus(999, CommonStatus.Inactive))
+				.ReturnsAsync((Question)null!);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateStatusAsync(999, isGroupQuestion: false, isRestore: true);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Contain("Không tìm thấy câu hỏi có ID 999");
+		}
+
 		//UTCID07: Id=999, isQuestionGroup = true, isRestore = false -> Không tìm thấy câu hỏi -> trả về ErrorMessage
+		[Trait("Category", "UpdateStatusAsync")]
+		[Trait("TestCase", "UTCID07")]
+		[Fact]
+		public async Task UTCID07_UpdateStatusAsync_QuestionGroupDeactivate_NotFound_ReturnsError()
+		{
+			// Arrange
+			SetupStatusTransactionMocks();
+			_unitOfWorkMock.Setup(u => u.QuestionGroups.GetByIdAndStatusAsync(999, CommonStatus.Active))
+				.ReturnsAsync((QuestionGroup)null!);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateStatusAsync(999, isGroupQuestion: true, isRestore: false);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Contain("Không tìm thấy nhóm câu hỏi có ID 999");
+		}
+
 		//UTCID08: Id=999, isQuestionGroup = true, isRestore = true -> Không tìm thấy câu hỏi -> trả về ErrorMessage
+		[Trait("Category", "UpdateStatusAsync")]
+		[Trait("TestCase", "UTCID08")]
+		[Fact]
+		public async Task UTCID08_UpdateStatusAsync_QuestionGroupRestore_NotFound_ReturnsError()
+		{
+			// Arrange
+			SetupStatusTransactionMocks();
+			_unitOfWorkMock.Setup(u => u.QuestionGroups.GetByIdAndStatusAsync(999, CommonStatus.Inactive))
+				.ReturnsAsync((QuestionGroup)null!);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateStatusAsync(999, isGroupQuestion: true, isRestore: true);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Contain("Không tìm thấy nhóm câu hỏi có ID 999");
+		}
+
 		//UTCID09: Id=1, isQuestionGroup = true, isRestore = false -> Exception + ErrorMessage
+		[Trait("Category", "UpdateStatusAsync")]
+		[Trait("TestCase", "UTCID09")]
+		[Fact]
+		public async Task UTCID09_UpdateStatusAsync_QuestionGroupDeactivate_Exception_RollsBack()
+		{
+			// Arrange
+			var group = CreateQuestionGroupWithStatus(
+				groupId: 9,
+				groupStatus: CommonStatus.Active,
+				questionStatus: CommonStatus.Active,
+				optionStatus: CommonStatus.Active);
+			SetupStatusTransactionMocks();
+
+			_unitOfWorkMock.Setup(u => u.QuestionGroups.GetByIdAndStatusAsync(group.QuestionGroupId, CommonStatus.Active))
+				.ReturnsAsync(group);
+			_unitOfWorkMock.Setup(u => u.SaveChangesAsync()).ThrowsAsync(new Exception("DB error"));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: false);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Xóa thất bại: DB error");
+			_unitOfWorkMock.Verify(u => u.RollbackTransactionAsync(), Times.Once);
+			_unitOfWorkMock.Verify(u => u.CommitTransactionAsync(), Times.Never);
+		}
+
 		//UTCID10: Id=1, isQuestionGroup = true, isRestore = true -> Exception + ErrorMessage
+		[Trait("Category", "UpdateStatusAsync")]
+		[Trait("TestCase", "UTCID10")]
+		[Fact]
+		public async Task UTCID10_UpdateStatusAsync_QuestionGroupRestore_Exception_RollsBack()
+		{
+			// Arrange
+			var group = CreateQuestionGroupWithStatus(
+				groupId: 10,
+				groupStatus: CommonStatus.Inactive,
+				questionStatus: CommonStatus.Inactive,
+				optionStatus: CommonStatus.Inactive);
+			SetupStatusTransactionMocks();
+
+			_unitOfWorkMock.Setup(u => u.QuestionGroups.GetByIdAndStatusAsync(group.QuestionGroupId, CommonStatus.Inactive))
+				.ReturnsAsync(group);
+			_unitOfWorkMock.Setup(u => u.SaveChangesAsync()).ThrowsAsync(new Exception("DB error"));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: true);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Khôi phục thất bại: DB error");
+			_unitOfWorkMock.Verify(u => u.RollbackTransactionAsync(), Times.Once);
+			_unitOfWorkMock.Verify(u => u.CommitTransactionAsync(), Times.Never);
+		}
 		#endregion
 
 		#region 5. QuestionService_FilterSingleQuestionAsync Tests
+		private PaginationResponse<QuestionListItemDto> CreatePaginationResponse(
+			int count,
+			int totalCount,
+			int currentPage = 1,
+			int pageSize = 6)
+		{
+			var data = Enumerable.Range(1, count).Select(i => new QuestionListItemDto
+			{
+				Id = i,
+				PartId = 1,
+				Content = $"Question {i}",
+				Status = CommonStatus.Active
+			});
+
+			return new PaginationResponse<QuestionListItemDto>(data, totalCount, currentPage, pageSize);
+		}
 		//UTCID01: Lọc câu hỏi với full filter: PartId = 1, QuestionTypeId = 1,keyWord = "How old",skill=3, sortOrder = "desc",page=1, pageSize=6, status=Active
 		// trả về danh sách câu hỏi phù hợp có 3 phần tử
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID01")]
+		[Fact]
+		public async Task UTCID01_FilterSingleQuestionAsync_FullFilter_ReturnsData()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 3, totalCount: 3);
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(1, 1, "How old", 3, "desc", 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(1, 1, "How old", 3, "desc", 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data.Should().NotBeNull();
+			result.Data!.DataPaginated.Should().HaveCount(3);
+			_unitOfWorkMock.Verify(u => u.Questions.FilterSingleAsync(1, 1, "How old", 3, "desc", 1, 6, CommonStatus.Active), Times.Once);
+		}
 
 		//UTCID02: Lọc câu hỏi với filter rỗng: PartId = null, QuestionTypeId = null,keyWord = null, sortOrder = null,page=1, pageSize=6, status=Active
 		// trả về danh sách câu hỏi có 6 elements, total 10 elements, order by CreatedAt desc
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID02")]
+		[Fact]
+		public async Task UTCID02_FilterSingleQuestionAsync_EmptyFilter_ReturnsDefaultList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 6, totalCount: 10);
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(null, null, null, null, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().HaveCount(6);
+			result.Data.TotalCount.Should().Be(10);
+		}
 
 		//UTCID03: Lọc câu hỏi với part id = 0: PartId = 0, QuestionTypeId = null,keyWord = null, sortOrder = null,page=1, pageSize=6, status=Active
 		// trả về danh sách câu hỏi rỗng
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID03")]
+		[Fact]
+		public async Task UTCID03_FilterSingleQuestionAsync_PartIdZero_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(0, null, null, null, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(0, null, null, null, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 
 		//UTCID04: Lọc câu hỏi với question type id = 0: PartId = null, QuestionTypeId = 0,keyWord = null, sortOrder = null,page=1, pageSize=6, status=Active
 		// trả về danh sách câu hỏi rỗng
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID04")]
+		[Fact]
+		public async Task UTCID04_FilterSingleQuestionAsync_QuestionTypeZero_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, 0, null, null, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(null, 0, null, null, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 
 		//UTCID05: Lọc câu hỏi với skill = 0 : PartId = null, QuestionTypeId = null,keyWord = null,skill = 0,  sortOrder = null,page=1, pageSize=6, status=Active
 		// trả về danh sách câu hỏi rỗng
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID05")]
+		[Fact]
+		public async Task UTCID05_FilterSingleQuestionAsync_SkillZero_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, 0, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(null, null, null, 0, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 
 
 		//UTCID06: Lọc câu hỏi với page = 0 : PartId = null, QuestionTypeId = null,keyWord = null, sortOrder = null,page=0, pageSize=6, status=Active
 		// trả về danh sách câu hỏi rỗng
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID06")]
+		[Fact]
+		public async Task UTCID06_FilterSingleQuestionAsync_PageZero_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0, currentPage: 0);
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 0, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(null, null, null, null, null!, 0, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 
 
 		//UTCID07: Lọc câu hỏi với pageSize = 0 : PartId = null, QuestionTypeId = null,keyWord = null, sortOrder = null,page=1, pageSize=0, status=Active
 		// trả về danh sách câu hỏi rỗng
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID07")]
+		[Fact]
+		public async Task UTCID07_FilterSingleQuestionAsync_PageSizeZero_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0, pageSize: 0);
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 1, 0, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(null, null, null, null, null!, 1, 0, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 
 		//UTCID08: Lọc câu hỏi với Part ID = -1 : PartId = -1, QuestionTypeId = null,keyWord = null, sortOrder = null,page=1, pageSize=6, status=Active
 		// trả về danh sách câu hỏi rỗng
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID08")]
+		[Fact]
+		public async Task UTCID08_FilterSingleQuestionAsync_PartIdNegative_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(-1, null, null, null, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(-1, null, null, null, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 
 		//UTCID09: Lọc câu hỏi với Question Type ID = -1 : PartId = null, QuestionTypeId = -1,keyWord = null, sortOrder = null,page=1, pageSize=6, status=Active
 		// trả về danh sách câu hỏi rỗng
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID09")]
+		[Fact]
+		public async Task UTCID09_FilterSingleQuestionAsync_QuestionTypeNegative_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, -1, null, null, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(null, -1, null, null, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 
 		//UTCID10: Lọc câu hỏi với skill = -1 : PartId = null, QuestionTypeId = null,keyWord = null,skill = -1,  sortOrder = null,page=1, pageSize=6, status=Active
 		// trả về danh sách câu hỏi rỗng
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID10")]
+		[Fact]
+		public async Task UTCID10_FilterSingleQuestionAsync_SkillNegative_ReturnsEmptyList()
+		{
+			// Arrange
+			var response = CreatePaginationResponse(count: 0, totalCount: 0);
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, -1, null!, 1, 6, CommonStatus.Active))
+				.ReturnsAsync(response);
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(null, null, null, -1, null!, 1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeTrue();
+			result.Data!.DataPaginated.Should().BeEmpty();
+		}
 
 		//UTCID11: Lọc câu hỏi với page = -1 : PartId = null, QuestionTypeId = null,keyWord = null, sortOrder = null,page=-1, pageSize=6, status=Active
 		// trả về exception
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID11")]
+		[Fact]
+		public async Task UTCID11_FilterSingleQuestionAsync_PageNegative_ReturnsFailure()
+		{
+			// Arrange
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, -1, 6, CommonStatus.Active))
+				.ThrowsAsync(new Exception("Invalid page"));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(null, null, null, null, null!, -1, 6, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Invalid page");
+		}
 
 		//UTCID12: Lọc câu hỏi với pageSize = -1 : PartId = null, QuestionTypeId = null,keyWord = null, sortOrder = null,page=1, pageSize=-1, status=Active
 		// trả về exception
+		[Trait("Category", "FilterSingleQuestionAsync")]
+		[Trait("TestCase", "UTCID12")]
+		[Fact]
+		public async Task UTCID12_FilterSingleQuestionAsync_PageSizeNegative_ReturnsFailure()
+		{
+			// Arrange
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 1, -1, CommonStatus.Active))
+				.ThrowsAsync(new Exception("Invalid page size"));
+
+			var service = CreateService();
+
+			// Act
+			var result = await service.FilterSingleQuestionAsync(null, null, null, null, null!, 1, -1, CommonStatus.Active);
+
+			// Assert
+			result.IsSuccess.Should().BeFalse();
+			result.ErrorMessage.Should().Be("Invalid page size");
+		}
 		#endregion
 	}
 }
