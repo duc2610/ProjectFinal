@@ -606,15 +606,21 @@ export function TestHistoryTab() {
                   fontStyle: "italic",
                   marginBottom: 8,
                   color: "#666",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
                   background: "#f9f9f9",
                   padding: 8,
                   borderRadius: 4,
                   borderLeft: "3px solid #d9d9d9",
+                  overflowX: "auto",
                 }}
               >
-                {row.passage}
+                {typeof row.passage === "string" ? (
+                  <div
+                    style={{ whiteSpace: "normal", wordBreak: "normal" }}
+                    dangerouslySetInnerHTML={{ __html: row.passage }}
+                  />
+                ) : (
+                  row.passage
+                )}
               </div>
             )}
             {typeof row.question === "string" && row.question.trim().length > 0 && (

@@ -1115,8 +1115,15 @@ export default function ResultScreen() {
             </Tag>
           </div>
           {row.passage && (
-            <div style={{ fontStyle: "italic", color: "#666", marginBottom: 6, whiteSpace: "pre-wrap" }}>
-              {formatQuestionText(row.passage)}
+            <div style={{ fontStyle: "italic", color: "#666", marginBottom: 6 }}>
+              {typeof row.passage === "string" ? (
+                <div
+                  style={{ whiteSpace: "normal", wordBreak: "normal" }}
+                  dangerouslySetInnerHTML={{ __html: row.passage }}
+                />
+              ) : (
+                formatQuestionText(row.passage)
+              )}
             </div>
           )}
           <div style={{ whiteSpace: "pre-wrap" }}>{formatQuestionText(text)}</div>

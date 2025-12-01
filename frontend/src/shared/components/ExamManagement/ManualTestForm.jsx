@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Collapse, Space, Tag, Row, Col, Statistic, Upload, Alert } from "antd";
 import { PlusOutlined, DeleteOutlined, CheckCircleOutlined, UploadOutlined, PictureOutlined } from "@ant-design/icons";
 import { createTestManual, getTestById, updateTestManual, createTestDraft, saveTestPart } from "@services/testsService";
@@ -1254,7 +1254,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                 <Space style={{ marginBottom: 8 }}>
                                                     <strong>Câu hỏi đơn ({partData.questions?.length || 0})</strong>
                                                 </Space>
-                                            <Collapse>
+                                            <Collapse accordion>
                                                 {(partData.questions || []).map((q, qIdx) => {
                                                     const questionLabel = `Part ${part.partId}: Câu ${qIdx + 1}`;
                                                     return (
@@ -1291,7 +1291,10 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                         type="dashed"
                                                         size="large"
                                                         icon={<PlusOutlined />}
-                                                        onClick={() => addQuestion(part.partId)}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            addQuestion(part.partId);
+                                                        }}
                                                         style={{ width: "100%" }}
                                                     >
                                                         Thêm câu hỏi
@@ -1316,7 +1319,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                 <Space style={{ marginBottom: 8 }}>
                                                     <strong>Nhóm câu hỏi ({partData.groups?.length || 0})</strong>
                                                 </Space>
-                                                <Collapse>
+                                                <Collapse accordion>
                                                     {(partData.groups || []).map((group, gIdx) => (
                                                         <Panel
                                                             header={`Nhóm ${gIdx + 1} (${group.questions?.length || 0} câu)`}
@@ -1353,7 +1356,10 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                             type="dashed"
                                                             size="large"
                                                             icon={<PlusOutlined />}
-                                                            onClick={() => addGroup(part.partId)}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                addGroup(part.partId);
+                                                            }}
                                                             style={{ width: "100%" }}
                                                         >
                                                             Thêm nhóm
@@ -1693,6 +1699,92 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
     const isPassageVisible = !([3, 4].includes(partId));
     const isPassageOptional = [3, 4].includes(partId);
 
+    // Editor WYSIWYG cho passage
+    const passageEditorRef = useRef(null);
+
+    // State hỗ trợ tạo bảng nhanh trong passage
+    const [showTableModal, setShowTableModal] = useState(false);
+    const [tableRows, setTableRows] = useState(2);
+    const [tableCols, setTableCols] = useState(2);
+    const [tableData, setTableData] = useState(() =>
+        Array.from({ length: 2 }, () => Array(2).fill(""))
+    );
+
+    const handleChangeTableSize = (rows, cols) => {
+        const safeRows = Math.max(1, Math.min(10, rows || 1));
+        const safeCols = Math.max(1, Math.min(10, cols || 1));
+        setTableRows(safeRows);
+        setTableCols(safeCols);
+        setTableData((prev) =>
+            Array.from({ length: safeRows }, (_, r) =>
+                Array.from({ length: safeCols }, (_, c) => (prev[r] && prev[r][c]) || "")
+            )
+        );
+    };
+
+    const handleCellChange = (r, c, value) => {
+        setTableData((prev) => {
+            const next = prev.map((row) => [...row]);
+            if (!next[r]) next[r] = [];
+            next[r][c] = value;
+            return next;
+        });
+    };
+
+    const handleInsertTable = () => {
+        let html = '<table border="1" cellpadding="4" cellspacing="0"><tbody>';
+        tableData.forEach((row) => {
+            html += "<tr>";
+            row.forEach((cell) => {
+                const safe = cell || "";
+                html += `<td>${safe}</td>`;
+            });
+            html += "</tr>";
+        });
+        html += "</tbody></table>";
+
+        const editor = passageEditorRef.current;
+        if (editor && editor.isConnected) {
+            editor.focus();
+            const selection = window.getSelection();
+            let range =
+                selection && selection.rangeCount > 0
+                    ? selection.getRangeAt(0)
+                    : null;
+
+            // Nếu caret không nằm trong editor, chèn vào cuối
+            if (!range || !editor.contains(range.commonAncestorContainer)) {
+                range = document.createRange();
+                range.selectNodeContents(editor);
+                range.collapse(false);
+            }
+
+            const temp = document.createElement("div");
+            temp.innerHTML = html;
+            const fragment = document.createDocumentFragment();
+            while (temp.firstChild) {
+                fragment.appendChild(temp.firstChild);
+            }
+
+            range.deleteContents();
+            range.insertNode(fragment);
+
+            if (selection) {
+                selection.removeAllRanges();
+                range.collapse(false);
+                selection.addRange(range);
+            }
+
+            onUpdate("passage", editor.innerHTML);
+        } else {
+            const existing = group.passage || "";
+            const newPassage = existing ? `${existing}${html}` : html;
+            onUpdate("passage", newPassage);
+        }
+
+        setShowTableModal(false);
+    };
+
     // Validate group fields - chỉ hiển thị lỗi khi showValidation = true
     const passageError = showValidation && !isPassageOptional && !isValidString(group.passage) 
         ? "Passage không được để trống!" 
@@ -1711,14 +1803,36 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
                     validateStatus={passageError ? "error" : ""}
                     help={passageError}
                 >
-                    <TextArea
-                        value={group.passage || ""}
-                        onChange={(e) => onUpdate("passage", e.target.value)}
-                        rows={6}
-                        placeholder={isPassageOptional ? "Nhập passage/đoạn văn cho nhóm câu hỏi (tùy chọn)" : "Nhập passage/đoạn văn cho nhóm câu hỏi"}
-                        disabled={readOnly}
-                        status={passageError ? "error" : ""}
+                    {/* Editor WYSIWYG: hiển thị thẳng bảng/định dạng, không hiển thị code */}
+                    <div
+                        ref={passageEditorRef}
+                        contentEditable={!readOnly}
+                        suppressContentEditableWarning
+                        onInput={(e) => onUpdate("passage", e.currentTarget.innerHTML)}
+                        style={{
+                            minHeight: 120,
+                            maxHeight: 320,
+                            overflowY: "auto",
+                            padding: 8,
+                            borderRadius: 6,
+                            border: passageError ? "1px solid #ff4d4f" : "1px solid #d9d9d9",
+                            background: readOnly ? "#f5f5f5" : "#ffffff",
+                            whiteSpace: "normal",
+                            wordBreak: "break-word",
+                            cursor: readOnly ? "default" : "text",
+                        }}
+                        dangerouslySetInnerHTML={{ __html: group.passage || "" }}
                     />
+                    {!readOnly && (
+                        <div style={{ marginTop: 8 }}>
+                            <Button
+                                size="small"
+                                onClick={() => setShowTableModal(true)}
+                            >
+                                Tạo bảng nhanh
+                            </Button>
+                        </div>
+                    )}
                 </Form.Item>
             )}
 
@@ -1843,6 +1957,74 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
                     </div>
                 )}
             </Form.Item>
+
+            {/* Modal tạo bảng nhanh cho passage */}
+            <Modal
+                title="Tạo bảng cho Passage"
+                open={showTableModal}
+                onCancel={() => setShowTableModal(false)}
+                onOk={handleInsertTable}
+                okText="Chèn vào passage"
+                cancelText="Hủy"
+                destroyOnClose
+                width={640}
+            >
+                <p>Nhập nội dung bảng, hệ thống sẽ tự tạo mã HTML và chèn vào passage.</p>
+                <Space style={{ marginBottom: 12 }}>
+                    <span>Số dòng:</span>
+                    <InputNumber
+                        min={1}
+                        max={10}
+                        value={tableRows}
+                        onChange={(val) => handleChangeTableSize(val, tableCols)}
+                    />
+                    <span>Số cột:</span>
+                    <InputNumber
+                        min={1}
+                        max={10}
+                        value={tableCols}
+                        onChange={(val) => handleChangeTableSize(tableRows, val)}
+                    />
+                </Space>
+                <div style={{ overflowX: "auto" }}>
+                    <table
+                        style={{
+                            borderCollapse: "collapse",
+                            width: "100%",
+                            minWidth: Math.min(120 * tableCols, 800),
+                        }}
+                    >
+                        <tbody>
+                            {Array.from({ length: tableRows }).map((_, r) => (
+                                <tr key={r}>
+                                    {Array.from({ length: tableCols }).map((__, c) => (
+                                        <td
+                                            key={c}
+                                            style={{
+                                                border: "1px solid #e5e7eb",
+                                                padding: 4,
+                                            }}
+                                        >
+                                            <Input
+                                                size="small"
+                                                placeholder={`Ô (${r + 1}, ${c + 1})`}
+                                                value={
+                                                    tableData[r] && tableData[r][c]
+                                                        ? tableData[r][c]
+                                                        : ""
+                                                }
+                                                onChange={(e) =>
+                                                    handleCellChange(r, c, e.target.value)
+                                                }
+                                            />
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </Modal>
         </Space>
     );
 }

@@ -743,18 +743,28 @@ export default function QuestionCard({
 
       <div className={styles.qContentRow}>
         {question.passage && (
-          <div style={{
-            margin: "0 0 20px 0",
-            padding: "20px",
-            background: "linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)",
-            borderRadius: "12px",
-            border: "1px solid #e2e8f0",
-            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
-            whiteSpace: "pre-line" // Giữ nguyên xuống dòng từ \r\n và \n
-          }}>
-            <Text italic style={{ fontSize: "15px", lineHeight: "1.8", color: "#4a5568" }}>
-              {question.passage}
-            </Text>
+          <div
+            style={{
+              margin: "0 0 20px 0",
+              padding: "20px",
+              background: "linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)",
+              borderRadius: "12px",
+              border: "1px solid #e2e8f0",
+              boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
+              overflowX: "auto",
+            }}
+          >
+            {/* Hỗ trợ HTML (ví dụ: bảng) trong passage nếu là string */}
+            {typeof question.passage === "string" ? (
+              <div
+                style={{ fontSize: "15px", lineHeight: "1.8", color: "#4a5568" }}
+                dangerouslySetInnerHTML={{ __html: question.passage }}
+              />
+            ) : (
+              <Text italic style={{ fontSize: "15px", lineHeight: "1.8", color: "#4a5568" }}>
+                {question.passage}
+              </Text>
+            )}
           </div>
         )}
 

@@ -41,10 +41,17 @@ export function LRQuestionsSection({
                 fontStyle: "italic",
                 color: "#666",
                 marginBottom: 6,
-                whiteSpace: "pre-wrap",
+                overflowX: "auto",
               }}
             >
-              {row.passage}
+              {typeof row.passage === "string" ? (
+                <div
+                  style={{ whiteSpace: "normal", wordBreak: "normal" }}
+                  dangerouslySetInnerHTML={{ __html: row.passage }}
+                />
+              ) : (
+                row.passage
+              )}
             </div>
           )}
           <div style={{ whiteSpace: "pre-wrap" }}>{row.question}</div>
