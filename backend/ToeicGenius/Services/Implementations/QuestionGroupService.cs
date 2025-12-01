@@ -365,23 +365,41 @@ namespace ToeicGenius.Services.Implementations
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(request.PartId);
-		
+
 			// check part 1,2 Listening
 			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
 			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
 			bool isLRPart34 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 3 || part.PartNumber == 4);
 
+			// Speaking Part 13 (S-Part 3), Part 14 (S-Part 4) là group question
+			bool isSpeakingPart34 = part != null && part.Skill == QuestionSkill.Speaking && (part.PartNumber == 3 || part.PartNumber == 4);
+
+			// L&R Part 3,4 không cần passage (chỉ có audio), Speaking Part 13,14 cần passage
 			if (!isLRPart34 && string.IsNullOrWhiteSpace(request.PassageContent))
 			{
 				return Result<string>.Failure("Passage của nhóm câu hỏi không được để trống.");
 			}
+
+			// Speaking/Writing questions không cần options (tự nói/viết)
+			bool isSpeakingOrWriting = part != null && (part.Skill == QuestionSkill.Speaking || part.Skill == QuestionSkill.Writing);
+
 			foreach (var q in request.Questions)
 			{
-				if ((!isLRPart6 || !isLRPart12) && string.IsNullOrWhiteSpace(q.Content))
+				// L&R Part 1,2,6 có thể không cần content (audio-based)
+				// Speaking Part 13, 14 và các part khác cần content cho câu hỏi
+				bool canSkipContent = isLRPart12 || isLRPart6;
+				if (!canSkipContent && string.IsNullOrWhiteSpace(q.Content))
 				{
 					return Result<string>.Failure("Content của câu hỏi không được để trống.");
 				}
-				// Nếu có đáp án
+
+				// Speaking/Writing không cần validate options (không có trắc nghiệm)
+				if (isSpeakingOrWriting)
+				{
+					continue;
+				}
+
+				// Nếu có đáp án (cho L&R)
 				if (q.AnswerOptions != null && q.AnswerOptions.Any())
 				{
 					foreach (var opt in q.AnswerOptions)
@@ -433,17 +451,36 @@ namespace ToeicGenius.Services.Implementations
 			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
 			bool isLRPart34 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 3 || part.PartNumber == 4);
 
+			// Speaking Part 13 (S-Part 3): Respond to questions - có passage/context
+			// Speaking Part 14 (S-Part 4): Respond to questions using information - có passage + optional image
+			bool isSpeakingPart34 = part != null && part.Skill == QuestionSkill.Speaking && (part.PartNumber == 3 || part.PartNumber == 4);
+
+			// L&R Part 3,4 không cần passage (chỉ có audio), Speaking Part 13,14 cần passage
 			if (!isLRPart34 && string.IsNullOrWhiteSpace(request.PassageContent))
 			{
 				return Result<string>.Failure("Passage của nhóm câu hỏi không được để trống.");
 			}
+
+			// Speaking/Writing questions không cần options (tự nói/viết)
+			bool isSpeakingOrWriting = part != null && (part.Skill == QuestionSkill.Speaking || part.Skill == QuestionSkill.Writing);
+
 			foreach (var q in request.Questions)
 			{
-				if ((!isLRPart6 || !isLRPart12) && string.IsNullOrWhiteSpace(q.Content))
+				// L&R Part 1,2,6 có thể không cần content (audio-based)
+				// Speaking Part 13, 14 và các part khác cần content cho câu hỏi
+				bool canSkipContent = isLRPart12 || isLRPart6;
+				if (!canSkipContent && string.IsNullOrWhiteSpace(q.Content))
 				{
 					return Result<string>.Failure("Content của câu hỏi không được để trống.");
 				}
-				// Nếu có đáp án
+
+				// Speaking/Writing không cần validate options (không có trắc nghiệm)
+				if (isSpeakingOrWriting)
+				{
+					continue;
+				}
+
+				// Nếu có đáp án (cho L&R)
 				if (q.AnswerOptions != null && q.AnswerOptions.Any())
 				{
 					foreach (var opt in q.AnswerOptions)
