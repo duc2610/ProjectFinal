@@ -1261,7 +1261,7 @@ namespace ToeicGenius.Tests.UnitTests
 				VisibilityStatus = TestVisibilityStatus.Published
 			};
 
-			var result = await service.UpdateStatusAsync(request);
+			var result = await service.UpdateStatusAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Not found");
@@ -1287,7 +1287,7 @@ namespace ToeicGenius.Tests.UnitTests
 				VisibilityStatus = TestVisibilityStatus.Published
 			};
 
-			var result = await service.UpdateStatusAsync(request);
+			var result = await service.UpdateStatusAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Only completed tests can be published.");
@@ -1314,7 +1314,7 @@ namespace ToeicGenius.Tests.UnitTests
 				VisibilityStatus = TestVisibilityStatus.Published
 			};
 
-			var result = await service.UpdateStatusAsync(request);
+			var result = await service.UpdateStatusAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Only completed tests can be published.");
@@ -1344,7 +1344,7 @@ namespace ToeicGenius.Tests.UnitTests
 				VisibilityStatus = TestVisibilityStatus.Published
 			};
 
-			var result = await service.UpdateStatusAsync(request);
+			var result = await service.UpdateStatusAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be("Test 1 Published successfully");
@@ -1376,7 +1376,7 @@ namespace ToeicGenius.Tests.UnitTests
 				VisibilityStatus = TestVisibilityStatus.Hidden
 			};
 
-			var result = await service.UpdateStatusAsync(request);
+			var result = await service.UpdateStatusAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be("Test 1 Hidden successfully");
@@ -1526,7 +1526,7 @@ namespace ToeicGenius.Tests.UnitTests
 				Parts = new List<PartDto>()
 			};
 
-			var result = await service.UpdateManualTestAsync(0, dto);
+			var result = await service.UpdateManualTestAsync(0, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Test not found");
@@ -1600,7 +1600,7 @@ namespace ToeicGenius.Tests.UnitTests
 			};
 
 			// Act
-			var result = await service.UpdateManualTestAsync(2, dto);
+			var result = await service.UpdateManualTestAsync(2, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Tổng số câu hỏi trong test clone
 			addedTest!.TotalQuestion = addedQuestions.Count;
@@ -1683,7 +1683,7 @@ namespace ToeicGenius.Tests.UnitTests
 				}
 			};
 
-			var result = await service.UpdateManualTestAsync(1, dto);
+			var result = await service.UpdateManualTestAsync(1, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be($"Updated successfully TestId={existing.TestId}");
@@ -1748,7 +1748,7 @@ namespace ToeicGenius.Tests.UnitTests
 				}
 			};
 
-			var result = await service.UpdateManualTestAsync(1, dto);
+			var result = await service.UpdateManualTestAsync(1, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be($"Updated successfully TestId={existing.TestId}");
@@ -1800,7 +1800,7 @@ namespace ToeicGenius.Tests.UnitTests
 				}
 			};
 
-			var result = await service.UpdateManualTestAsync(1, dto);
+			var result = await service.UpdateManualTestAsync(1, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be($"Updated successfully TestId={existing.TestId}");
@@ -1843,7 +1843,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 			uowMock.Setup(u => u.SaveChangesAsync()).ThrowsAsync(new Exception("Database error"));
 
-			var result = await service.UpdateManualTestAsync(1, dto);
+			var result = await service.UpdateManualTestAsync(1, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Database error");
@@ -1877,7 +1877,7 @@ namespace ToeicGenius.Tests.UnitTests
 				GroupQuestionIds = null
 			};
 
-			var result = await service.UpdateTestFromBankAsync(1, dto);
+			var result = await service.UpdateTestFromBankAsync(1, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Must provide single question id or group question id");
@@ -1926,7 +1926,7 @@ namespace ToeicGenius.Tests.UnitTests
 				GroupQuestionIds = null
 			};
 
-			var result = await service.UpdateTestFromBankAsync(1, dto);
+			var result = await service.UpdateTestFromBankAsync(1, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be($"Updated successfully TestId={existing.TestId}");
@@ -1984,7 +1984,7 @@ namespace ToeicGenius.Tests.UnitTests
 				GroupQuestionIds = new List<int> { 1 }
 			};
 
-			var result = await service.UpdateTestFromBankAsync(1, dto);
+			var result = await service.UpdateTestFromBankAsync(1, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be($"Updated successfully TestId={existing.TestId}");
@@ -2048,7 +2048,7 @@ namespace ToeicGenius.Tests.UnitTests
 				GroupQuestionIds = new List<int> { 2 }
 			};
 
-			var result = await service.UpdateTestFromBankAsync(1, dto);
+			var result = await service.UpdateTestFromBankAsync(1, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be($"Updated successfully TestId={existing.TestId}");
@@ -2081,7 +2081,7 @@ namespace ToeicGenius.Tests.UnitTests
 				GroupQuestionIds = null
 			};
 
-			var result = await service.UpdateTestFromBankAsync(0, dto);
+			var result = await service.UpdateTestFromBankAsync(0, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Test not found");
@@ -2132,7 +2132,7 @@ namespace ToeicGenius.Tests.UnitTests
 				GroupQuestionIds = null
 			};
 
-			var result = await service.UpdateTestFromBankAsync(1, dto);
+			var result = await service.UpdateTestFromBankAsync(1, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().StartWith("Cloned to new version v");

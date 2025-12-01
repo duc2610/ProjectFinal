@@ -172,7 +172,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 3, totalCount: 3);
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(1, "How old", 3, "desc", 1, 6, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(1, "How old", 3, "desc", 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -186,7 +186,7 @@ namespace ToeicGenius.Tests.UnitTests
 			result.Data!.DataPaginated.Should().HaveCount(3);
 			result.Data!.DataPaginated.All(q => q.IsGroupQuestion).Should().BeTrue();
 			_uow.Verify(u => u.QuestionGroups.FilterGroupAsync(
-				1, "How old", 3, "desc", 1, 6, CommonStatus.Active), Times.Once);
+				1, "How old", 3, "desc", 1, 6, CommonStatus.Active, null), Times.Once);
 		}
 
 
@@ -199,7 +199,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 6, totalCount: 10);
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -221,7 +221,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(0, null, null, null!, 1, 6, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(0, null, null, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -242,7 +242,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -263,7 +263,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, 0, null!, 1, 6, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, 0, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -284,7 +284,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0, currentPage: 0);
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 0, 6, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 0, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -305,7 +305,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0, pageSize: 0);
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 0, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 0, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -326,7 +326,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(-1, null, null, null!, 1, 6, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(-1, null, null, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -347,7 +347,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -368,7 +368,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, -1, null!, 1, 6, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, -1, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -388,7 +388,7 @@ namespace ToeicGenius.Tests.UnitTests
 		public async Task UTCID11_FilterQuestionGroupAsync_PageNegative_ReturnsFailure()
 		{
 			// Arrange
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, -1, 6, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, -1, 6, CommonStatus.Active, null))
 				.ThrowsAsync(new Exception("Invalid page"));
 
 			var service = CreateService();
@@ -408,7 +408,7 @@ namespace ToeicGenius.Tests.UnitTests
 		public async Task UTCID12_FilterQuestionGroupAsync_PageSizeNegative_ReturnsFailure()
 		{
 			// Arrange
-			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, -1, CommonStatus.Active))
+			_questionGroupRepo.Setup(u => u.FilterGroupAsync(null, null, null, null!, 1, -1, CommonStatus.Active, null))
 				.ThrowsAsync(new Exception("Invalid page size"));
 
 			var service = CreateService();
@@ -655,7 +655,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var request = BuildRequest(4, questionCount: 1);
 			var service = CreateService();
 
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Một nhóm câu hỏi phải có từ 2 đến 5 câu hỏi đơn.");
@@ -681,7 +681,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 			var service = CreateService();
 
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be(SuccessMessages.OperationSuccess);
@@ -706,7 +706,7 @@ namespace ToeicGenius.Tests.UnitTests
 				.ReturnsAsync(Result<string>.Success("audio-url"));
 
 			var service = CreateService();
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be(SuccessMessages.OperationSuccess);
@@ -723,7 +723,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var request = BuildRequest(4, questionCount: 6);
 			var service = CreateService();
 
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Một nhóm câu hỏi phải có từ 2 đến 5 câu hỏi đơn.");
@@ -742,7 +742,7 @@ namespace ToeicGenius.Tests.UnitTests
 			SetupSuccessPersistence();
 
 			var service = CreateService();
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Contain("Định dạng file âm thanh không hợp lệ");
@@ -761,7 +761,7 @@ namespace ToeicGenius.Tests.UnitTests
 			SetupSuccessPersistence();
 
 			var service = CreateService();
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Contain("Dung lượng file âm thanh vượt quá 70MB.");
@@ -780,7 +780,7 @@ namespace ToeicGenius.Tests.UnitTests
 			SetupSuccessPersistence();
 
 			var service = CreateService();
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Phần Listening part yêu cầu phải có file âm thanh.");
@@ -799,7 +799,7 @@ namespace ToeicGenius.Tests.UnitTests
 			SetupSuccessPersistence();
 
 			var service = CreateService();
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Contain("Định dạng file hình ảnh không hợp lệ");
@@ -818,7 +818,7 @@ namespace ToeicGenius.Tests.UnitTests
 			SetupSuccessPersistence();
 
 			var service = CreateService();
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Contain("Dung lượng file hình ảnh vượt quá 5MB.");
@@ -836,7 +836,7 @@ namespace ToeicGenius.Tests.UnitTests
 			SetupSuccessPersistence();
 
 			var service = CreateService();
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be(SuccessMessages.OperationSuccess);
@@ -869,7 +869,7 @@ namespace ToeicGenius.Tests.UnitTests
 			SetupSuccessPersistence();
 
 			var service = CreateService();
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Các nhãn (label) của đáp án phải là duy nhất, không được trùng nhau.");
@@ -900,7 +900,7 @@ namespace ToeicGenius.Tests.UnitTests
 			SetupSuccessPersistence();
 
 			var service = CreateService();
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Số lượng đáp án phải đúng bằng 4.");
@@ -932,7 +932,7 @@ namespace ToeicGenius.Tests.UnitTests
 			SetupSuccessPersistence();
 
 			var service = CreateService();
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Cần có duy nhất một đáp án đúng.");
@@ -954,7 +954,7 @@ namespace ToeicGenius.Tests.UnitTests
 				.ReturnsAsync(Result<string>.Success("audio-url"));
 
 			var service = CreateService();
-			var result = await service.CreateAsync(request);
+			var result = await service.CreateAsync(request, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Contain("DB error");
@@ -996,7 +996,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var dto = BuildUpdateDto(groupId, partId, questionCount: 1);
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Quantity of question in group must be between 2 and 5.");
@@ -1024,7 +1024,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var dto = BuildUpdateDto(groupId, partId, questionCount: 2, audio: audioFile, image: imageFile);
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be($"QuestionGroup {groupId} updated successfully.");
@@ -1051,7 +1051,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 			var dto = BuildUpdateDto(groupId, partId, questionCount: 5, audio: audioFile);
 			var service = CreateService();
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be($"QuestionGroup {groupId} updated successfully.");
@@ -1072,7 +1072,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var dto = BuildUpdateDto(groupId, partId, questionCount: 6);
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Quantity of question in group must be between 2 and 5.");
@@ -1094,7 +1094,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var dto = BuildUpdateDto(groupId, partId, questionCount: 2, audio: audioFile);
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Contain("Định dạng file âm thanh không hợp lệ");
@@ -1116,7 +1116,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var dto = BuildUpdateDto(groupId, partId, questionCount: 2, audio: audioFile);
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Contain("Dung lượng file âm thanh vượt quá 70MB.");
@@ -1138,7 +1138,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var dto = BuildUpdateDto(groupId, partId, questionCount: 2, audio: null);
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Audio file is required for Listening part.");
@@ -1160,7 +1160,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var dto = BuildUpdateDto(groupId, partId, questionCount: 2, image: imageFile);
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Contain("Định dạng file hình ảnh không hợp lệ");
@@ -1182,7 +1182,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var dto = BuildUpdateDto(groupId, partId, questionCount: 2, image: imageFile);
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Contain("Dung lượng file hình ảnh vượt quá 5MB.");
@@ -1204,7 +1204,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var dto = BuildUpdateDto(groupId, partId, questionCount: 2);
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be($"QuestionGroup {groupId} updated successfully.");
@@ -1241,7 +1241,7 @@ namespace ToeicGenius.Tests.UnitTests
 			});
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Các nhãn (label) của đáp án phải là duy nhất, không được trùng nhau.");
@@ -1276,7 +1276,7 @@ namespace ToeicGenius.Tests.UnitTests
 			});
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Số lượng đáp án phải đúng bằng 4.");
@@ -1312,7 +1312,7 @@ namespace ToeicGenius.Tests.UnitTests
 			});
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Cần có duy nhất một đáp án đúng.");
@@ -1336,7 +1336,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 			var dto = BuildUpdateDto(groupId, partId, questionCount: 2, audio: audioFile);
 			var service = CreateService();
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Contain("DB error");
@@ -1357,7 +1357,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var dto = BuildUpdateDto(groupId, partId);
 			var service = CreateService();
 
-			var result = await service.UpdateAsync(groupId, dto);
+			var result = await service.UpdateAsync(groupId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Không tìm thấy nhóm câu hỏi");

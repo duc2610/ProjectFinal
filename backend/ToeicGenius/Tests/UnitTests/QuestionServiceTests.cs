@@ -13,6 +13,7 @@ using ToeicGenius.Services.Implementations;
 using ToeicGenius.Services.Interfaces;
 using ToeicGenius.Shared.Constants;
 using Xunit;
+using Castle.Components.DictionaryAdapter.Xml;
 
 namespace ToeicGenius.Tests.UnitTests
 {
@@ -754,7 +755,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(999, dto);
+			var result = await service.UpdateAsync(999, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -780,7 +781,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -812,7 +813,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeTrue();
@@ -846,7 +847,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeTrue();
@@ -871,7 +872,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeTrue();
@@ -896,7 +897,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -921,7 +922,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -946,7 +947,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -971,7 +972,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -999,7 +1000,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1026,7 +1027,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1061,7 +1062,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1094,7 +1095,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1125,7 +1126,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1155,7 +1156,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1185,7 +1186,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1215,7 +1216,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1246,7 +1247,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeTrue();
@@ -1272,7 +1273,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateAsync(question.QuestionId, dto);
+			var result = await service.UpdateAsync(question.QuestionId, dto, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeTrue();
@@ -1356,7 +1357,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateStatusAsync(question.QuestionId, isGroupQuestion: false, isRestore: false);
+			var result = await service.UpdateStatusAsync(question.QuestionId, isGroupQuestion: false, isRestore: false, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeTrue();
@@ -1379,11 +1380,10 @@ namespace ToeicGenius.Tests.UnitTests
 
 			_unitOfWorkMock.Setup(u => u.Questions.GetQuestionByIdAndStatus(question.QuestionId, CommonStatus.Inactive))
 				.ReturnsAsync(question);
-
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateStatusAsync(question.QuestionId, isGroupQuestion: false, isRestore: true);
+			var result = await service.UpdateStatusAsync(question.QuestionId, isGroupQuestion: false, isRestore: true, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeTrue();
@@ -1412,7 +1412,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: false);
+			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: false, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeTrue();
@@ -1442,7 +1442,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: true);
+			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: true, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeTrue();
@@ -1466,7 +1466,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateStatusAsync(999, isGroupQuestion: false, isRestore: false);
+			var result = await service.UpdateStatusAsync(999, isGroupQuestion: false, isRestore: false, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1489,7 +1489,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateStatusAsync(999, isGroupQuestion: false, isRestore: true);
+			var result = await service.UpdateStatusAsync(999, isGroupQuestion: false, isRestore: true, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1510,7 +1510,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateStatusAsync(999, isGroupQuestion: true, isRestore: false);
+			var result = await service.UpdateStatusAsync(999, isGroupQuestion: true, isRestore: false, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1531,7 +1531,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateStatusAsync(999, isGroupQuestion: true, isRestore: true);
+			var result = await service.UpdateStatusAsync(999, isGroupQuestion: true, isRestore: true, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1559,7 +1559,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: false);
+			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: false, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1589,7 +1589,7 @@ namespace ToeicGenius.Tests.UnitTests
 			var service = CreateService();
 
 			// Act
-			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: true);
+			var result = await service.UpdateStatusAsync(group.QuestionGroupId, isGroupQuestion: true, isRestore: true, Guid.Parse("11111111-1111-1111-1111-111111111111"));
 
 			// Assert
 			result.IsSuccess.Should().BeFalse();
@@ -1625,7 +1625,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 3, totalCount: 3);
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(1, 1, "How old", 3, "desc", 1, 6, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(1, 1, "How old", 3, "desc", 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -1637,7 +1637,7 @@ namespace ToeicGenius.Tests.UnitTests
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().NotBeNull();
 			result.Data!.DataPaginated.Should().HaveCount(3);
-			_unitOfWorkMock.Verify(u => u.Questions.FilterSingleAsync(1, 1, "How old", 3, "desc", 1, 6, CommonStatus.Active), Times.Once);
+			_unitOfWorkMock.Verify(u => u.Questions.FilterSingleAsync(1, 1, "How old", 3, "desc", 1, 6, CommonStatus.Active, null), Times.Once);
 		}
 
 		//UTCID02: Lọc câu hỏi với filter rỗng: PartId = null, QuestionTypeId = null,keyWord = null, sortOrder = null,page=1, pageSize=6, status=Active
@@ -1649,7 +1649,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 6, totalCount: 10);
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 1, 6, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -1672,7 +1672,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(0, null, null, null, null!, 1, 6, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(0, null, null, null, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -1694,7 +1694,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, 0, null, null, null!, 1, 6, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, 0, null, null, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -1716,7 +1716,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, 0, null!, 1, 6, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, 0, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -1739,7 +1739,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0, currentPage: 0);
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 0, 6, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 0, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -1762,7 +1762,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0, pageSize: 0);
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 1, 0, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 1, 0, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -1784,7 +1784,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(-1, null, null, null, null!, 1, 6, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(-1, null, null, null, null!, 1, 6, CommonStatus.Active, null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -1806,7 +1806,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, -1, null, null, null!, 1, 6, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, -1, null, null, null!, 1, 6, CommonStatus.Active,null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -1828,7 +1828,7 @@ namespace ToeicGenius.Tests.UnitTests
 		{
 			// Arrange
 			var response = CreatePaginationResponse(count: 0, totalCount: 0);
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, -1, null!, 1, 6, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, -1, null!, 1, 6, CommonStatus.Active,null))
 				.ReturnsAsync(response);
 
 			var service = CreateService();
@@ -1849,7 +1849,7 @@ namespace ToeicGenius.Tests.UnitTests
 		public async Task UTCID11_FilterSingleQuestionAsync_PageNegative_ReturnsFailure()
 		{
 			// Arrange
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, -1, 6, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, -1, 6, CommonStatus.Active,null))
 				.ThrowsAsync(new Exception("Invalid page"));
 
 			var service = CreateService();
@@ -1870,7 +1870,7 @@ namespace ToeicGenius.Tests.UnitTests
 		public async Task UTCID12_FilterSingleQuestionAsync_PageSizeNegative_ReturnsFailure()
 		{
 			// Arrange
-			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 1, -1, CommonStatus.Active))
+			_unitOfWorkMock.Setup(u => u.Questions.FilterSingleAsync(null, null, null, null, null!, 1, -1, CommonStatus.Active, null))
 				.ThrowsAsync(new Exception("Invalid page size"));
 
 			var service = CreateService();
