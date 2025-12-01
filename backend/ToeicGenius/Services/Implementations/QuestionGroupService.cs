@@ -62,7 +62,7 @@ namespace ToeicGenius.Services.Implementations
 		/// </summary>
 		public async Task<Result<string>> CreateAsync(QuestionGroupRequestDto request, Guid creatorId)
 		{
-			var validationResult = await ValidateQuestionsGroup(request);
+			var validationResult = await ValidateCreateQuestionsGroup(request);
 			if (!validationResult.IsSuccess)
 				return validationResult;
 
@@ -183,7 +183,7 @@ namespace ToeicGenius.Services.Implementations
 				}
 			}
 
-			var validationResult = await ValidateQuestionsGroup(dto);
+			var validationResult = await ValidateUpdateQuestionsGroup(dto);
 			if (!validationResult.IsSuccess)
 				return validationResult;
 
@@ -353,7 +353,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		private async Task<Result<string>> ValidateQuestionsGroup(UpdateQuestionGroupDto request)
+		private async Task<Result<string>> ValidateUpdateQuestionsGroup(UpdateQuestionGroupDto request)
 		{
 			// Check valid quantity
 			var quantityQuestion = request.Questions.Count();
@@ -365,7 +365,7 @@ namespace ToeicGenius.Services.Implementations
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(request.PartId);
-
+		
 			// check part 1,2 Listening
 			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
 			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
@@ -408,7 +408,7 @@ namespace ToeicGenius.Services.Implementations
 			return Result<string>.Success("Validation passed");
 		}
 
-		private async Task<Result<string>> ValidateQuestionsGroup(QuestionGroupRequestDto request)
+		private async Task<Result<string>> ValidateCreateQuestionsGroup(QuestionGroupRequestDto request)
 		{
 			// Check valid quantity
 			var quantityQuestion = request.Questions.Count();
@@ -420,7 +420,14 @@ namespace ToeicGenius.Services.Implementations
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(request.PartId);
-
+			// Listening part yêu cầu file audio
+			if (part != null && part.Skill == QuestionSkill.Listening)
+			{
+				if (request.Audio == null || request.Audio.Length == 0)
+				{
+					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
+				}
+			}
 			// check part 1,2 Listening
 			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
 			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
