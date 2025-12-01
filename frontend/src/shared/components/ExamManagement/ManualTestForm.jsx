@@ -880,7 +880,12 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         try {
             setSavingPartId(partId);
             await saveTestPart(testId, partId, partPayload);
-            message.success(`Đã lưu Part ${partId} thành công!`);
+            // Tìm tên part thân thiện (ví dụ: W-Part 2, S-Part 5) để hiển thị trong toast
+            const friendlyPartName = (() => {
+                const partMeta = (parts || []).find(p => p.partId === partId);
+                return partMeta?.name || `Part ${partId}`;
+            })();
+            message.success(`Đã lưu ${friendlyPartName} thành công!`);
             setShowValidation(false);
             if (onSuccess) {
                 onSuccess();
@@ -899,7 +904,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                         const newId = await clonePublishedTestToDraft();
                         if (newId) {
                             await saveTestPart(newId, partId, partPayload);
-                            message.success(`Đã tạo phiên bản mới (ID ${newId}) và lưu Part ${partId} thành công!`);
+                            const friendlyPartName = (() => {
+                                const partMeta = (parts || []).find(p => p.partId === partId);
+                                return partMeta?.name || `Part ${partId}`;
+                            })();
+                            message.success(`Đã tạo phiên bản mới (ID ${newId}) và lưu ${friendlyPartName} thành công!`);
                             setShowValidation(false);
                         } else {
                             message.success("Đã tạo phiên bản mới. Vui lòng mở lại bài thi để tiếp tục chỉnh sửa.");
@@ -911,7 +920,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     }
                 }
             } else {
-                message.error(`Lỗi khi lưu Part ${partId}: ${errorMessage}`);
+                const friendlyPartName = (() => {
+                    const partMeta = (parts || []).find(p => p.partId === partId);
+                    return partMeta?.name || `Part ${partId}`;
+                })();
+                message.error(`Lỗi khi lưu ${friendlyPartName}: ${errorMessage}`);
             }
         } finally {
             setSavingPartId(null);
@@ -1226,13 +1239,14 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 const expectedCount = PART_QUESTION_COUNT[part.partId] || 0;
                                 const actualCount = (partData.groups || []).reduce((sum, g) => sum + (g.questions || []).length, 0) + (partData.questions || []).length;
                                 const isPartValid = actualCount === expectedCount;
+                                const partLabel = part.name || `Part ${part.partId}`;
 
                                 return (
                                     <Tabs.TabPane
                                         key={part.partId}
                                         tab={
                                             <span>
-                                                {part.name || `Part ${part.partId}`}
+                                                {partLabel}
                                                 <Tag color={isPartValid ? "success" : "error"} style={{ marginLeft: 8 }}>
                                                     {actualCount}/{expectedCount}
                                                 </Tag>
@@ -1256,7 +1270,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                 </Space>
                                             <Collapse accordion>
                                                 {(partData.questions || []).map((q, qIdx) => {
-                                                    const questionLabel = `Part ${part.partId}: Câu ${qIdx + 1}`;
+                                                    const questionLabel = `${partLabel}: Câu ${qIdx + 1}`;
                                                     return (
                                                     <Panel
                                                         header={questionLabel}
@@ -1338,6 +1352,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                                 partId={part.partId}
                                                                 groupIndex={gIdx}
                                                                 skill={selectedSkill}
+                                                                partLabel={partLabel}
                                                                 onUpdate={(field, value) => updateGroup(part.partId, gIdx, field, value)}
                                                                 onUpdateQuestion={(questionIndex, field, value) => updateGroupQuestion(part.partId, gIdx, questionIndex, field, value)}
                                                                 onUpdateOption={(questionIndex, optionIndex, field, value) => updateOption(part.partId, questionIndex, optionIndex, field, value, true, gIdx)}
@@ -1378,7 +1393,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                     loading={savingPartId === part.partId}
                                                     onClick={() => handleSavePart(part.partId)}
                                                 >
-                                                    Lưu Part {part.partId}
+                                                    {/* Hiển thị tên part thân thiện (W-Part 1, W-Part 2, ...) thay vì id thật (8, 9, 10) */}
+                                                    Lưu {part.name || `Part ${part.partId}`}
                                                 </Button>
                                             </div>
                                         )}
@@ -1688,7 +1704,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
 }
 
 // Component để edit một nhóm câu hỏi
-function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuestion, onUpdateOption, onAddQuestion, onDeleteQuestion, readOnly, showValidation = false }) {
+function GroupEditor({ group, partId, groupIndex, skill, partLabel, onUpdate, onUpdateQuestion, onUpdateOption, onAddQuestion, onDeleteQuestion, readOnly, showValidation = false }) {
     // Helper để validate string
     const isValidString = (value) => {
         if (!value || typeof value !== "string") return false;
@@ -1698,6 +1714,7 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
     // Parts 3, 4: không hiển thị trường passage
     const isPassageVisible = !([3, 4].includes(partId));
     const isPassageOptional = [3, 4].includes(partId);
+    const friendlyPartLabel = partLabel || `Part ${partId}`;
 
     // Editor WYSIWYG cho passage
     const passageEditorRef = useRef(null);
@@ -1914,7 +1931,7 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
             >
                 <Collapse>
                     {(group.questions || []).map((q, qIdx) => {
-                        const questionLabel = `Part ${partId}: Câu ${qIdx + 1}`;
+                        const questionLabel = `${friendlyPartLabel}: Câu ${qIdx + 1}`;
                         return (
                         <Panel
                             header={questionLabel}
