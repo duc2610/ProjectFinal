@@ -130,7 +130,7 @@ namespace ToeicGenius.Services.Implementations
 
 						options.Add(new Option
 						{
-							Content = isLRPart12 ? null : opt.Content,
+							Content = opt.Content,
 							Label = opt.Label,
 							IsCorrect = opt.IsCorrect,
 							Question = question
