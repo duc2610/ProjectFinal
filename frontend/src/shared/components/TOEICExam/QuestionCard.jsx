@@ -126,6 +126,7 @@ export default function QuestionCard({
   isSubmitting = false,
   globalAudioUrl,
   testType = "Simulator", // Thêm prop testType để xác định loại bài thi
+  testResultId, // testResultId để lưu trạng thái đã phát audio
   isIncorrect = undefined, // Prop để xác định câu hỏi làm sai (undefined = trong quá trình làm bài, true = làm sai ở result, false = làm đúng ở result)
   isReported = false, // Prop để xác định câu hỏi đã được report
   onReportSuccess, // Callback khi report thành công
@@ -176,8 +177,60 @@ export default function QuestionCard({
   const isWritingPart = question.partId >= 8 && question.partId <= 10;
   const isSpeakingPart = question.partId >= 11 && question.partId <= 15;
   const isLrPart = question.partId >= 1 && question.partId <= 7;
+  const isPart1Or2 = question.partId === 1 || question.partId === 2;
   const hasGlobalAudio = globalAudioUrl && globalAudioUrl.trim() !== "";
   const hasImage = question.imageUrl && question.imageUrl.trim() !== "";
+  const isPractice = testType && testType.toLowerCase() === "practice";
+  const isSimulator = testType && testType.toLowerCase() === "simulator";
+  // Xác định audio URL: Practice dùng audioUrl riêng của từng câu, Simulator dùng globalAudioUrl
+  const questionAudioUrl = question.audioUrl && question.audioUrl.trim() !== "" ? question.audioUrl : null;
+  // Logic: Practice dùng audioUrl riêng của từng câu (nếu có), Simulator dùng globalAudioUrl (nếu có)
+  let effectiveAudioUrl = null;
+  if (isPractice && questionAudioUrl) {
+    effectiveAudioUrl = questionAudioUrl;
+  } else if (isSimulator && hasGlobalAudio) {
+    effectiveAudioUrl = globalAudioUrl;
+  } else if (questionAudioUrl) {
+    // Fallback: nếu có questionAudioUrl thì dùng
+    effectiveAudioUrl = questionAudioUrl;
+  } else if (hasGlobalAudio) {
+    // Fallback: nếu có globalAudioUrl thì dùng
+    effectiveAudioUrl = globalAudioUrl;
+  }
+
+  // Hàm lấy key để lưu trạng thái đã phát audio vào sessionStorage
+  const getAudioPlayedKey = () => {
+    if (!testResultId || !isSimulator || !effectiveAudioUrl) return null;
+    // Với simulator, 1 file audio dùng cho tất cả các part listening (1, 2, 3, 4)
+    // Mỗi test result chỉ có 1 globalAudioUrl duy nhất, nên chỉ cần lưu theo testResultId
+    return `toeic_audio_played_${testResultId}`;
+  };
+  
+  // Hàm kiểm tra xem đã phát audio chưa từ sessionStorage
+  const checkAudioPlayedFromStorage = () => {
+    const key = getAudioPlayedKey();
+    if (!key) return false;
+    try {
+      const played = sessionStorage.getItem(key);
+      return played === "true";
+    } catch (error) {
+      console.error("Error reading audio played state from sessionStorage:", error);
+      return false;
+    }
+  };
+  
+  // Hàm lưu trạng thái đã phát audio vào sessionStorage
+  const saveAudioPlayedToStorage = () => {
+    const key = getAudioPlayedKey();
+    if (!key) return;
+    try {
+      sessionStorage.setItem(key, "true");
+    } catch (error) {
+      console.error("Error saving audio played state to sessionStorage:", error);
+    }
+  };
+  
+  const [hasPlayedAudio, setHasPlayedAudio] = useState(() => checkAudioPlayedFromStorage()); // Track xem đã phát audio chưa (cho simulator)
 
   // Chuyển node + offset thành offset toàn cục trong text
   const getGlobalOffset = (root, node, localOffset) => {
@@ -257,13 +310,14 @@ export default function QuestionCard({
   useEffect(() => {
     let previousUrl = recordedAudioUrl;
 
-    // Kiểm tra xem có phải chuyển câu trong cùng phần nghe không
+    // Kiểm tra xem có phải chuyển câu trong cùng phần nghe không (chỉ áp dụng cho Simulator với globalAudioUrl)
     // Nếu previousGlobalAudioUrlRef.current là null, đó là lần đầu tiên, nên không phải cùng audio
-    const isSameAudio = previousGlobalAudioUrlRef.current !== null && previousGlobalAudioUrlRef.current === globalAudioUrl;
+    const isSameAudio = previousGlobalAudioUrlRef.current !== null && previousGlobalAudioUrlRef.current === effectiveAudioUrl && isSimulator;
     const isAudioCurrentlyPlaying = audioRef.current && !audioRef.current.paused && !audioRef.current.ended;
-    const shouldKeepAudioPlaying = isListeningPart && hasGlobalAudio && isAudioCurrentlyPlaying && isSameAudio;
+    const shouldKeepAudioPlaying = isListeningPart && isSimulator && hasGlobalAudio && isAudioCurrentlyPlaying && isSameAudio;
 
     // Chỉ reset trạng thái playing nếu không phải giữ audio phát
+    // Với Practice mode, mỗi câu có audio riêng nên luôn reset khi chuyển câu
     if (!shouldKeepAudioPlaying) {
       setIsPlaying(false);
       setCurrentTime(0);
@@ -271,6 +325,14 @@ export default function QuestionCard({
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
       }
+    }
+
+    // Với simulator, kiểm tra trạng thái đã phát audio từ sessionStorage
+    // Nếu đã phát audio trong part này rồi (từ sessionStorage), set hasPlayedAudio = true
+    // Với Practice mode, mỗi câu có audio riêng nên không cần kiểm tra
+    if (isSimulator && !shouldKeepAudioPlaying) {
+      const playedFromStorage = checkAudioPlayedFromStorage();
+      setHasPlayedAudio(playedFromStorage);
     }
 
     setImageError(false);
@@ -283,8 +345,8 @@ export default function QuestionCard({
       mediaRecorderRef.current.stop();
     }
 
-    // Lưu globalAudioUrl hiện tại để so sánh lần sau
-    previousGlobalAudioUrlRef.current = globalAudioUrl;
+    // Lưu audio URL hiện tại để so sánh lần sau
+    previousGlobalAudioUrlRef.current = effectiveAudioUrl;
 
     // Load lại answer đã lưu nếu có
     // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
@@ -317,7 +379,7 @@ export default function QuestionCard({
         URL.revokeObjectURL(previousUrl);
       }
     };
-  }, [question.testQuestionId, answers, isSpeakingPart, globalAudioUrl, isListeningPart, hasGlobalAudio]);
+  }, [question.testQuestionId, answers, isSpeakingPart, globalAudioUrl, isListeningPart, hasGlobalAudio, isPractice, isSimulator, questionAudioUrl]);
 
   // Reset highlight khi chuyển câu hỏi
   useEffect(() => {
@@ -327,11 +389,18 @@ export default function QuestionCard({
   }, [question.testQuestionId, question.subQuestionIndex]);
 
   useEffect(() => {
-    if (!audioRef.current || !hasGlobalAudio) return;
+    if (!audioRef.current || !effectiveAudioUrl) return;
     const audio = audioRef.current;
     const updateTime = () => setCurrentTime(audio.currentTime);
     const updateDuration = () => setDuration(audio.duration);
-    const handleEnd = () => setIsPlaying(false);
+    const handleEnd = () => {
+      setIsPlaying(false);
+      // Khi audio kết thúc, đánh dấu đã phát (chỉ với simulator) và lưu vào sessionStorage
+      if (isSimulator) {
+        setHasPlayedAudio(true);
+        saveAudioPlayedToStorage();
+      }
+    };
     const handleError = () => setAudioError(true);
 
     audio.addEventListener("timeupdate", updateTime);
@@ -345,7 +414,7 @@ export default function QuestionCard({
       audio.removeEventListener("ended", handleEnd);
       audio.removeEventListener("error", handleError);
     };
-  }, [globalAudioUrl, question]);
+  }, [effectiveAudioUrl, question]);
 
   const toggleAudio = () => {
     if (!audioRef.current || audioError) return;
@@ -361,9 +430,21 @@ export default function QuestionCard({
       }
       // Nếu là Simulator thì không cho pause (không làm gì)
     } else {
+      // Kiểm tra xem đã phát audio chưa (chỉ với simulator)
+      if (isSimulator && hasPlayedAudio) {
+        // Đã phát rồi, không cho phép phát lại
+        return;
+      }
+      
       // Phát audio
       audioRef.current.play().catch(() => setAudioError(true));
       setIsPlaying(true);
+      
+      // Đánh dấu đã phát audio (chỉ với simulator) và lưu vào sessionStorage
+      if (isSimulator) {
+        setHasPlayedAudio(true);
+        saveAudioPlayedToStorage();
+      }
     }
   };
 
@@ -675,17 +756,17 @@ export default function QuestionCard({
           </div>
         )}
 
-        {isListeningPart && hasGlobalAudio && (
+        {isListeningPart && effectiveAudioUrl && (
           <div className={styles.audioBox} style={{ margin: "0 0 20px 0" }}>
             {!audioError ? (
               <>
-                <audio ref={audioRef} src={globalAudioUrl} />
+                <audio ref={audioRef} src={effectiveAudioUrl} />
                 <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                   <Button
                     size="large"
                     onClick={toggleAudio}
                     type={isPlaying ? "primary" : "default"}
-                      disabled={isPlaying && testType && testType.toLowerCase() !== "practice"}
+                    disabled={(isPlaying && !isPractice) || (isSimulator && hasPlayedAudio && !isPlaying)}
                     style={{
                       borderRadius: "8px",
                       height: "40px",
@@ -695,8 +776,8 @@ export default function QuestionCard({
                     }}
                   >
                       {isPlaying 
-                        ? (testType && testType.toLowerCase() === "practice" ? "Tạm dừng" : "Đang phát...") 
-                        : "Nghe"}
+                        ? (isPractice ? "Tạm dừng" : "Đang phát...") 
+                        : (isSimulator && hasPlayedAudio ? "Đã nghe" : "Nghe")}
                   </Button>
                   <div style={{ flex: 1 }}>
                     <Progress
@@ -880,55 +961,58 @@ export default function QuestionCard({
           </div>
         ) : null}
 
-          <div
-            ref={questionTextContainerRef}
-            style={{
-          marginTop: "0",
-          padding: "20px",
-          background: "#ffffff",
-          borderRadius: "12px",
-          border: "1px solid #e2e8f0",
-          fontSize: "16px",
-          lineHeight: "1.8",
-          color: "#2d3748",
-              whiteSpace: "pre-line", // Giữ nguyên xuống dòng từ \r\n và \n
-              cursor: "text",
-            }}
-            onMouseUp={() => {
-              if (typeof window === "undefined" || !window.getSelection) return;
-              const selection = window.getSelection();
-              if (!selection || selection.rangeCount === 0) return;
+          {/* Chỉ hiển thị nội dung câu hỏi nếu không phải Part 1 hoặc Part 2 */}
+          {!isPart1Or2 && (
+            <div
+              ref={questionTextContainerRef}
+              style={{
+            marginTop: "0",
+            padding: "20px",
+            background: "#ffffff",
+            borderRadius: "12px",
+            border: "1px solid #e2e8f0",
+            fontSize: "16px",
+            lineHeight: "1.8",
+            color: "#2d3748",
+                whiteSpace: "pre-line", // Giữ nguyên xuống dòng từ \r\n và \n
+                cursor: "text",
+              }}
+              onMouseUp={() => {
+                if (typeof window === "undefined" || !window.getSelection) return;
+                const selection = window.getSelection();
+                if (!selection || selection.rangeCount === 0) return;
 
-              const range = selection.getRangeAt(0);
-              const text = selection.toString().trim();
-              if (!text) {
-                setHighlightToolbarVisible(false);
-                return;
-              }
+                const range = selection.getRangeAt(0);
+                const text = selection.toString().trim();
+                if (!text) {
+                  setHighlightToolbarVisible(false);
+                  return;
+                }
 
-              const rootEl = questionTextContainerRef.current;
-              // Tính offset toàn cục trong toàn bộ câu hỏi, không chỉ trong text node hiện tại
-              const start = getGlobalOffset(
-                rootEl,
-                range.startContainer,
-                range.startOffset
-              );
-              const end = getGlobalOffset(rootEl, range.endContainer, range.endOffset);
-              setPendingSelection({ start, end, text });
+                const rootEl = questionTextContainerRef.current;
+                // Tính offset toàn cục trong toàn bộ câu hỏi, không chỉ trong text node hiện tại
+                const start = getGlobalOffset(
+                  rootEl,
+                  range.startContainer,
+                  range.startOffset
+                );
+                const end = getGlobalOffset(rootEl, range.endContainer, range.endOffset);
+                setPendingSelection({ start, end, text });
 
-              // Tính vị trí toolbar theo viewport (hiển thị ngay trên vùng bôi đen)
-              const rect = range.getBoundingClientRect();
-              setHighlightToolbarPos({
-                top: rect.top + window.scrollY - 40,
-                left: rect.left + window.scrollX,
-              });
-              setHighlightToolbarVisible(true);
-            }}
-          >
-          <Text strong style={{ fontSize: "16px", color: "#2d3748" }}>
-              {renderQuestionWithHighlights()}
-          </Text>
-        </div>
+                // Tính vị trí toolbar theo viewport (hiển thị ngay trên vùng bôi đen)
+                const rect = range.getBoundingClientRect();
+                setHighlightToolbarPos({
+                  top: rect.top + window.scrollY - 40,
+                  left: rect.left + window.scrollX,
+                });
+                setHighlightToolbarVisible(true);
+              }}
+            >
+            <Text strong style={{ fontSize: "16px", color: "#2d3748" }}>
+                {renderQuestionWithHighlights()}
+            </Text>
+          </div>
+          )}
       </div>
       </Card>
 
@@ -1261,9 +1345,12 @@ export default function QuestionCard({
                       <Text strong style={{ color: "#667eea", marginRight: "8px" }}>
                         {opt.key}.
                       </Text>
-                      <Text style={{ fontSize: "15px", color: "#4a5568" }}>
-                        {opt.text}
-                      </Text>
+                      {/* Chỉ hiển thị nội dung đáp án nếu không phải Part 1 hoặc Part 2 */}
+                      {!isPart1Or2 && (
+                        <Text style={{ fontSize: "15px", color: "#4a5568" }}>
+                          {opt.text}
+                        </Text>
+                      )}
                     </Radio>
                   </div>
                 );

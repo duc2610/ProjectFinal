@@ -295,11 +295,11 @@ namespace ToeicGenius.Services.Implementations
         {
             var user = await _unitOfWork.Users.GetByRefreshTokenAsync(refreshToken);
             if (user == null)
-                return Result<RefreshTokenResponseDto>.Failure("Invalid refresh token");
+                return Result<RefreshTokenResponseDto>.Failure("Refresh token không hợp lệ");
 
             var existingToken = user.RefreshTokens.FirstOrDefault(rt => rt.Token == refreshToken);
             if (existingToken == null || existingToken.ExpiresAt <= Now || existingToken.RevokeAt != null)
-                return Result<RefreshTokenResponseDto>.Failure("Refresh token expired or revoked");
+                return Result<RefreshTokenResponseDto>.Failure("Refresh token đã hết hạn hoặc bị thu hồi");
 
             existingToken.RevokeAt = Now;
             existingToken.RevokeByIp = ipAddress;

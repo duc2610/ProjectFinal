@@ -117,11 +117,14 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             if (newId) {
                 setCurrentTestId(newId);
             }
-            message.success(responseText || "Đã tạo phiên bản mới.");
+            // Không hiển thị message ở đây, để nơi gọi xử lý
             if (onSuccess) {
                 onSuccess();
             }
             return newId;
+        } catch (error) {
+            // Throw lại để xử lý ở nơi gọi
+            throw error;
         } finally {
             if (hide) hide();
             setIsCloningVersion(false);
@@ -387,6 +390,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             message.warning(`Part ${partId} chỉ hỗ trợ nhóm câu hỏi (Group Questions), không thể thêm câu hỏi đơn.`);
             return;
         }
+        setShowValidation(false);
         // Writing và Speaking parts không có options (partId 8-15)
         const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => {
@@ -412,6 +416,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addGroup = (partId) => {
+        setShowValidation(false);
         // Writing và Speaking parts không có options (partId 8-15)
         const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => {
@@ -518,6 +523,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addQuestionToGroup = (partId, groupIndex) => {
+        setShowValidation(false);
         // Writing và Speaking parts không có options (partId 8-15)
         const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
         setPartsData(prev => {
@@ -734,6 +740,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         // Validate tất cả câu hỏi trước khi lưu
         const errors = [];
         const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+        const imageConfig = requiresImage(partId, selectedSkill);
+        const requireImage = imageConfig.required;
 
         // Validate questions đơn
         (partData.questions || []).forEach((q, qIdx) => {
@@ -741,6 +749,15 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             const isContentOptional = [1, 2, 6].includes(partId);
             if (!isContentOptional && !validateString(q.content)) {
                 errors.push(`Câu hỏi ${qIdx + 1}: Nội dung không được để trống hoặc chỉ có khoảng trắng!`);
+            }
+
+            // Image bắt buộc cho các part cần ảnh
+            if (requireImage && !validateString(q.imageUrl)) {
+                errors.push(`Câu hỏi ${qIdx + 1}: Image URL là bắt buộc!`);
+            }
+            // Image nếu có thì phải hợp lệ
+            if (q.imageUrl && !validateString(q.imageUrl)) {
+                errors.push(`Câu hỏi ${qIdx + 1}: Image URL không hợp lệ!`);
             }
 
             // Validate options cho L&R
@@ -771,6 +788,15 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             (g.questions || []).forEach((q, qIdx) => {
                 if (!validateString(q.content)) {
                     errors.push(`Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Nội dung không được để trống hoặc chỉ có khoảng trắng!`);
+                }
+
+                // Image bắt buộc cho các part cần ảnh
+                if (requireImage && !validateString(q.imageUrl)) {
+                    errors.push(`Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Image URL là bắt buộc!`);
+                }
+                // Image nếu có thì phải hợp lệ
+                if (q.imageUrl && !validateString(q.imageUrl)) {
+                    errors.push(`Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Image URL không hợp lệ!`);
                 }
 
                 // Validate options cho L&R
@@ -848,24 +874,87 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             const errorMessage = getErrorMessage(error);
             const normalizedError = (errorMessage || "").toLowerCase();
 
-            if (normalizedError.includes("cannot edit a published test")) {
+            // Xử lý lỗi permission - người dùng không có quyền chỉnh sửa test này
+            if (normalizedError.includes("don't have permission") || 
+                normalizedError.includes("permission to modify") ||
+                normalizedError.includes("không có quyền") ||
+                normalizedError.includes("không được phép")) {
+                message.error("Bạn không có quyền chỉnh sửa bài thi này. Chỉ người tạo bài thi mới có thể chỉnh sửa.");
+                return;
+            }
+
+            // Xử lý lỗi published test - backend sẽ tự động clone khi update test manual
+            // Frontend chỉ cần gọi updateTestManual để trigger clone, sau đó lưu part với newId
+            if (normalizedError.includes("cannot edit a published test") ||
+                normalizedError.includes("không thể chỉnh sửa bài thi đã xuất bản")) {
                 const shouldClone = await confirmCloneVersion();
                 if (!shouldClone) {
                     message.info("Đã hủy thao tác tạo phiên bản mới.");
                 } else {
                     try {
-                        const newId = await clonePublishedTestToDraft();
+                        // Gọi updateTestManual để backend tự động clone (nếu test đã published)
+                        // Backend sẽ kiểm tra quyền và clone nếu người dùng là người tạo test gốc
+                        const payload = buildFullTestPayload();
+                        const result = await updateTestManual(currentTestId, payload);
+                        const responseText = typeof result === "string" ? result : result?.data || result?.message;
+                        const newId = extractTestIdFromMessage(responseText);
+                        
                         if (newId) {
-                            await saveTestPart(newId, partId, partPayload);
-                            message.success(`Đã tạo phiên bản mới (ID ${newId}) và lưu Part ${partId} thành công!`);
-                            setShowValidation(false);
+                            // Backend đã clone thành công, cập nhật currentTestId
+                            setCurrentTestId(newId);
+                            
+                            // Thử lưu part với newId (version mới)
+                            try {
+                                await saveTestPart(newId, partId, partPayload);
+                                // Nếu lưu thành công, chỉ hiển thị success
+                                message.destroy(); // Xóa tất cả message trước đó
+                                message.success(`Đã tạo phiên bản mới (ID ${newId}) và lưu Part ${partId} thành công!`);
+                                setShowValidation(false);
+                                if (onSuccess) {
+                                    onSuccess();
+                                }
+                            } catch (saveError) {
+                                // Nếu lưu part với newId vẫn lỗi, kiểm tra lại permission
+                                const saveErrorMessage = getErrorMessage(saveError);
+                                const saveNormalizedError = (saveErrorMessage || "").toLowerCase();
+                                
+                                // Xóa message success từ clone trước đó
+                                message.destroy();
+                                
+                                if (saveNormalizedError.includes("don't have permission") || 
+                                    saveNormalizedError.includes("permission to modify") ||
+                                    saveNormalizedError.includes("không có quyền") ||
+                                    saveNormalizedError.includes("không được phép")) {
+                                    message.error("Bạn không có quyền chỉnh sửa bài thi này. Chỉ người tạo bài thi mới có thể chỉnh sửa.");
+                                } else if (saveNormalizedError.includes("cannot edit a published test")) {
+                                    // Nếu version mới vẫn bị published (không nên xảy ra), thử lại
+                                    message.warning("Phiên bản mới vẫn ở trạng thái công khai. Vui lòng thử lại.");
+                                } else {
+                                    message.error(`Đã tạo phiên bản mới nhưng không thể lưu Part ${partId}: ${saveErrorMessage}`);
+                                }
+                            }
                         } else {
-                            message.success("Đã tạo phiên bản mới. Vui lòng mở lại bài thi để tiếp tục chỉnh sửa.");
+                            // Không extract được newId từ response
+                            message.destroy();
+                            message.warning("Đã tạo phiên bản mới nhưng không xác định được ID. Vui lòng mở lại bài thi để tiếp tục chỉnh sửa.");
                         }
                     } catch (cloneError) {
-                        console.error("clonePublishedTestToDraft error:", cloneError);
+                        console.error("Error cloning test:", cloneError);
                         const cloneMessage = getErrorMessage(cloneError);
-                        message.error(`Không thể tạo phiên bản mới: ${cloneMessage}`);
+                        const cloneNormalizedError = (cloneMessage || "").toLowerCase();
+                        
+                        // Xóa message trước đó nếu có
+                        message.destroy();
+                        
+                        // Chỉ hiển thị lỗi permission nếu thực sự là lỗi permission
+                        if (cloneNormalizedError.includes("don't have permission") || 
+                            cloneNormalizedError.includes("permission to modify") ||
+                            cloneNormalizedError.includes("không có quyền") ||
+                            cloneNormalizedError.includes("không được phép")) {
+                            message.error("Bạn không có quyền chỉnh sửa bài thi này. Chỉ người tạo bài thi mới có thể chỉnh sửa.");
+                        } else {
+                            message.error(`Không thể tạo phiên bản mới: ${cloneMessage}`);
+                        }
                     }
                 }
             } else {
@@ -1200,10 +1289,19 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                         {/* Single Questions - Chỉ hiển thị cho các part không phải group parts */}
                                         {!isGroupPart(part.partId) && (
                                             <div style={{ marginBottom: 16 }}>
-                                                {[1, 2, 6].includes(part.partId) && (
+                                                {part.partId === 6 && (
                                                     <Alert
                                                         message="Lưu ý"
-                                                        description={`Part ${part.partId} không yêu cầu nội dung câu hỏi. Câu hỏi sẽ dựa vào hình ảnh và đáp án.`}
+                                                        description={`Part ${part.partId} không yêu cầu nội dung câu hỏi. Câu hỏi sẽ dựa vào passage và đáp án.`}
+                                                        type="info"
+                                                        showIcon
+                                                        style={{ marginBottom: 12 }}
+                                                    />
+                                                )}
+                                                {[1, 2].includes(part.partId) && (
+                                                    <Alert
+                                                        message="Lưu ý"
+                                                        description={`Part ${part.partId}: Nội dung câu hỏi là tùy chọn. Bạn có thể nhập hoặc để trống.`}
                                                         type="info"
                                                         showIcon
                                                         style={{ marginBottom: 12 }}
@@ -1211,15 +1309,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                 )}
                                                 <Space style={{ marginBottom: 8 }}>
                                                     <strong>Câu hỏi đơn ({partData.questions?.length || 0})</strong>
-                                                    {!readOnly && (
-                                                        <Button
-                                                            size="small"
-                                                            icon={<PlusOutlined />}
-                                                            onClick={() => addQuestion(part.partId)}
-                                                        >
-                                                            Thêm câu hỏi
-                                                        </Button>
-                                                    )}
                                                 </Space>
                                             <Collapse>
                                                 {(partData.questions || []).map((q, qIdx) => {
@@ -1251,6 +1340,20 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                     );
                                                 })}
                                             </Collapse>
+                                            {/* Nút thêm câu hỏi ở dưới cùng */}
+                                            {!readOnly && (
+                                                <div style={{ marginTop: 16, textAlign: "center" }}>
+                                                    <Button
+                                                        type="dashed"
+                                                        size="large"
+                                                        icon={<PlusOutlined />}
+                                                        onClick={() => addQuestion(part.partId)}
+                                                        style={{ width: "100%" }}
+                                                    >
+                                                        Thêm câu hỏi
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                         )}
 
@@ -1268,15 +1371,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                 )}
                                                 <Space style={{ marginBottom: 8 }}>
                                                     <strong>Nhóm câu hỏi ({partData.groups?.length || 0})</strong>
-                                                    {!readOnly && (
-                                                        <Button
-                                                            size="small"
-                                                            icon={<PlusOutlined />}
-                                                            onClick={() => addGroup(part.partId)}
-                                                        >
-                                                            Thêm nhóm
-                                                        </Button>
-                                                    )}
                                                 </Space>
                                                 <Collapse>
                                                     {(partData.groups || []).map((group, gIdx) => (
@@ -1308,6 +1402,20 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                         </Panel>
                                                     ))}
                                                 </Collapse>
+                                                {/* Nút thêm nhóm ở dưới cùng */}
+                                                {!readOnly && (
+                                                    <div style={{ marginTop: 16, textAlign: "center" }}>
+                                                        <Button
+                                                            type="dashed"
+                                                            size="large"
+                                                            icon={<PlusOutlined />}
+                                                            onClick={() => addGroup(part.partId)}
+                                                            style={{ width: "100%" }}
+                                                        >
+                                                            Thêm nhóm
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
@@ -1357,8 +1465,9 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
     // Writing và Speaking parts không có options (partId 8-15)
     const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
     
-    // Parts 1, 2, 6: không hiển thị trường content
-    const isContentVisible = !([1, 2, 6].includes(partId));
+    // Part 6: không hiển thị trường content
+    // Part 1, 2: hiển thị trường content nhưng là tùy chọn (không bắt buộc)
+    const isContentVisible = partId !== 6;
     
     // Helper để validate string
     const isValidString = (value) => {
@@ -1397,7 +1506,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
     
     return (
         <Space direction="vertical" style={{ width: "100%" }} size="middle">
-            {/* Chỉ hiển thị trường content cho các part không phải 1, 2, 6 */}
+            {/* Chỉ hiển thị trường content cho các part không phải 6 */}
             {isContentVisible && (
                 <Form.Item 
                     label="Nội dung câu hỏi"
@@ -1423,6 +1532,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                         rows={3}
                         disabled={readOnly}
                         status={contentError ? "error" : ""}
+                        placeholder={isContentOptional ? "Nhập nội dung câu hỏi (nếu có)" : "Nhập nội dung câu hỏi"}
                     />
                 </Form.Item>
             )}
@@ -1477,8 +1587,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                                 showUploadList={false}
                                 accept="image/*"
                                 beforeUpload={() => {
-                                    // Validate trường content trước khi upload
-                                    if (!isValidString(question.content)) {
+                                    if (!isContentOptional && !isValidString(question.content)) {
                                         setContentValidated(true);
                                         return false; // Prevent upload
                                     }
@@ -1489,8 +1598,8 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                                     icon={<PictureOutlined />} 
                                     size="small"
                                     onClick={() => {
-                                        // Validate trường content khi click vào Upload button
-                                        if (!isValidString(question.content)) {
+                                        // Chỉ yêu cầu content cho các part mà nội dung là bắt buộc
+                                        if (!isContentOptional && !isValidString(question.content)) {
                                             setContentValidated(true);
                                         }
                                     }}
@@ -1744,20 +1853,7 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
 
 
             <Form.Item
-                label={
-                    <Space>
-                        <span>Câu hỏi trong nhóm ({group.questions?.length || 0})</span>
-                        {!readOnly && (
-                            <Button
-                                size="small"
-                                icon={<PlusOutlined />}
-                                onClick={onAddQuestion}
-                            >
-                                Thêm câu hỏi
-                            </Button>
-                        )}
-                    </Space>
-                }
+                label={<span>Câu hỏi trong nhóm ({group.questions?.length || 0})</span>}
             >
                 <Collapse>
                     {(group.questions || []).map((q, qIdx) => {
@@ -1789,6 +1885,20 @@ function GroupEditor({ group, partId, groupIndex, skill, onUpdate, onUpdateQuest
                         );
                     })}
                 </Collapse>
+                {/* Nút thêm câu hỏi trong nhóm ở dưới cùng */}
+                {!readOnly && (
+                    <div style={{ marginTop: 16, textAlign: "center" }}>
+                        <Button
+                            type="dashed"
+                            size="large"
+                            icon={<PlusOutlined />}
+                            onClick={onAddQuestion}
+                            style={{ width: "100%" }}
+                        >
+                            Thêm câu hỏi
+                        </Button>
+                    </div>
+                )}
             </Form.Item>
         </Space>
     );
