@@ -1621,6 +1621,7 @@ namespace ToeicGenius.Services.Implementations
 				TestSkill.LR => 200,
 				TestSkill.Speaking => 11,
 				TestSkill.Writing => 8,
+				TestSkill.SW => 19, // Speaking (11) + Writing (8) = 19
 				_ => throw new ArgumentOutOfRangeException(nameof(skill), $"Unsupported TestSkill: {skill}")
 			};
 		}
