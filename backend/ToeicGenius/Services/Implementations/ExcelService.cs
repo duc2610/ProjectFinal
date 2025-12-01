@@ -72,13 +72,13 @@ public class ExcelService : IExcelService
             testDto.Parts.Add(part2Result.Data);
 
             // Parse Part 3 (13 groups, each with 3 questions)
-            var part3Result = ParsePart3(package.Workbook.Worksheets["Part3"]);
+            var part3Result = await ParsePart3(package.Workbook.Worksheets["Part3"]);
             if (!part3Result.IsSuccess)
                 return Result<CreateTestManualDto>.Failure(part3Result.ErrorMessage!);
             testDto.Parts.Add(part3Result.Data);
 
             // Parse Part 4 (10 groups, each with 3 questions)
-            var part4Result = ParsePart4(package.Workbook.Worksheets["Part4"]);
+            var part4Result = await ParsePart4(package.Workbook.Worksheets["Part4"]);
             if (!part4Result.IsSuccess)
                 return Result<CreateTestManualDto>.Failure(part4Result.ErrorMessage!);
             testDto.Parts.Add(part4Result.Data);
@@ -90,13 +90,13 @@ public class ExcelService : IExcelService
             testDto.Parts.Add(part5Result.Data);
 
             // Parse Part 6 (4 groups, each with 4 questions)
-            var part6Result = ParsePart6(package.Workbook.Worksheets["Part6"]);
+            var part6Result = await ParsePart6(package.Workbook.Worksheets["Part6"]);
             if (!part6Result.IsSuccess)
                 return Result<CreateTestManualDto>.Failure(part6Result.ErrorMessage!);
             testDto.Parts.Add(part6Result.Data);
 
-            // Parse Part 7 (12 groups with varying questions)
-            var part7Result = ParsePart7(package.Workbook.Worksheets["Part7"]);
+            // Parse Part 7 (dynamic groups, total 54 questions)
+            var part7Result = await ParsePart7(package.Workbook.Worksheets["Part7"]);
             if (!part7Result.IsSuccess)
                 return Result<CreateTestManualDto>.Failure(part7Result.ErrorMessage!);
             testDto.Parts.Add(part7Result.Data);
@@ -217,7 +217,7 @@ public class ExcelService : IExcelService
         }
     }
 
-    private Result<PartDto> ParsePart3(ExcelWorksheet worksheet)
+    private async Task<Result<PartDto>> ParsePart3(ExcelWorksheet worksheet)
     {
         try
         {
@@ -228,10 +228,13 @@ public class ExcelService : IExcelService
             {
                 int groupStartRow = startRow + (g * 4); // Each group takes 4 rows (1 passage + 3 questions)
 
+                // Extract group image (optional) - embed in Excel cell
+                var groupImageUrl = await ExtractAndUploadImageAsync(worksheet, groupStartRow, 3);
+
                 var group = new QuestionGroupDto
                 {
                     Passage = worksheet.Cells[groupStartRow, 2].Text,
-                    ImageUrl = worksheet.Cells[groupStartRow, 3].Text,
+                    ImageUrl = groupImageUrl, // Optional - null if no image embedded
                     Questions = new List<QuestionDto>()
                 };
 
@@ -243,10 +246,13 @@ public class ExcelService : IExcelService
                 {
                     int qRow = groupStartRow + q + 1;
 
+                    // Extract question image (optional) - embed in Excel cell
+                    var questionImageUrl = await ExtractAndUploadImageAsync(worksheet, qRow, 5);
+
                     var question = new QuestionDto
                     {
                         Content = worksheet.Cells[qRow, 4].Text,
-                        ImageUrl = worksheet.Cells[qRow, 5].Text,
+                        ImageUrl = questionImageUrl, // Optional - null if no image embedded
                         Explanation = worksheet.Cells[qRow, 10].Text,
                         Options = new List<OptionRequestDto>
                         {
@@ -282,7 +288,7 @@ public class ExcelService : IExcelService
         }
     }
 
-    private Result<PartDto> ParsePart4(ExcelWorksheet worksheet)
+    private async Task<Result<PartDto>> ParsePart4(ExcelWorksheet worksheet)
     {
         try
         {
@@ -293,10 +299,13 @@ public class ExcelService : IExcelService
             {
                 int groupStartRow = startRow + (g * 4);
 
+                // Extract group image (optional) - embed in Excel cell
+                var groupImageUrl = await ExtractAndUploadImageAsync(worksheet, groupStartRow, 3);
+
                 var group = new QuestionGroupDto
                 {
                     Passage = worksheet.Cells[groupStartRow, 2].Text,
-                    ImageUrl = worksheet.Cells[groupStartRow, 3].Text,
+                    ImageUrl = groupImageUrl, // Optional - null if no image embedded
                     Questions = new List<QuestionDto>()
                 };
 
@@ -307,10 +316,13 @@ public class ExcelService : IExcelService
                 {
                     int qRow = groupStartRow + q + 1;
 
+                    // Extract question image (optional) - embed in Excel cell
+                    var questionImageUrl = await ExtractAndUploadImageAsync(worksheet, qRow, 5);
+
                     var question = new QuestionDto
                     {
                         Content = worksheet.Cells[qRow, 4].Text,
-                        ImageUrl = worksheet.Cells[qRow, 5].Text,
+                        ImageUrl = questionImageUrl, // Optional - null if no image embedded
                         Explanation = worksheet.Cells[qRow, 10].Text,
                         Options = new List<OptionRequestDto>
                         {
@@ -393,7 +405,7 @@ public class ExcelService : IExcelService
         }
     }
 
-    private Result<PartDto> ParsePart6(ExcelWorksheet worksheet)
+    private async Task<Result<PartDto>> ParsePart6(ExcelWorksheet worksheet)
     {
         try
         {
@@ -404,10 +416,13 @@ public class ExcelService : IExcelService
             {
                 int groupStartRow = startRow + (g * 5); // Each group: 1 passage + 4 questions
 
+                // Extract group image (optional) - embed in Excel cell
+                var groupImageUrl = await ExtractAndUploadImageAsync(worksheet, groupStartRow, 3);
+
                 var group = new QuestionGroupDto
                 {
                     Passage = worksheet.Cells[groupStartRow, 2].Text,
-                    ImageUrl = worksheet.Cells[groupStartRow, 3].Text,
+                    ImageUrl = groupImageUrl, // Optional - null if no image embedded
                     Questions = new List<QuestionDto>()
                 };
 
@@ -457,40 +472,65 @@ public class ExcelService : IExcelService
         }
     }
 
-    private Result<PartDto> ParsePart7(ExcelWorksheet worksheet)
+    private async Task<Result<PartDto>> ParsePart7(ExcelWorksheet worksheet)
     {
         try
         {
             var groups = new List<QuestionGroupDto>();
             int currentRow = 3;
+            int totalQuestions = 0;
+            int groupIndex = 0;
 
-            // Part 7 structure: 12 groups with varying questions
-            // Single passages: 4 questions each (first 6 groups)
-            // Double/Triple passages: 5 questions each (last 6 groups)
-            var groupQuestionCounts = new[] { 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5 }; // Total = 12 groups, 54 questions (24+30=54)
-
-            for (int g = 0; g < 12; g++)
+            // Part 7: Đọc động theo dữ liệu Excel, không cố định số câu mỗi group
+            // Chỉ yêu cầu tổng 54 câu
+            while (totalQuestions < 54)
             {
-                int questionsInGroup = groupQuestionCounts[g];
+                // Kiểm tra có passage ở row hiện tại không
+                var passageText = worksheet.Cells[currentRow, 2].Text;
+                if (string.IsNullOrWhiteSpace(passageText))
+                {
+                    // Không còn group nào nữa
+                    break;
+                }
+
+                // Extract group image (optional) - embed in Excel cell
+                var groupImageUrl = await ExtractAndUploadImageAsync(worksheet, currentRow, 3);
 
                 var group = new QuestionGroupDto
                 {
-                    Passage = worksheet.Cells[currentRow, 2].Text,
-                    ImageUrl = worksheet.Cells[currentRow, 3].Text,
+                    Passage = passageText,
+                    ImageUrl = groupImageUrl, // Optional - null if no image embedded
                     Questions = new List<QuestionDto>()
                 };
 
-                if (string.IsNullOrWhiteSpace(group.Passage))
-                    return Result<PartDto>.Failure($"Part 7 - Group {g + 1}: Passage is required (Row {currentRow}, Column B)");
-
                 currentRow++; // Move to first question
 
-                for (int q = 0; q < questionsInGroup; q++)
+                // Đọc các câu hỏi của group này cho đến khi gặp passage mới hoặc hết dữ liệu
+                while (totalQuestions < 54)
                 {
+                    var questionContent = worksheet.Cells[currentRow, 4].Text;
+
+                    // Kiểm tra nếu ô passage (cột B) có dữ liệu -> đây là group mới
+                    var nextPassage = worksheet.Cells[currentRow, 2].Text;
+                    if (!string.IsNullOrWhiteSpace(nextPassage))
+                    {
+                        // Đây là passage của group tiếp theo, dừng đọc questions
+                        break;
+                    }
+
+                    // Nếu không có content thì dừng
+                    if (string.IsNullOrWhiteSpace(questionContent))
+                    {
+                        break;
+                    }
+
+                    // Extract question image (optional) - embed in Excel cell
+                    var questionImageUrl = await ExtractAndUploadImageAsync(worksheet, currentRow, 5);
+
                     var question = new QuestionDto
                     {
-                        Content = worksheet.Cells[currentRow, 4].Text,
-                        ImageUrl = worksheet.Cells[currentRow, 5].Text,
+                        Content = questionContent,
+                        ImageUrl = questionImageUrl, // Optional - null if no image embedded
                         Explanation = worksheet.Cells[currentRow, 10].Text,
                         Options = new List<OptionRequestDto>
                         {
@@ -501,18 +541,25 @@ public class ExcelService : IExcelService
                         }
                     };
 
-                    if (string.IsNullOrWhiteSpace(question.Content))
-                        return Result<PartDto>.Failure($"Part 7 - Group {g + 1}, Question {q + 1}: Content is required (Row {currentRow}, Column D)");
-
                     if (!question.Options.Any(o => o.IsCorrect))
-                        return Result<PartDto>.Failure($"Part 7 - Group {g + 1}, Question {q + 1}: Must have exactly one correct answer (Row {currentRow})");
+                        return Result<PartDto>.Failure($"Part 7 - Group {groupIndex + 1}, Question {group.Questions.Count + 1}: Must have exactly one correct answer (Row {currentRow})");
 
                     group.Questions.Add(question);
+                    totalQuestions++;
                     currentRow++;
                 }
 
+                // Validate group phải có ít nhất 1 câu hỏi
+                if (group.Questions.Count == 0)
+                    return Result<PartDto>.Failure($"Part 7 - Group {groupIndex + 1}: Must have at least 1 question");
+
                 groups.Add(group);
+                groupIndex++;
             }
+
+            // Validate tổng số câu phải đúng 54
+            if (totalQuestions != 54)
+                return Result<PartDto>.Failure($"Part 7: Total questions must be 54, found {totalQuestions}");
 
             return Result<PartDto>.Success(new PartDto
             {
