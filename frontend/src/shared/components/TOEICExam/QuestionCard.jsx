@@ -178,6 +178,8 @@ export default function QuestionCard({
   const isSpeakingPart = question.partId >= 11 && question.partId <= 15;
   const isLrPart = question.partId >= 1 && question.partId <= 7;
   const isPart1Or2 = question.partId === 1 || question.partId === 2;
+  const hasQuestionText =
+    typeof question.question === "string" && question.question.trim().length > 0;
   const hasGlobalAudio = globalAudioUrl && globalAudioUrl.trim() !== "";
   const hasImage = question.imageUrl && question.imageUrl.trim() !== "";
   const isPractice = testType && testType.toLowerCase() === "practice";
@@ -961,8 +963,8 @@ export default function QuestionCard({
           </div>
         ) : null}
 
-          {/* Chỉ hiển thị nội dung câu hỏi nếu không phải Part 1 hoặc Part 2 */}
-          {!isPart1Or2 && (
+          {/* Chỉ hiển thị nội dung câu hỏi nếu không phải Part 1, 2 và có text */}
+          {!isPart1Or2 && hasQuestionText && (
             <div
               ref={questionTextContainerRef}
               style={{

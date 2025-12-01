@@ -590,135 +590,119 @@ export function TestHistoryTab() {
       title: "Nội dung",
       dataIndex: "question",
       render: (_, row) => (
-        <div style={{ maxWidth: 500 }}>
-          {row.passage && (
-            <div
-              style={{
-                fontStyle: "italic",
-                marginBottom: 8,
-                color: "#666",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-                background: "#f9f9f9",
-                padding: 8,
-                borderRadius: 4,
-                borderLeft: "3px solid #d9d9d9",
-              }}
-            >
-              {row.passage}
-            </div>
-          )}
-          <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontWeight: 500 }}>
-            {row.question || "—"}
+        <div
+          style={{
+            display: "flex",
+            gap: 24,
+            alignItems: "flex-start",
+            width: "100%",
+          }}
+        >
+          {/* Khối đề bài bên trái */}
+          <div style={{ flex: "1 1 55%", minWidth: 0 }}>
+            {row.passage && (
+              <div
+                style={{
+                  fontStyle: "italic",
+                  marginBottom: 8,
+                  color: "#666",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  background: "#f9f9f9",
+                  padding: 8,
+                  borderRadius: 4,
+                  borderLeft: "3px solid #d9d9d9",
+                }}
+              >
+                {row.passage}
+              </div>
+            )}
+            {typeof row.question === "string" && row.question.trim().length > 0 && (
+              <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontWeight: 500 }}>
+                {row.question}
+              </div>
+            )}
+            {row.imageUrl && (
+              <div style={{ marginTop: 8 }}>
+                <img
+                  src={row.imageUrl}
+                  alt="question"
+                  style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
+                />
+              </div>
+            )}
+            {row.audioUrl && (
+              <div style={{ marginTop: 8 }}>
+                <audio controls src={row.audioUrl} style={{ width: "100%" }}>
+                  Trình duyệt của bạn không hỗ trợ audio.
+                </audio>
+              </div>
+            )}
           </div>
-          {row.imageUrl && (
-            <div style={{ marginTop: 8 }}>
-              <img
-                src={row.imageUrl}
-                alt="question"
-                style={{ maxWidth: "100%", maxHeight: 200, borderRadius: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}
-              />
-            </div>
-          )}
-          {row.audioUrl && (
-            <div style={{ marginTop: 8 }}>
-              <audio controls src={row.audioUrl} style={{ width: "100%" }}>
-                Trình duyệt của bạn không hỗ trợ audio.
-              </audio>
-            </div>
-          )}
-          {row.options?.length > 0 && (
-            <div style={{ marginTop: 8 }}>
-              {row.options.map((opt) => {
-                const isUserAnswer = opt.label === row.userAnswerLabel;
-                const isCorrectAnswer = opt.isCorrect;
-                let bgColor = "transparent";
-                let borderColor = "transparent";
-                let textColor = "#333";
-                
-                if (isCorrectAnswer) {
-                  bgColor = "#f6ffed";
-                  borderColor = "#52c41a";
-                  textColor = "#389e0d";
-                } else if (isUserAnswer && !row.isCorrect) {
-                  bgColor = "#fff1f0";
-                  borderColor = "#f5222d";
-                  textColor = "#cf1322";
-                }
-                
-                return (
-                  <div 
-                    key={opt.label}
-                    style={{
-                      padding: "6px 10px",
-                      marginBottom: 4,
-                      background: bgColor,
-                      borderLeft: `3px solid ${borderColor}`,
-                      borderRadius: 4,
-                      color: textColor,
-                    }}
-                  >
-                    <strong>{opt.label}.</strong> {opt.content}
-                    {isCorrectAnswer && <CheckCircleOutlined style={{ marginLeft: 8, color: "#52c41a" }} />}
-                    {isUserAnswer && !row.isCorrect && <CloseCircleOutlined style={{ marginLeft: 8, color: "#f5222d" }} />}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {/* Giải thích */}
-          {row.explanation && (
-            <div 
-              style={{ 
-                marginTop: 12, 
-                padding: 10, 
-                background: "#e6f7ff", 
-                borderRadius: 6,
-                borderLeft: "3px solid #1890ff"
-              }}
-            >
-              <div style={{ fontWeight: 600, color: "#1890ff", marginBottom: 4, fontSize: 12 }}>
-                <BulbOutlined /> Giải thích:
+
+          {/* Khối đáp án & giải thích bên phải */}
+          <div style={{ flex: "1 1 45%", minWidth: 0 }}>
+            {row.options?.length > 0 && (
+              <div style={{ marginTop: 0 }}>
+                {row.options.map((opt) => {
+                  const isUserAnswer = opt.label === row.userAnswerLabel;
+                  const isCorrectAnswer = opt.isCorrect;
+                  let bgColor = "transparent";
+                  let borderColor = "transparent";
+                  let textColor = "#333";
+
+                  if (isCorrectAnswer) {
+                    bgColor = "#f6ffed";
+                    borderColor = "#52c41a";
+                    textColor = "#389e0d";
+                  } else if (isUserAnswer && !row.isCorrect) {
+                    bgColor = "#fff1f0";
+                    borderColor = "#f5222d";
+                    textColor = "#cf1322";
+                  }
+
+                  return (
+                    <div
+                      key={opt.label}
+                      style={{
+                        padding: "6px 10px",
+                        marginBottom: 4,
+                        background: bgColor,
+                        borderLeft: `3px solid ${borderColor}`,
+                        borderRadius: 4,
+                        color: textColor,
+                      }}
+                    >
+                      <strong>{opt.label}.</strong> {opt.content}
+                      {isCorrectAnswer && <CheckCircleOutlined style={{ marginLeft: 8, color: "#52c41a" }} />}
+                      {isUserAnswer && !row.isCorrect && <CloseCircleOutlined style={{ marginLeft: 8, color: "#f5222d" }} />}
+                    </div>
+                  );
+                })}
               </div>
-              <div style={{ color: "#333", fontSize: 13 }}>
-                {row.explanation}
+            )}
+            {/* Giải thích */}
+            {row.explanation && (
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: 10,
+                  background: "#e6f7ff",
+                  borderRadius: 6,
+                  borderLeft: "3px solid #1890ff",
+                }}
+              >
+                <div style={{ fontWeight: 600, color: "#1890ff", marginBottom: 4, fontSize: 12 }}>
+                  <BulbOutlined /> Giải thích:
+                </div>
+                <div style={{ color: "#333", fontSize: 13, whiteSpace: "pre-line" }}>
+                  {row.explanation}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       ),
-    },
-    {
-      title: "Đáp án của bạn",
-      dataIndex: "userAnswerLabel",
-      width: 150,
-      render: (_, row) =>
-        row.userAnswerLabel ? (
-          <Tag 
-            color={row.isCorrect ? "success" : "error"}
-            style={{ fontSize: 14, padding: "4px 12px" }}
-          >
-            {row.userAnswerLabel}
-          </Tag>
-        ) : (
-          <Tag color="default">—</Tag>
-        ),
-    },
-    {
-      title: "Đáp án đúng",
-      dataIndex: "correctAnswerLabel",
-      width: 150,
-      render: (_, row) =>
-        row.correctAnswerLabel ? (
-          <Tag 
-            color="success"
-            style={{ fontSize: 14, padding: "4px 12px" }}
-          >
-            {row.correctAnswerLabel}
-          </Tag>
-        ) : (
-          <Tag color="default">—</Tag>
-        ),
     },
   ];
 
@@ -1811,23 +1795,40 @@ export function TestHistoryTab() {
                 </Col>
               )}
               
-              {/* Correct Count (for LR) */}
-              {detailSummary.correctCount !== undefined && detailSummary.correctCount !== null && (
-                <Col span={12}>
-                  <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
-                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
-                      <CheckCircleOutlined /> Số câu đúng
+              {/* Correct Count per part (for LR) */}
+              {isLR && detailSummary.correctCount !== undefined && detailSummary.correctCount !== null && (
+                <>
+                  <Col span={12}>
+                    <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                      <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                        <CheckCircleOutlined /> Listening - số câu đúng
+                      </div>
+                      <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                        {practiceLrStats.listening.correct}
+                        {practiceLrStats.listening.total > 0 && (
+                          <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>
+                            /{practiceLrStats.listening.total}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
-                      {detailSummary.correctCount}
-                      {detailSummary.quantityQuestion && (
-                        <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>
-                          /{detailSummary.quantityQuestion}
-                        </span>
-                      )}
+                  </Col>
+                  <Col span={12}>
+                    <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                      <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                        <CheckCircleOutlined /> Reading - số câu đúng
+                      </div>
+                      <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                        {practiceLrStats.reading.correct}
+                        {practiceLrStats.reading.total > 0 && (
+                          <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>
+                            /{practiceLrStats.reading.total}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Col>
+                  </Col>
+                </>
               )}
               
               {/* Số câu hỏi (for SW) */}

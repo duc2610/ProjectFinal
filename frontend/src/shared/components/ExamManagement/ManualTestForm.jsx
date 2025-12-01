@@ -576,11 +576,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             const imageConfig = requiresImage(partId, selectedSkill);
             // Sử dụng partId để kiểm tra thay vì skill
             const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+            const isContentOptional = [1, 2, 6].includes(partId);
 
             // Validate questions đơn
             (partData.questions || []).forEach((q, qIdx) => {
-                // Content bắt buộc (trừ parts 1, 2, 6)
-                const isContentOptional = [1, 2, 6].includes(partId);
+                // Content bắt buộc (trừ parts optional)
                 if (!isContentOptional && !isValidString(q.content)) {
                     errors.push(`Part ${partId}, Câu hỏi ${qIdx + 1}: Nội dung câu hỏi không được để trống!`);
                 }
@@ -641,8 +641,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
 
                 // Validate questions trong group
                 (g.questions || []).forEach((q, qIdx) => {
-                    // Content bắt buộc
-                    if (!isValidString(q.content)) {
+                    // Content bắt buộc trừ các part optional
+                    if (!isContentOptional && !isValidString(q.content)) {
                         errors.push(`Part ${partId}, Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Nội dung câu hỏi không được để trống!`);
                     }
 
@@ -742,11 +742,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
         const imageConfig = requiresImage(partId, selectedSkill);
         const requireImage = imageConfig.required;
+        const isContentOptional = [1, 2, 6].includes(partId);
 
         // Validate questions đơn
         (partData.questions || []).forEach((q, qIdx) => {
-            // Content bắt buộc (trừ parts 1, 2, 6)
-            const isContentOptional = [1, 2, 6].includes(partId);
+            // Content bắt buộc (trừ parts optional)
             if (!isContentOptional && !validateString(q.content)) {
                 errors.push(`Câu hỏi ${qIdx + 1}: Nội dung không được để trống hoặc chỉ có khoảng trắng!`);
             }
@@ -786,7 +786,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             }
             
             (g.questions || []).forEach((q, qIdx) => {
-                if (!validateString(q.content)) {
+                if (!isContentOptional && !validateString(q.content)) {
                     errors.push(`Nhóm ${gIdx + 1}, Câu hỏi ${qIdx + 1}: Nội dung không được để trống hoặc chỉ có khoảng trắng!`);
                 }
 
@@ -819,7 +819,26 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
 
         // Nếu có lỗi, hiển thị và không cho lưu
         if (errors.length > 0) {
-            message.error(`Có ${errors.length} lỗi trong dữ liệu Part ${partId}. Vui lòng kiểm tra lại.`);
+            const maxPreview = 4;
+            const errorPreview = errors.slice(0, maxPreview);
+            message.error({
+                duration: 8,
+                content: (
+                    <div>
+                        <div>{`Có ${errors.length} lỗi trong dữ liệu Part ${partId}.`}</div>
+                        <ul style={{ margin: "8px 0 0 18px", padding: 0 }}>
+                            {errorPreview.map((err, idx) => (
+                                <li key={idx}>{err}</li>
+                            ))}
+                        </ul>
+                        {errors.length > maxPreview && (
+                            <div style={{ marginTop: 6 }}>
+                                {`... và ${errors.length - maxPreview} lỗi khác. Vui lòng kiểm tra từng câu.`}
+                            </div>
+                        )}
+                    </div>
+                ),
+            });
             return;
         }
 
@@ -1289,16 +1308,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                         {/* Single Questions - Chỉ hiển thị cho các part không phải group parts */}
                                         {!isGroupPart(part.partId) && (
                                             <div style={{ marginBottom: 16 }}>
-                                                {part.partId === 6 && (
-                                                    <Alert
-                                                        message="Lưu ý"
-                                                        description={`Part ${part.partId} không yêu cầu nội dung câu hỏi. Câu hỏi sẽ dựa vào passage và đáp án.`}
-                                                        type="info"
-                                                        showIcon
-                                                        style={{ marginBottom: 12 }}
-                                                    />
-                                                )}
-                                                {[1, 2].includes(part.partId) && (
+                                                {[1, 2, 6].includes(part.partId) && (
                                                     <Alert
                                                         message="Lưu ý"
                                                         description={`Part ${part.partId}: Nội dung câu hỏi là tùy chọn. Bạn có thể nhập hoặc để trống.`}
@@ -1465,9 +1475,8 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
     // Writing và Speaking parts không có options (partId 8-15)
     const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
     
-    // Part 6: không hiển thị trường content
-    // Part 1, 2: hiển thị trường content nhưng là tùy chọn (không bắt buộc)
-    const isContentVisible = partId !== 6;
+    // Tất cả part đều hiển thị trường content; Part 1, 2, 6 là tùy chọn
+    const isContentVisible = true;
     
     // Helper để validate string
     const isValidString = (value) => {
@@ -1506,7 +1515,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
     
     return (
         <Space direction="vertical" style={{ width: "100%" }} size="middle">
-            {/* Chỉ hiển thị trường content cho các part không phải 6 */}
+            {/* Trường content luôn hiển thị; các part 1,2,6 là tùy chọn */}
             {isContentVisible && (
                 <Form.Item 
                     label="Nội dung câu hỏi"
