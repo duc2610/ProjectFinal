@@ -12,6 +12,7 @@ using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 using ToeicGenius.Shared.Validators;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using Azure.Core;
+using Humanizer;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -61,7 +62,7 @@ namespace ToeicGenius.Services.Implementations
 		/// </summary>
 		public async Task<Result<string>> CreateAsync(QuestionGroupRequestDto request, Guid creatorId)
 		{
-			var validationResult = await ValidateQuestions(request);
+			var validationResult = await ValidateCreateQuestionsGroup(request);
 			if (!validationResult.IsSuccess)
 				return validationResult;
 
@@ -149,8 +150,14 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterQuestionGroupAsync(int? partId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status, Guid? creatorId = null)
 		{
-			var result = await _uow.QuestionGroups.FilterGroupAsync(partId, keyWord, skill, sortOrder, page, pageSize, status, creatorId);
+            try
+            {
+                	var result = await _uow.QuestionGroups.FilterGroupAsync(partId, keyWord, skill, sortOrder, page, pageSize, status);
 			return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
+            } catch (Exception ex)
+			{
+				return Result<PaginationResponse<QuestionListItemDto>>.Failure(ex.Message);
+			}
 		}
 
 		public async Task<Result<string>> UpdateAsync(int questionGroupId, UpdateQuestionGroupDto dto, Guid userId, bool isAdmin = false)
@@ -163,7 +170,20 @@ namespace ToeicGenius.Services.Implementations
 			if (!isAdmin && currentQuestionGroup.CreatedById != userId)
 				return Result<string>.Failure("Bạn không có quyền sửa nhóm câu hỏi này.");
 
-			var validationResult = await ValidateQuestions(dto);
+			// check valid listening part
+			var part = await _uow.Parts.GetByIdAsync(dto.PartId);
+			if (part != null && part.Skill == QuestionSkill.Listening)
+			{
+				// FIX: only require audio when neither new file is provided nor question already has audio
+				var hasExistingAudio = !string.IsNullOrEmpty(currentQuestionGroup.AudioUrl);
+				var hasNewAudio = dto.Audio != null && dto.Audio.Length > 0;
+				if (!hasExistingAudio && !hasNewAudio)
+				{
+					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
+				}
+			}
+
+			var validationResult = await ValidateUpdateQuestionsGroup(dto);
 			if (!validationResult.IsSuccess)
 				return validationResult;
 
@@ -333,7 +353,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 		}
 
-		private async Task<Result<string>> ValidateQuestions(QuestionGroupRequestDto request)
+		private async Task<Result<string>> ValidateUpdateQuestionsGroup(UpdateQuestionGroupDto request)
 		{
 			// Check valid quantity
 			var quantityQuestion = request.Questions.Count();
@@ -345,13 +365,7 @@ namespace ToeicGenius.Services.Implementations
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(request.PartId);
-			if (part != null && part.Skill == QuestionSkill.Listening)
-			{
-				if (request.Audio == null || request.Audio.Length == 0)
-				{
-					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
-				}
-			}
+		
 			// check part 1,2 Listening
 			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
 			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
@@ -393,7 +407,8 @@ namespace ToeicGenius.Services.Implementations
 
 			return Result<string>.Success("Validation passed");
 		}
-		private async Task<Result<string>> ValidateQuestions(UpdateQuestionGroupDto request)
+
+		private async Task<Result<string>> ValidateCreateQuestionsGroup(QuestionGroupRequestDto request)
 		{
 			// Check valid quantity
 			var quantityQuestion = request.Questions.Count();
@@ -405,6 +420,7 @@ namespace ToeicGenius.Services.Implementations
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(request.PartId);
+			// Listening part yêu cầu file audio
 			if (part != null && part.Skill == QuestionSkill.Listening)
 			{
 				if (request.Audio == null || request.Audio.Length == 0)
@@ -412,7 +428,6 @@ namespace ToeicGenius.Services.Implementations
 					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
-
 			// check part 1,2 Listening
 			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
 			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);

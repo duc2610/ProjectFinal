@@ -18,7 +18,6 @@ import {
   FileTextOutlined,
   QuestionCircleOutlined,
   TrophyOutlined,
-  ArrowUpOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
   BarChartOutlined,
@@ -141,11 +140,6 @@ export default function TestCreatorDashboard() {
       title: "Tổng số bài thi",
       value: stats.totalTests,
       prefix: <FileTextOutlined />,
-      suffix: (
-        <span style={{ fontSize: 14, color: "#52c41a" }}>
-          <ArrowUpOutlined /> +{stats.newTestsToday}
-        </span>
-      ),
       valueStyle: { color: "#1890ff" },
     },
     {
@@ -164,11 +158,6 @@ export default function TestCreatorDashboard() {
       title: "Tổng số câu hỏi",
       value: stats.totalQuestions,
       prefix: <QuestionCircleOutlined />,
-      suffix: (
-        <span style={{ fontSize: 14, color: "#52c41a" }}>
-          <ArrowUpOutlined /> +{stats.newQuestionsToday}
-        </span>
-      ),
       valueStyle: { color: "#722ed1" },
     },
     {
