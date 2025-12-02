@@ -1226,14 +1226,19 @@ export default function ResultScreen() {
                 Đáp án của bạn:
           </Text>
               <br />
-              <Text
-                style={{
-                  color: val ? "#52c41a" : "#f5222d",
-                  fontWeight: "bold",
-                }}
-              >
-                {userText ? `${userLabel}. ${userText}` : userLabel}
-              </Text>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <Text
+                  style={{
+                    color: val ? "#52c41a" : "#f5222d",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {userText ? `${userLabel}. ${userText}` : userLabel}
+                </Text>
+                <Tag color={val === null ? "default" : val ? "success" : "error"} style={{ margin: 0 }}>
+                  {val === null ? "Chưa trả lời" : val ? "Đúng" : "Sai"}
+                </Tag>
+              </div>
         </div>
             <div style={{ marginBottom: 4 }}>
               <Text type="secondary" style={{ fontSize: 12 }}>
@@ -1244,9 +1249,6 @@ export default function ResultScreen() {
                 {correctText ? `${correctLabel}. ${correctText}` : correctLabel}
               </Text>
         </div>
-            <Tag color={val === null ? "default" : val ? "success" : "error"} style={{ marginTop: 2 }}>
-          {val === null ? "Chưa trả lời" : val ? "Đúng" : "Sai"}
-        </Tag>
           </div>
         );
       },
