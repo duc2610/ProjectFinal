@@ -13,6 +13,19 @@ const EMPTY_LR_MESSAGE =
   "Không có câu trả lời cho phần này. Có thể bạn chưa làm hoặc dữ liệu chưa được ghi nhận.";
 import { translateErrorMessage } from "@shared/utils/translateError";
 
+// Helper function để format question text (giữ nguyên xuống dòng)
+const formatQuestionText = (text) => {
+  if (typeof text !== "string") return text || "";
+  return text.replace(/\r\n/g, "\n");
+};
+
+// Helper function để format passage HTML (chuyển \n thành <br />)
+const formatPassageHtml = (text) => {
+  if (typeof text !== "string") return text || "";
+  const normalized = text.replace(/\r\n/g, "\n");
+  return normalized.replace(/\n/g, "<br />");
+};
+
 export function TestHistoryTab() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -615,17 +628,17 @@ export function TestHistoryTab() {
               >
                 {typeof row.passage === "string" ? (
                   <div
-                    style={{ whiteSpace: "normal", wordBreak: "normal" }}
-                    dangerouslySetInnerHTML={{ __html: row.passage }}
+                    style={{ fontSize: "15px", lineHeight: "1.8", color: "#4a5568" }}
+                    dangerouslySetInnerHTML={{ __html: formatPassageHtml(row.passage) }}
                   />
                 ) : (
-                  row.passage
+                  <div style={{ whiteSpace: "pre-wrap" }}>{row.passage}</div>
                 )}
               </div>
             )}
             {typeof row.question === "string" && row.question.trim().length > 0 && (
               <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", fontWeight: 500 }}>
-                {row.question}
+                {formatQuestionText(row.question)}
               </div>
             )}
             {row.imageUrl && (
@@ -679,7 +692,10 @@ export function TestHistoryTab() {
                         color: textColor,
                       }}
                     >
-                      <strong>{opt.label}.</strong> {opt.content}
+                      <strong>{opt.label}.</strong>{" "}
+                      <span style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                        {formatQuestionText(opt.content || "")}
+                      </span>
                       {isCorrectAnswer && <CheckCircleOutlined style={{ marginLeft: 8, color: "#52c41a" }} />}
                       {isUserAnswer && !row.isCorrect && <CloseCircleOutlined style={{ marginLeft: 8, color: "#f5222d" }} />}
                     </div>
@@ -701,8 +717,8 @@ export function TestHistoryTab() {
                 <div style={{ fontWeight: 600, color: "#1890ff", marginBottom: 4, fontSize: 12 }}>
                   <BulbOutlined /> Giải thích:
                 </div>
-                <div style={{ color: "#333", fontSize: 13, whiteSpace: "pre-line" }}>
-                  {row.explanation}
+                <div style={{ color: "#333", fontSize: 13, whiteSpace: "pre-wrap" }}>
+                  {formatQuestionText(row.explanation)}
                 </div>
               </div>
             )}
@@ -1019,7 +1035,7 @@ export function TestHistoryTab() {
             style={{ borderRadius: 8 }}
           >
             <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-              {item.questionContent.content}
+              {formatQuestionText(item.questionContent.content)}
             </div>
           </Card>
         )}
@@ -1065,7 +1081,7 @@ export function TestHistoryTab() {
             style={{ borderRadius: 8, background: "#f6ffed" }}
           >
             <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-              {item.transcription}
+              {formatQuestionText(item.transcription)}
             </div>
           </Card>
         )}
@@ -1078,7 +1094,7 @@ export function TestHistoryTab() {
             style={{ borderRadius: 8, background: "#fafafa" }}
           >
             <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.8 }}>
-              {item.answerText}
+              {formatQuestionText(item.answerText)}
             </div>
           </Card>
         )}
@@ -1091,7 +1107,7 @@ export function TestHistoryTab() {
             style={{ borderRadius: 8, background: "#f6ffed", borderColor: "#b7eb8f" }}
           >
             <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", lineHeight: 1.8 }}>
-              {item.correctedText}
+              {formatQuestionText(item.correctedText)}
             </div>
           </Card>
         )}
@@ -1104,7 +1120,7 @@ export function TestHistoryTab() {
             style={{ borderRadius: 8, background: "#e6f7ff", borderColor: "#91d5ff" }}
           >
             <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-              {analysis.image_description}
+              {formatQuestionText(analysis.image_description)}
             </div>
           </Card>
         )}
@@ -1139,9 +1155,9 @@ export function TestHistoryTab() {
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                       <div style={{ flex: 1 }}>
-                        <Text delete style={{ color: "#f5222d" }}>{err.wrong}</Text>
+                        <Text delete style={{ color: "#f5222d", whiteSpace: "pre-wrap" }}>{formatQuestionText(err.wrong || "")}</Text>
                         <span style={{ margin: "0 8px" }}>→</span>
-                        <Text strong style={{ color: "#52c41a" }}>{err.correct}</Text>
+                        <Text strong style={{ color: "#52c41a", whiteSpace: "pre-wrap" }}>{formatQuestionText(err.correct || "")}</Text>
                       </div>
                       {err.severity && (
                         <Tag color={getSeverityColor(err.severity)} style={{ margin: 0 }}>
@@ -1150,9 +1166,9 @@ export function TestHistoryTab() {
                       )}
                     </div>
                     {err.rule && (
-                      <div style={{ marginTop: 6, fontSize: 12, color: "#666" }}>
+                      <div style={{ marginTop: 6, fontSize: 12, color: "#666", whiteSpace: "pre-wrap" }}>
                         <InfoCircleOutlined style={{ marginRight: 4 }} />
-                        {err.rule}
+                        {formatQuestionText(err.rule)}
                       </div>
                     )}
                   </div>
@@ -1184,13 +1200,13 @@ export function TestHistoryTab() {
                     }}
                   >
                     <div>
-                      <Text style={{ color: "#595959" }}>"{issue.word}"</Text>
+                      <Text style={{ color: "#595959", whiteSpace: "pre-wrap" }}>"{formatQuestionText(issue.word || "")}"</Text>
                       <span style={{ margin: "0 8px" }}>→</span>
-                      <Text strong style={{ color: "#1890ff" }}>{issue.better}</Text>
+                      <Text strong style={{ color: "#1890ff", whiteSpace: "pre-wrap" }}>{formatQuestionText(issue.better || "")}</Text>
                     </div>
                     {issue.example && (
-                      <div style={{ marginTop: 6, fontSize: 12, color: "#666", fontStyle: "italic" }}>
-                        Ví dụ: {issue.example}
+                      <div style={{ marginTop: 6, fontSize: 12, color: "#666", fontStyle: "italic", whiteSpace: "pre-wrap" }}>
+                        Ví dụ: {formatQuestionText(issue.example)}
                       </div>
                     )}
                   </div>
@@ -1212,8 +1228,8 @@ export function TestHistoryTab() {
             >
               <ul style={{ margin: 0, paddingLeft: 20 }}>
                 {analysis.missing_points.map((point, idx) => (
-                  <li key={idx} style={{ marginBottom: 6, color: "#fa8c16" }}>
-                    {point}
+                  <li key={idx} style={{ marginBottom: 6, color: "#fa8c16", whiteSpace: "pre-wrap" }}>
+                    {formatQuestionText(point)}
                   </li>
                 ))}
               </ul>
@@ -1233,8 +1249,8 @@ export function TestHistoryTab() {
             >
               <ul style={{ margin: 0, paddingLeft: 20 }}>
                 {analysis.matched_points.map((point, idx) => (
-                  <li key={idx} style={{ marginBottom: 6, color: "#52c41a" }}>
-                    {point}
+                  <li key={idx} style={{ marginBottom: 6, color: "#52c41a", whiteSpace: "pre-wrap" }}>
+                    {formatQuestionText(point)}
                   </li>
                 ))}
               </ul>
@@ -1254,8 +1270,8 @@ export function TestHistoryTab() {
             >
               <ul style={{ margin: 0, paddingLeft: 20 }}>
                 {analysis.opinion_support_issues.map((point, idx) => (
-                  <li key={idx} style={{ marginBottom: 6 }}>
-                    {point}
+                  <li key={idx} style={{ marginBottom: 6, whiteSpace: "pre-wrap" }}>
+                    {formatQuestionText(point)}
                   </li>
                 ))}
               </ul>
@@ -1559,7 +1575,13 @@ export function TestHistoryTab() {
           color: "#fa8c16",
         });
       }
-      if (detailSummary.totalScore != null && !isPracticeLrMode) {
+      // Chỉ hiển thị tổng điểm khi có cả 2 phần SW
+      if (
+        detailSummary.totalScore != null &&
+        !isPracticeLrMode &&
+        detailSummary.writingScore != null &&
+        detailSummary.speakingScore != null
+      ) {
         tiles.push({
           label: "Tổng điểm",
           value: detailSummary.totalScore,
@@ -1703,7 +1725,13 @@ export function TestHistoryTab() {
           color: "#fa8c16",
         });
       }
-      if (detailSummary.totalScore != null && !isPracticeLrMode) {
+      // Chỉ hiển thị tổng điểm khi có cả 2 phần SW
+      if (
+        detailSummary.totalScore != null &&
+        !isPracticeLrMode &&
+        detailSummary.writingScore != null &&
+        detailSummary.speakingScore != null
+      ) {
         detailTiles.push({
           label: "Tổng điểm",
           value: detailSummary.totalScore,

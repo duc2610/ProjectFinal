@@ -324,10 +324,13 @@ export default function QuestionReportManagement() {
         width: 260,
         ellipsis: true,
         render: (text, record) => {
-          const content =
+          const rawContent =
             text ||
             record?.questionSnapshot?.content ||
-            "(Không có nội dung câu hỏi)";
+            "";
+          const content = rawContent && rawContent.trim()
+            ? rawContent
+            : "Câu hỏi không có nội dung văn bản, chỉ hình ảnh/âm thanh.";
           return (
             <Tooltip title={content}>
               <span>{content}</span>
@@ -523,7 +526,11 @@ export default function QuestionReportManagement() {
                   content: e.target.value,
                 }))
               }
-              placeholder="Nội dung câu hỏi"
+              placeholder={
+                editableQuestion?.content && editableQuestion.content.trim()
+                  ? "Nội dung câu hỏi"
+                  : "Câu hỏi không có nội dung văn bản, chỉ hình ảnh/âm thanh. Nhập nội dung mới nếu cần."
+              }
             />
           </Descriptions.Item>
           <Descriptions.Item label="Giải thích">

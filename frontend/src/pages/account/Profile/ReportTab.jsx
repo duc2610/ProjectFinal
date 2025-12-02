@@ -160,7 +160,11 @@ export function ReportTab() {
       width: 380,
       render: (_, record) => {
         const isExpanded = expandedReports.has(record.reportId);
-        const questionText = record.questionContent || "—";
+        const questionTextRaw = record.questionContent;
+        const questionText =
+          questionTextRaw && questionTextRaw.trim()
+            ? questionTextRaw
+            : "Câu hỏi không có nội dung văn bản, chỉ hình ảnh/âm thanh.";
         const hasLongText = questionText.length > 150; // Ước tính text dài
         
         return (

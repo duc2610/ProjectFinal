@@ -115,6 +115,13 @@ const formatQuestionText = (text) => {
   return text.replace(/\r\n/g, "\n");
 };
 
+// Dùng cho passage: chuyển \n thành <br /> để hiển thị đúng xuống dòng khi render HTML
+const formatPassageHtml = (text) => {
+  if (typeof text !== "string") return text || "";
+  const normalized = text.replace(/\r\n/g, "\n");
+  return normalized.replace(/\n/g, "<br />");
+};
+
 export default function QuestionCard({
   question,
   currentIndex,
@@ -754,11 +761,11 @@ export default function QuestionCard({
               overflowX: "auto",
             }}
           >
-            {/* Hỗ trợ HTML (ví dụ: bảng) trong passage nếu là string */}
+            {/* Hỗ trợ HTML (ví dụ: bảng) trong passage nếu là string, đồng thời giữ xuống dòng */}
             {typeof question.passage === "string" ? (
               <div
                 style={{ fontSize: "15px", lineHeight: "1.8", color: "#4a5568" }}
-                dangerouslySetInnerHTML={{ __html: question.passage }}
+                dangerouslySetInnerHTML={{ __html: formatPassageHtml(question.passage) }}
               />
             ) : (
               <Text italic style={{ fontSize: "15px", lineHeight: "1.8", color: "#4a5568" }}>
@@ -978,15 +985,15 @@ export default function QuestionCard({
             <div
               ref={questionTextContainerRef}
               style={{
-            marginTop: "0",
-            padding: "20px",
-            background: "#ffffff",
-            borderRadius: "12px",
-            border: "1px solid #e2e8f0",
-            fontSize: "16px",
-            lineHeight: "1.8",
-            color: "#2d3748",
-                whiteSpace: "pre-line", // Giữ nguyên xuống dòng từ \r\n và \n
+                marginTop: "0",
+                padding: "20px",
+                background: "#ffffff",
+                borderRadius: "12px",
+                border: "1px solid #e2e8f0",
+                fontSize: "16px",
+                lineHeight: "1.8",
+                color: "#2d3748",
+                whiteSpace: "pre-wrap", // Giữ nguyên xuống dòng từ \r\n và \n
                 cursor: "text",
               }}
               onMouseUp={() => {
@@ -1021,7 +1028,7 @@ export default function QuestionCard({
               }}
             >
             <Text strong style={{ fontSize: "16px", color: "#2d3748" }}>
-                {renderQuestionWithHighlights()}
+              {renderQuestionWithHighlights()}
             </Text>
           </div>
           )}
@@ -1431,7 +1438,7 @@ export default function QuestionCard({
         style={{ paddingBottom: 0 }}
         bodyStyle={{ paddingBottom: 24 }}
       >
-        {question?.question && (
+        {question && (
           <div style={{ marginBottom: 16 }}>
             <Text strong style={{ display: "block", marginBottom: 8 }}>
               Câu hỏi:
@@ -1446,7 +1453,11 @@ export default function QuestionCard({
                 lineHeight: 1.6,
               }}
             >
-              {formatQuestionText(question.question)}
+              {hasQuestionText
+                ? formatQuestionText(question.question)
+                : `Câu ${currentIndex + 1}${
+                    question.partName ? ` - ${question.partName}` : ""
+                  } (Câu hỏi không có nội dung văn bản, chỉ hình ảnh/âm thanh).`}
             </div>
           </div>
         )}
