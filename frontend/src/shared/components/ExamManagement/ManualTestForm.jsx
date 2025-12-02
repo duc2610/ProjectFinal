@@ -381,12 +381,32 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         }
     };
 
+    const getPartQuestionCount = (data, partId) => {
+        const partData = data?.[partId] || { groups: [], questions: [] };
+        const groupQuestions = (partData.groups || []).reduce(
+            (sum, g) => sum + (g.questions || []).length,
+            0
+        );
+        const singleQuestions = (partData.questions || []).length;
+        return groupQuestions + singleQuestions;
+    };
+
     const addQuestion = (partId) => {
         // Không cho phép thêm single questions cho group parts (3, 4, 6, 7)
         if (isGroupPart(partId)) {
             message.warning(`Part ${partId} chỉ hỗ trợ nhóm câu hỏi (Group Questions), không thể thêm câu hỏi đơn.`);
             return;
         }
+
+        const maxCount = PART_QUESTION_COUNT[partId];
+        if (maxCount != null) {
+            const currentCount = getPartQuestionCount(partsData, partId);
+            if (currentCount >= maxCount) {
+                message.warning(`Part ${partId} đã đủ ${maxCount} câu, không thể thêm thêm câu hỏi đơn.`);
+                return;
+            }
+        }
+
         setShowValidation(false);
         // Writing và Speaking parts không có options (partId 8-15)
         const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
@@ -413,6 +433,16 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addGroup = (partId) => {
+        const maxCount = PART_QUESTION_COUNT[partId];
+        if (maxCount != null) {
+            const currentCount = getPartQuestionCount(partsData, partId);
+            // mỗi group mới khởi tạo có 1 câu hỏi
+            if (currentCount + 1 > maxCount) {
+                message.warning(`Part ${partId} đã đủ ${maxCount} câu, không thể thêm nhóm câu hỏi mới.`);
+                return;
+            }
+        }
+
         setShowValidation(false);
         // Writing và Speaking parts không có options (partId 8-15)
         const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
@@ -520,6 +550,15 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     };
 
     const addQuestionToGroup = (partId, groupIndex) => {
+        const maxCount = PART_QUESTION_COUNT[partId];
+        if (maxCount != null) {
+            const currentCount = getPartQuestionCount(partsData, partId);
+            if (currentCount + 1 > maxCount) {
+                message.warning(`Part ${partId} đã đủ ${maxCount} câu, không thể thêm thêm câu hỏi trong nhóm.`);
+                return;
+            }
+        }
+
         setShowValidation(false);
         // Writing và Speaking parts không có options (partId 8-15)
         const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
@@ -1100,7 +1139,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                     },
                                 },
                             ]}
-                        >
+                            >
                             <Select
                                 placeholder="Chọn kỹ năng"
                                 onChange={(value) => {
@@ -1115,9 +1154,10 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 }}
                                 disabled={readOnly || !!editingId}
                             >
-                                <Option value={TEST_SKILL.LR}>Nghe & Đọc</Option>
-                                <Option value={TEST_SKILL.SPEAKING}>Nói</Option>
-                                <Option value={TEST_SKILL.WRITING}>Viết</Option>
+                                <Option value={TEST_SKILL.LR}>Nghe &amp; Đọc (L&amp;R)</Option>
+                                <Option value={TEST_SKILL.SPEAKING}>Nói (Speaking)</Option>
+                                <Option value={TEST_SKILL.WRITING}>Viết (Writing)</Option>
+                                <Option value={TEST_SKILL.SW}>Nói & Viết (S&amp;W)</Option>
                             </Select>
                         </Form.Item>
                     </Col>
@@ -1138,9 +1178,9 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     <TextArea rows={2} placeholder="Mô tả về bài thi (tùy chọn)" disabled={readOnly} />
                 </Form.Item>
 
-                {selectedSkill === TEST_SKILL.LR && (
+                {requiresAudio(selectedSkill) && (
                     <Form.Item 
-                        label={audioUrl ? "Audio file (Đã upload)" : "Audio file (Bắt buộc cho L&R)"}
+                        label={audioUrl ? "Audio file (Đã upload)" : "Audio file "}
                         required={!audioUrl}
                     >
                         <Space direction="vertical" style={{ width: "100%" }} size="small">
@@ -1642,56 +1682,107 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                             const optionError = showValidation && !isValidString(option.content) ? "Đáp án không được để trống!" : "";
                             
                             return (
-                                <div key={oIdx}>
-                                    <Row gutter={8} align="middle">
-                                        <Col span={2}>
-                                            <Tag>{option.label}</Tag>
-                                        </Col>
-                                        <Col span={18}>
-                                            <Input
-                                                value={option.content || ""}
-                                                onChange={(e) => onUpdateOption(oIdx, "content", e.target.value)}
-                                                onFocus={() => {
-                                                    // Validate các trường trước đó khi focus vào đáp án
-                                                    if (!isValidString(question.content)) {
-                                                        setContentValidated(true);
-                                                    }
-                                                    if (requireImage && !isValidString(question.imageUrl)) {
-                                                        setImageValidated(true);
-                                                    }
-                                                }}
-                                                placeholder={`Nhập đáp án ${option.label}`}
-                                                disabled={readOnly}
-                                                status={optionError ? "error" : ""}
-                                            />
-                                        </Col>
-                                        <Col span={4}>
-                                            <Button
-                                                type={option.isCorrect ? "primary" : "default"}
-                                                onClick={() => {
-                                                    // Reset tất cả về false, rồi set cái này thành true
-                                                    (question.options || []).forEach((_, idx) => {
-                                                        onUpdateOption(idx, "isCorrect", idx === oIdx);
-                                                    });
-                                                }}
-                                                disabled={readOnly}
-                                            >
-                                                {option.isCorrect ? "Đúng" : "Chọn"}
-                                            </Button>
-                                        </Col>
-                                    </Row>
-                                    {optionError && (
-                                        <div style={{ color: "#ff4d4f", fontSize: "12px", marginTop: "4px", marginLeft: "40px" }}>
-                                            {optionError}
+                                <div
+                                    key={oIdx}
+                                    style={{
+                                        marginBottom: 12,
+                                        padding: 12,
+                                        background: "#fafafa",
+                                        border: "1px solid #e8e8e8",
+                                        borderRadius: 8,
+                                        display: "flex",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <div style={{ marginRight: 12 }}>
+                                        <div
+                                            style={{
+                                                width: 36,
+                                                height: 36,
+                                                borderRadius: "999px",
+                                                background:
+                                                    "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                color: "#fff",
+                                                fontWeight: 700,
+                                                fontSize: 16,
+                                                userSelect: "none",
+                                            }}
+                                        >
+                                            {option.label}
                                         </div>
-                                    )}
+                                    </div>
+
+                                    <div style={{ flex: 1, marginRight: 12 }}>
+                                        <Input
+                                            value={option.content || ""}
+                                            onChange={(e) =>
+                                                onUpdateOption(
+                                                    oIdx,
+                                                    "content",
+                                                    e.target.value
+                                                )
+                                            }
+                                            onFocus={() => {
+                                                // Validate các trường trước đó khi focus vào đáp án
+                                                if (!isValidString(question.content)) {
+                                                    setContentValidated(true);
+                                                }
+                                                if (
+                                                    requireImage &&
+                                                    !isValidString(question.imageUrl)
+                                                ) {
+                                                    setImageValidated(true);
+                                                }
+                                            }}
+                                            placeholder={`Nhập đáp án ${option.label}`}
+                                            disabled={readOnly}
+                                            status={optionError ? "error" : ""}
+                                        />
+                                        {optionError && (
+                                            <div
+                                                style={{
+                                                    color: "#ff4d4f",
+                                                    fontSize: 12,
+                                                    marginTop: 4,
+                                                }}
+                                            >
+                                                {optionError}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <Button
+                                        type={option.isCorrect ? "primary" : "default"}
+                                        onClick={() => {
+                                            // Reset tất cả về false, rồi set cái này thành true
+                                            (question.options || []).forEach((_, idx) => {
+                                                onUpdateOption(idx, "isCorrect", idx === oIdx);
+                                            });
+                                        }}
+                                        disabled={readOnly}
+                                    >
+                                        {option.isCorrect ? "Đúng" : "Chọn"}
+                                    </Button>
                                 </div>
                             );
                         })}
                         {(() => {
-                            const hasCorrectAnswer = (question.options || []).some(opt => opt.isCorrect && isValidString(opt.content));
-                            return showValidation && !hasCorrectAnswer && (question.options || []).length > 0 ? (
-                                <div style={{ color: "#ff4d4f", fontSize: "12px", marginTop: "4px" }}>
+                            const hasCorrectAnswer = (question.options || []).some(
+                                (opt) => opt.isCorrect && isValidString(opt.content)
+                            );
+                            return showValidation &&
+                                !hasCorrectAnswer &&
+                                (question.options || []).length > 0 ? (
+                                <div
+                                    style={{
+                                        color: "#ff4d4f",
+                                        fontSize: 12,
+                                        marginTop: 4,
+                                    }}
+                                >
                                     Phải chọn ít nhất 1 đáp án đúng!
                                 </div>
                             ) : null;

@@ -91,7 +91,7 @@ export default function TestList() {
         const skillValue = skill === "lr" ? TEST_SKILL.LR :
                          skill === "speaking" ? TEST_SKILL.SPEAKING :
                          skill === "writing" ? TEST_SKILL.WRITING :
-                         skill === "sw" || skill === "fourSkills" ? TEST_SKILL.FOUR_SKILLS : null;
+                         skill === "sw" || skill === "fourSkills" ? TEST_SKILL.SW : null;
         
         if (skillValue === null) {
             setTests(testsList);
