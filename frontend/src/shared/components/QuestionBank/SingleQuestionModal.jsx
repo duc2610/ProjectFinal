@@ -80,8 +80,14 @@ export default function SingleQuestionModal({
     [selectedSkill]
   );
 
-  const isAudioVisible = isListening;
-  const isAudioRequired = isListening;
+  const hasSelectedPart = useMemo(
+    () => selectedPart !== undefined && selectedPart !== null && selectedPart !== "",
+    [selectedPart]
+  );
+
+  // Audio chỉ hiển thị/kích hoạt sau khi đã chọn Part
+  const isAudioVisible = isListening && hasSelectedPart;
+  const isAudioRequired = isListening && hasSelectedPart;
 
   // Các part cần ảnh theo chuẩn TOEIC:
   // ẢNH BẮT BUỘC:
@@ -105,8 +111,11 @@ export default function SingleQuestionModal({
   const isOptionSkill =
     Number(selectedSkill) === 3 || Number(selectedSkill) === 4;
 
-  // Parts chỉ dành cho group questions: 3, 4 (Listening), 6, 7 (Reading)
-  const GROUP_PARTS = [3, 4, 6, 7];
+  // Parts chỉ dành cho group questions:
+  // - Listening: 3, 4
+  // - Reading: 6, 7
+  // - Speaking: 13, 14 (S-Part 3, 4)
+  const GROUP_PARTS = [3, 4, 6, 7, 13, 14];
   const isGroupPart = (p) => GROUP_PARTS.includes(Number(p));
   
   // Kiểm tra part hiện tại có phải group part không
@@ -114,10 +123,10 @@ export default function SingleQuestionModal({
     return isGroupPart(selectedPart);
   }, [selectedPart]);
 
-  // Parts 1, 2, 6 không hiển thị trường content
+  // Parts 1, 6 không hiển thị trường content
   const isContentVisible = useMemo(() => {
     const partId = Number(selectedPart);
-    return !([1, 2, 6].includes(partId));
+    return !([1, 6].includes(partId));
   }, [selectedPart]);
 
   const loadPartsBySkill = async (skill) => {
@@ -508,7 +517,7 @@ export default function SingleQuestionModal({
       const apiMessage =
         e?.response?.data?.message || e?.response?.data?.data || e?.message;
       const normalizedError = (apiMessage || "").toLowerCase();
-      
+
       // Xử lý lỗi permission - người dùng không có quyền chỉnh sửa câu hỏi này
       if (normalizedError.includes("don't have permission") || 
           normalizedError.includes("permission to modify") ||
@@ -517,6 +526,12 @@ export default function SingleQuestionModal({
         message.error("Bạn không có quyền chỉnh sửa câu hỏi này. Chỉ người tạo câu hỏi mới có thể chỉnh sửa.");
       } else if (apiMessage) {
         message.error(String(apiMessage));
+      } else if (Array.isArray(e?.errorFields) && e.errorFields.length > 0) {
+        // Lỗi validate phía client (ví dụ: chưa chọn đáp án đúng)
+        const firstErr = e.errorFields[0]?.errors?.[0];
+        if (firstErr) {
+          message.error(String(firstErr));
+        }
       }
       
       const first = e?.errorFields?.[0]?.name;
@@ -538,6 +553,12 @@ export default function SingleQuestionModal({
       cancelText="Hủy"
       destroyOnClose
       okButtonProps={{ disabled: isCurrentPartGroup }}
+      width="80%"
+      style={{ top: 20, maxWidth: 1200 }}
+      bodyStyle={{
+        paddingRight: 24,
+        overflow: "hidden",
+      }}
     >
       <Form 
         form={form} 
@@ -637,8 +658,8 @@ export default function SingleQuestionModal({
                     questionTypeId: undefined,
                   };
                   
-                  // Xóa content nếu part là 1, 2, 6 (trường bị ẩn)
-                  if ([1, 2, 6].includes(partIdNum)) {
+                  // Xóa content nếu part là 1, 6 (trường bị ẩn)
+                  if ([1, 6].includes(partIdNum)) {
                     updates.content = "";
                   }
                   
@@ -754,6 +775,7 @@ export default function SingleQuestionModal({
           </Form.Item>
         )}
 
+        {isAudioVisible && (
         <Row gutter={12}>
           {isAudioVisible && (
             <Col span={12}>
@@ -931,8 +953,10 @@ export default function SingleQuestionModal({
             </Col>
           )}
         </Row>
+        )}
 
-        {(Number(selectedSkill) === 3 || Number(selectedSkill) === 4) && (
+        {(Number(selectedSkill) === 3 || Number(selectedSkill) === 4) &&
+          hasSelectedPart && (
           <>
             <div style={{ fontWeight: 600, marginBottom: 16, fontSize: 15 }}>
               Đáp án{" "}
@@ -984,147 +1008,140 @@ export default function SingleQuestionModal({
                         background: "#fafafa",
                         border: "1px solid #e8e8e8",
                         borderRadius: 8,
+                        display: "flex",
+                        alignItems: "center",
                       }}
                     >
-                      <Row gutter={12} align="middle">
-                        <Col span={3}>
-                          <Form.Item
-                            {...restField}
-                            name={[restField.name, "label"]}
-                            style={{ marginBottom: 0 }}
-                          >
-                            <Input 
-                              disabled 
-                              readOnly
-                              value={(() => {
-                                const labels = requiredOptionsCount === 3 
-                                  ? ["A", "B", "C"] 
-                                  : ["A", "B", "C", "D"];
-                                return labels[idx] || "A";
-                              })()}
-                              style={{ 
-                                backgroundColor: "#1890ff",
-                                color: "#fff",
-                                cursor: "not-allowed",
-                                fontWeight: "bold",
-                                textAlign: "center",
-                                border: "none",
-                                height: 32,
-                              }}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={17}>
-                          <Form.Item
-                            {...restField}
-                            name={[restField.name, "content"]}
-                            validateTrigger={['onBlur']}
-                            style={{ marginBottom: 0 }}
-                            rules={[
-                              {
-                                validator: (_, value) => {
-                                  if (!value || !String(value).trim()) {
-                                    return Promise.reject(new Error("Vui lòng nhập nội dung đáp án"));
-                                  }
-                                  if (String(value).length > 500) {
-                                    return Promise.reject(new Error("Tối đa 500 ký tự"));
-                                  }
-                                  return Promise.resolve();
-                                },
+                      <Form.Item
+                        {...restField}
+                        name={[restField.name, "label"]}
+                        style={{ marginBottom: 0, marginRight: 12 }}
+                      >
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: "999px",
+                            background:
+                              "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontWeight: 700,
+                            fontSize: 18,
+                            boxShadow: "0 2px 8px rgba(24, 144, 255, 0.35)",
+                            userSelect: "none",
+                          }}
+                        >
+                          {(() => {
+                            const labels =
+                              requiredOptionsCount === 3
+                                ? ["A", "B", "C"]
+                                : ["A", "B", "C", "D"];
+                            return labels[idx] || "A";
+                          })()}
+                        </div>
+                      </Form.Item>
+
+                      <div style={{ flex: 1, marginRight: 12 }}>
+                        <Form.Item
+                          {...restField}
+                          name={[restField.name, "content"]}
+                          validateTrigger={["onBlur"]}
+                          style={{ marginBottom: 0 }}
+                          rules={[
+                            {
+                              validator: (_, value) => {
+                                if (!value || !String(value).trim()) {
+                                  return Promise.reject(
+                                    new Error("Vui lòng nhập nội dung đáp án")
+                                  );
+                                }
+                                if (String(value).length > 500) {
+                                  return Promise.reject(
+                                    new Error("Tối đa 500 ký tự")
+                                  );
+                                }
+                                return Promise.resolve();
                               },
-                            ]}
-                          >
-                            <Input 
-                              placeholder="Nhập nội dung đáp án"
-                              onChange={(e) => {
-                                // Xóa lỗi khi đang sửa (nếu có)
-                                const fieldName = ['answerOptions', restField.name, 'content'];
-                                const errors = form.getFieldsError(fieldName);
-                                if (errors[0]?.errors?.length > 0) {
-                                  form.setFields([{ name: fieldName, errors: [] }]);
-                                }
-                              }}
-                              onFocus={(e) => {
-                                // Validate các trường trước đó khi focus vào trường này
-                                form.validateFields(['skill', 'partId', 'questionTypeId', 'content']).catch(() => {});
-                                // Validate audio nếu bắt buộc
-                                if (isAudioRequired) {
-                                  form.validateFields(['audio']).catch(() => {});
-                                }
-                                // Validate image nếu bắt buộc
-                                if (isImageRequired) {
-                                  form.validateFields(['image']).catch(() => {});
-                                }
-                              }}
-                            />
-                          </Form.Item>
-                        </Col>
-                        <Col span={3}>
-                          <Form.Item
-                            valuePropName="checked"
-                            name={[restField.name, "isCorrect"]}
-                            style={{ marginBottom: 0 }}
-                          >
-                            <Checkbox
-                              onChange={(e) =>
-                                handleToggleCorrect(idx, e.target.checked)
+                            },
+                          ]}
+                        >
+                          <Input
+                            placeholder="Nhập nội dung đáp án"
+                            onChange={(e) => {
+                              // Xóa lỗi khi đang sửa (nếu có)
+                              const fieldName = [
+                                "answerOptions",
+                                restField.name,
+                                "content",
+                              ];
+                              const errors = form.getFieldsError(fieldName);
+                              if (errors[0]?.errors?.length > 0) {
+                                form.setFields([{ name: fieldName, errors: [] }]);
                               }
-                            >
-                              Đúng
-                            </Checkbox>
-                          </Form.Item>
-                        </Col>
-                        <Col span={1}>
-                          <Button
-                            danger
-                            type="text"
-                            icon={<DeleteOutlined />}
-                            onClick={() => remove(restField.name)}
-                            disabled={
-                              requiredOptionsCount
-                                ? fields.length <= requiredOptionsCount
-                                : fields.length <= 1
-                            }
-                            style={{ 
-                              padding: 0,
-                              height: 32,
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center"
+                            }}
+                            onFocus={(e) => {
+                              // Validate các trường trước đó khi focus vào trường này
+                              form
+                                .validateFields([
+                                  "skill",
+                                  "partId",
+                                  "questionTypeId",
+                                  "content",
+                                ])
+                                .catch(() => {});
+                              // Validate audio nếu bắt buộc
+                              if (isAudioRequired) {
+                                form.validateFields(["audio"]).catch(() => {});
+                              }
+                              // Validate image nếu bắt buộc
+                              if (isImageRequired) {
+                                form.validateFields(["image"]).catch(() => {});
+                              }
                             }}
                           />
-                        </Col>
-                      </Row>
+                        </Form.Item>
+                      </div>
+
+                      <div style={{ marginRight: 12 }}>
+                          <Form.Item
+                            {...restField}
+                          valuePropName="checked"
+                          name={[restField.name, "isCorrect"]}
+                          style={{ marginBottom: 0 }}
+                          >
+                          <Checkbox
+                            onChange={(e) =>
+                              handleToggleCorrect(idx, e.target.checked)
+                            }
+                          >
+                            Đúng
+                          </Checkbox>
+                          </Form.Item>
+                      </div>
+
+                      <Button
+                        danger
+                        type="text"
+                        icon={<DeleteOutlined />}
+                        onClick={() => remove(restField.name)}
+                        disabled={
+                          requiredOptionsCount
+                            ? fields.length <= requiredOptionsCount
+                            : fields.length <= 1
+                        }
+                        style={{
+                          padding: 0,
+                          height: 32,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      />
                     </div>
                   ))}
-                  <Button
-                    type="dashed"
-                    onClick={() => {
-                      const labels = requiredOptionsCount === 3 
-                        ? ["A", "B", "C"] 
-                        : ["A", "B", "C", "D"];
-                      const nextIndex = (answerOptions?.length || 0);
-                      add({ 
-                        label: labels[nextIndex] || "A", 
-                        content: "", 
-                        isCorrect: false 
-                      });
-                    }}
-                    style={{ 
-                      marginTop: 8,
-                      width: "100%",
-                      height: 40,
-                      borderStyle: "dashed",
-                      borderColor: "#d9d9d9"
-                    }}
-                    disabled={
-                      !!requiredOptionsCount &&
-                      (answerOptions?.length || 0) >= requiredOptionsCount
-                    }
-                    icon={<PlusOutlined />}
-                  >
-                    Thêm đáp án
-                  </Button>
                 </>
               )}
             </Form.List>

@@ -24,9 +24,9 @@ export const PART_QUESTION_COUNT = {
 // Tổng số câu hỏi theo skill
 export const TOTAL_QUESTIONS_BY_SKILL = {
     1: 11,   // Speaking (2+2+3+3+1 = 11)
-    2: 8,    // Writing
+    2: 8,    // Writing (5+2+1 = 8)
     3: 200,  // L&R
-    4: 219,  // S&W (L+R+W+S: 200+8+11 = 219)
+    4: 19,   // S&W (Speaking + Writing: 11 + 8 = 19)
 };
 
 // Yêu cầu audio theo skill
@@ -34,7 +34,7 @@ export const REQUIRES_AUDIO = {
     1: false, // Speaking - không yêu cầu audio
     2: false, // Writing - không yêu cầu audio
     3: true,  // L&R - YÊU CẦU audio tổng
-    4: true,  // S&W - YÊU CẦU audio tổng
+    4: false, // S&W - KHÔNG yêu cầu audio tổng
 };
 
 // Enum TestSkill (phải khớp với backend)
@@ -42,7 +42,7 @@ export const TEST_SKILL = {
     SPEAKING: 1,
     WRITING: 2,
     LR: 3,
-    FOUR_SKILLS: 4, // S&W: L+R+W+S (219 questions total)
+    SW: 4, // S&W: L+R+W+S (219 questions total)
 };
 
 // Enum TestType (phải khớp với backend)
@@ -58,16 +58,12 @@ export async function loadPartsBySkill(skill) {
             const listeningParts = await getPartsBySkill(3); // Listening = 3
             const readingParts = await getPartsBySkill(4); // Reading = 4
             parts = [...(listeningParts || []), ...(readingParts || [])];
-        } else if (skill === TEST_SKILL.FOUR_SKILLS) {
-            const listeningParts = await getPartsBySkill(3); // Listening = 3
-            const readingParts = await getPartsBySkill(4); // Reading = 4
+        } else if (skill === TEST_SKILL.SW) {
             const writingParts = await getPartsBySkill(2); // Writing = 2
             const speakingParts = await getPartsBySkill(1); // Speaking = 1
             parts = [
-                ...(listeningParts || []), 
-                ...(readingParts || []), 
-                ...(writingParts || []), 
-                ...(speakingParts || [])
+                ...(writingParts || []),
+                ...(speakingParts || []),
             ];
         } else if (skill === TEST_SKILL.SPEAKING) {
             parts = await getPartsBySkill(1); // Speaking = 1

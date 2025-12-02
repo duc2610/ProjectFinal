@@ -1290,8 +1290,8 @@ function RandomQuestionSelector({
                 type="info"
                 showIcon
                 style={{ marginBottom: 16 }}
-                message="Chọn random câu hỏi"
-                description="Cấu hình số lượng câu hỏi random cho từng part. Part 3, 4, 6, 7 chỉ có thể chọn nhóm câu hỏi (Group Questions)."
+                message="Chọn ngẫu nhiên câu hỏi"
+                description="Cấu hình số lượng câu hỏi ngẫu nhiên cho từng part. Part 3, 4, 6, 7 chỉ có thể chọn nhóm câu hỏi hoặc câu hỏi đơn."
             />
 
             {!readOnly && (
@@ -1385,9 +1385,7 @@ function RandomQuestionSelector({
                                             <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
                                                 &nbsp;
                                             </div>
-                                            <div style={{ color: "#999", fontSize: 12, paddingTop: 4 }}>
-                                                (Chỉ single)
-                                            </div>
+                                            
                                         </Col>
                                     )}
                                     {isGroupPartId && (
@@ -1395,9 +1393,7 @@ function RandomQuestionSelector({
                                             <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
                                                 &nbsp;
                                             </div>
-                                            <Tag color="purple" style={{ marginTop: 4 }}>
-                                                (Chỉ group)
-                                            </Tag>
+                                            
                                         </Col>
                                     )}
                                     <Col span={2}>

@@ -29,7 +29,11 @@ import {
   updateQuestionGroup,
 } from "@services/questionGroupService";
 
-const GROUP_PARTS = [3, 4, 6, 7];
+// Các Part là Group Question:
+// - Listening: 3, 4
+// - Reading: 6, 7
+// - Speaking: 13, 14 (S-Part 3, 4)
+const GROUP_PARTS = [3, 4, 6, 7, 13, 14];
 const isGroupPart = (p) => GROUP_PARTS.includes(Number(p));
 
 const skillNameToId = (s) => {
@@ -65,11 +69,13 @@ export default function QuestionGroupModal({
   const imageList = Form.useWatch("image", form);
 
   // Chỉ hiển thị các kỹ năng có Group Question
-  // Listening (3) có Part 3, 4
-  // Reading (4) có Part 6, 7
+  // Listening (3): Part 3, 4
+  // Reading (4): Part 6, 7
+  // Speaking (1): Part 13, 14
   const SKILLS = [
     { value: 3, label: "Nghe" },
     { value: 4, label: "Đọc" },
+    { value: 1, label: "Nói" },
   ];
 
   const toNum = (v) => {
@@ -1071,134 +1077,142 @@ export default function QuestionGroupModal({
                                 background: "#fafafa",
                                 border: "1px solid #e8e8e8",
                                 borderRadius: 6,
+                                display: "flex",
+                                alignItems: "center",
                               }}
                             >
-                              <Row gutter={12} align="middle">
-                                <Col span={3}>
-                                  <Form.Item
-                                    {...rest2}
-                                    name={[n2, "label"]}
-                                    validateTrigger={['onBlur']}
-                                    style={{ marginBottom: 0 }}
-                                    rules={[
-                                      {
-                                        validator: (_, value) => {
-                                          if (!value || !String(value).trim()) {
-                                            return Promise.reject(new Error("Vui lòng nhập nhãn"));
-                                          }
-                                          if (String(value).length > 3) {
-                                            return Promise.reject(new Error("Tối đa 3 ký tự"));
-                                          }
-                                          return Promise.resolve();
-                                        },
+                              <Form.Item
+                                {...rest2}
+                                name={[n2, "label"]}
+                                style={{ marginBottom: 0, marginRight: 12 }}
+                              >
+                                <div
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: "999px",
+                                    background:
+                                      "linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    color: "#fff",
+                                    fontWeight: 700,
+                                    fontSize: 16,
+                                    boxShadow:
+                                      "0 2px 8px rgba(24, 144, 255, 0.35)",
+                                    userSelect: "none",
+                                  }}
+                                >
+                                  {["A", "B", "C", "D"][idx] || "A"}
+                                </div>
+                              </Form.Item>
+
+                              <div style={{ flex: 1, marginRight: 12 }}>
+                                <Form.Item
+                                  {...rest2}
+                                  name={[n2, "content"]}
+                                  validateTrigger={["onBlur"]}
+                                  style={{ marginBottom: 0 }}
+                                  rules={[
+                                    {
+                                      validator: (_, value) => {
+                                        if (!value || !String(value).trim()) {
+                                          return Promise.reject(
+                                            new Error(
+                                              "Vui lòng nhập nội dung đáp án"
+                                            )
+                                          );
+                                        }
+                                        if (String(value).length > 500) {
+                                          return Promise.reject(
+                                            new Error("Tối đa 500 ký tự")
+                                          );
+                                        }
+                                        return Promise.resolve();
                                       },
-                                    ]}
-                                  >
-                                    <Input
-                                      placeholder={
-                                        ["A", "B", "C", "D", "E"][idx] || "A"
+                                    },
+                                  ]}
+                                >
+                                  <Input
+                                    placeholder="Nhập nội dung đáp án"
+                                    onChange={() => {
+                                      // Xóa lỗi khi đang sửa (nếu có)
+                                      const fieldName = [
+                                        "questions",
+                                        name,
+                                        "answerOptions",
+                                        n2,
+                                        "content",
+                                      ];
+                                      const errors =
+                                        form.getFieldsError(fieldName);
+                                      if (errors[0]?.errors?.length > 0) {
+                                        form.setFields([
+                                          { name: fieldName, errors: [] },
+                                        ]);
                                       }
-                                      style={{
-                                        textAlign: "center",
-                                        height: 32,
-                                        fontWeight: 500,
-                                      }}
-                                      onChange={() => {
-                                        // Xóa lỗi khi đang sửa (nếu có)
-                                        const fieldName = ['questions', name, 'answerOptions', n2, 'label'];
-                                        const errors = form.getFieldsError(fieldName);
-                                        if (errors[0]?.errors?.length > 0) {
-                                          form.setFields([{ name: fieldName, errors: [] }]);
-                                        }
-                                      }}
-                                      onFocus={() => {
-                                        // Validate các trường trước đó khi focus vào trường này
-                                        form.validateFields(['skill', 'partId', 'passageContent']).catch(() => {});
-                                        // Validate audio nếu bắt buộc
-                                        if (isAudioRequired) {
-                                          form.validateFields(['audio']).catch(() => {});
-                                        }
-                                        // Validate image nếu bắt buộc
-                                        if (isImageRequired) {
-                                          form.validateFields(['image']).catch(() => {});
-                                        }
-                                        // Validate questionTypeId và content của câu hỏi này
-                                        const questionTypeField = ['questions', name, 'questionTypeId'];
-                                        const questionContentField = ['questions', name, 'content'];
-                                        form.validateFields([questionTypeField, questionContentField]).catch(() => {});
-                                      }}
-                                    />
-                                  </Form.Item>
-                                </Col>
-                                <Col span={17}>
-                                  <Form.Item
-                                    {...rest2}
-                                    name={[n2, "content"]}
-                                    validateTrigger={['onBlur']}
-                                    style={{ marginBottom: 0 }}
-                                    rules={[
-                                      {
-                                        validator: (_, value) => {
-                                          if (!value || !String(value).trim()) {
-                                            return Promise.reject(new Error("Vui lòng nhập nội dung đáp án"));
-                                          }
-                                          if (String(value).length > 500) {
-                                            return Promise.reject(new Error("Tối đa 500 ký tự"));
-                                          }
-                                          return Promise.resolve();
-                                        },
-                                      },
-                                    ]}
-                                  >
-                                    <Input 
-                                      placeholder="Nhập nội dung đáp án"
-                                      onChange={() => {
-                                        // Xóa lỗi khi đang sửa (nếu có)
-                                        const fieldName = ['questions', name, 'answerOptions', n2, 'content'];
-                                        const errors = form.getFieldsError(fieldName);
-                                        if (errors[0]?.errors?.length > 0) {
-                                          form.setFields([{ name: fieldName, errors: [] }]);
-                                        }
-                                      }}
-                                      onFocus={() => {
-                                        // Validate các trường trước đó khi focus vào trường này
-                                        form.validateFields(['skill', 'partId', 'passageContent']).catch(() => {});
-                                        // Validate audio nếu bắt buộc
-                                        if (isAudioRequired) {
-                                          form.validateFields(['audio']).catch(() => {});
-                                        }
-                                        // Validate image nếu bắt buộc
-                                        if (isImageRequired) {
-                                          form.validateFields(['image']).catch(() => {});
-                                        }
-                                        // Validate questionTypeId và content của câu hỏi này
-                                        const questionTypeField = ['questions', name, 'questionTypeId'];
-                                        const questionContentField = ['questions', name, 'content'];
-                                        form.validateFields([questionTypeField, questionContentField]).catch(() => {});
-                                      }}
-                                    />
-                                  </Form.Item>
-                                </Col>
-                                <Col span={4}>
-                                  <Form.Item
-                                    valuePropName="checked"
-                                    name={[n2, "isCorrect"]}
-                                    style={{ marginBottom: 0 }}
-                                  >
-                                    <Checkbox
-                                      onChange={(e) =>
-                                        handleToggleCorrect(
-                                          qIndex,
-                                          idx,
-                                          e.target.checked
-                                        )
+                                    }}
+                                    onFocus={() => {
+                                      // Validate các trường trước đó khi focus vào trường này
+                                      form
+                                        .validateFields([
+                                          "skill",
+                                          "partId",
+                                          "passageContent",
+                                        ])
+                                        .catch(() => {});
+                                      // Validate audio nếu bắt buộc
+                                      if (isAudioRequired) {
+                                        form
+                                          .validateFields(["audio"])
+                                          .catch(() => {});
                                       }
-                                    >
-                                      Đúng
-                                    </Checkbox>
-                                  </Form.Item>
-                                </Col>
-                              </Row>
+                                      // Validate image nếu bắt buộc
+                                      if (isImageRequired) {
+                                        form
+                                          .validateFields(["image"])
+                                          .catch(() => {});
+                                      }
+                                      // Validate questionTypeId và content của câu hỏi này
+                                      const questionTypeField = [
+                                        "questions",
+                                        name,
+                                        "questionTypeId",
+                                      ];
+                                      const questionContentField = [
+                                        "questions",
+                                        name,
+                                        "content",
+                                      ];
+                                      form
+                                        .validateFields([
+                                          questionTypeField,
+                                          questionContentField,
+                                        ])
+                                        .catch(() => {});
+                                    }}
+                                  />
+                                </Form.Item>
+                              </div>
+
+                              <Form.Item
+                                valuePropName="checked"
+                                name={[n2, "isCorrect"]}
+                                style={{ marginBottom: 0, marginRight: 0 }}
+                              >
+                                <Checkbox
+                                  onChange={(e) =>
+                                    handleToggleCorrect(
+                                      qIndex,
+                                      idx,
+                                      e.target.checked
+                                    )
+                                  }
+                                >
+                                  Đúng
+                                </Checkbox>
+                              </Form.Item>
                             </div>
                           )
                         )}
