@@ -17,8 +17,8 @@ const isWritingOrSpeakingPart = (partId) => {
     return (partId >= 8 && partId <= 10) || (partId >= 11 && partId <= 15);
 };
 
-// Parts chỉ có group questions (3, 4, 6, 7)
-const GROUP_PARTS = [3, 4, 6, 7];
+// Parts chỉ có group questions (3, 4, 6, 7 cho L&R; 13, 14 cho Speaking)
+const GROUP_PARTS = [3, 4, 6, 7, 13, 14];
 const isGroupPart = (p) => GROUP_PARTS.includes(Number(p));
 
 export default function ManualTestForm({ open, onClose, onSuccess, editingId = null, readOnly = false }) {
@@ -142,6 +142,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         if (s === "3" || s.includes("lr") || s.includes("listening")) return TEST_SKILL.LR;
         if (s === "1" || s.includes("speaking")) return TEST_SKILL.SPEAKING;
         if (s === "2" || s.includes("writing")) return TEST_SKILL.WRITING;
+        if (s === "4" || s === "sw" || s.includes("speaking & writing") || s.includes("s&w")) return TEST_SKILL.SW;
         const n = Number(val);
         return Number.isFinite(n) ? n : undefined;
     };
