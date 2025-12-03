@@ -40,6 +40,7 @@ import {
   restoreQuestionGroup,
 } from "@services/questionGroupService";
 import { getPartsBySkill } from "@services/partsService";
+import { getQuestionTypesByPart } from "@services/questionTypesService";
 
 const QUESTION_SKILLS = [
   { value: 3, label: "Nghe" },
@@ -95,7 +96,9 @@ export default function QuanLyNganHangCauHoi() {
   const [searchKeyword, setSearchKeyword] = useState("");
   const [filterSkill, setFilterSkill] = useState("all");
   const [filterPart, setFilterPart] = useState("all");
+  const [filterQuestionType, setFilterQuestionType] = useState("all");
   const [partsList, setPartsList] = useState([]);
+  const [questionTypes, setQuestionTypes] = useState([]);
   const [searchTimeout, setSearchTimeout] = useState(null);
 
   // Modal - Single
@@ -106,7 +109,14 @@ export default function QuanLyNganHangCauHoi() {
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [editingGroupId, setEditingGroupId] = useState(null);
 
-  const loadList = async (page = 1, pageSize = 10, keyword = "", skill = "all", partId = "all") => {
+  const loadList = async (
+    page = 1,
+    pageSize = 10,
+    keyword = "",
+    skill = "all",
+    partId = "all",
+    questionTypeId = "all"
+  ) => {
     try {
       setListLoading(true);
       const params = buildQuestionListParams({ 
@@ -115,6 +125,7 @@ export default function QuanLyNganHangCauHoi() {
         keyword: keyword || undefined,
         skill: skill !== "all" ? skill : undefined,
         partId: partId !== "all" ? partId : undefined,
+        questionTypeId: questionTypeId !== "all" ? questionTypeId : undefined,
       });
       let res;
       if (tabKey === "single") {
@@ -244,15 +255,18 @@ export default function QuanLyNganHangCauHoi() {
         }
       } else {
         setPartsList([]);
+        setQuestionTypes([]);
       }
     };
     loadParts();
   }, [filterSkill, tabKey]);
 
   useEffect(() => {
-    // Reset part filter khi chuyển tab
+    // Reset filters khi chuyển tab
     setFilterPart("all");
-    loadList(1, 10, searchKeyword, filterSkill, "all");
+    setFilterQuestionType("all");
+    setQuestionTypes([]);
+    loadList(1, 10, searchKeyword, filterSkill, "all", "all");
     
     return () => {
       if (searchTimeout) {
@@ -262,8 +276,8 @@ export default function QuanLyNganHangCauHoi() {
   }, [showDeleted, tabKey]);
   
   useEffect(() => {
-    loadList(1, 10, searchKeyword, filterSkill, filterPart);
-  }, [filterPart]);
+    loadList(1, 10, searchKeyword, filterSkill, filterPart, filterQuestionType);
+  }, [filterPart, filterQuestionType]);
 
   const filteredData = useMemo(() => dataSource, [dataSource]);
 
@@ -301,7 +315,14 @@ export default function QuanLyNganHangCauHoi() {
     
     const newTimeout = setTimeout(() => {
       setPagination({ ...pagination, current: 1 });
-      loadList(1, pagination.pageSize, value, filterSkill, filterPart);
+      loadList(
+        1,
+        pagination.pageSize,
+        value,
+        filterSkill,
+        filterPart,
+        filterQuestionType
+      );
     }, 500);
     
     setSearchTimeout(newTimeout);
@@ -310,14 +331,51 @@ export default function QuanLyNganHangCauHoi() {
   const handleSkillFilterChange = (skill) => {
     setFilterSkill(skill);
     setFilterPart("all"); // Reset part filter when skill changes
+    setFilterQuestionType("all");
+    setQuestionTypes([]);
     setPagination({ ...pagination, current: 1 });
-    loadList(1, pagination.pageSize, searchKeyword, skill, "all");
+    loadList(1, pagination.pageSize, searchKeyword, skill, "all", "all");
   };
 
   const handlePartFilterChange = (partId) => {
     setFilterPart(partId);
+    setFilterQuestionType("all");
     setPagination({ ...pagination, current: 1 });
-    loadList(1, pagination.pageSize, searchKeyword, filterSkill, partId);
+    loadList(1, pagination.pageSize, searchKeyword, filterSkill, partId, "all");
+
+    // Load question types theo Part (chỉ khi chọn một Part cụ thể)
+    (async () => {
+      try {
+        const numericPartId = toNum(partId);
+        if (!numericPartId) {
+          setQuestionTypes([]);
+          return;
+        }
+        const res = await getQuestionTypesByPart(numericPartId);
+        const items = Array.isArray(res) ? res : res?.data || [];
+        const mapped = items.map((t) => ({
+          id: t.questionTypeId || t.id,
+          name: t.typeName || t.name,
+        }));
+        setQuestionTypes(mapped);
+      } catch (err) {
+        console.error("Error loading question types:", err);
+        setQuestionTypes([]);
+      }
+    })();
+  };
+
+  const handleQuestionTypeFilterChange = (questionTypeId) => {
+    setFilterQuestionType(questionTypeId);
+    setPagination({ ...pagination, current: 1 });
+    loadList(
+      1,
+      pagination.pageSize,
+      searchKeyword,
+      filterSkill,
+      filterPart,
+      questionTypeId
+    );
   };
 
   return (
@@ -378,6 +436,20 @@ export default function QuanLyNganHangCauHoi() {
                   </Select.Option>
                 ))}
               </Select>
+              <Select
+                value={filterQuestionType}
+                onChange={handleQuestionTypeFilterChange}
+                style={{ width: 220 }}
+                placeholder="Chọn loại câu hỏi"
+                disabled={filterPart === "all" || questionTypes.length === 0}
+              >
+                <Select.Option value="all">Tất cả loại câu hỏi</Select.Option>
+                {questionTypes.map((qt) => (
+                  <Select.Option key={qt.id || qt.name} value={qt.id || qt.name}>
+                    {qt.name}
+                  </Select.Option>
+                ))}
+              </Select>
             </Space>
           </Col>
         </Row>
@@ -416,6 +488,16 @@ export default function QuanLyNganHangCauHoi() {
           dataSource={filteredData}
           loading={listLoading}
           pagination={pagination}
+          onChange={(pager) => {
+            const current = pager?.current || 1;
+            const pageSize = pager?.pageSize || 10;
+            setPagination((prev) => ({
+              ...prev,
+              current,
+              pageSize,
+            }));
+            loadList(current, pageSize, searchKeyword, filterSkill, filterPart);
+          }}
           columns={[
             { title: "ID", dataIndex: "id", width: 80 },
             {
