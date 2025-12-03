@@ -659,6 +659,11 @@ export default function QuanLyNganHangCauHoi() {
                             } else {
                               await deleteQuestion(record.id, false);
                             }
+                             message.success(
+                               record.isGroupQuestion
+                                 ? "Đã xoá nhóm câu hỏi"
+                                 : "Đã xoá câu hỏi"
+                             );
                             afterSaved();
                           } catch (e) {
                             const msg =
@@ -687,6 +692,11 @@ export default function QuanLyNganHangCauHoi() {
                             } else {
                               await restoreQuestion(record.id, false);
                             }
+                             message.success(
+                               record.isGroupQuestion
+                                 ? "Đã khôi phục nhóm câu hỏi"
+                                 : "Đã khôi phục câu hỏi"
+                             );
                             afterSaved();
                           } catch (e) {
                             const msg =
