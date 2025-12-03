@@ -25,7 +25,7 @@
 		public const string PasswordRequired = "Mật khẩu không được để trống";
 		public const string PasswordMinLength = "Mật khẩu phải có ít nhất 8 ký tự";
 		public const string PasswordMaxLength = "Mật khẩu không được vượt quá 32 ký tự";
-		public const string PasswordInvalidRegex = "Mật khẩu phải bao gồm chữ cái và số";
+		public const string PasswordInvalidRegex = "Mật khẩu phải bao gồm chữ cái, số và kí tự đặc biệt";
 		public const string ConfirmPasswordRequired = "Xác nhận mật khẩu không được để trống";
 		public const string ConfirmPasswordMismatch = "Xác nhận mật khẩu phải giống mật khẩu";
 		public const string FullNameRequired = "Họ và tên không được để trống";

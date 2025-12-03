@@ -10,6 +10,8 @@ import {
     downloadTemplateSW,
     importTestFromExcel,
     importTestSWFromExcel,
+    getTestById,
+    TEST_TYPE,
 } from "@services/testsService";
 import { HistoryOutlined } from "@ant-design/icons";
 import { TOTAL_QUESTIONS_BY_SKILL } from "@shared/constants/toeicStructure";
@@ -509,9 +511,35 @@ export default function ExamManagement() {
         setVersionsModalOpen(true);
     };
 
-    const handleSelectVersion = (testId) => {
+    const handleSelectVersion = async (testId) => {
         setVersionsModalOpen(false);
-        setViewingExam({ id: testId });
+
+        try {
+            const detail = await getTestById(testId);
+            const data = detail?.data || detail || {};
+
+            const rawType = data.testType ?? data.TestType;
+            let normalizedType = rawType;
+
+            // Chuẩn hóa testType để dùng chung với logic hiện tại ("Simulator" hoặc "Practice")
+            if (typeof rawType === "number") {
+                if (rawType === TEST_TYPE.SIMULATOR) normalizedType = "Simulator";
+                else if (rawType === TEST_TYPE.PRACTICE) normalizedType = "Practice";
+            }
+
+            const id =
+                data.id ?? data.Id ?? data.testId ?? data.TestId ?? testId;
+
+            setViewingExam({
+                id,
+                testType: normalizedType,
+            });
+        } catch (error) {
+            console.error("Error loading test version detail:", error);
+            // Fallback: chỉ set id nếu có lỗi, vẫn cho phép xem ở chế độ mặc định
+            setViewingExam({ id: testId });
+        }
+
         setViewFormOpen(true);
     };
 

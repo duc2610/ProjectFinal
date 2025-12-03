@@ -1465,7 +1465,13 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
     const [imageValidated, setImageValidated] = useState(false);
     
     // Kiểm tra part nào cần ảnh
-    const imageConfig = requiresImage(partId, skill);
+    // Với các part có group câu hỏi (3, 4, 6, 7) trong bài L&R, đề TOEIC chỉ dùng 1 ảnh cho cả nhóm,
+    // nên ẩn ảnh ở mức câu hỏi con trong phần quản lý bài thi.
+    const isLrGroupQuestion =
+        supportsQuestionGroups(partId) && skill === TEST_SKILL.LR;
+    const imageConfig = isLrGroupQuestion
+        ? { required: false, show: false }
+        : requiresImage(partId, skill);
     const requireImage = imageConfig.required;
     const showImage = imageConfig.show;
     // Writing và Speaking parts không có options (partId 8-15)

@@ -93,8 +93,8 @@ export default function QuestionGroupModal({
     });
 
   // Part 3, 4: Listening - yêu cầu audio, có thể có image → hiển thị cả audio và image
-  // Part 6, 7: Reading - không yêu cầu audio, không cần image → ẩn cả hai
-  // Chỉ hiển thị audio và image cho các part yêu cầu cả hai (3, 4)
+  // Part 7: Reading - có thể có image (tùy chọn) cho cả nhóm
+  // Part 6: Reading - không yêu cầu audio, không cần image → ẩn cả hai
   const isAudioRequired = useMemo(
     () => [3, 4].includes(Number(selectedPart)),
     [selectedPart]
@@ -108,7 +108,7 @@ export default function QuestionGroupModal({
     [selectedPart]
   );
   const showImageField = useMemo(
-    () => [3, 4].includes(Number(selectedPart)), // Part 3, 4 có thể có image
+    () => [3, 4, 7].includes(Number(selectedPart)), // Part 3, 4, 7 có thể có image
     [selectedPart]
   );
 
@@ -119,6 +119,11 @@ export default function QuestionGroupModal({
   }, [selectedPart]);
 
   const requiredOptionsPerQuestion = 4;
+
+  const isSpeakingSkill = useMemo(
+    () => Number(selectedSkill) === 1,
+    [selectedSkill]
+  );
 
   const loadParts = async (skillId) => {
     try {
@@ -326,13 +331,16 @@ export default function QuestionGroupModal({
     // Xóa audio/image nếu part mới không cần
     const partNum = Number(partId);
     const needsAudio = [3, 4].includes(partNum);
-    const needsImage = [3, 4].includes(partNum);
+    const needsImage = [3, 4, 7].includes(partNum);
     
     const updates = {
       questions: cur.map((q) => ({
         ...q,
         partId: partIdNum, // Luôn set partId từ nhóm
-        questionTypeId: q.questionTypeId ?? firstType,
+        // Khi đổi Part, nếu đã load được danh sách loại câu hỏi mới,
+        // luôn gán lại questionTypeId theo loại đầu tiên của Part mới
+        questionTypeId:
+          firstType != null ? firstType : q.questionTypeId ?? undefined,
       })),
     };
     
@@ -446,26 +454,28 @@ export default function QuestionGroupModal({
     if (arr.length > 5) throw new Error("Tối đa 5 câu hỏi");
     for (let i = 0; i < arr.length; i++) {
       const q = arr[i];
-      const opts = q?.answerOptions || [];
-      if (opts.length !== requiredOptionsPerQuestion)
-        throw new Error(
-          `Câu ${i + 1}: Phải có đúng ${requiredOptionsPerQuestion} đáp án`
-        );
-      const correctCount = opts.filter((o) => o?.isCorrect === true).length;
-      if (correctCount !== 1)
-        throw new Error(`Câu ${i + 1}: Phải chọn đúng 1 đáp án đúng`);
-      for (let j = 0; j < opts.length; j++) {
-        const op = opts[j];
-        const labelTrimmed = String(op?.label || "").trim();
-        const contentTrimmed = String(op?.content || "").trim();
-        if (!labelTrimmed)
+      if (!isSpeakingSkill) {
+        const opts = q?.answerOptions || [];
+        if (opts.length !== requiredOptionsPerQuestion)
           throw new Error(
-            `Câu ${i + 1} - Đáp án ${j + 1}: nhãn không được để trống hoặc chỉ có khoảng trắng`
+            `Câu ${i + 1}: Phải có đúng ${requiredOptionsPerQuestion} đáp án`
           );
-        if (!contentTrimmed)
-          throw new Error(
-            `Câu ${i + 1} - Đáp án ${op?.label || j + 1}: nội dung không được để trống hoặc chỉ có khoảng trắng`
-          );
+        const correctCount = opts.filter((o) => o?.isCorrect === true).length;
+        if (correctCount !== 1)
+          throw new Error(`Câu ${i + 1}: Phải chọn đúng 1 đáp án đúng`);
+        for (let j = 0; j < opts.length; j++) {
+          const op = opts[j];
+          const labelTrimmed = String(op?.label || "").trim();
+          const contentTrimmed = String(op?.content || "").trim();
+          if (!labelTrimmed)
+            throw new Error(
+              `Câu ${i + 1} - Đáp án ${j + 1}: nhãn không được để trống hoặc chỉ có khoảng trắng`
+            );
+          if (!contentTrimmed)
+            throw new Error(
+              `Câu ${i + 1} - Đáp án ${op?.label || j + 1}: nội dung không được để trống hoặc chỉ có khoảng trắng`
+            );
+        }
       }
       const questionContentTrimmed = String(q.content || "").trim();
       if (!questionContentTrimmed) 
@@ -497,12 +507,14 @@ export default function QuestionGroupModal({
         questionTypeId: Number(q.questionTypeId),
         partId: Number(q.partId ?? v.partId),
         solution: (q.solution || "").trim(),
-        answerOptions: (q.answerOptions || []).map((op) => ({
-          optionId: op.optionId ?? null,
-          content: (op.content || "").trim(),
-          label: (op.label || "").trim(),
-          isCorrect: !!op.isCorrect,
-        })),
+        answerOptions: isSpeakingSkill
+          ? []
+          : (q.answerOptions || []).map((op) => ({
+              optionId: op.optionId ?? null,
+              content: (op.content || "").trim(),
+              label: (op.label || "").trim(),
+              isCorrect: !!op.isCorrect,
+            })),
       }));
 
       const fd = new FormData();
@@ -1064,7 +1076,8 @@ export default function QuestionGroupModal({
                     />
                   </Form.Item>
 
-                  <Form.List name={[name, "answerOptions"]}>
+              {!isSpeakingSkill && (
+              <Form.List name={[name, "answerOptions"]}>
                     {(optFields) => (
                       <>
                         {optFields.map(
@@ -1219,6 +1232,7 @@ export default function QuestionGroupModal({
                       </>
                     )}
                   </Form.List>
+              )}
 
                   <Form.Item
                     {...restField}

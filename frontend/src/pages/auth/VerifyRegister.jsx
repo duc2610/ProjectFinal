@@ -1,9 +1,9 @@
 import React from "react";
 import { Card, Form, Input, Button, Typography, notification } from "antd";
-import { ArrowRightOutlined } from "@ant-design/icons";
+import { ArrowRightOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "@assets/images/logo.png";
-import { verifyRegisterOtp } from "@services/authService";
+import { verifyRegisterOtp, register } from "@services/authService";
 
 const { Title, Text, Link } = Typography;
 
@@ -12,6 +12,7 @@ export default function VerifyRegister() {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = React.useState(false);
+  const [resendLoading, setResendLoading] = React.useState(false);
 
   const draft = React.useMemo(() => {
     const fromState = location?.state;
@@ -60,6 +61,30 @@ export default function VerifyRegister() {
       form.setFields([{ name: "otpCode", errors: [msg] }]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!draft?.email || !draft?.fullName || !draft?.password) return;
+    setResendLoading(true);
+    try {
+      await register({
+        fullName: draft.fullName,
+        email: draft.email,
+        password: draft.password,
+      });
+      notification.success({
+        message: "Đã gửi lại mã xác nhận",
+        description: `Vui lòng kiểm tra email ${draft.email}.`,
+      });
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.data ||
+        "Gửi lại mã xác nhận thất bại. Vui lòng thử lại sau.";
+      notification.error({ message: msg });
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -116,12 +141,23 @@ export default function VerifyRegister() {
               border: "none",
               background: "linear-gradient(90deg, #7b61ff 0%, #3ea1ff 100%)",
               fontWeight: 600,
+              marginBottom: 8,
             }}
             icon={<ArrowRightOutlined />}
             iconPosition="end"
             loading={loading}
           >
             Đăng ký
+          </Button>
+
+          <Button
+            type="link"
+            block
+            icon={<ReloadOutlined />}
+            onClick={handleResendOtp}
+            loading={resendLoading}
+          >
+            Gửi lại mã xác nhận
           </Button>
 
           <div style={{ textAlign: "center", marginTop: 16 }}>
