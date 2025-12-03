@@ -70,31 +70,35 @@ namespace ToeicGenius.Services.Implementations
 			var uploadedFiles = new List<string>(); // Danh sách lưu trữ các URL file đã upload
 			try
 			{
-				// Upload audio file for question (nếu có)
-				var audioUrl = "";
-				if (request.Audio != null)
+				// Upload files audio (nếu có)
+				string? audioUrl = null;
+				if (request.Audio != null && request.Audio is { Length: > 0 })
 				{
-					var (isValid, errorMessage) = FileValidator.ValidateFile(request.Audio, "audio");
-					if (!isValid)
-					{
-						return Result<string>.Failure(errorMessage);
-					}
-					var result = await _fileService.UploadFileAsync(request.Audio, "audio");
-					audioUrl = result.IsSuccess ? result.Data : "";
+					// Check valid file
+					var (ok, err) = FileValidator.ValidateFile(request.Audio, "audio");
+					if (!ok) { return Result<string>.Failure(err); }
+
+					// Upload
+					var upload = await _fileService.UploadFileAsync(request.Audio, "audio");
+					if (!upload.IsSuccess) { return Result<string>.Failure(ErrorMessages.UploadAudioFail); }
+
+					audioUrl = upload.Data;
 					uploadedFiles.Add(audioUrl);
 				}
 
-				// Upload image file for question (nếu có)
-				var imageUrl = "";
-				if (request.Image != null)
+				// Upload files image (nếu có)
+				string? imageUrl = null;
+				if (request.Image != null && request.Image is { Length: > 0 })
 				{
-					var (isValid, errorMessage) = FileValidator.ValidateFile(request.Image, "image");
-					if (!isValid)
-					{
-						return Result<string>.Failure(errorMessage);
-					}
-					var result = await _fileService.UploadFileAsync(request.Image, "image");
-					imageUrl = result.IsSuccess ? result.Data : "";
+					// Check valid file
+					var (ok, err) = FileValidator.ValidateFile(request.Image, "image");
+					if (!ok) { return Result<string>.Failure(err); }
+
+					// Upload
+					var upload = await _fileService.UploadFileAsync(request.Image, "image");
+					if (!upload.IsSuccess) { return Result<string>.Failure(ErrorMessages.UploadImageFail); }
+
+					imageUrl = upload.Data;
 					uploadedFiles.Add(imageUrl);
 				}
 
@@ -209,7 +213,7 @@ namespace ToeicGenius.Services.Implementations
 					if (!ok) return Result<string>.Failure(err);
 
 					var up = await _fileService.UploadFileAsync(dto.Image, "image");
-					if (!up.IsSuccess) return Result<string>.Failure("Lỗi khi tải lên file ảnh.");
+					if (!up.IsSuccess) return Result<string>.Failure(ErrorMessages.UploadImageFail);
 
 					newImageUrl = up.Data;
 					uploadedFiles.Add(newImageUrl);
@@ -224,7 +228,7 @@ namespace ToeicGenius.Services.Implementations
 					if (!ok) return Result<string>.Failure(err);
 
 					var up = await _fileService.UploadFileAsync(dto.Audio, "audio");
-					if (!up.IsSuccess) return Result<string>.Failure("Lỗi khi tải lên file âm thanh.");
+					if (!up.IsSuccess) return Result<string>.Failure(ErrorMessages.UploadAudioFail);
 
 					newAudioUrl = up.Data;
 					uploadedFiles.Add(newAudioUrl);
