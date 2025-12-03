@@ -59,6 +59,8 @@
 		// System
 		public const string OperationFailed = "Thao tác thất bại.";
 		public const string InternalServerError = "Lỗi hệ thống. Vui lòng thử lại sau.";
+		public const string UploadAudioFail = "Lỗi khi tải lên tệp tin âm thanh";
+		public const string UploadImageFail = "Lỗi khi tải lên ảnh";
 
 		public const string IdInvalid = "Id không hợp lệ";
 		public const string CannotChangeRootUserStatus = "Bạn không thể thay đổi trạng thái của người dùng Root";

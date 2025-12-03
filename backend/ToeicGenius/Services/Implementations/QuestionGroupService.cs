@@ -69,34 +69,41 @@ namespace ToeicGenius.Services.Implementations
 
 			await _uow.BeginTransactionAsync();
 			var uploadedFiles = new List<string>(); // Danh sách lưu trữ các URL file đã upload
+			var part = await _uow.Parts.GetByIdAsync(request.PartId);
+			bool isSpeakingOrWriting = part != null &&
+				(part.Skill == QuestionSkill.Speaking || part.Skill == QuestionSkill.Writing);
 
 			try
 			{
 				// Upload files audio (nếu có)
-				var audioUrl = "";
-				if (request.Audio != null)
+				string? audioUrl = null;
+				if (request.Audio != null && request.Audio is { Length: > 0 })
 				{
 					// Check valid file
-					var (isValid, errorMessage) = FileValidator.ValidateFile(request.Audio, "audio");
-					if (!isValid) { return Result<string>.Failure(errorMessage); }
+					var (ok, err) = FileValidator.ValidateFile(request.Audio, "audio");
+					if (!ok) { return Result<string>.Failure(err); }
 
 					// Upload
-					var result = await _fileService.UploadFileAsync(request.Audio, "audio");
-					audioUrl = result.IsSuccess ? result.Data : "";
+					var upload = await _fileService.UploadFileAsync(request.Audio, "audio");
+					if (!upload.IsSuccess) { return Result<string>.Failure(ErrorMessages.UploadAudioFail); }
+
+					audioUrl = upload.Data;
 					uploadedFiles.Add(audioUrl);
 				}
 
 				// Upload files image (nếu có)
-				var imageUrl = "";
-				if (request.Image != null)
+				string? imageUrl = null;
+				if (request.Image != null && request.Image is { Length: > 0 })
 				{
 					// Check valid file
-					var (isValid, errorMessage) = FileValidator.ValidateFile(request.Image, "image");
-					if (!isValid) { return Result<string>.Failure(errorMessage); }
+					var (ok, err) = FileValidator.ValidateFile(request.Image, "image");
+					if (!ok) { return Result<string>.Failure(err); }
 
 					// Upload
-					var result = await _fileService.UploadFileAsync(request.Image, "image");
-					imageUrl = result.IsSuccess ? result.Data : "";
+					var upload = await _fileService.UploadFileAsync(request.Image, "image");
+					if (!upload.IsSuccess) { return Result<string>.Failure(ErrorMessages.UploadImageFail); }
+
+					imageUrl = upload.Data;
 					uploadedFiles.Add(imageUrl);
 				}
 
@@ -125,15 +132,21 @@ namespace ToeicGenius.Services.Implementations
 						CreatedById = creatorId
 					};
 
-					var options = q.AnswerOptions.Select(opt => new Option
-					{
-						Content = opt.Content,
-						Label = opt.Label,
-						IsCorrect = opt.IsCorrect,
-						Question = question
-					}).ToList();
 					await _uow.Questions.AddAsync(question);
-					await _uow.Options.AddRangeAsync(options);
+
+					// Bỏ qua option nếu là SPEAKING hoặc WRITING
+					if (!isSpeakingOrWriting)
+					{
+						var options = q.AnswerOptions.Select(opt => new Option
+						{
+							Content = opt.Content,
+							Label = opt.Label,
+							IsCorrect = opt.IsCorrect,
+							Question = question
+						}).ToList();
+
+						await _uow.Options.AddRangeAsync(options);
+					}
 					group.Questions.Add(question);
 				}
 
@@ -151,11 +164,12 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<Result<PaginationResponse<QuestionListItemDto>>> FilterQuestionGroupAsync(int? partId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status, Guid? creatorId = null)
 		{
-            try
-            {
-                	var result = await _uow.QuestionGroups.FilterGroupAsync(partId, keyWord, skill, sortOrder, page, pageSize, status);
-			return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
-            } catch (Exception ex)
+			try
+			{
+				var result = await _uow.QuestionGroups.FilterGroupAsync(partId, keyWord, skill, sortOrder, page, pageSize, status);
+				return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
+			}
+			catch (Exception ex)
 			{
 				return Result<PaginationResponse<QuestionListItemDto>>.Failure(ex.Message);
 			}
@@ -183,6 +197,7 @@ namespace ToeicGenius.Services.Implementations
 					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
+			bool isSpeakingOrWriting = part != null && (part.Skill == QuestionSkill.Speaking || part.Skill == QuestionSkill.Writing);
 
 			var validationResult = await ValidateUpdateQuestionsGroup(dto);
 			if (!validationResult.IsSuccess)
@@ -205,7 +220,7 @@ namespace ToeicGenius.Services.Implementations
 
 					// Upload
 					var upload = await _fileService.UploadFileAsync(dto.Image, "image");
-					if (!upload.IsSuccess) { return Result<string>.Failure($"Failed to upload image file."); }
+					if (!upload.IsSuccess) { return Result<string>.Failure(ErrorMessages.UploadImageFail); }
 
 					newImageUrl = upload.Data;
 					uploadedFiles.Add(newImageUrl);
@@ -223,7 +238,7 @@ namespace ToeicGenius.Services.Implementations
 
 					// Upload
 					var upload = await _fileService.UploadFileAsync(dto.Audio, "audio");
-					if (!upload.IsSuccess) { return Result<string>.Failure($"Failed to upload audio file."); }
+					if (!upload.IsSuccess) { return Result<string>.Failure(ErrorMessages.UploadAudioFail); }
 
 					newAudioUrl = upload.Data;
 					uploadedFiles.Add(newAudioUrl);
@@ -251,6 +266,12 @@ namespace ToeicGenius.Services.Implementations
 						q.Explanation = qDto.Solution;
 						q.QuestionTypeId = qDto.QuestionTypeId;
 						q.UpdatedAt = Now;
+
+						// Speaking & Writing ko cần option
+						if (isSpeakingOrWriting)
+						{
+							continue;
+						}
 
 						// Xử lý option
 						// Update options
@@ -299,10 +320,10 @@ namespace ToeicGenius.Services.Implementations
 							await _fileService.RollbackAndCleanupAsync(uploadedFiles);
 							return Result<string>.Failure(err);
 						}
-
 					}
 					else
 					{
+
 						// Create new question
 						var newQ = new Question
 						{
@@ -312,27 +333,33 @@ namespace ToeicGenius.Services.Implementations
 							Content = qDto.Content,
 							Explanation = qDto.Solution,
 							Status = CommonStatus.Active,
-							CreatedAt = Now,
-							Options = qDto.AnswerOptions.Select(o => new Option
+							CreatedAt = Now
+						};
+
+						// SPEAKING/WRITING: không thêm option
+						if (!isSpeakingOrWriting)
+						{
+							newQ.Options = qDto.AnswerOptions.Select(o => new Option
 							{
 								Label = o.Label,
 								Content = o.Content,
 								IsCorrect = o.IsCorrect,
 								Status = CommonStatus.Active,
 								CreatedAt = Now
-							}).ToList()
-						};
+							}).ToList();
 
-						var newQuestionOptions = newQ.Options
-							.Where(o => o.Status != CommonStatus.Inactive)
-							.ToList();
-						var (ok, err) = OptionValidator.IsValid(newQuestionOptions, NumberConstants.MaxQuantityOption);
-						if (!ok)
-						{
-							// Rollback transaction & delete files
-							await _fileService.RollbackAndCleanupAsync(uploadedFiles);
-							return Result<string>.Failure(err);
+							var newQuestionOptions = newQ.Options
+								.Where(o => o.Status != CommonStatus.Inactive)
+								.ToList();
+
+							var (ok, err) = OptionValidator.IsValid(newQuestionOptions, NumberConstants.MaxQuantityOption);
+							if (!ok)
+							{
+								await _fileService.RollbackAndCleanupAsync(uploadedFiles);
+								return Result<string>.Failure(err);
+							}
 						}
+
 						currentQuestionGroup.Questions.Add(newQ);
 					}
 				}
@@ -353,7 +380,7 @@ namespace ToeicGenius.Services.Implementations
 				return Result<string>.Failure($"Operation failed: {ex.Message}");
 			}
 		}
-		
+
 		// validate update
 		private async Task<Result<string>> ValidateUpdateQuestionsGroup(UpdateQuestionGroupDto request)
 		{
@@ -367,7 +394,8 @@ namespace ToeicGenius.Services.Implementations
 
 			// check valid listening part
 			var part = await _uow.Parts.GetByIdAsync(request.PartId);
-
+			// Identify skills
+			bool isSpeakingOrWriting = part != null && (part.Skill == QuestionSkill.Speaking || part.Skill == QuestionSkill.Writing);
 			// check part 1,2 Listening
 			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
 			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
@@ -377,12 +405,17 @@ namespace ToeicGenius.Services.Implementations
 			{
 				return Result<string>.Failure("Passage của nhóm câu hỏi không được để trống.");
 			}
+
 			foreach (var q in request.Questions)
 			{
 				if ((!isLRPart6 || !isLRPart12) && string.IsNullOrWhiteSpace(q.Content))
 				{
 					return Result<string>.Failure("Content của câu hỏi không được để trống.");
 				}
+				// Bỏ validate option nếu Speaking hoặc Writing
+				if (isSpeakingOrWriting)
+					continue;
+
 				// Nếu có đáp án
 				if (q.AnswerOptions != null && q.AnswerOptions.Any())
 				{
@@ -431,6 +464,8 @@ namespace ToeicGenius.Services.Implementations
 					return Result<string>.Failure("Phần Listening part yêu cầu phải có file âm thanh.");
 				}
 			}
+			bool isSpeakingOrWriting = part != null && (part.Skill == QuestionSkill.Speaking || part.Skill == QuestionSkill.Writing);
+
 			// check part 1,2 Listening
 			bool isLRPart12 = part != null && part.Skill == QuestionSkill.Listening && (part.PartNumber == 1 || part.PartNumber == 2);
 			bool isLRPart6 = part != null && part.Skill == QuestionSkill.Reading && (part.PartNumber == 6);
@@ -446,6 +481,9 @@ namespace ToeicGenius.Services.Implementations
 				{
 					return Result<string>.Failure("Content của câu hỏi không được để trống.");
 				}
+				// Bỏ validate option nếu Speaking hoặc Writing
+				if (isSpeakingOrWriting)
+					continue;
 				// Nếu có đáp án
 				if (q.AnswerOptions != null && q.AnswerOptions.Any())
 				{
