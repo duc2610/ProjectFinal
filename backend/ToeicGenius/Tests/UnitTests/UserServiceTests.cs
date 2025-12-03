@@ -366,7 +366,7 @@ namespace ToeicGenius.Tests.UnitTests
             _unitOfWorkMock.Setup(u => u.Roles.GetRolesByNamesAsync(roles)).ReturnsAsync(roleEntities);
             _unitOfWorkMock.Setup(u => u.Users.UpdateAsync(It.IsAny<User>())).ReturnsAsync(It.IsAny<User>());
             _unitOfWorkMock.Setup(u => u.Roles.GetRolesByUserIdAsync(It.IsAny<Guid>())).ReturnsAsync(roleEntities);
-            _emailServiceMock.Setup(e => e.SendMail(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
+            _emailServiceMock.Setup(e => e.SendMailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
 
             var service = CreateService();
 
@@ -387,7 +387,7 @@ namespace ToeicGenius.Tests.UnitTests
             _unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.AtLeast(2)); // Once after AddAsync, once after UpdateAsync
             _unitOfWorkMock.Verify(u => u.Roles.GetRolesByNamesAsync(roles), Times.Once);
             _unitOfWorkMock.Verify(u => u.Users.UpdateAsync(It.IsAny<User>()), Times.Once);
-            _emailServiceMock.Verify(e => e.SendMail(dto.Email, It.IsAny<string>(), It.Is<string>(body => body.Contains("MyPassword123"))), Times.Once);
+            _emailServiceMock.Verify(e => e.SendMailAsync(dto.Email, It.IsAny<string>(), It.Is<string>(body => body.Contains("MyPassword123"))), Times.Once);
         }
 
         // UTCID03: Tạo user với password tự động sinh (null/empty) - trả về Success
@@ -407,7 +407,7 @@ namespace ToeicGenius.Tests.UnitTests
             _unitOfWorkMock.Setup(u => u.Users.AddAsync(It.IsAny<User>())).ReturnsAsync(It.IsAny<User>());
             _unitOfWorkMock.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
             _unitOfWorkMock.Setup(u => u.Roles.GetRolesByUserIdAsync(It.IsAny<Guid>())).ReturnsAsync(roleEntities);
-            _emailServiceMock.Setup(e => e.SendMail(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
+            _emailServiceMock.Setup(e => e.SendMailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
 
             var service = CreateService();
 
@@ -421,7 +421,7 @@ namespace ToeicGenius.Tests.UnitTests
             result.Data.FullName.Should().Be(dto.FullName);
 
             // Verify email was sent with auto-generated password (not null)
-            _emailServiceMock.Verify(e => e.SendMail(
+            _emailServiceMock.Verify(e => e.SendMailAsync(
                 dto.Email,
                 It.IsAny<string>(),
                 It.Is<string>(body => !string.IsNullOrEmpty(body))), Times.Once);
@@ -441,7 +441,7 @@ namespace ToeicGenius.Tests.UnitTests
             _unitOfWorkMock.Setup(u => u.Users.AddAsync(It.IsAny<User>())).ReturnsAsync(It.IsAny<User>());
             _unitOfWorkMock.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
             _unitOfWorkMock.Setup(u => u.Roles.GetRolesByUserIdAsync(It.IsAny<Guid>())).ReturnsAsync(emptyRoles);
-            _emailServiceMock.Setup(e => e.SendMail(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
+            _emailServiceMock.Setup(e => e.SendMailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
 
             var service = CreateService();
 
@@ -474,7 +474,7 @@ namespace ToeicGenius.Tests.UnitTests
             _unitOfWorkMock.Setup(u => u.Users.AddAsync(It.IsAny<User>())).ReturnsAsync(It.IsAny<User>());
             _unitOfWorkMock.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
             _unitOfWorkMock.Setup(u => u.Roles.GetRolesByUserIdAsync(It.IsAny<Guid>())).ReturnsAsync(emptyRoles);
-            _emailServiceMock.Setup(e => e.SendMail(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
+            _emailServiceMock.Setup(e => e.SendMailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
 
             var service = CreateService();
 
