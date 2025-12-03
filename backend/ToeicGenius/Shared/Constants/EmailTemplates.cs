@@ -4,6 +4,57 @@ namespace ToeicGenius.Shared.Constants
 {
 	public static class EmailTemplates
 	{
+		public static (string subject, string body) BuildAccountUpdatedEmail(string fullName, string email, string? updatedPassword, string roleName)
+		{
+			var subject = "ToeicGenius - Tài khoản của bạn đã được cập nhật";
+
+			// Phần mật khẩu chỉ hiển thị khi thật sự có thay đổi
+			var passwordSection = string.IsNullOrEmpty(updatedPassword)
+				? ""
+				: $@"<p style='margin:6px 0;'>
+						 <b>Mật khẩu mới:</b>
+						<span style='color:#d35400;'>{updatedPassword}</span>
+					</p>";
+
+			var body = $@"<div style='font-family: Arial, sans-serif; color:#2c3e50; line-height:1.6; max-width:600px; margin:0 auto; padding:24px; border:1px solid #e6e6e6; border-radius:10px; background-color:#fdfdfd;'>
+        
+							<h2 style='color:#1a2533; text-align:center; margin-bottom:20px;'>
+								TTS – Cập nhật thông tin tài khoản
+							</h2>
+
+							<p>Xin chào <b>{fullName}</b>,</p>
+
+							<p>
+								Chúng tôi xin thông báo rằng thông tin tài khoản của bạn đã được 
+								<b style='color:#1a2533;'>quản trị viên (Admin)</b> cập nhật trong hệ thống.
+							</p>
+
+							<div style='background:#ffffff; border:1px solid #dcdcdc; padding:18px; border-radius:8px; margin:20px 0;'>
+								<p style='margin:6px 0;'>
+									<b>Email đăng nhập:</b> 
+									<span style='color:#2c7bd9;'>{email}</span>
+								</p>
+
+								<p style='margin:6px 0;'>
+									<b>Vai trò hiện tại (Role):</b> 
+									<span style='color:#16a085;'>{roleName}</span>
+								</p>
+
+								{passwordSection}
+							</div>
+
+							<p>
+								Nếu bạn không yêu cầu hoặc không mong đợi sự thay đổi này, 
+								vui lòng liên hệ ngay với bộ phận hỗ trợ hoặc quản trị viên để được kiểm tra và đảm bảo an toàn tài khoản.
+							</p>
+
+							<p style='margin-top:35px; font-size:12px; color:#7f8c8d;'>
+								Đây là email được gửi tự động từ hệ thống. Vui lòng không phản hồi lại email này.
+							</p>
+						</div>";
+			return (subject, body);
+		}
+
 		public static (string subject, string body) BuildAccountCreatedEmail(string fullName, string Email, string plainPassword)
 		{
 			var subject = $"ToeicGenius - Thông tin tài khoản";

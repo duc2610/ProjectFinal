@@ -223,7 +223,15 @@ namespace ToeicGenius.Services.Implementations
 				CreatedAt = user.CreatedAt,
 				Roles = updatedRoles.Select(r => r.RoleName).ToList()
 			};
+			// GỬI EMAIL SAU KHI CẬP NHẬT
+			var (subject, body) = EmailTemplates.BuildAccountUpdatedEmail(
+				fullName: user.FullName,
+				email: user.Email,
+				updatedPassword: dto.Password,  // null → template tự bỏ password section
+				roleName: string.Join(", ", response.Roles)
+			);
 
+			await _emailService.SendMail(user.Email, subject, body);
 			return Result<UserResponseDto>.Success(response);
 		}
 
