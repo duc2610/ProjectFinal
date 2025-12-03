@@ -10,7 +10,7 @@ namespace ToeicGenius.Domains.DTOs.Requests.User
 		public string FullName { get; set; }
 
 		[Required(ErrorMessage = ErrorMessages.EmailRequired)]
-		[RegularExpression(@"^[\w\.-]+@[a-zA-Z\d\.-]+\.[a-zA-Z]{2,}$", ErrorMessage = ErrorMessages.EmailInvalid)]
+		[EmailAddress(ErrorMessage = ErrorMessages.EmailInvalid)] 
 		public string Email { get; set; }
 
 		[Required(ErrorMessage = ErrorMessages.PasswordRequired)]
