@@ -1966,8 +1966,11 @@ namespace ToeicGenius.Services.Implementations
 					if (part.Skill != QuestionSkill.Listening && part.Skill != QuestionSkill.Reading)
 						return (false, $"Part {partId} ({part.Name}) is not a Listening or Reading part. TestSkill is LR but Part skill is {part.Skill}");
 					break;
-
-				default:
+                case TestSkill.SW:
+                    if (part.Skill != QuestionSkill.Speaking && part.Skill != QuestionSkill.Writing)
+                        return (false, $"Part {partId} ({part.Name}) is not a Speaking or Reading part. TestSkill is LR but Part skill is {part.Skill}");
+                    break;
+                default:
 					return (false, $"Invalid TestSkill: {testSkill}");
 			}
 

@@ -8,8 +8,11 @@ import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL } from "@shared/
 import QuestionBankSelectorModal from "./QuestionBankSelectorModal";
 import QuestionGroupSelectorModal from "./QuestionGroupSelectorModal";
 
-// Parts chỉ dành cho group questions: 3, 4 (Listening), 6, 7 (Reading)
-const GROUP_PARTS = [3, 4, 6, 7];
+// Parts chỉ dành cho group questions:
+// - Listening: 3, 4
+// - Reading: 6, 7
+// - Speaking: 13, 14
+const GROUP_PARTS = [3, 4, 6, 7, 13, 14];
 const isGroupPart = (p) => GROUP_PARTS.includes(Number(p));
 
 const { TextArea } = Input;
@@ -27,7 +30,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
     const [viewingQuestionId, setViewingQuestionId] = useState(null);
     const [viewingGroupId, setViewingGroupId] = useState(null);
     const [activeTab, setActiveTab] = useState("single");
-    const [selectionMode, setSelectionMode] = useState("manual"); // "manual" or "random"
+    const [selectionMode, setSelectionMode] = useState("manual");
     const [questionRanges, setQuestionRanges] = useState([]);
 
     const toSkillId = (val) => {
@@ -246,7 +249,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                     const groupCount = Number(range.groupQuestionCount || 0);
 
                     if (isGroupPart(partId)) {
-                        // Part 3, 4, 6, 7: chỉ cho phép group questions
+                        // Các part group (3, 4, 6, 7, 13, 14): chỉ cho phép group questions
                         if (singleCount > 0) {
                             message.error(`Part ${partId} chỉ có thể chọn nhóm câu hỏi (Group Questions), không thể chọn câu hỏi đơn (Single Questions).`);
                             return;

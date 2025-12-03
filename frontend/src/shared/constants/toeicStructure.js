@@ -127,10 +127,11 @@ export function requiresAudio(skill) {
 
 
 export function supportsQuestionGroups(partId) {
-    // Part 3, 4, 6, 7 (L&R) hỗ trợ question groups
-    // Part 1, 2, 5 (L&R) chỉ có single questions
-    // Speaking và Writing parts có thể có groups tùy vào cấu trúc
-    const partsWithGroups = [3, 4, 6, 7]; // L&R parts có groups
+    // Các part hỗ trợ nhóm câu hỏi (Group Questions):
+    // - L&R: Part 3, 4, 6, 7
+    // - Speaking: Part 13, 14
+    // Lưu ý: 11, 12, 15 (Speaking) và 1, 2, 5 (L&R) chỉ có câu lẻ
+    const partsWithGroups = [3, 4, 6, 7, 13, 14];
     return partsWithGroups.includes(partId);
 }
 
