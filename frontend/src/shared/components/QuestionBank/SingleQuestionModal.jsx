@@ -775,7 +775,7 @@ export default function SingleQuestionModal({
           </Form.Item>
         )}
 
-        {isAudioVisible && (
+        {(isAudioVisible || isImageVisible) && (
         <Row gutter={12}>
           {isAudioVisible && (
             <Col span={12}>
