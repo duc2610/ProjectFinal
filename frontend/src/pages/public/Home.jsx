@@ -34,7 +34,7 @@ export default function Home() {
       description: "Luyện nói và nhận đánh giá chính xác từ AI thông minh",
       link: "/practice-sw",
       color: "#10b981",
-      badge: "AI Scoring",
+      badge: "Chấm điểm AI",
     },
     {
       icon: <EditOutlined />,
@@ -42,7 +42,7 @@ export default function Home() {
       description: "Luyện viết và được chấm điểm tự động bằng công nghệ AI",
       link: "/practice-sw",
       color: "#f59e0b",
-      badge: "AI Scoring",
+      badge: "Chấm điểm AI",
     },
     {
       icon: <FileTextOutlined />,
@@ -108,8 +108,8 @@ export default function Home() {
         <div className={styles.heroVisual}>
           <div className={styles.floatingCard}>
             <ThunderboltOutlined className={styles.iconLarge} />
-            <Text strong>AI Scoring</Text>
-            <Text type="secondary">Speaking & Writing</Text>
+            <Text strong>Chấm điểm AI</Text>
+            <Text type="secondary" style = {{marginLeft: "10px"}}>Speaking & Writing</Text>
           </div>
         </div>
       </section>
@@ -317,7 +317,7 @@ export default function Home() {
                   <span>
                     <AudioOutlined /> Speaking
                     <Tag color="blue" icon={<RobotOutlined />} style={{ marginLeft: 8 }}>
-                      AI Scoring
+                      Chấm điểm AI
                     </Tag>
                   </span>
                 ),
@@ -417,7 +417,7 @@ export default function Home() {
                   <span>
                     <EditOutlined /> Writing
                     <Tag color="blue" icon={<RobotOutlined />} style={{ marginLeft: 8 }}>
-                      AI Scoring
+                      Chấm điểm AI
                     </Tag>
                   </span>
                 ),
