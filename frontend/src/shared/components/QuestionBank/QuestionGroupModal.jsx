@@ -93,8 +93,8 @@ export default function QuestionGroupModal({
     });
 
   // Part 3, 4: Listening - yêu cầu audio, có thể có image → hiển thị cả audio và image
-  // Part 6, 7: Reading - không yêu cầu audio, không cần image → ẩn cả hai
-  // Chỉ hiển thị audio và image cho các part yêu cầu cả hai (3, 4)
+  // Part 7: Reading - có thể có image (tùy chọn) cho cả nhóm
+  // Part 6: Reading - không yêu cầu audio, không cần image → ẩn cả hai
   const isAudioRequired = useMemo(
     () => [3, 4].includes(Number(selectedPart)),
     [selectedPart]
@@ -108,7 +108,7 @@ export default function QuestionGroupModal({
     [selectedPart]
   );
   const showImageField = useMemo(
-    () => [3, 4].includes(Number(selectedPart)), // Part 3, 4 có thể có image
+    () => [3, 4, 7].includes(Number(selectedPart)), // Part 3, 4, 7 có thể có image
     [selectedPart]
   );
 
@@ -331,7 +331,7 @@ export default function QuestionGroupModal({
     // Xóa audio/image nếu part mới không cần
     const partNum = Number(partId);
     const needsAudio = [3, 4].includes(partNum);
-    const needsImage = [3, 4].includes(partNum);
+    const needsImage = [3, 4, 7].includes(partNum);
     
     const updates = {
       questions: cur.map((q) => ({
