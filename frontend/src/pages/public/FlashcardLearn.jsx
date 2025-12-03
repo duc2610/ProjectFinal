@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Progress, message, Spin, Empty } from "antd";
+import { Button, Progress, message, Spin, Empty, Modal, List, Card } from "antd";
 import {
   RotateLeftOutlined,
   CheckOutlined,
@@ -26,6 +26,9 @@ export default function FlashcardLearn() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [studyStats, setStudyStats] = useState(null);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState("");
+  const [modalCards, setModalCards] = useState([]);
 
   useEffect(() => {
     fetchStudySession();
@@ -367,6 +370,46 @@ export default function FlashcardLearn() {
     }
   };
 
+  const handleStatClick = (type) => {
+    let filteredCards = [];
+    let title = "";
+
+    switch (type) {
+      case "learned":
+        filteredCards = allFlashcards.filter(card => card.status === "learned");
+        title = "Đã nhớ";
+        break;
+      case "not-learned":
+        filteredCards = allFlashcards.filter(card => 
+          card.status === "new" || card.status === "learning"
+        );
+        title = "Chưa nhớ";
+        break;
+      case "learning":
+        filteredCards = allFlashcards.filter(card => card.status === "learning");
+        title = "Đang ôn tập";
+        break;
+      case "reviewed":
+        // Đã ôn tập - hiển thị tất cả các card đã có reviewCount > 0
+        filteredCards = allFlashcards.filter(card => 
+          (card.reviewCount || 0) > 0
+        );
+        title = "Đã ôn tập";
+        break;
+      default:
+        return;
+    }
+
+    if (filteredCards.length === 0) {
+      message.info(`Không có thẻ nào trong danh mục "${title}"`);
+      return;
+    }
+
+    setModalTitle(title);
+    setModalCards(filteredCards);
+    setModalVisible(true);
+  };
+
   const currentCard = flashcards[currentCardIndex];
   
   // Tính toán số lượng đã học/chưa học dựa trên allFlashcards
@@ -409,18 +452,18 @@ export default function FlashcardLearn() {
         
         <div className="quizlet-learn-container">
           <div className="quizlet-learn-stats">
-            <div className="quizlet-stat-item">
+            <div className="quizlet-stat-item" onClick={() => handleStatClick("learned")} style={{ cursor: "pointer" }}>
               <div className="quizlet-stat-label">Đã nhớ</div>
               <div className="quizlet-stat-value learned">{learnedCount}</div>
             </div>
-            <div className="quizlet-stat-item">
+            <div className="quizlet-stat-item" onClick={() => handleStatClick("not-learned")} style={{ cursor: "pointer" }}>
               <div className="quizlet-stat-label">Chưa nhớ</div>
               <div className="quizlet-stat-value not-learned">
                 {newCount + learningCount}
               </div>
             </div>
             {learningCount > 0 && (
-              <div className="quizlet-stat-item">
+              <div className="quizlet-stat-item" onClick={() => handleStatClick("learning")} style={{ cursor: "pointer" }}>
                 <div className="quizlet-stat-label">Đang ôn tập</div>
                 <div className="quizlet-stat-value" style={{ color: "#1890ff" }}>
                   {learningCount}
@@ -428,7 +471,7 @@ export default function FlashcardLearn() {
               </div>
             )}
             {studyStats && (
-              <div className="quizlet-stat-item">
+              <div className="quizlet-stat-item" onClick={() => handleStatClick("reviewed")} style={{ cursor: "pointer" }}>
                 <div className="quizlet-stat-label">Đã ôn tập</div>
                 <div className="quizlet-stat-value">{studyStats.totalCardsStudied || 0}</div>
               </div>
@@ -525,18 +568,18 @@ export default function FlashcardLearn() {
       
       <div className="quizlet-learn-container">
         <div className="quizlet-learn-stats">
-          <div className="quizlet-stat-item">
+          <div className="quizlet-stat-item" onClick={() => handleStatClick("learned")} style={{ cursor: "pointer" }}>
             <div className="quizlet-stat-label">Đã nhớ</div>
             <div className="quizlet-stat-value learned">{learnedCount}</div>
           </div>
-          <div className="quizlet-stat-item">
+          <div className="quizlet-stat-item" onClick={() => handleStatClick("not-learned")} style={{ cursor: "pointer" }}>
             <div className="quizlet-stat-label">Chưa nhớ</div>
             <div className="quizlet-stat-value not-learned">
               {newCount + learningCount}
             </div>
           </div>
           {learningCount > 0 && (
-            <div className="quizlet-stat-item">
+            <div className="quizlet-stat-item" onClick={() => handleStatClick("learning")} style={{ cursor: "pointer" }}>
               <div className="quizlet-stat-label">Đang ôn tập</div>
               <div className="quizlet-stat-value" style={{ color: "#1890ff" }}>
                 {learningCount}
@@ -544,7 +587,7 @@ export default function FlashcardLearn() {
             </div>
           )}
           {studyStats && (
-            <div className="quizlet-stat-item">
+            <div className="quizlet-stat-item" onClick={() => handleStatClick("reviewed")} style={{ cursor: "pointer" }}>
               <div className="quizlet-stat-label">Đã ôn tập</div>
               <div className="quizlet-stat-value">{studyStats.totalCardsStudied || 0}</div>
             </div>
@@ -722,6 +765,100 @@ export default function FlashcardLearn() {
           </div>
         )}
       </div>
+
+      {/* Modal hiển thị danh sách thẻ */}
+      <Modal
+        title={modalTitle}
+        open={modalVisible}
+        onCancel={() => setModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setModalVisible(false)}>
+            Đóng
+          </Button>
+        ]}
+        width={800}
+        style={{ top: 20 }}
+      >
+        <List
+          dataSource={modalCards}
+          renderItem={(card, index) => (
+            <List.Item key={card.cardId || index}>
+              <Card
+                style={{
+                  width: "100%",
+                  marginBottom: 16,
+                  borderLeft: `4px solid ${
+                    card.status === "learned" ? "#52c41a" :
+                    card.status === "learning" ? "#1890ff" :
+                    "#ff4d4f"
+                  }`,
+                }}
+              >
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ 
+                    fontSize: 18, 
+                    fontWeight: 600, 
+                    color: "#1890ff",
+                    marginBottom: 8 
+                  }}>
+                    {card.term || card.frontText}
+                  </div>
+                  {(card.pronunciation || card.wordType) && (
+                    <div style={{ fontSize: 14, color: "#666", marginBottom: 8 }}>
+                      {card.pronunciation && (
+                        <span style={{ marginRight: 8 }}>{card.pronunciation}</span>
+                      )}
+                      {card.wordType && (
+                        <span>({card.wordType})</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div style={{ 
+                  fontSize: 16, 
+                  color: "#333",
+                  marginBottom: 8 
+                }}>
+                  <strong>Nghĩa:</strong> {card.definition || card.backText}
+                </div>
+                {Array.isArray(card.examples) && card.examples.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <strong style={{ fontSize: 14, color: "#666" }}>Ví dụ:</strong>
+                    <ul style={{ marginTop: 8, paddingLeft: 20 }}>
+                      {card.examples.map((ex, idx) => (
+                        <li key={idx} style={{ marginBottom: 4, fontSize: 14, color: "#666" }}>
+                          {ex}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {card.notes && (
+                  <div style={{ marginTop: 12, fontSize: 14, color: "#666" }}>
+                    <strong>Ghi chú:</strong> {card.notes}
+                  </div>
+                )}
+                <div style={{ 
+                  marginTop: 12, 
+                  fontSize: 12, 
+                  color: "#999",
+                  display: "flex",
+                  gap: 16
+                }}>
+                  <span>Trạng thái: {
+                    card.status === "learned" ? "Đã nhớ" :
+                    card.status === "learning" ? "Đang ôn tập" :
+                    "Chưa nhớ"
+                  }</span>
+                  {(card.reviewCount || 0) > 0 && (
+                    <span>Đã ôn tập: {card.reviewCount} lần</span>
+                  )}
+                </div>
+              </Card>
+            </List.Item>
+          )}
+        />
+      </Modal>
     </div>
   );
 }
