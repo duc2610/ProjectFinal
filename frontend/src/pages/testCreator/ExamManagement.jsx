@@ -591,12 +591,15 @@ export default function ExamManagement() {
         
         // Chuyển đổi testSkill sang số nếu là string
         if (typeof testSkill === 'string') {
-            if (testSkill === "LR" || testSkill === "L&R") {
+            const s = testSkill.toUpperCase();
+            if (s === "LR" || s === "L&R" || s.includes("LISTENING")) {
                 testSkill = 3;
-            } else if (testSkill === "Speaking") {
+            } else if (s === "SPEAKING") {
                 testSkill = 1;
-            } else if (testSkill === "Writing") {
+            } else if (s === "WRITING") {
                 testSkill = 2;
+            } else if (s === "SW" || s.includes("S&W") || s.includes("SPEAKING & WRITING")) {
+                testSkill = 4;
             } else {
                 testSkill = Number(testSkill) || 0;
             }
@@ -646,12 +649,15 @@ export default function ExamManagement() {
             let testSkill = exam.testSkill;
             // Chuyển đổi testSkill sang số nếu là string
             if (typeof testSkill === 'string') {
-                if (testSkill === "LR" || testSkill === "L&R") {
+                const s = testSkill.toUpperCase();
+                if (s === "LR" || s === "L&R" || s.includes("LISTENING")) {
                     testSkill = 3;
-                } else if (testSkill === "Speaking") {
+                } else if (s === "SPEAKING") {
                     testSkill = 1;
-                } else if (testSkill === "Writing") {
+                } else if (s === "WRITING") {
                     testSkill = 2;
+                } else if (s === "SW" || s.includes("S&W") || s.includes("SPEAKING & WRITING")) {
+                    testSkill = 4;
                 } else {
                     testSkill = Number(testSkill) || 0;
                 }
@@ -722,15 +728,19 @@ export default function ExamManagement() {
                 let color = "cyan";
                 let label = skill;
                 
-                if (skill === "LR") {
+                const s = typeof skill === "string" ? skill.toUpperCase() : skill;
+                if (s === "LR" || s === 3) {
                     color = "purple";
                     label = "Nghe & Đọc";
-                } else if (skill === "Speaking") {
+                } else if (s === "SPEAKING" || s === 1) {
                     color = "green";
                     label = "Nói";
-                } else if (skill === "Writing") {
+                } else if (s === "WRITING" || s === 2) {
                     color = "cyan";
                     label = "Viết";
+                } else if (s === "SW" || s === 4) {
+                    color = "blue";
+                    label = "Nói & Viết";
                 }
                 
                 return <Tag color={color}>{label}</Tag>;

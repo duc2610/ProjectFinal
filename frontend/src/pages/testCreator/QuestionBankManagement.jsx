@@ -66,8 +66,11 @@ const toNum = (v) => {
   return Number.isFinite(n) ? n : undefined;
 };
 
-// Parts chỉ dành cho group questions: 3, 4 (Listening), 6, 7 (Reading)
-const GROUP_PARTS = [3, 4, 6, 7];
+// Parts chỉ dành cho group questions:
+// - Listening: 3, 4
+// - Reading: 6, 7
+// - Speaking: 13, 14
+const GROUP_PARTS = [3, 4, 6, 7, 13, 14];
 const isGroupPart = (p) => GROUP_PARTS.includes(Number(p));
 
 const normalizeStatus = (raw) => {
@@ -479,7 +482,7 @@ export default function QuanLyNganHangCauHoi() {
             showIcon
             style={{ marginBottom: 16 }}
             message="Nhóm câu"
-            description="Tab này hiển thị các nhóm câu hỏi. Chỉ hiển thị Part 3, 4 (Nghe) và Part 6, 7 (Đọc)."
+            description="Tab này hiển thị các nhóm câu hỏi. Chỉ hiển thị Part 3, 4 (Nghe), Part 6, 7 (Đọc) và Part 13, 14 (Nói)."
           />
         )}
 

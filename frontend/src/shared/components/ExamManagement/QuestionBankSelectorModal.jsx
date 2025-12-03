@@ -6,8 +6,8 @@ import { getPartsBySkill } from "@services/partsService";
 
 const { Option } = Select;
 
-// Parts chỉ dành cho group questions: 3, 4 (Listening), 6, 7 (Reading)
-const GROUP_PARTS = [3, 4, 6, 7];
+// Parts dành cho group questions: 3, 4, 6, 7 (L&R) và 13, 14 (Speaking)
+const GROUP_PARTS = [3, 4, 6, 7, 13, 14];
 const isGroupPart = (p) => GROUP_PARTS.includes(Number(p));
 
 export default function QuestionBankSelectorModal({ 
@@ -43,7 +43,7 @@ export default function QuestionBankSelectorModal({
     const loadParts = async () => {
         try {
             const loadedParts = await getPartsBySkill(skill);
-            // Filter: loại bỏ các part group (3, 4, 6, 7) - chỉ dành cho group questions
+            // Filter: loại bỏ các part group (3, 4, 6, 7, 13, 14) - chỉ dành cho group questions
             const filteredParts = (loadedParts || []).filter(p => {
                 const pid = Number(p.partId || p.id);
                 return !isGroupPart(pid);

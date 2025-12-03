@@ -109,9 +109,7 @@ export function PersonalTab({ user }) {
               <Button block className={styles.primaryBtn} onClick={showModal}>
                 Đổi mật khẩu
               </Button>
-              <Button block className={styles.ghostBtn} type="default">
-                Cập nhật thông tin
-              </Button>
+              
             </Form>
           </Col>
         </Row>
