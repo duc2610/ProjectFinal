@@ -126,6 +126,7 @@ export default function QuestionReportManagement() {
   const [imageFile, setImageFile] = useState(null);
   const [audioPreviewUrl, setAudioPreviewUrl] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
+  const [alsoUpdateSourceInBank, setAlsoUpdateSourceInBank] = useState(true);
 
   const [reviewForm] = Form.useForm();
 
@@ -228,6 +229,7 @@ export default function QuestionReportManagement() {
     setImageFile(null);
     setAudioPreviewUrl(null);
     setImagePreviewUrl(null);
+    setAlsoUpdateSourceInBank(true); // Mặc định là true
 
     reviewForm.setFieldsValue({
       status:
@@ -289,7 +291,7 @@ export default function QuestionReportManagement() {
           const payload = {
             content: editableQuestion.content ?? "",
             solution: editableQuestion.explanation ?? "",
-            alsoUpdateSourceInBank: false,
+            alsoUpdateSourceInBank: alsoUpdateSourceInBank,
             audioFile,
             imageFile,
             answerOptions: Array.isArray(editableQuestion.options)
@@ -434,7 +436,7 @@ export default function QuestionReportManagement() {
     []
   );
 
-  const renderQuestionSnapshot = () => {
+  const renderQuestionSnapshot = (isReadOnly = false) => {
     if (!selectedReport) return null;
     const snapshot = selectedReport.questionSnapshot || {};
     const options = Array.isArray(editableQuestion?.options)
@@ -442,6 +444,16 @@ export default function QuestionReportManagement() {
       : Array.isArray(snapshot.options)
       ? snapshot.options
       : [];
+
+    // Kiểm tra testType: chỉ hiển thị checkbox khi test là PRACTICE
+    // Practice test có question từ bank (có SourceQuestionId), Simulator thì không
+    const testType = selectedReport.testType ?? snapshot.testType ?? selectedReport.TestType;
+    const isPracticeTest = 
+      testType === 2 || 
+      testType === "Practice" || 
+      testType === "PRACTICE" ||
+      selectedReport.sourceQuestionId != null || // Nếu có sourceQuestionId thì là Practice
+      snapshot.sourceQuestionId != null;
 
     const partId = snapshot.partId || selectedReport.partId;
     const skill = getSkillFromPart(partId, selectedReport.partName);
@@ -454,76 +466,107 @@ export default function QuestionReportManagement() {
         size="small"
         title="Snapshot câu hỏi tại thời điểm báo cáo"
         extra={
-          <Space>
-            {showAudioControls && (
-              <Upload
-                accept="audio/*"
-                showUploadList={false}
-                beforeUpload={(file) => {
-                  setAudioFile(file);
-                  if (audioPreviewUrl) {
-                    URL.revokeObjectURL(audioPreviewUrl);
-                  }
-                  const url = URL.createObjectURL(file);
-                  setAudioPreviewUrl(url);
-                  message.success(
-                    "Đã chọn file audio mới. Nhấn 'Cập nhật câu hỏi' để lưu."
-                  );
-                  return false;
-                }}
-              >
-                <Button size="small" icon={<UploadOutlined />}>
-                  Chọn audio mới
+          !isReadOnly && (
+            <Space>
+              {showAudioControls && (
+                <Upload
+                  accept="audio/*"
+                  showUploadList={false}
+                  beforeUpload={(file) => {
+                    setAudioFile(file);
+                    if (audioPreviewUrl) {
+                      URL.revokeObjectURL(audioPreviewUrl);
+                    }
+                    const url = URL.createObjectURL(file);
+                    setAudioPreviewUrl(url);
+                    message.success(
+                      "Đã chọn file audio mới. Nhấn 'Cập nhật câu hỏi' để lưu."
+                    );
+                    return false;
+                  }}
+                >
+                  <Button size="small" icon={<UploadOutlined />}>
+                    Chọn audio mới
+                  </Button>
+                </Upload>
+              )}
+              {showImageControls && (
+                <Upload
+                  accept="image/*"
+                  showUploadList={false}
+                  beforeUpload={(file) => {
+                    setImageFile(file);
+                    if (imagePreviewUrl) {
+                      URL.revokeObjectURL(imagePreviewUrl);
+                    }
+                    const url = URL.createObjectURL(file);
+                    setImagePreviewUrl(url);
+                    message.success(
+                      "Đã chọn ảnh mới. Nhấn 'Cập nhật câu hỏi' để lưu."
+                    );
+                    return false;
+                  }}
+                >
+                  <Button size="small" icon={<UploadOutlined />}>
+                    Chọn ảnh mới
+                  </Button>
+                </Upload>
+              )}
+              <Tooltip title="Cập nhật nhanh câu hỏi trong bài test theo snapshot hiện tại">
+                <Button
+                  size="small"
+                  icon={<SettingOutlined />}
+                  loading={updatingQuestion}
+                  onClick={handleQuickUpdateQuestion}
+                >
+                  Cập nhật câu hỏi
                 </Button>
-              </Upload>
-            )}
-            {showImageControls && (
-              <Upload
-                accept="image/*"
-                showUploadList={false}
-                beforeUpload={(file) => {
-                  setImageFile(file);
-                  if (imagePreviewUrl) {
-                    URL.revokeObjectURL(imagePreviewUrl);
-                  }
-                  const url = URL.createObjectURL(file);
-                  setImagePreviewUrl(url);
-                  message.success(
-                    "Đã chọn ảnh mới. Nhấn 'Cập nhật câu hỏi' để lưu."
-                  );
-                  return false;
-                }}
-              >
-                <Button size="small" icon={<UploadOutlined />}>
-                  Chọn ảnh mới
-                </Button>
-              </Upload>
-            )}
-            <Tooltip title="Cập nhật nhanh câu hỏi trong bài test theo snapshot hiện tại">
-              <Button
-                size="small"
-                icon={<SettingOutlined />}
-                loading={updatingQuestion}
-                onClick={handleQuickUpdateQuestion}
-              >
-                Cập nhật câu hỏi
-              </Button>
-            </Tooltip>
-          </Space>
+              </Tooltip>
+            </Space>
+          )
         }
       >
+        {/* Checkbox để update source question trong bank - chỉ hiển thị cho Practice test */}
+        {!isReadOnly && isPracticeTest && (
+          <div style={{ 
+            marginBottom: 16, 
+            padding: 12, 
+            background: "#e6f7ff", 
+            borderRadius: 6,
+            border: "1px solid #91d5ff"
+          }}>
+            <Checkbox
+              checked={alsoUpdateSourceInBank}
+              onChange={(e) => setAlsoUpdateSourceInBank(e.target.checked)}
+              style={{ fontSize: 14 }}
+            >
+              <Text strong style={{ fontSize: 14 }}>Cập nhật cả câu hỏi gốc trong ngân hàng</Text>
+            </Checkbox>
+            <div style={{ marginTop: 8, marginLeft: 24 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Khi bật: Thay đổi sẽ được áp dụng cho cả câu hỏi trong bài test và câu hỏi gốc trong ngân hàng câu hỏi
+              </Text>
+            </div>
+          </div>
+        )}
         <Descriptions column={1} size="small">
           <Descriptions.Item label="Nội dung câu hỏi">
             <Input.TextArea
               rows={4}
               value={editableQuestion?.content}
               onChange={(e) =>
+                !isReadOnly &&
                 setEditableQuestion((prev) => ({
                   ...(prev || {}),
                   content: e.target.value,
                 }))
               }
-              placeholder="Nội dung câu hỏi"
+              disabled={isReadOnly}
+              placeholder={
+                editableQuestion?.content && editableQuestion.content.trim()
+                  ? "Nội dung câu hỏi"
+                  : "Câu hỏi không có nội dung văn bản, chỉ hình ảnh/âm thanh. Nhập nội dung mới nếu cần."
+              }
             />
           </Descriptions.Item>
           <Descriptions.Item label="Giải thích">
@@ -531,11 +574,13 @@ export default function QuestionReportManagement() {
               rows={3}
               value={editableQuestion?.explanation}
               onChange={(e) =>
+                !isReadOnly &&
                 setEditableQuestion((prev) => ({
                   ...(prev || {}),
                   explanation: e.target.value,
                 }))
               }
+              disabled={isReadOnly}
               placeholder="Giải thích / Solution"
             />
           </Descriptions.Item>
@@ -615,7 +660,9 @@ export default function QuestionReportManagement() {
                   <Space>
                     <Checkbox
                       checked={!!opt.isCorrect}
+                      disabled={isReadOnly}
                       onChange={(e) => {
+                        if (isReadOnly) return;
                         const checked = e.target.checked;
                         setEditableQuestion((prev) => {
                           const current = prev || { options: [] };
@@ -638,7 +685,9 @@ export default function QuestionReportManagement() {
                     <Text strong>{opt.label}.</Text>
                     <Input
                       value={opt.content}
+                      disabled={isReadOnly}
                       onChange={(e) => {
+                        if (isReadOnly) return;
                         const value = e.target.value;
                         setEditableQuestion((prev) => {
                           const current = prev || { options: [] };
@@ -736,13 +785,49 @@ export default function QuestionReportManagement() {
           setReviewModalOpen(false);
           setSelectedReport(null);
         }}
-        onOk={handleReviewSubmit}
+        onOk={(() => {
+          if (!selectedReport) return handleReviewSubmit;
+          let statusCode = 0;
+          if (typeof selectedReport.status === "number") {
+            statusCode = selectedReport.status;
+          } else if (typeof selectedReport.statusCode === "number") {
+            statusCode = selectedReport.statusCode;
+          } else if (typeof selectedReport.status === "string") {
+            statusCode = statusStringToCodeMap[selectedReport.status] ?? 0;
+          }
+          const isReadOnly = statusCode === 2 || statusCode === 3; // Resolved hoặc Rejected
+          return isReadOnly ? undefined : handleReviewSubmit;
+        })()}
         title="Chi tiết báo cáo & xử lý"
-        okText="Lưu xử lý"
+        okText={(() => {
+          if (!selectedReport) return "Lưu xử lý";
+          let statusCode = 0;
+          if (typeof selectedReport.status === "number") {
+            statusCode = selectedReport.status;
+          } else if (typeof selectedReport.statusCode === "number") {
+            statusCode = selectedReport.statusCode;
+          } else if (typeof selectedReport.status === "string") {
+            statusCode = statusStringToCodeMap[selectedReport.status] ?? 0;
+          }
+          const isReadOnly = statusCode === 2 || statusCode === 3; // Resolved hoặc Rejected
+          return isReadOnly ? undefined : "Lưu xử lý";
+        })()}
         cancelText="Đóng"
         width={900}
       >
-        {selectedReport && (
+        {selectedReport && (() => {
+          // Tính isReadOnly một lần để dùng chung
+          let statusCode = 0;
+          if (typeof selectedReport.status === "number") {
+            statusCode = selectedReport.status;
+          } else if (typeof selectedReport.statusCode === "number") {
+            statusCode = selectedReport.statusCode;
+          } else if (typeof selectedReport.status === "string") {
+            statusCode = statusStringToCodeMap[selectedReport.status] ?? 0;
+          }
+          const isReadOnlyModal = statusCode === 2 || statusCode === 3; // Resolved hoặc Rejected
+          
+          return (
           <Space
             direction="vertical"
             size="large"
@@ -816,7 +901,7 @@ export default function QuestionReportManagement() {
                         },
                       ]}
                     >
-                      <Select>
+                      <Select disabled={isReadOnlyModal}>
                         {statusOptions
                           .filter((opt) => opt.value !== "all")
                           .map((opt) => (
@@ -849,6 +934,7 @@ export default function QuestionReportManagement() {
                         placeholder="Nhập ghi chú xử lý (tối đa 1000 ký tự)"
                         showCount
                         maxLength={1000}
+                        disabled={isReadOnlyModal}
                       />
                     </Form.Item>
                   </Form>
@@ -856,11 +942,12 @@ export default function QuestionReportManagement() {
               </Col>
 
               <Col xs={24} md={14}>
-                {renderQuestionSnapshot()}
+                {renderQuestionSnapshot(isReadOnlyModal)}
               </Col>
             </Row>
           </Space>
-        )}
+          );
+        })()}
       </Modal>
     </div>
   );
