@@ -67,7 +67,7 @@ namespace ToeicGenius.Controllers
 			var result = await _userService.UpdateUserAsync(id, dto);
 			if (!result.IsSuccess)
 			{
-				return NotFound(ApiResponse<UserResponseDto>.NotFoundResponse(result.ErrorMessage!));
+				return BadRequest(ApiResponse<UserResponseDto>.ErrorResponse(result.ErrorMessage!));
 			}
 			return Ok(ApiResponse<UserResponseDto>.SuccessResponse(result.Data!, SuccessMessages.UserProfileUpdated));
 		}

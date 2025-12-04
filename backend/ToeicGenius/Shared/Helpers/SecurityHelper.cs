@@ -44,7 +44,7 @@ namespace ToeicGenius.Shared.Helpers
 			if (password.Length > NumberConstants.MaxPasswordLength)
 				return (false, ErrorMessages.PasswordMaxLength);
 
-			var regex = new Regex(@"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$");
+			var regex = new Regex(@"^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).+$");
 			if (!regex.IsMatch(password))
 				return (false, ErrorMessages.PasswordInvalidRegex);
 

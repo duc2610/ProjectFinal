@@ -12,7 +12,7 @@ namespace ToeicGenius.Services.Implementations
 		{
 			_configuration = configuration;
 		}
-		public async Task SendMail(string toEmail, string subject, string body)
+		public async Task SendMailAsync(string toEmail, string subject, string body)
 		{
 			MailMessage message = new MailMessage()
 			{

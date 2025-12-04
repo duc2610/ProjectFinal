@@ -329,7 +329,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 			// Assert
 			result.Should().Be(ErrorMessages.EmailAlreadyExists);
-			_emailServiceMock.Verify(e => e.SendMail(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+			_emailServiceMock.Verify(e => e.SendMailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
 		}
 
 		// UTCID02: Gửi OTP thành công
@@ -351,7 +351,7 @@ namespace ToeicGenius.Tests.UnitTests
 			result.Should().BeEmpty();
 			_unitOfWorkMock.Verify(u => u.UserOtps.AddAsync(It.IsAny<UserOtp>()), Times.Once);
 			_unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
-			_emailServiceMock.Verify(e => e.SendMail(dto.Email, "OTP Đăng ký", It.Is<string>(s => s.Contains("Mã OTP của bạn là"))), Times.Once);
+			_emailServiceMock.Verify(e => e.SendMailAsync(dto.Email, "OTP Đăng ký", It.Is<string>(s => s.Contains("Mã OTP của bạn là"))), Times.Once);
 		}
 
 		// UTCID03: Lỗi hệ thống (Exception)
@@ -765,7 +765,7 @@ namespace ToeicGenius.Tests.UnitTests
 
 			// Assert
 			result.Should().Be(ErrorMessages.UserNotFound);
-			_emailServiceMock.Verify(e => e.SendMail(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+			_emailServiceMock.Verify(e => e.SendMailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
 		}
 
 		// UTCID02: User inactive
@@ -808,7 +808,7 @@ namespace ToeicGenius.Tests.UnitTests
 			result.Should().BeEmpty();
 			_unitOfWorkMock.Verify(u => u.UserOtps.AddAsync(It.IsAny<UserOtp>()), Times.Once);
 			_unitOfWorkMock.Verify(u => u.SaveChangesAsync(), Times.Once);
-			_emailServiceMock.Verify(e => e.SendMail(dto.Email, "OTP Đổi mật khẩu", It.Is<string>(s => s.Contains("Mã OTP của bạn là"))), Times.Once);
+			_emailServiceMock.Verify(e => e.SendMailAsync(dto.Email, "OTP Đổi mật khẩu", It.Is<string>(s => s.Contains("Mã OTP của bạn là"))), Times.Once);
 		}
 
 		// UTCID04: Exception handling

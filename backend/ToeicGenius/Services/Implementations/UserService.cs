@@ -46,7 +46,7 @@ namespace ToeicGenius.Services.Implementations
 					? EmailTemplates.BuildAccountBannedEmail(user.FullName)
 					: EmailTemplates.BuildAccountUnbannedEmail(user.FullName);
 
-				await _emailService.SendMail(user.Email, subject, body);
+				await _emailService.SendMailAsync(user.Email, subject, body);
 				return Result<string>.Success(SuccessMessages.UserStatusUpdated);
 			}
 			catch (Exception ex)
@@ -147,7 +147,7 @@ namespace ToeicGenius.Services.Implementations
 
 			var (subject, body) = EmailTemplates.BuildAccountCreatedEmail(user.FullName, user.Email, plainPassword);
 
-			await _emailService.SendMail(user.Email, subject, body);
+			await _emailService.SendMailAsync(user.Email, subject, body);
 
 			var roles = await _uow.Roles.GetRolesByUserIdAsync(user.Id);
 			var response = new UserResponseDto
@@ -179,7 +179,11 @@ namespace ToeicGenius.Services.Implementations
 				var (isValid, error) = SecurityHelper.ValidatePassword(dto.Password);
 				if (!isValid)
 					return Result<UserResponseDto>.Failure(error);
-
+				// 2. KIỂM TRA MẬT KHẨU CŨ 
+				if (SecurityHelper.VerifyPassword(dto.Password, user.PasswordHash))
+				{
+					return Result<UserResponseDto>.Failure("Mật khẩu mới không được trùng với mật khẩu cũ!");
+				}
 				user.PasswordHash = SecurityHelper.HashPassword(dto.Password);
 			}
 
@@ -223,7 +227,15 @@ namespace ToeicGenius.Services.Implementations
 				CreatedAt = user.CreatedAt,
 				Roles = updatedRoles.Select(r => r.RoleName).ToList()
 			};
+			// GỬI EMAIL SAU KHI CẬP NHẬT
+			var (subject, body) = EmailTemplates.BuildAccountUpdatedEmail(
+				fullName: user.FullName,
+				email: user.Email,
+				updatedPassword: dto.Password,  // null → template tự bỏ password section
+				roleName: string.Join(", ", response.Roles)
+			);
 
+			await _emailService.SendMailAsync(user.Email, subject, body);
 			return Result<UserResponseDto>.Success(response);
 		}
 
