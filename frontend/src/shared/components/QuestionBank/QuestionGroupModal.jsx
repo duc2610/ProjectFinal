@@ -1032,49 +1032,52 @@ export default function QuestionGroupModal({
                     </Col>
                   </Row>
 
-                  <Form.Item
-                    {...restField}
-                    name={[name, "content"]}
-                    label="Nội dung câu hỏi"
-                    validateTrigger={['onBlur']}
-                    rules={[
-                      {
-                        validator: (_, value) => {
-                          if (!value || !String(value).trim()) {
-                            return Promise.reject(new Error("Vui lòng nhập nội dung câu hỏi"));
-                          }
-                          return Promise.resolve();
+                  {/* Ẩn trường "Nội dung câu hỏi" khi Part = 6 (Reading Part 6) */}
+                  {Number(selectedPart) !== 6 && (
+                    <Form.Item
+                      {...restField}
+                      name={[name, "content"]}
+                      label="Nội dung câu hỏi"
+                      validateTrigger={['onBlur']}
+                      rules={[
+                        {
+                          validator: (_, value) => {
+                            if (!value || !String(value).trim()) {
+                              return Promise.reject(new Error("Vui lòng nhập nội dung câu hỏi"));
+                            }
+                            return Promise.resolve();
+                          },
                         },
-                      },
-                    ]}
-                  >
-                    <Input.TextArea 
-                      rows={3}
-                      onChange={() => {
-                        // Xóa lỗi khi đang sửa (nếu có)
-                        const fieldName = ['questions', name, 'content'];
-                        const errors = form.getFieldsError(fieldName);
-                        if (errors[0]?.errors?.length > 0) {
-                          form.setFields([{ name: fieldName, errors: [] }]);
-                        }
-                      }}
-                      onFocus={() => {
-                        // Validate các trường trước đó khi focus vào trường này
-                        form.validateFields(['skill', 'partId', 'passageContent']).catch(() => {});
-                        // Validate audio nếu bắt buộc
-                        if (isAudioRequired) {
-                          form.validateFields(['audio']).catch(() => {});
-                        }
-                        // Validate image nếu bắt buộc
-                        if (isImageRequired) {
-                          form.validateFields(['image']).catch(() => {});
-                        }
-                        // Validate questionTypeId của câu hỏi này
-                        const fieldName = ['questions', name, 'questionTypeId'];
-                        form.validateFields([fieldName]).catch(() => {});
-                      }}
-                    />
-                  </Form.Item>
+                      ]}
+                    >
+                      <Input.TextArea 
+                        rows={3}
+                        onChange={() => {
+                          // Xóa lỗi khi đang sửa (nếu có)
+                          const fieldName = ['questions', name, 'content'];
+                          const errors = form.getFieldsError(fieldName);
+                          if (errors[0]?.errors?.length > 0) {
+                            form.setFields([{ name: fieldName, errors: [] }]);
+                          }
+                        }}
+                        onFocus={() => {
+                          // Validate các trường trước đó khi focus vào trường này
+                          form.validateFields(['skill', 'partId', 'passageContent']).catch(() => {});
+                          // Validate audio nếu bắt buộc
+                          if (isAudioRequired) {
+                            form.validateFields(['audio']).catch(() => {});
+                          }
+                          // Validate image nếu bắt buộc
+                          if (isImageRequired) {
+                            form.validateFields(['image']).catch(() => {});
+                          }
+                          // Validate questionTypeId của câu hỏi này
+                          const fieldName = ['questions', name, 'questionTypeId'];
+                          form.validateFields([fieldName]).catch(() => {});
+                        }}
+                      />
+                    </Form.Item>
+                  )}
 
               {!isSpeakingSkill && (
               <Form.List name={[name, "answerOptions"]}>
