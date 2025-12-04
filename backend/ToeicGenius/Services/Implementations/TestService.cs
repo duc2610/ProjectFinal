@@ -145,7 +145,7 @@ namespace ToeicGenius.Services.Implementations
 		}
 
 		// Create from bank with random selection (for practice test)
-		public async Task<Result<string>> CreateFromBankRandomAsync(CreateTestFromBankRandomDto dto)
+		public async Task<Result<string>> CreateFromBankRandomAsync(Guid userId,CreateTestFromBankRandomDto dto)
 		{
 			await _uow.BeginTransactionAsync();
 			try
@@ -173,6 +173,7 @@ namespace ToeicGenius.Services.Implementations
 					TestSkill = dto.TestSkill,
 					Version = NumberConstants.FirstVersion,
 					TestType = TestType.Practice,
+					CreatedById = userId
 				};
 
 				var quantityQuestion = 0;
@@ -979,6 +980,7 @@ namespace ToeicGenius.Services.Implementations
 				VisibilityStatus = TestVisibilityStatus.Hidden,
 				Version = source.Version + 1,
 				ParentTestId = source.TestId,
+				CreatedById = source.CreatedById,
 				CreatedAt = Now
 			};
 

@@ -53,7 +53,12 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> CreateTestPracticeRandom([FromBody] CreateTestFromBankRandomDto request)
 		{
-			var result = await _testService.CreateFromBankRandomAsync(request);
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+            }
+            var result = await _testService.CreateFromBankRandomAsync(userId, request);
 			if (!result.IsSuccess)
 			{
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
