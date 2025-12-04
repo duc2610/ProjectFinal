@@ -344,7 +344,7 @@ export default function TestList() {
             case "FourSkills":
             case "S&W":
             case "SW":
-                return "S&W";
+                return "Speaking & Writing";
             default: 
                 return skill;
         }
@@ -374,7 +374,7 @@ export default function TestList() {
                         <Option value="lr">Listening & Reading</Option>
                         <Option value="speaking">Speaking</Option>
                         <Option value="writing">Writing</Option>
-                        <Option value="sw">S&W</Option>
+                        <Option value="sw">Speaking & Writing</Option>
                     </Select>
                 </div>
 

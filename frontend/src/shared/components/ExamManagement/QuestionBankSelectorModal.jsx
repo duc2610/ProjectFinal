@@ -2,9 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { getQuestions, buildQuestionListParams } from "@services/questionsService";
-import { getPartsBySkill } from "@services/partsService";
+import { loadPartsBySkill, TEST_SKILL } from "@shared/constants/toeicStructure";
 
 const { Option } = Select;
+
+const READING_PARTS = [5, 6, 7];
+const LISTENING_PARTS = [1, 2, 3, 4];
 
 // Parts dành cho group questions: 3, 4, 6, 7 (L&R) và 13, 14 (Speaking)
 const GROUP_PARTS = [3, 4, 6, 7, 13, 14];
@@ -42,7 +45,13 @@ export default function QuestionBankSelectorModal({
 
     const loadParts = async () => {
         try {
-            const loadedParts = await getPartsBySkill(skill);
+            const normalizedSkill = Number(skill);
+            let loadedParts = [];
+
+            if (normalizedSkill) {
+                loadedParts = await loadPartsBySkill(normalizedSkill);
+            }
+
             // Filter: loại bỏ các part group (3, 4, 6, 7, 13, 14) - chỉ dành cho group questions
             const filteredParts = (loadedParts || []).filter(p => {
                 const pid = Number(p.partId || p.id);
@@ -54,13 +63,33 @@ export default function QuestionBankSelectorModal({
         }
     };
 
+    const resolveSkillForRequest = () => {
+        const normalizedSkill = Number(skill);
+        if (normalizedSkill !== TEST_SKILL.LR) {
+            return normalizedSkill;
+        }
+
+        if (filterPart != null) {
+            const partNum = Number(filterPart);
+            if (READING_PARTS.includes(partNum)) {
+                return 4; // Reading skill
+            }
+            if (LISTENING_PARTS.includes(partNum)) {
+                return 3; // Listening skill
+            }
+        }
+
+        return TEST_SKILL.LR; // default (backend expected to map to listening)
+    };
+
     const loadQuestions = async (page = 1, pageSize = 10, withFilters = false) => {
         setLoading(true);
         try {
+            const requestSkill = resolveSkillForRequest();
             const baseParams = buildQuestionListParams({ 
                 page, 
                 pageSize, 
-                skill,
+                skill: requestSkill,
                 partId: withFilters ? filterPart : undefined,
                 keyword: withFilters ? searchKeyword : undefined
             });
