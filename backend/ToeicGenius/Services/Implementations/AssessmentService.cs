@@ -117,7 +117,24 @@ namespace ToeicGenius.Services.Implementations
                     if (isSkipped)
                     {
                         skipCount++;
-                        continue; // Skip processing this part
+
+                        // Both Practice and Simulator: unanswered questions = 0 score
+                        var partType = part.PartType ?? "writing_sentence";
+                        if (partType.StartsWith("writing"))
+                        {
+                            rawWritingScores.Add(0);
+                            if (!writingPartScores.ContainsKey(partType))
+                                writingPartScores[partType] = new List<double>();
+                            writingPartScores[partType].Add(0);
+                        }
+                        else
+                        {
+                            rawSpeakingScores.Add(0);
+                            if (!speakingPartScores.ContainsKey(partType))
+                                speakingPartScores[partType] = new List<double>();
+                            speakingPartScores[partType].Add(0);
+                        }
+                        continue;
                     }
 
                     ToeicGenius.Domains.DTOs.Responses.AI.AIFeedbackResponseDto aiResponse = null!;
