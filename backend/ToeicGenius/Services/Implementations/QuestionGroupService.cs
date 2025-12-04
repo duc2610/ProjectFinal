@@ -379,7 +379,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 			foreach (var q in request.Questions)
 			{
-				if ((!isLRPart6 || !isLRPart12) && string.IsNullOrWhiteSpace(q.Content))
+				if (!isLRPart6 && !isLRPart12 && string.IsNullOrWhiteSpace(q.Content))
 				{
 					return Result<string>.Failure("Content của câu hỏi không được để trống.");
 				}
@@ -442,7 +442,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 			foreach (var q in request.Questions)
 			{
-				if ((!isLRPart6 || !isLRPart12) && string.IsNullOrWhiteSpace(q.Content))
+				if (!isLRPart6 && !isLRPart12 && string.IsNullOrWhiteSpace(q.Content))
 				{
 					return Result<string>.Failure("Content của câu hỏi không được để trống.");
 				}
