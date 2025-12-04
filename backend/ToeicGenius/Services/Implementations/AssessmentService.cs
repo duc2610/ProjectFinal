@@ -80,11 +80,22 @@ namespace ToeicGenius.Services.Implementations
             if (testResult.Status == TestResultStatus.Graded)
                 throw new Exception("This test has already been submitted/completed.");
 
+            // Determine test type (Simulator or Practice)
+            bool isSimulator = string.Equals(request.TestType, "Simulator", StringComparison.OrdinalIgnoreCase)
+                || testResult.Test?.TestType == TestType.Simulator;
+
             var response = new ToeicGenius.Domains.DTOs.Responses.AI.SubmitBulkAssessmentResponseDto();
 
             var perPartResponses = new List<ToeicGenius.Domains.DTOs.Responses.AI.PerPartAssessmentFeedbackDto>();
+
+            // For simple average (Practice mode)
             var rawWritingScores = new List<double>();
             var rawSpeakingScores = new List<double>();
+
+            // For weighted calculation (Simulator mode) - group by part type
+            var writingPartScores = new Dictionary<string, List<double>>();
+            var speakingPartScores = new Dictionary<string, List<double>>();
+
             int skipCount = 0;
             int totalQuestions = request.Parts.Count;
 
@@ -148,7 +159,15 @@ namespace ToeicGenius.Services.Implementations
                             var pythonResponse = JsonSerializer.Deserialize<PythonWritingResponse>(
                                 aiResponse.PythonApiResponse, _jsonOptions);
                             if (pythonResponse != null)
+                            {
                                 rawWritingScores.Add(pythonResponse.OverallScore);
+
+                                // Group by part type for weighted calculation (Simulator)
+                                var partType = part.PartType ?? "writing_sentence";
+                                if (!writingPartScores.ContainsKey(partType))
+                                    writingPartScores[partType] = new List<double>();
+                                writingPartScores[partType].Add(pythonResponse.OverallScore);
+                            }
                         }
                     }
                     else // Speaking parts
@@ -175,7 +194,15 @@ namespace ToeicGenius.Services.Implementations
                             var pythonResponse = JsonSerializer.Deserialize<PythonSpeakingResponse>(
                                 aiResponse.PythonApiResponse, _jsonOptions);
                             if (pythonResponse != null)
+                            {
                                 rawSpeakingScores.Add(pythonResponse.OverallScore);
+
+                                // Group by part type for weighted calculation (Simulator)
+                                var partType = taskType ?? "read_aloud";
+                                if (!speakingPartScores.ContainsKey(partType))
+                                    speakingPartScores[partType] = new List<double>();
+                                speakingPartScores[partType].Add(pythonResponse.OverallScore);
+                            }
                         }
                     }
 
@@ -209,34 +236,57 @@ namespace ToeicGenius.Services.Implementations
                 }
             }
 
-            // Aggregate RAW scores (0-100) before conversion
-            double? writingAvg = rawWritingScores.Any() ? rawWritingScores.Average() : (double?)null;
-            double? speakingAvg = rawSpeakingScores.Any() ? rawSpeakingScores.Average() : (double?)null;
+            // Calculate raw averages (for Practice mode and display)
+            double? writingRawAvg = rawWritingScores.Any() ? rawWritingScores.Average() : (double?)null;
+            double? speakingRawAvg = rawSpeakingScores.Any() ? rawSpeakingScores.Average() : (double?)null;
 
-            // Convert averaged RAW scores (0-100) to TOEIC scale scores (0-200) - ONE TIME ONLY
-            int? writingToeicScore = writingAvg.HasValue ? ToeicScoreTable.ConvertWritingScore(writingAvg.Value) : (int?)null;
-            int? speakingToeicScore = speakingAvg.HasValue ? ToeicScoreTable.ConvertSpeakingScore(speakingAvg.Value) : (int?)null;
+            // Initialize TOEIC scores
+            int? writingToeicScore = null;
+            int? speakingToeicScore = null;
+
+            if (isSimulator)
+            {
+                // SIMULATOR MODE: Use weighted calculation then convert to TOEIC scale
+                double? weightedWritingScore = writingPartScores.Any()
+                    ? ToeicScoreTable.CalculateWeightedWritingScore(writingPartScores)
+                    : writingRawAvg;
+
+                double? weightedSpeakingScore = speakingPartScores.Any()
+                    ? ToeicScoreTable.CalculateWeightedSpeakingScore(speakingPartScores)
+                    : speakingRawAvg;
+
+                // Convert weighted RAW scores (0-100) to TOEIC scale scores (0-200)
+                writingToeicScore = weightedWritingScore.HasValue
+                    ? ToeicScoreTable.ConvertWritingScore(weightedWritingScore.Value)
+                    : (int?)null;
+                speakingToeicScore = weightedSpeakingScore.HasValue
+                    ? ToeicScoreTable.ConvertSpeakingScore(weightedSpeakingScore.Value)
+                    : (int?)null;
+            }
+            // PRACTICE MODE: No TOEIC scale conversion, keep raw scores only
 
             // Update TestResult
             var skillScores = new List<ToeicGenius.Domains.Entities.UserTestSkillScore>();
-            if (writingToeicScore.HasValue)
+            if (rawWritingScores.Any())
             {
                 skillScores.Add(new ToeicGenius.Domains.Entities.UserTestSkillScore
                 {
                     Skill = "Writing",
                     CorrectCount = 0,
                     TotalQuestions = rawWritingScores.Count,
-                    Score = writingToeicScore.Value
+                    // Simulator: TOEIC scale (0-200), Practice: Raw score (0-100)
+                    Score = isSimulator ? (writingToeicScore ?? 0) : (decimal)(writingRawAvg ?? 0)
                 });
             }
-            if (speakingToeicScore.HasValue)
+            if (rawSpeakingScores.Any())
             {
                 skillScores.Add(new ToeicGenius.Domains.Entities.UserTestSkillScore
                 {
                     Skill = "Speaking",
                     CorrectCount = 0,
                     TotalQuestions = rawSpeakingScores.Count,
-                    Score = speakingToeicScore.Value
+                    // Simulator: TOEIC scale (0-200), Practice: Raw score (0-100)
+                    Score = isSimulator ? (speakingToeicScore ?? 0) : (decimal)(speakingRawAvg ?? 0)
                 });
             }
 
@@ -245,8 +295,19 @@ namespace ToeicGenius.Services.Implementations
             testResult.UpdatedAt = Now;
             testResult.Status = TestResultStatus.Graded;
 
-            // Calculate TotalScore as sum of all skill scores (Writing + Speaking)
-            testResult.TotalScore = skillScores.Sum(s => s.Score);
+            // Calculate TotalScore
+            // Simulator: Sum of TOEIC scale scores (0-400 max)
+            // Practice: Average of raw scores (0-100)
+            if (isSimulator)
+            {
+                testResult.TotalScore = skillScores.Sum(s => s.Score);
+            }
+            else
+            {
+                // Practice: Average of raw scores for answered questions
+                var allRawScores = rawWritingScores.Concat(rawSpeakingScores).ToList();
+                testResult.TotalScore = allRawScores.Any() ? (decimal)allRawScores.Average() : 0;
+            }
 
             // Update TotalQuestions and SkipCount
             testResult.TotalQuestions = totalQuestions;
@@ -257,9 +318,22 @@ namespace ToeicGenius.Services.Implementations
             // Set response values
             response.TestId = testResult.TestId;
             response.TestResultId = testResult.TestResultId;
-            response.WritingScore = writingToeicScore;
-            response.SpeakingScore = speakingToeicScore;
+            response.IsSimulator = isSimulator;
+
+            // TOEIC Scaled scores (only meaningful for Simulator)
+            response.WritingScore = isSimulator ? writingToeicScore : null;
+            response.SpeakingScore = isSimulator ? speakingToeicScore : null;
             response.TotalScore = (double)testResult.TotalScore;
+
+            // Raw scores (for Practice display or reference)
+            response.WritingRawScore = writingRawAvg;
+            response.SpeakingRawScore = speakingRawAvg;
+
+            // Question counts
+            response.TotalQuestions = totalQuestions;
+            response.AnsweredQuestions = rawWritingScores.Count + rawSpeakingScores.Count;
+            response.SkippedQuestions = skipCount;
+
             response.PerPartFeedbacks = perPartResponses;
 
             return response;
