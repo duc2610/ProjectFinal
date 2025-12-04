@@ -1001,7 +1001,7 @@ namespace ToeicGenius.Tests.UnitTests
 				QuestionRanges = null!
 			};
 
-			var result = await service.CreateFromBankRandomAsync(dto);
+			var result = await service.CreateFromBankRandomAsync(Guid.NewGuid(), dto);
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Must provide at least one question range");
@@ -1042,7 +1042,7 @@ namespace ToeicGenius.Tests.UnitTests
 				}
 			};
 
-			var result = await service.CreateFromBankRandomAsync(dto);
+			var result = await service.CreateFromBankRandomAsync(Guid.NewGuid(), dto);
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Contain("Part 1 (S-Part 1) is not a Listening or Reading part");
@@ -1090,7 +1090,7 @@ namespace ToeicGenius.Tests.UnitTests
 				}
 			};
 
-			var result = await service.CreateFromBankRandomAsync(dto);
+			var result = await service.CreateFromBankRandomAsync(Guid.NewGuid(), dto);
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Not enough questions in bank for PartId=2. Requested: 2, Available: 1");
@@ -1135,7 +1135,7 @@ namespace ToeicGenius.Tests.UnitTests
 				}
 			};
 
-			var result = await service.CreateFromBankRandomAsync(dto);
+			var result = await service.CreateFromBankRandomAsync(Guid.NewGuid(), dto);
 
 			result.IsSuccess.Should().BeFalse();
 			result.ErrorMessage.Should().Be("Not enough question groups in bank for PartId=3. Requested: 1, Available: 0");
@@ -1222,7 +1222,7 @@ namespace ToeicGenius.Tests.UnitTests
 				}
 			};
 
-			var result = await service.CreateFromBankRandomAsync(dto);
+			var result = await service.CreateFromBankRandomAsync(Guid.NewGuid(), dto);
 
 			result.IsSuccess.Should().BeTrue();
 			result.Data.Should().Be("Created successfully (testId: 777) with 4 questions randomly selected from bank");
