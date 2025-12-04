@@ -1478,8 +1478,9 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
     // Writing và Speaking parts không có options (partId 8-15)
     const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
     
-    // Tất cả part đều hiển thị trường content; Part 1, 2, 6 là tùy chọn
-    const isContentVisible = true;
+    // Ẩn trường content cho Part 6 (Reading Part 6 - Text Completion trong group)
+    // Part 1, 2 là tùy chọn nhưng vẫn hiển thị
+    const isContentVisible = partId !== 6;
     
     // Helper để validate string
     const isValidString = (value) => {

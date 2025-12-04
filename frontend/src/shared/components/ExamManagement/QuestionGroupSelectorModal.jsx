@@ -3,7 +3,7 @@ import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert } from
 import { SearchOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import { buildQuestionListParams } from "@services/questionsService";
 import { getQuestionGroups } from "@services/questionGroupService";
-import { getPartsBySkill } from "@services/partsService";
+import { loadPartsBySkill, TEST_SKILL } from "@shared/constants/toeicStructure";
 
 const { Option } = Select;
 
@@ -43,7 +43,8 @@ export default function QuestionGroupSelectorModal({
 
     const loadParts = async () => {
         try {
-            const loadedParts = await getPartsBySkill(skill);
+            // Sử dụng loadPartsBySkill để tự động merge Listening + Reading khi skill = LR
+            const loadedParts = await loadPartsBySkill(skill);
             // Filter: chỉ hiển thị các part group (3, 4, 6, 7, 13, 14)
             const filteredParts = (loadedParts || []).filter(p => {
                 const pid = Number(p.partId || p.id);
@@ -58,26 +59,56 @@ export default function QuestionGroupSelectorModal({
     const loadQuestionGroups = async (page = 1, pageSize = 10, withFilters = false) => {
         setLoading(true);
         try {
-            const baseParams = buildQuestionListParams({ 
-                page, 
-                pageSize, 
-                skill,
-                partId: withFilters ? filterPart : undefined,
-                keyword: withFilters ? searchKeyword : undefined
-            });
-            const params = baseParams;
+            // Nếu skill = LR, cần gọi cả Listening (3) và Reading (4) rồi merge
+            let allGroups = [];
+            let totalCount = 0;
+            
+            if (skill === TEST_SKILL.LR) {
+                // Gọi cả Listening và Reading
+                const [listeningResponse, readingResponse] = await Promise.all([
+                    getQuestionGroups(buildQuestionListParams({ 
+                        page, 
+                        pageSize, 
+                        skill: 3, // Listening
+                        partId: withFilters ? filterPart : undefined,
+                        keyword: withFilters ? searchKeyword : undefined
+                    })),
+                    getQuestionGroups(buildQuestionListParams({ 
+                        page, 
+                        pageSize, 
+                        skill: 4, // Reading
+                        partId: withFilters ? filterPart : undefined,
+                        keyword: withFilters ? searchKeyword : undefined
+                    }))
+                ]);
+                
+                const listeningPayload = listeningResponse?.data || listeningResponse || {};
+                const readingPayload = readingResponse?.data || readingResponse || {};
+                
+                const listeningData = listeningPayload.dataPaginated || listeningPayload.items || listeningPayload.records || [];
+                const readingData = readingPayload.dataPaginated || readingPayload.items || readingPayload.records || [];
+                
+                allGroups = [...listeningData, ...readingData];
+                totalCount = (listeningPayload.totalCount || listeningPayload.total || 0) + 
+                            (readingPayload.totalCount || readingPayload.total || 0);
+            } else {
+                // Các skill khác: gọi bình thường
+                const baseParams = buildQuestionListParams({ 
+                    page, 
+                    pageSize, 
+                    skill,
+                    partId: withFilters ? filterPart : undefined,
+                    keyword: withFilters ? searchKeyword : undefined
+                });
+                const response = await getQuestionGroups(baseParams);
+                const payload = response?.data || response || {};
+                allGroups = payload.dataPaginated || payload.items || payload.records || [];
+                totalCount = payload.totalCount || payload.total || allGroups.length || 0;
+            }
 
-            const response = await getQuestionGroups(params);
-
-            const payload = response?.data || response || {};
-            const data = payload.dataPaginated || payload.items || payload.records || [];
-            const currentPage = payload.currentPage || page;
-            const size = payload.pageSize || pageSize;
-            const totalCount = payload.totalCount || payload.total || data.length || 0;
-
-            const mapped = (data || [])
+            const mapped = (allGroups || [])
                 .filter((g) => {
-                    // Filter: chỉ hiển thị group questions có part group (3, 4, 6, 7)
+                    // Filter: chỉ hiển thị group questions có part group (3, 4, 6, 7, 13, 14)
                     const partId = Number(g.partId || g.part?.id);
                     return isGroupPart(partId);
                 })
@@ -97,7 +128,7 @@ export default function QuestionGroupSelectorModal({
                 });
 
             setQuestionGroups(mapped);
-            setPagination({ current: currentPage, pageSize: size, total: totalCount });
+            setPagination({ current: page, pageSize, total: totalCount });
         } catch (error) {
             console.error("Error loading question groups:", error);
             message.error("Lỗi khi tải danh sách nhóm câu hỏi");
@@ -250,7 +281,11 @@ export default function QuestionGroupSelectorModal({
                 showIcon
                 style={{ marginBottom: 16 }}
                 message="Nhóm câu hỏi"
-                description="Chỉ hiển thị các nhóm câu hỏi. Chỉ hiển thị Part 3, 4 (Nghe) và Part 6, 7 (Đọc)."
+                description={skill === TEST_SKILL.LR 
+                    ? "Chỉ hiển thị các nhóm câu hỏi. Hiển thị Part 3, 4 (Nghe) và Part 6, 7 (Đọc)."
+                    : skill === TEST_SKILL.SPEAKING
+                    ? "Chỉ hiển thị các nhóm câu hỏi. Hiển thị Part 13, 14 (Nói)."
+                    : "Chỉ hiển thị các nhóm câu hỏi."}
             />
             
             <Space direction="vertical" style={{ width: "100%", marginBottom: 16 }} size="middle">

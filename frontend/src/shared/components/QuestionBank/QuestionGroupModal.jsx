@@ -477,9 +477,14 @@ export default function QuestionGroupModal({
             );
         }
       }
-      const questionContentTrimmed = String(q.content || "").trim();
-      if (!questionContentTrimmed) 
-        throw new Error(`Câu ${i + 1}: nội dung không được để trống hoặc chỉ có khoảng trắng`);
+      // Part 6 (Reading) không cần nội dung câu hỏi
+      const partId = toNum(q.partId ?? selectedPart);
+      const isPart6 = partId === 6;
+      if (!isPart6) {
+        const questionContentTrimmed = String(q.content || "").trim();
+        if (!questionContentTrimmed) 
+          throw new Error(`Câu ${i + 1}: nội dung không được để trống hoặc chỉ có khoảng trắng`);
+      }
       if (!q.questionTypeId)
         throw new Error(`Câu ${i + 1}: chọn Question Type`);
     }
@@ -496,6 +501,29 @@ export default function QuestionGroupModal({
           "Part này không phải dạng Group của TOEIC (chỉ Part 3, 4, 6, 7)."
         );
         return;
+      }
+
+      // Validate đáp án đúng trước khi submit - hiển thị message rõ ràng
+      if (!isSpeakingSkill) {
+        const questions = v.questions || [];
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          const opts = q?.answerOptions || [];
+          const correctCount = opts.filter((o) => o?.isCorrect === true).length;
+          if (correctCount === 0) {
+            message.error(`Câu ${i + 1}: Vui lòng chọn đáp án đúng!`);
+            // Scroll đến câu hỏi có lỗi
+            const questionFieldName = ['questions', i];
+            form.scrollToField(questionFieldName, { behavior: 'smooth', block: 'center' });
+            return;
+          }
+          if (correctCount > 1) {
+            message.error(`Câu ${i + 1}: Chỉ được chọn 1 đáp án đúng!`);
+            const questionFieldName = ['questions', i];
+            form.scrollToField(questionFieldName, { behavior: 'smooth', block: 'center' });
+            return;
+          }
+        }
       }
 
       const audioFile = v.audio?.[0]?.originFileObj;
@@ -538,6 +566,37 @@ export default function QuestionGroupModal({
       onSaved?.();
       onClose?.();
     } catch (e) {
+      // Xử lý lỗi validation từ form.validateFields (bao gồm validateQuestions)
+      if (e?.errorFields && Array.isArray(e.errorFields)) {
+        // Tìm lỗi về đáp án đúng
+        const correctAnswerError = e.errorFields.find(err => 
+          err.errors?.some(msg => 
+            typeof msg === 'string' && msg.includes('đáp án đúng')
+          )
+        );
+        
+        if (correctAnswerError) {
+          const errorMsg = correctAnswerError.errors?.find(msg => 
+            typeof msg === 'string' && msg.includes('đáp án đúng')
+          );
+          if (errorMsg) {
+            message.error(errorMsg);
+          }
+        } else {
+          // Hiển thị lỗi validation đầu tiên
+          const firstError = e.errorFields[0];
+          if (firstError?.errors?.[0]) {
+            message.error(firstError.errors[0]);
+          }
+        }
+        
+        // Scroll đến field có lỗi
+        const first = e.errorFields?.[0]?.name;
+        if (first) form.scrollToField(first, { block: "center" });
+        return;
+      }
+      
+      // Xử lý lỗi từ API
       const apiMessage =
         e?.response?.data?.message || e?.response?.data?.data || e?.message;
       const normalizedError = (apiMessage || "").toLowerCase();
@@ -550,6 +609,8 @@ export default function QuestionGroupModal({
         message.error("Bạn không có quyền chỉnh sửa nhóm câu hỏi này. Chỉ người tạo nhóm câu hỏi mới có thể chỉnh sửa.");
       } else if (apiMessage) {
         message.error(String(apiMessage));
+      } else if (e?.message) {
+        message.error(e.message);
       }
       
       const first = e?.errorFields?.[0]?.name;
@@ -1032,49 +1093,52 @@ export default function QuestionGroupModal({
                     </Col>
                   </Row>
 
-                  <Form.Item
-                    {...restField}
-                    name={[name, "content"]}
-                    label="Nội dung câu hỏi"
-                    validateTrigger={['onBlur']}
-                    rules={[
-                      {
-                        validator: (_, value) => {
-                          if (!value || !String(value).trim()) {
-                            return Promise.reject(new Error("Vui lòng nhập nội dung câu hỏi"));
-                          }
-                          return Promise.resolve();
+                  {/* Ẩn trường "Nội dung câu hỏi" khi Part = 6 (Reading Part 6) */}
+                  {Number(selectedPart) !== 6 && (
+                    <Form.Item
+                      {...restField}
+                      name={[name, "content"]}
+                      label="Nội dung câu hỏi"
+                      validateTrigger={['onBlur']}
+                      rules={[
+                        {
+                          validator: (_, value) => {
+                            if (!value || !String(value).trim()) {
+                              return Promise.reject(new Error("Vui lòng nhập nội dung câu hỏi"));
+                            }
+                            return Promise.resolve();
+                          },
                         },
-                      },
-                    ]}
-                  >
-                    <Input.TextArea 
-                      rows={3}
-                      onChange={() => {
-                        // Xóa lỗi khi đang sửa (nếu có)
-                        const fieldName = ['questions', name, 'content'];
-                        const errors = form.getFieldsError(fieldName);
-                        if (errors[0]?.errors?.length > 0) {
-                          form.setFields([{ name: fieldName, errors: [] }]);
-                        }
-                      }}
-                      onFocus={() => {
-                        // Validate các trường trước đó khi focus vào trường này
-                        form.validateFields(['skill', 'partId', 'passageContent']).catch(() => {});
-                        // Validate audio nếu bắt buộc
-                        if (isAudioRequired) {
-                          form.validateFields(['audio']).catch(() => {});
-                        }
-                        // Validate image nếu bắt buộc
-                        if (isImageRequired) {
-                          form.validateFields(['image']).catch(() => {});
-                        }
-                        // Validate questionTypeId của câu hỏi này
-                        const fieldName = ['questions', name, 'questionTypeId'];
-                        form.validateFields([fieldName]).catch(() => {});
-                      }}
-                    />
-                  </Form.Item>
+                      ]}
+                    >
+                      <Input.TextArea 
+                        rows={3}
+                        onChange={() => {
+                          // Xóa lỗi khi đang sửa (nếu có)
+                          const fieldName = ['questions', name, 'content'];
+                          const errors = form.getFieldsError(fieldName);
+                          if (errors[0]?.errors?.length > 0) {
+                            form.setFields([{ name: fieldName, errors: [] }]);
+                          }
+                        }}
+                        onFocus={() => {
+                          // Validate các trường trước đó khi focus vào trường này
+                          form.validateFields(['skill', 'partId', 'passageContent']).catch(() => {});
+                          // Validate audio nếu bắt buộc
+                          if (isAudioRequired) {
+                            form.validateFields(['audio']).catch(() => {});
+                          }
+                          // Validate image nếu bắt buộc
+                          if (isImageRequired) {
+                            form.validateFields(['image']).catch(() => {});
+                          }
+                          // Validate questionTypeId của câu hỏi này
+                          const fieldName = ['questions', name, 'questionTypeId'];
+                          form.validateFields([fieldName]).catch(() => {});
+                        }}
+                      />
+                    </Form.Item>
+                  )}
 
               {!isSpeakingSkill && (
               <Form.List name={[name, "answerOptions"]}>
