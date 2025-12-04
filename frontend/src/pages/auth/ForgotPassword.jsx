@@ -31,7 +31,7 @@ export default function ForgotPassword() {
             }
         }
         
-        return "Yêu cầu thất bại";
+        return "Email không tồn tại trong hệ thống!";
     };
 
     const onFinish = async (values) => {

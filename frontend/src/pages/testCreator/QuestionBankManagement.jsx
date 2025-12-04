@@ -466,25 +466,6 @@ export default function QuanLyNganHangCauHoi() {
           ]}
         />
 
-        {tabKey === "single" && (
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-            message="Câu lẻ"
-            description="Tab này hiển thị các câu hỏi đơn. Part 3, 4 (Nghe) và Part 6, 7 (Đọc) chỉ có thể tạo dưới dạng nhóm câu hỏi."
-          />
-        )}
-
-        {tabKey === "group" && (
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-            message="Nhóm câu"
-            description="Tab này hiển thị các nhóm câu hỏi. Chỉ hiển thị Part 3, 4 (Nghe), Part 6, 7 (Đọc) và Part 13, 14 (Nói)."
-          />
-        )}
 
         <Table
           rowKey={(r) => `${r.id}-${r.isGroupQuestion ? "G" : "S"}`}
