@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert, Button, Drawer, Divider } from "antd";
 import { SearchOutlined, EyeOutlined } from "@ant-design/icons";
 import { getQuestions, buildQuestionListParams, getQuestionById } from "@services/questionsService";
@@ -26,6 +26,7 @@ export default function QuestionBankSelectorModal({
         pageSize: 10,
         total: 0,
     });
+    const selectedIdsSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
     
     // Filters
     const [searchKeyword, setSearchKeyword] = useState("");
@@ -75,6 +76,10 @@ export default function QuestionBankSelectorModal({
                 // Filter: loại bỏ single questions có part group (3, 4, 6, 7)
                 const partId = Number(q.partId || q.part?.id);
                 return !isGroupPart(partId);
+            })
+            .filter((q) => {
+                const id = q.questionId ?? q.id;
+                return !selectedIdsSet.has(id);
             })
             .map((q) => {
                 const rawStatus = q.status;
