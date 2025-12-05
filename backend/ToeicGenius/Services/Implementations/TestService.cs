@@ -800,6 +800,8 @@ namespace ToeicGenius.Services.Implementations
 					PartId = q.PartId,
 					OrderInTest = order++,
 					SourceType = QuestionSourceType.FromBank,
+					IsQuestionGroup = false,
+					SourceQuestionId = q.QuestionId,
 					SnapshotJson = snapshot,
 					CreatedAt = Now
 				});
@@ -818,6 +820,8 @@ namespace ToeicGenius.Services.Implementations
 					PartId = g.PartId,
 					OrderInTest = order++,
 					SourceType = QuestionSourceType.FromBank,
+					IsQuestionGroup = true,
+					SourceQuestionGroupId = g.QuestionGroupId,
 					SnapshotJson = snapshot,
 					CreatedAt = Now
 				});

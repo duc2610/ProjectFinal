@@ -171,7 +171,8 @@ namespace ToeicGenius.Repositories.Implementations
 					QuestionCount = 1,
 					Content = q.Content,
 					Status = q.Status,
-					CreatedAt = q.CreatedAt
+					CreatedAt = q.CreatedAt,
+					QuestionTypeName = q.QuestionType != null ? q.QuestionType.TypeName : null
 				})
 				.ToListAsync();
 
