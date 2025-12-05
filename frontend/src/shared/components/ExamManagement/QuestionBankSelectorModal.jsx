@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
-import { getQuestions, buildQuestionListParams } from "@services/questionsService";
-import { getPartsBySkill } from "@services/partsService";
+import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert, Button, Drawer, Divider } from "antd";
+import { SearchOutlined, EyeOutlined } from "@ant-design/icons";
+import { getQuestions, buildQuestionListParams, getQuestionById } from "@services/questionsService";
+import { loadPartsBySkill, TEST_SKILL } from "@shared/constants/toeicStructure";
 
 const { Option } = Select;
 
@@ -31,6 +31,12 @@ export default function QuestionBankSelectorModal({
     const [searchKeyword, setSearchKeyword] = useState("");
     const [filterPart, setFilterPart] = useState(null);
     const searchDebounceRef = useRef(null);
+    
+    // Detail view
+    const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+    const [viewingQuestionId, setViewingQuestionId] = useState(null);
+    const [questionDetail, setQuestionDetail] = useState(null);
+    const [loadingDetail, setLoadingDetail] = useState(false);
 
     useEffect(() => {
         if (open && skill) {
@@ -98,7 +104,7 @@ export default function QuestionBankSelectorModal({
                     return {
                         id: q.questionId ?? q.id,
                         partName: q.partName ?? q.part ?? q.partId,
-                        questionTypeName: q.questionTypeName ?? q.typeName ?? q.name,
+                        questionTypeName: q.questionTypeName ?? q.QuestionTypeName ?? q.typeName ?? q.name ?? "",
                         content: q.content ?? "",
                         status: statusNum,
                         partId: partId,
@@ -158,6 +164,39 @@ export default function QuestionBankSelectorModal({
         onClose();
     };
 
+    const handleViewDetail = async (questionId) => {
+        setViewingQuestionId(questionId);
+        setDetailDrawerOpen(true);
+        setLoadingDetail(true);
+        
+        try {
+            const question = await getQuestionById(questionId);
+            const q = question?.data || question || {};
+            const options = (q.options || q.Options || []).map(opt => ({
+                label: opt.label || opt.Label || "",
+                content: opt.content || opt.Content || "",
+                isCorrect: opt.isCorrect || opt.IsCorrect || false,
+            }));
+            
+            setQuestionDetail({
+                id: q.questionId || q.id,
+                content: q.content || q.Content || "",
+                partName: q.partName || q.PartName || q.part?.name || "",
+                questionTypeName: q.questionTypeName || q.QuestionTypeName || "",
+                options: options,
+                audioUrl: q.audioUrl || q.AudioUrl || "",
+                imageUrl: q.imageUrl || q.ImageUrl || "",
+                explanation: q.explanation || q.Explanation || q.solution || q.Solution || "",
+            });
+        } catch (error) {
+            console.error(`Error loading question detail ${questionId}:`, error);
+            message.error("Không tải được chi tiết câu hỏi");
+            setQuestionDetail(null);
+        } finally {
+            setLoadingDetail(false);
+        }
+    };
+
     const rowSelection = {
         selectedRowKeys,
         onChange: (keys) => {
@@ -184,12 +223,33 @@ export default function QuestionBankSelectorModal({
             title: "Loại",
             dataIndex: "questionTypeName",
             key: "questionTypeName",
-            width: 150,
+            width: 350,
+            ellipsis: { showTitle: false },
+            render: (text) => {
+                if (!text || !text.trim()) {
+                    return <span style={{ color: "#999", fontStyle: "italic" }}>-</span>;
+                }
+                return (
+                    <Tooltip title={text}>
+                        <div style={{ 
+                            maxWidth: "100%",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap"
+                        }}>
+                            <Tag color="purple" style={{ margin: 0 }}>
+                                {text}
+                            </Tag>
+                        </div>
+                    </Tooltip>
+                );
+            }
         },
         {
             title: "Nội dung",
             dataIndex: "content",
             key: "content",
+            width: 200,
             ellipsis: { showTitle: false },
             render: (text, record) => {
                 if (text && text.trim()) {
@@ -239,15 +299,32 @@ export default function QuestionBankSelectorModal({
                 </Tag>
             )
         },
+        {
+            title: "Hành động",
+            key: "action",
+            width: 100,
+            align: "center",
+            render: (_, record) => (
+                <Tooltip title="Xem chi tiết">
+                    <Button
+                        type="text"
+                        icon={<EyeOutlined />}
+                        onClick={() => handleViewDetail(record.id)}
+                        style={{ color: '#1890ff' }}
+                    />
+                </Tooltip>
+            )
+        },
     ];
 
     return (
+        <>
         <Modal
             title={`Chọn câu hỏi đơn - ${skill === 1 ? "Speaking" : skill === 2 ? "Writing" : "L&R"}`}
             open={open}
             onCancel={onClose}
             onOk={handleOk}
-            width={1000}
+            width={1400}
             okText={`Chọn (${selectedRowKeys.length})`}
             cancelText="Hủy"
         >
@@ -312,9 +389,141 @@ export default function QuestionBankSelectorModal({
                     pageSizeOptions: ['10', '20', '50'],
                 }}
                 onChange={handleTableChange}
-                scroll={{ y: 400 }}
+                scroll={{ y: 400, x: 1200 }}
             />
         </Modal>
+
+        <Drawer
+            title={`Chi tiết câu hỏi #${viewingQuestionId || ''}`}
+            placement="right"
+            width={600}
+            onClose={() => {
+                setDetailDrawerOpen(false);
+                setViewingQuestionId(null);
+                setQuestionDetail(null);
+            }}
+            open={detailDrawerOpen}
+            loading={loadingDetail}
+        >
+            {questionDetail && (
+                <div>
+                    <div style={{ marginBottom: 16 }}>
+                        <Space>
+                            <Tag color="blue">ID: {questionDetail.id}</Tag>
+                            {questionDetail.partName && <Tag color="green">{questionDetail.partName}</Tag>}
+                            {questionDetail.questionTypeName && <Tag color="purple">{questionDetail.questionTypeName}</Tag>}
+                        </Space>
+                    </div>
+
+                    {questionDetail.content && questionDetail.content.trim() && (
+                        <>
+                            <Divider orientation="left">Nội dung câu hỏi</Divider>
+                            <div style={{ 
+                                padding: 12, 
+                                background: "#f5f5f5", 
+                                borderRadius: 4,
+                                marginBottom: 16,
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word"
+                            }}>
+                                {questionDetail.content}
+                            </div>
+                        </>
+                    )}
+
+                    {questionDetail.imageUrl && (
+                        <>
+                            <Divider orientation="left">Hình ảnh</Divider>
+                            <div style={{ marginBottom: 16 }}>
+                                <img 
+                                    src={questionDetail.imageUrl} 
+                                    alt="Question" 
+                                    style={{ 
+                                        maxWidth: "100%", 
+                                        maxHeight: 400, 
+                                        borderRadius: 4,
+                                        border: "1px solid #e8e8e8",
+                                        objectFit: "contain"
+                                    }} 
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {questionDetail.audioUrl && (
+                        <>
+                            <Divider orientation="left">Audio</Divider>
+                            <div style={{ marginBottom: 16 }}>
+                                <audio
+                                    controls
+                                    src={questionDetail.audioUrl}
+                                    style={{ width: "100%" }}
+                                >
+                                    Trình duyệt không hỗ trợ phát audio.
+                                </audio>
+                            </div>
+                        </>
+                    )}
+
+                    {questionDetail.options && questionDetail.options.length > 0 && (
+                        <>
+                            <Divider orientation="left">Đáp án ({questionDetail.options.length})</Divider>
+                            <div style={{ marginBottom: 16 }}>
+                                {questionDetail.options.map((opt, idx) => (
+                                    <div 
+                                        key={idx}
+                                        style={{ 
+                                            marginBottom: 8,
+                                            padding: 12,
+                                            background: opt.isCorrect ? "#f6ffed" : "#fafafa",
+                                            border: opt.isCorrect ? "1px solid #b7eb8f" : "1px solid #e8e8e8",
+                                            borderRadius: 4,
+                                            display: "flex",
+                                            alignItems: "flex-start",
+                                            gap: 8
+                                        }}
+                                    >
+                                        <Tag color={opt.isCorrect ? "success" : "default"} style={{ margin: 0, minWidth: 30, textAlign: "center" }}>
+                                            {opt.label}
+                                        </Tag>
+                                        <span style={{ flex: 1, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                            {opt.content || "(Không có nội dung)"}
+                                        </span>
+                                        {opt.isCorrect && (
+                                            <Tag color="success" style={{ margin: 0 }}>Đúng</Tag>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
+                    {questionDetail.explanation && questionDetail.explanation.trim() && (
+                        <>
+                            <Divider orientation="left">Giải thích</Divider>
+                            <div style={{ 
+                                padding: 12, 
+                                background: "#f5f5f5", 
+                                borderRadius: 4,
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word"
+                            }}>
+                                {questionDetail.explanation}
+                            </div>
+                        </>
+                    )}
+
+                    {!questionDetail.content && !questionDetail.imageUrl && !questionDetail.audioUrl && 
+                     (!questionDetail.options || questionDetail.options.length === 0) && 
+                     !questionDetail.explanation && (
+                        <div style={{ textAlign: "center", padding: 40, color: "#999" }}>
+                            Không có thông tin chi tiết
+                        </div>
+                    )}
+                </div>
+            )}
+        </Drawer>
+        </>
     );
 }
 

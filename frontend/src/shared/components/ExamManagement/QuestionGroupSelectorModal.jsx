@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert } from "antd";
-import { SearchOutlined, InfoCircleOutlined } from "@ant-design/icons";
+import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert, Button, Drawer, Divider } from "antd";
+import { SearchOutlined, InfoCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { buildQuestionListParams } from "@services/questionsService";
-import { getQuestionGroups } from "@services/questionGroupService";
+import { getQuestionGroups, getQuestionGroupById } from "@services/questionGroupService";
 import { loadPartsBySkill, TEST_SKILL } from "@shared/constants/toeicStructure";
 
 const { Option } = Select;
@@ -20,6 +20,7 @@ export default function QuestionGroupSelectorModal({
 }) {
     const [loading, setLoading] = useState(false);
     const [questionGroups, setQuestionGroups] = useState([]);
+    const [allFilteredGroups, setAllFilteredGroups] = useState([]); // Lưu tất cả data đã filter để paginate
     const [parts, setParts] = useState([]);
     const [selectedRowKeys, setSelectedRowKeys] = useState([]);
     const [pagination, setPagination] = useState({
@@ -32,6 +33,12 @@ export default function QuestionGroupSelectorModal({
     const [searchKeyword, setSearchKeyword] = useState("");
     const [filterPart, setFilterPart] = useState(null);
     const searchDebounceRef = useRef(null);
+    
+    // Detail view
+    const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+    const [viewingGroupId, setViewingGroupId] = useState(null);
+    const [groupDetail, setGroupDetail] = useState(null);
+    const [loadingDetail, setLoadingDetail] = useState(false);
 
     useEffect(() => {
         if (open && skill) {
@@ -60,22 +67,23 @@ export default function QuestionGroupSelectorModal({
         setLoading(true);
         try {
             // Nếu skill = LR, cần gọi cả Listening (3) và Reading (4) rồi merge
+            // Vì cần filter theo part group ở frontend, nên load tất cả data và paginate ở frontend
             let allGroups = [];
             let totalCount = 0;
             
             if (skill === TEST_SKILL.LR) {
-                // Gọi cả Listening và Reading
+                // Load tất cả data (với pageSize lớn) để có thể filter và paginate ở frontend
                 const [listeningResponse, readingResponse] = await Promise.all([
                     getQuestionGroups(buildQuestionListParams({ 
-                        page, 
-                        pageSize, 
+                        page: 1, 
+                        pageSize: 1000, // Load nhiều để có đủ data filter
                         skill: 3, // Listening
                         partId: withFilters ? filterPart : undefined,
                         keyword: withFilters ? searchKeyword : undefined
                     })),
                     getQuestionGroups(buildQuestionListParams({ 
-                        page, 
-                        pageSize, 
+                        page: 1, 
+                        pageSize: 1000, // Load nhiều để có đủ data filter
                         skill: 4, // Reading
                         partId: withFilters ? filterPart : undefined,
                         keyword: withFilters ? searchKeyword : undefined
@@ -89,8 +97,6 @@ export default function QuestionGroupSelectorModal({
                 const readingData = readingPayload.dataPaginated || readingPayload.items || readingPayload.records || [];
                 
                 allGroups = [...listeningData, ...readingData];
-                totalCount = (listeningPayload.totalCount || listeningPayload.total || 0) + 
-                            (readingPayload.totalCount || readingPayload.total || 0);
             } else {
                 // Các skill khác: gọi bình thường
                 const baseParams = buildQuestionListParams({ 
@@ -106,6 +112,7 @@ export default function QuestionGroupSelectorModal({
                 totalCount = payload.totalCount || payload.total || allGroups.length || 0;
             }
 
+            // Filter và map data
             const mapped = (allGroups || [])
                 .filter((g) => {
                     // Filter: chỉ hiển thị group questions có part group (3, 4, 6, 7, 13, 14)
@@ -122,12 +129,26 @@ export default function QuestionGroupSelectorModal({
                         passage: g.passageContent ?? g.passage ?? g.content ?? "",
                         imageUrl: g.imageUrl,
                         questionCount: g.questionCount ?? (Array.isArray(g.questions) ? g.questions.length : undefined),
+                        questionTypeName: g.questionTypeName || g.questionType?.typeName || g.questionType?.name || "",
                         partId: partId,
                         isPassageOptional: isPassageOptional,
                     };
                 });
 
-            setQuestionGroups(mapped);
+            // Nếu skill = LR, paginate ở frontend sau khi filter
+            if (skill === TEST_SKILL.LR) {
+                // Lưu tất cả data đã filter
+                setAllFilteredGroups(mapped);
+                totalCount = mapped.length;
+                const startIndex = (page - 1) * pageSize;
+                const endIndex = startIndex + pageSize;
+                const pagedData = mapped.slice(startIndex, endIndex);
+                setQuestionGroups(pagedData);
+            } else {
+                setAllFilteredGroups([]); // Không cần lưu cho skill khác
+                setQuestionGroups(mapped);
+            }
+            
             setPagination({ current: page, pageSize, total: totalCount });
         } catch (error) {
             console.error("Error loading question groups:", error);
@@ -157,8 +178,22 @@ export default function QuestionGroupSelectorModal({
     }, [searchKeyword, filterPart, open, skill]);
 
     const handleTableChange = (newPagination) => {
-        const hasFilters = filterPart !== null || searchKeyword !== "";
-        loadQuestionGroups(newPagination.current, newPagination.pageSize, hasFilters);
+        // Nếu skill = LR và đã có data trong allFilteredGroups, chỉ cần paginate ở frontend
+        if (skill === TEST_SKILL.LR && allFilteredGroups.length > 0) {
+            const startIndex = (newPagination.current - 1) * newPagination.pageSize;
+            const endIndex = startIndex + newPagination.pageSize;
+            const pagedData = allFilteredGroups.slice(startIndex, endIndex);
+            setQuestionGroups(pagedData);
+            setPagination({ 
+                current: newPagination.current, 
+                pageSize: newPagination.pageSize, 
+                total: allFilteredGroups.length 
+            });
+        } else {
+            // Các trường hợp khác: reload từ API
+            const hasFilters = filterPart !== null || searchKeyword !== "";
+            loadQuestionGroups(newPagination.current, newPagination.pageSize, hasFilters);
+        }
     };
 
     const handlePartFilterChange = (partId) => {
@@ -173,6 +208,43 @@ export default function QuestionGroupSelectorModal({
         }
         onSelect(selectedRowKeys);
         onClose();
+    };
+
+    const handleViewDetail = async (groupId) => {
+        setViewingGroupId(groupId);
+        setDetailDrawerOpen(true);
+        setLoadingDetail(true);
+        
+        try {
+            const group = await getQuestionGroupById(groupId);
+            const g = group?.data || group || {};
+            const questions = (g.questions || g.Questions || []).map(q => ({
+                content: q.content || q.Content || "",
+                imageUrl: q.imageUrl || q.ImageUrl || "",
+                explanation: q.explanation || q.Explanation || "",
+                audioUrl: q.audioUrl || q.AudioUrl || "",
+                options: (q.options || q.Options || []).map(opt => ({
+                    label: opt.label || opt.Label || "",
+                    content: opt.content || opt.Content || "",
+                    isCorrect: opt.isCorrect || opt.IsCorrect || false,
+                })),
+            }));
+            
+            setGroupDetail({
+                id: g.questionGroupId || g.groupId || g.id,
+                passage: g.passageContent || g.passage || g.PassageContent || g.Passage || "",
+                partName: g.partName || g.PartName || g.part?.name || "",
+                imageUrl: g.imageUrl || g.ImageUrl || "",
+                audioUrl: g.audioUrl || g.AudioUrl || "",
+                questions: questions,
+            });
+        } catch (error) {
+            console.error(`Error loading group detail ${groupId}:`, error);
+            message.error("Không tải được chi tiết nhóm câu hỏi");
+            setGroupDetail(null);
+        } finally {
+            setLoadingDetail(false);
+        }
     };
 
     const rowSelection = {
@@ -207,6 +279,32 @@ export default function QuestionGroupSelectorModal({
             render: (count) => (
                 <Tag color="purple">{count} câu</Tag>
             )
+        },
+        {
+            title: "Loại",
+            dataIndex: "questionTypeName",
+            key: "questionTypeName",
+            width: 350,
+            ellipsis: { showTitle: false },
+            render: (text) => {
+                if (!text || !text.trim()) {
+                    return <span style={{ color: "#999", fontStyle: "italic" }}>-</span>;
+                }
+                return (
+                    <Tooltip title={text}>
+                        <div style={{ 
+                            maxWidth: "100%",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap"
+                        }}>
+                            <Tag color="purple" style={{ margin: 0 }}>
+                                {text}
+                            </Tag>
+                        </div>
+                    </Tooltip>
+                );
+            }
         },
         {
             title: "Đoạn văn / Passage",
@@ -264,15 +362,32 @@ export default function QuestionGroupSelectorModal({
                 }
             }
         },
+        {
+            title: "Hành động",
+            key: "action",
+            width: 100,
+            align: "center",
+            render: (_, record) => (
+                <Tooltip title="Xem chi tiết">
+                    <Button
+                        type="text"
+                        icon={<EyeOutlined />}
+                        onClick={() => handleViewDetail(record.id)}
+                        style={{ color: '#1890ff' }}
+                    />
+                </Tooltip>
+            )
+        },
     ];
 
     return (
+        <>
         <Modal
             title={`Chọn nhóm câu hỏi - ${skill === 1 ? "Speaking" : skill === 2 ? "Writing" : "L&R"}`}
             open={open}
             onCancel={onClose}
             onOk={handleOk}
-            width={1000}
+            width={1400}
             okText={`Chọn (${selectedRowKeys.length})`}
             cancelText="Hủy"
         >
@@ -341,9 +456,202 @@ export default function QuestionGroupSelectorModal({
                     pageSizeOptions: ['10', '20', '50'],
                 }}
                 onChange={handleTableChange}
-                scroll={{ y: 400 }}
+                scroll={{ y: 400, x: 1200 }}
             />
         </Modal>
+
+        <Drawer
+            title={`Chi tiết nhóm câu hỏi #${viewingGroupId || ''}`}
+            placement="right"
+            width={700}
+            onClose={() => {
+                setDetailDrawerOpen(false);
+                setViewingGroupId(null);
+                setGroupDetail(null);
+            }}
+            open={detailDrawerOpen}
+            loading={loadingDetail}
+        >
+            {groupDetail && (
+                <div>
+                    <div style={{ marginBottom: 16 }}>
+                        <Space>
+                            <Tag color="green">Group ID: {groupDetail.id}</Tag>
+                            {groupDetail.partName && <Tag color="blue">{groupDetail.partName}</Tag>}
+                        </Space>
+                    </div>
+
+                    {groupDetail.passage && groupDetail.passage.trim() && (
+                        <>
+                            <Divider orientation="left">Đoạn văn / Passage</Divider>
+                            <div style={{ 
+                                padding: 12, 
+                                background: "#f5f5f5", 
+                                borderRadius: 4,
+                                marginBottom: 16,
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word"
+                            }}>
+                                {groupDetail.passage}
+                            </div>
+                        </>
+                    )}
+
+                    {groupDetail.audioUrl && (
+                        <>
+                            <Divider orientation="left">Audio</Divider>
+                            <div style={{ marginBottom: 16 }}>
+                                <audio
+                                    controls
+                                    src={groupDetail.audioUrl}
+                                    style={{ width: "100%" }}
+                                >
+                                    Trình duyệt không hỗ trợ phát audio.
+                                </audio>
+                            </div>
+                        </>
+                    )}
+
+                    {groupDetail.imageUrl && (
+                        <>
+                            <Divider orientation="left">Hình ảnh</Divider>
+                            <div style={{ marginBottom: 16 }}>
+                                <img 
+                                    src={groupDetail.imageUrl} 
+                                    alt="Group" 
+                                    style={{ 
+                                        maxWidth: "100%", 
+                                        maxHeight: 400, 
+                                        borderRadius: 4,
+                                        border: "1px solid #e8e8e8",
+                                        objectFit: "contain"
+                                    }} 
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {groupDetail.questions && groupDetail.questions.length > 0 && (
+                        <>
+                            <Divider orientation="left">Câu hỏi ({groupDetail.questions.length})</Divider>
+                            <div style={{ marginBottom: 16 }}>
+                                {groupDetail.questions.map((q, qIdx) => (
+                                    <div 
+                                        key={qIdx}
+                                        style={{ 
+                                            marginBottom: 24,
+                                            padding: 16,
+                                            background: "#fafafa",
+                                            border: "1px solid #e8e8e8",
+                                            borderRadius: 4
+                                        }}
+                                    >
+                                        <div style={{ marginBottom: 12, fontWeight: "bold", color: "#1890ff" }}>
+                                            Câu hỏi #{qIdx + 1}
+                                        </div>
+
+                                        {q.content && q.content.trim() && (
+                                            <div style={{ 
+                                                marginBottom: 12,
+                                                padding: 8,
+                                                background: "#fff",
+                                                borderRadius: 4,
+                                                whiteSpace: "pre-wrap",
+                                                wordBreak: "break-word"
+                                            }}>
+                                                {q.content}
+                                            </div>
+                                        )}
+
+                                        {q.audioUrl && (
+                                            <div style={{ marginBottom: 12 }}>
+                                                <audio
+                                                    controls
+                                                    src={q.audioUrl}
+                                                    style={{ width: "100%" }}
+                                                >
+                                                    Trình duyệt không hỗ trợ phát audio.
+                                                </audio>
+                                            </div>
+                                        )}
+
+                                        {q.imageUrl && (
+                                            <div style={{ marginBottom: 12 }}>
+                                                <img 
+                                                    src={q.imageUrl} 
+                                                    alt={`Question ${qIdx + 1}`}
+                                                    style={{ 
+                                                        maxWidth: "100%", 
+                                                        maxHeight: 300, 
+                                                        borderRadius: 4,
+                                                        border: "1px solid #e8e8e8",
+                                                        objectFit: "contain"
+                                                    }} 
+                                                />
+                                            </div>
+                                        )}
+
+                                        {q.options && q.options.length > 0 && (
+                                            <div style={{ marginTop: 12 }}>
+                                                <div style={{ marginBottom: 8, fontSize: 13, fontWeight: 500 }}>Đáp án:</div>
+                                                {q.options.map((opt, optIdx) => (
+                                                    <div 
+                                                        key={optIdx}
+                                                        style={{ 
+                                                            marginBottom: 6,
+                                                            padding: 8,
+                                                            background: opt.isCorrect ? "#f6ffed" : "#fff",
+                                                            border: opt.isCorrect ? "1px solid #b7eb8f" : "1px solid #e8e8e8",
+                                                            borderRadius: 4,
+                                                            display: "flex",
+                                                            alignItems: "flex-start",
+                                                            gap: 8
+                                                        }}
+                                                    >
+                                                        <Tag color={opt.isCorrect ? "success" : "default"} style={{ margin: 0, minWidth: 30, textAlign: "center" }}>
+                                                            {opt.label}
+                                                        </Tag>
+                                                        <span style={{ flex: 1, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                                            {opt.content || "(Không có nội dung)"}
+                                                        </span>
+                                                        {opt.isCorrect && (
+                                                            <Tag color="success" style={{ margin: 0 }}>Đúng</Tag>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {q.explanation && q.explanation.trim() && (
+                                            <div style={{ 
+                                                marginTop: 12,
+                                                padding: 8,
+                                                background: "#fff",
+                                                borderRadius: 4,
+                                                fontSize: 12,
+                                                color: "#666",
+                                                whiteSpace: "pre-wrap",
+                                                wordBreak: "break-word"
+                                            }}>
+                                                <strong>Giải thích:</strong> {q.explanation}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
+                    {!groupDetail.passage && !groupDetail.audioUrl && !groupDetail.imageUrl && 
+                     (!groupDetail.questions || groupDetail.questions.length === 0) && (
+                        <div style={{ textAlign: "center", padding: 40, color: "#999" }}>
+                            Không có thông tin chi tiết
+                        </div>
+                    )}
+                </div>
+            )}
+        </Drawer>
+        </>
     );
 }
 

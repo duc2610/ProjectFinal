@@ -105,6 +105,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         passage: g.passageContent || g.passage || g.PassageContent || g.Passage || "",
                         partName: g.partName || g.PartName || g.part?.name || "",
                         imageUrl: g.imageUrl || g.ImageUrl || "",
+                        audioUrl: g.audioUrl || g.AudioUrl || "",
                         questions: questions,
                     };
                 } catch (error) {
@@ -910,8 +911,14 @@ function QuestionSelector({
                             const passage = detail.passage || "";
                             const partName = detail.partName || "";
                             const imageUrl = detail.imageUrl || "";
+                            const audioUrl = detail.audioUrl || "";
                             const questions = detail.questions || [];
                             const isViewing = viewingGroupId === gid;
+                            
+                            // Kiểm tra partId từ partName để xác định có phải part 3, 4 không (không có passage)
+                            const partIdMatch = partName?.match(/Part\s*(\d+)/i);
+                            const partId = partIdMatch ? Number(partIdMatch[1]) : null;
+                            const isPassageOptional = partId && [3, 4].includes(partId);
                             
                             return (
                             <div 
@@ -931,7 +938,7 @@ function QuestionSelector({
                                         </Space>
                                         <div style={{ marginTop: 8 }}>
                                             <strong>Nhóm câu hỏi #{index + 1}</strong>
-                                            {passage ? (
+                                            {passage && passage.trim() ? (
                                                 <div style={{ 
                                                     marginTop: 8, 
                                                     padding: 12, 
@@ -949,11 +956,72 @@ function QuestionSelector({
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div style={{ color: "#999", fontStyle: "italic", marginTop: 4 }}>
-                                                    Đang tải nội dung...
+                                                <div style={{ marginTop: 8 }}>
+                                                    {(() => {
+                                                        // Nếu đã load xong (có partName) nhưng không có passage
+                                                        if (partName) {
+                                                            if (isPassageOptional) {
+                                                                // Part 3, 4 không có passage là bình thường
+                                                                const info = [];
+                                                                if (audioUrl) {
+                                                                    info.push(<Tag key="audio" color="green" style={{ fontSize: 11 }}>🔊 Audio</Tag>);
+                                                                }
+                                                                if (imageUrl) {
+                                                                    info.push(<Tag key="image" color="orange" style={{ fontSize: 11 }}>🖼️ Ảnh</Tag>);
+                                                                }
+                                                                if (questions.length > 0) {
+                                                                    info.push(<Tag key="questions" color="blue" style={{ fontSize: 11 }}>{questions.length} câu hỏi</Tag>);
+                                                                }
+                                                                
+                                                                if (info.length > 0) {
+                                                                    return (
+                                                                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+                                                                            <span style={{ color: "#999", fontStyle: "italic", fontSize: 12, marginRight: 8 }}>
+                                                                                Không có đoạn văn (Part {partId})
+                                                                            </span>
+                                                                            {info}
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                                
+                                                                return (
+                                                                    <span style={{ color: "#999", fontStyle: "italic", fontSize: 12 }}>
+                                                                        Không có đoạn văn (Part {partId})
+                                                                    </span>
+                                                                );
+                                                            } else {
+                                                                // Part 6, 7 bắt buộc có passage
+                                                                return (
+                                                                    <span style={{ color: "#ff4d4f", fontStyle: "italic", fontSize: 12 }}>
+                                                                        ⚠️ Chưa có đoạn văn
+                                                                    </span>
+                                                                );
+                                                            }
+                                                        }
+                                                        // Chưa load xong
+                                                        return (
+                                                            <div style={{ color: "#999", fontStyle: "italic", marginTop: 4 }}>
+                                                                Đang tải nội dung...
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             )}
                                         </div>
+                                        
+                                        {/* Hiển thị audio của group nếu có */}
+                                        {isViewing && audioUrl && (
+                                            <div style={{ marginTop: 12 }}>
+                                                <strong style={{ display: "block", marginBottom: 8 }}>Audio:</strong>
+                                                <audio
+                                                    controls
+                                                    src={audioUrl}
+                                                    style={{ width: "100%" }}
+                                                >
+                                                    Trình duyệt không hỗ trợ phát audio.
+                                                </audio>
+                                            </div>
+                                        )}
                                         
                                         {/* Hiển thị ảnh nếu có */}
                                         {isViewing && imageUrl && (
