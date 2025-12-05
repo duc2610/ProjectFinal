@@ -48,75 +48,142 @@ export default function QuestionBankSelectorModal({
 
     const loadParts = async () => {
         try {
-            const loadedParts = await getPartsBySkill(skill);
+            const loadedParts = await loadPartsBySkill(skill);
             // Filter: loại bỏ các part group (3, 4, 6, 7, 13, 14) - chỉ dành cho group questions
             const filteredParts = (loadedParts || []).filter(p => {
                 const pid = Number(p.partId || p.id);
                 return !isGroupPart(pid);
             });
-            setParts(filteredParts);
+            // Chuẩn hóa dữ liệu part để tránh mất part (ví dụ Part 5)
+            const formattedParts = filteredParts.map(p => {
+                const pid = Number(p.partId || p.id);
+                return {
+                    ...p,
+                    partId: pid,
+                    name: p.name || p.partName || `Part ${pid}`,
+                };
+            });
+            setParts(formattedParts);
         } catch (error) {
             console.error("Error loading parts:", error);
         }
     };
 
+    const mapQuestions = (data = []) => {
+        return (data || [])
+            .filter((q) => {
+                // Filter: loại bỏ single questions có part group (3, 4, 6, 7)
+                const partId = Number(q.partId || q.part?.id);
+                return !isGroupPart(partId);
+            })
+            .map((q) => {
+                const rawStatus = q.status;
+                let statusNum;
+                if (typeof rawStatus === "number") {
+                    // BE: 1 = Active, -1 = Inactive
+                    statusNum = rawStatus === 1 ? 1 : -1;
+                } else if (typeof rawStatus === "string") {
+                    const s = rawStatus.toLowerCase();
+                    statusNum = s === "active" ? 1 : -1;
+                } else {
+                    statusNum = q.isActive === true ? 1 : -1;
+                }
+
+                const partId = Number(q.partId || q.part?.id);
+                const isContentOptional = [1, 2, 6].includes(partId);
+
+                return {
+                    id: q.questionId ?? q.id,
+                    partName: q.partName ?? q.part ?? q.partId,
+                    questionTypeName: q.questionTypeName ?? q.QuestionTypeName ?? q.typeName ?? q.name ?? "",
+                    content: q.content ?? "",
+                    status: statusNum,
+                    partId: partId,
+                    hasAudio: !!(q.audioUrl || q.audioName),
+                    hasImage: !!(q.imageUrl || q.imageName),
+                    optionsCount: Array.isArray(q.options) ? q.options.length : 0,
+                    isContentOptional: isContentOptional,
+                };
+            });
+    };
+
     const loadQuestions = async (page = 1, pageSize = 10, withFilters = false) => {
         setLoading(true);
         try {
-            const baseParams = buildQuestionListParams({ 
-                page, 
-                pageSize, 
-                skill,
-                partId: withFilters ? filterPart : undefined,
-                keyword: withFilters ? searchKeyword : undefined
-            });
-            const params = baseParams;
+            const partFilter = withFilters && filterPart !== null ? Number(filterPart) : undefined;
+            const keywordFilter = withFilters ? searchKeyword : undefined;
 
-            const response = await getQuestions(params);
-            const payload = response?.data || response || {};
-            const data = payload.dataPaginated || payload.items || payload.records || [];
-            const currentPage = payload.currentPage || page;
-            const size = payload.pageSize || pageSize;
-            const totalCount = payload.totalCount || payload.total || data.length || 0;
-
-            const mapped = (data || [])
-                .filter((q) => {
-                    // Filter: loại bỏ single questions có part group (3, 4, 6, 7)
-                    const partId = Number(q.partId || q.part?.id);
-                    return !isGroupPart(partId);
-                })
-                .map((q) => {
-                    const rawStatus = q.status;
-                    let statusNum;
-                    if (typeof rawStatus === "number") {
-                        // BE: 1 = Active, -1 = Inactive
-                        statusNum = rawStatus === 1 ? 1 : -1;
-                    } else if (typeof rawStatus === "string") {
-                        const s = rawStatus.toLowerCase();
-                        statusNum = s === "active" ? 1 : -1;
-                    } else {
-                        statusNum = q.isActive === true ? 1 : -1;
-                    }
-
-                    const partId = Number(q.partId || q.part?.id);
-                    const isContentOptional = [1, 2, 6].includes(partId);
-
-                    return {
-                        id: q.questionId ?? q.id,
-                        partName: q.partName ?? q.part ?? q.partId,
-                        questionTypeName: q.questionTypeName ?? q.QuestionTypeName ?? q.typeName ?? q.name ?? "",
-                        content: q.content ?? "",
-                        status: statusNum,
-                        partId: partId,
-                        hasAudio: !!(q.audioUrl || q.audioName),
-                        hasImage: !!(q.imageUrl || q.imageName),
-                        optionsCount: Array.isArray(q.options) ? q.options.length : 0,
-                        isContentOptional: isContentOptional,
-                    };
+            // Nếu skill = L&R, cần tách skill Listening (3) và Reading (4)
+            if (skill === TEST_SKILL.LR) {
+                // Khi chọn part cụ thể: xác định skill theo part
+                if (partFilter != null) {
+                    const effectiveSkill = partFilter >= 5 ? 4 : 3;
+                    const params = buildQuestionListParams({ 
+                        page, 
+                        pageSize, 
+                        skill: effectiveSkill,
+                        partId: partFilter,
+                        keyword: keywordFilter
+                    });
+                    const response = await getQuestions(params);
+                    const payload = response?.data || response || {};
+                    const data = payload.dataPaginated || payload.items || payload.records || [];
+                    const currentPage = payload.currentPage || page;
+                    const size = payload.pageSize || pageSize;
+                    const totalCount = payload.totalCount || payload.total || data.length || 0;
+                    const mapped = mapQuestions(data);
+                    setQuestions(mapped);
+                    setPagination({ current: currentPage, pageSize: size, total: totalCount });
+                } else {
+                    // Không chọn part: load cả Listening + Reading rồi paginate ở frontend
+                    const paramsListening = buildQuestionListParams({
+                        page: 1,
+                        pageSize: 1000,
+                        skill: 3, // Listening
+                        keyword: keywordFilter,
+                    });
+                    const paramsReading = buildQuestionListParams({
+                        page: 1,
+                        pageSize: 1000,
+                        skill: 4, // Reading
+                        keyword: keywordFilter,
+                    });
+                    const [resL, resR] = await Promise.all([
+                        getQuestions(paramsListening),
+                        getQuestions(paramsReading),
+                    ]);
+                    const payloadL = resL?.data || resL || {};
+                    const payloadR = resR?.data || resR || {};
+                    const dataL = payloadL.dataPaginated || payloadL.items || payloadL.records || [];
+                    const dataR = payloadR.dataPaginated || payloadR.items || payloadR.records || [];
+                    const combined = [...mapQuestions(dataL), ...mapQuestions(dataR)];
+                    const start = (page - 1) * pageSize;
+                    const paged = combined.slice(start, start + pageSize);
+                    setQuestions(paged);
+                    setPagination({ current: page, pageSize, total: combined.length });
+                }
+            } else {
+                // Skill khác: logic cũ
+                const params = buildQuestionListParams({ 
+                    page, 
+                    pageSize, 
+                    skill,
+                    partId: partFilter,
+                    keyword: keywordFilter
                 });
 
-            setQuestions(mapped);
-            setPagination({ current: currentPage, pageSize: size, total: totalCount });
+                const response = await getQuestions(params);
+                const payload = response?.data || response || {};
+                const data = payload.dataPaginated || payload.items || payload.records || [];
+                const currentPage = payload.currentPage || page;
+                const size = payload.pageSize || pageSize;
+                const totalCount = payload.totalCount || payload.total || data.length || 0;
+
+                const mapped = mapQuestions(data);
+
+                setQuestions(mapped);
+                setPagination({ current: currentPage, pageSize: size, total: totalCount });
+            }
         } catch (error) {
             console.error("Error loading questions:", error);
             message.error("Lỗi khi tải danh sách câu hỏi");
@@ -351,7 +418,7 @@ export default function QuestionBankSelectorModal({
                         placeholder="Chọn Part"
                         value={filterPart}
                         onChange={(value) => {
-                            const partId = value === "all" ? null : value;
+                            const partId = value === "all" ? null : Number(value);
                             handlePartFilterChange(partId);
                         }}
                         style={{ width: 180 }}
@@ -360,7 +427,7 @@ export default function QuestionBankSelectorModal({
                         <Option value="all">Tất cả Part</Option>
                         {parts.map(part => (
                             <Option key={part.partId} value={part.partId}>
-                                {part.name}
+                                {part.name || `Part ${part.partId}`}
                             </Option>
                         ))}
                     </Select>
