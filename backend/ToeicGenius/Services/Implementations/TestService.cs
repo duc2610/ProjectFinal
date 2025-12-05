@@ -1446,11 +1446,11 @@ namespace ToeicGenius.Services.Implementations
 			var writingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Writing");
 			var speakingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Speaking");
 
-			// Tính raw scores từ AI feedbacks
+			// Tính raw scores từ AI feedbacks (dùng Part.Skill để phân biệt Writing/Speaking)
 			var writingFeedbacks = aiFeedbacks.Where(f =>
-				f.UserAnswer?.TestQuestion?.Part?.PartType?.StartsWith("writing") == true).ToList();
+				f.UserAnswer?.TestQuestion?.Part?.Skill == QuestionSkill.Writing).ToList();
 			var speakingFeedbacks = aiFeedbacks.Where(f =>
-				f.UserAnswer?.TestQuestion?.Part?.PartType?.StartsWith("writing") != true).ToList();
+				f.UserAnswer?.TestQuestion?.Part?.Skill == QuestionSkill.Speaking).ToList();
 
 			double? writingRawScore = writingFeedbacks.Any()
 				? writingFeedbacks.Average(f => (double)f.Score)
