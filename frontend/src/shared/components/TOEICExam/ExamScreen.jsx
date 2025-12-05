@@ -562,7 +562,9 @@ export default function ExamScreen() {
       return;
     }
 
-    const snapshot = answersSnapshot || answersRef.current || {};
+    // Ưu tiên dùng snapshot nếu có, nếu không thì dùng answers state (cho lưu thủ công), 
+    // cuối cùng mới dùng answersRef (cho auto-save)
+    const snapshot = answersSnapshot || answers || answersRef.current || {};
     const formattedAnswers = formatAllAnswers(snapshot);
 
     // Nếu không có câu nào để lưu
@@ -599,7 +601,7 @@ export default function ExamScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [rawTestData.testResultId, formatAllAnswers]);
+  }, [rawTestData.testResultId, formatAllAnswers, answers]);
 
   // Map partId sang partType cho S&W
   const getPartType = (partId) => {
@@ -1015,7 +1017,7 @@ export default function ExamScreen() {
       <div className={containerClass}>
             <Button 
               icon={<SaveOutlined />}
-              onClick={handleSaveProgress}
+              onClick={() => handleSaveProgress(answers)}
               disabled={isSaving || isSubmitting}
               loading={isSaving}
           className={`${styles.actionBtn} ${styles.saveBtn} ${btnClassExtra}`}
