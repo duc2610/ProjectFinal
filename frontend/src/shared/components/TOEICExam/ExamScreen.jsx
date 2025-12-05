@@ -27,6 +27,7 @@ export default function ExamScreen() {
   // Lần đầu vào: dùng answers từ sessionStorage (đã được load từ ExamSelection/Profile)
   // Khi reload: sẽ load lại từ API startTest
   const [answers, setAnswers] = useState(rawTestData.answers || {});
+  const answersRef = useRef(answers);
   const [isLoadingAnswers, setIsLoadingAnswers] = useState(false);
   const hasLoadedFromBackendRef = useRef(false);
   // Load currentIndex từ sessionStorage nếu có (để khôi phục vị trí câu hỏi khi reload)
@@ -83,6 +84,9 @@ export default function ExamScreen() {
   const timerRef = useRef(null);
   const isSubmittingRef = useRef(false);
   const startTimestampRef = useRef(safeStartTimestamp);
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
   
   // Cập nhật startTimestampRef khi safeStartTimestamp thay đổi (ví dụ: khi tiếp tục từ history)
   useEffect(() => {
@@ -480,7 +484,7 @@ export default function ExamScreen() {
   };
 
   // Hàm format answers cho tất cả loại bài thi (L&R, Writing, Speaking)
-  const formatAllAnswers = (answersToFormat) => {
+  const formatAllAnswers = useCallback((answersToFormat) => {
     const formattedAnswers = [];
     for (const [answerKey, answerValue] of Object.entries(answersToFormat)) {
       // Parse answerKey: có thể là "testQuestionId" hoặc "testQuestionId_subQuestionIndex"
@@ -542,10 +546,10 @@ export default function ExamScreen() {
       }
     }
     return formattedAnswers;
-  };
+  }, [questions]);
 
   // Hàm lưu tiến độ làm bài (cho tất cả loại bài thi)
-  const handleSaveProgress = useCallback(async () => {
+  const handleSaveProgress = useCallback(async (answersSnapshot = null) => {
     const testResultId = rawTestData.testResultId;
     if (!testResultId) {
       message.warning("Không tìm thấy testResultId");
@@ -558,7 +562,8 @@ export default function ExamScreen() {
       return;
     }
 
-    const formattedAnswers = formatAllAnswers(answers);
+    const snapshot = answersSnapshot || answersRef.current || {};
+    const formattedAnswers = formatAllAnswers(snapshot);
 
     // Nếu không có câu nào để lưu
     if (formattedAnswers.length === 0) {
@@ -580,7 +585,7 @@ export default function ExamScreen() {
       console.error("Error saving progress:", error);
       // Nếu lỗi do mất mạng, lưu answers vào offlineAnswers
       if (!navigator.onLine || error.code === 'ERR_NETWORK' || error.message.includes('Network')) {
-        setOfflineAnswers({ ...answers });
+        setOfflineAnswers({ ...snapshot });
         setOfflineTimestamp(new Date());
         setIsOnline(false);
         setShowOfflineModal(true);
@@ -594,7 +599,7 @@ export default function ExamScreen() {
     } finally {
       setIsSaving(false);
     }
-  }, [answers, rawTestData.testResultId]);
+  }, [rawTestData.testResultId, formatAllAnswers]);
 
   // Map partId sang partType cho S&W
   const getPartType = (partId) => {
@@ -883,24 +888,16 @@ export default function ExamScreen() {
     if (!rawTestData.testResultId) {
       return;
     }
-
-    // Clear interval cũ nếu có
-    if (autoSaveIntervalRef.current) {
-      clearInterval(autoSaveIntervalRef.current);
-      autoSaveIntervalRef.current = null;
-    }
-
-    // Hàm kiểm tra có câu trả lời hợp lệ không
+    // Hàm kiểm tra có câu trả lời hợp lệ không (dùng answersRef để tránh reset interval)
     const checkHasAnswers = () => {
-      if (!answers || Object.keys(answers).length === 0) {
+      const currentAnswers = answersRef.current || {};
+      if (Object.keys(currentAnswers).length === 0) {
         return false;
       }
 
-      // Kiểm tra xem có ít nhất 1 câu trả lời hợp lệ
-      for (const [answerKey, answerValue] of Object.entries(answers)) {
+      for (const [answerKey, answerValue] of Object.entries(currentAnswers)) {
         if (!answerValue) continue;
 
-        // Parse answerKey để tìm question
         let testQuestionId, subQuestionIndex;
         if (answerKey.includes('_')) {
           const parts = answerKey.split('_');
@@ -911,7 +908,6 @@ export default function ExamScreen() {
           subQuestionIndex = 0;
         }
 
-        // Tìm question tương ứng
         const q = questions.find((q) => 
           q.testQuestionId === testQuestionId && 
           (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === 0 && !q.subQuestionIndex))
@@ -919,17 +915,14 @@ export default function ExamScreen() {
         
         if (!q) continue;
 
-        // L&R: có chosenOptionLabel (bất kỳ giá trị nào)
         if (q.partId >= 1 && q.partId <= 7) {
           return true;
         }
         
-        // Writing: có answerText (string không rỗng)
         if (q.partId >= 8 && q.partId <= 10 && typeof answerValue === "string" && answerValue.trim() !== "") {
           return true;
         }
         
-        // Speaking: có answerAudioUrl (URL string) hoặc Blob
         if (q.partId >= 11 && q.partId <= 15) {
           if (typeof answerValue === "string" && answerValue.startsWith("http")) {
             return true;
@@ -943,7 +936,6 @@ export default function ExamScreen() {
       return false;
     };
 
-    // Kiểm tra lần đầu
     const hasAnswers = checkHasAnswers();
     if (!hasAnswers) {
       return;
@@ -953,10 +945,12 @@ export default function ExamScreen() {
       return;
     }
 
+    // Đã có interval thì không tạo thêm, tránh reset mỗi lần đổi đáp án
+    if (autoSaveIntervalRef.current) {
+      return;
+    }
 
-    // Auto-save mỗi 5 phút (300000 ms)
     autoSaveIntervalRef.current = setInterval(() => {
-      // Kiểm tra lại trước mỗi lần save
       const stillHasAnswers = checkHasAnswers();
       if (!stillHasAnswers) {
         return;
@@ -972,14 +966,16 @@ export default function ExamScreen() {
 
       handleSaveProgress();
     }, 5 * 60 * 1000); // 5 phút
+  }, [rawTestData.testResultId, questions, handleSaveProgress, answers]);
 
+  useEffect(() => {
     return () => {
       if (autoSaveIntervalRef.current) {
         clearInterval(autoSaveIntervalRef.current);
         autoSaveIntervalRef.current = null;
       }
     };
-  }, [rawTestData.testResultId, answers, questions, handleSaveProgress]);
+  }, []);
 
   const formatTime = (value) => {
     const safeSeconds = Math.max(0, Math.floor(Number.isFinite(value) ? value : 0));
