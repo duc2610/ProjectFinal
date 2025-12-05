@@ -13,5 +13,6 @@ namespace ToeicGenius.Domains.DTOs.Responses.Question
 		public int? QuestionCount { get; set; }    
 		public CommonStatus Status { get; set; }
 		public DateTime? CreatedAt { get; set; }
+		public string? QuestionTypeName { get; set; }
 	}
 }

@@ -66,6 +66,7 @@ namespace ToeicGenius.Repositories.Implementations
 			var query = _context.QuestionGroups
 				.Include(g => g.Part)
 				.Include(g => g.Questions)
+					.ThenInclude(q => q.QuestionType)
 				.Where(g => g.Status == status)
 				.AsQueryable();
 
@@ -93,7 +94,13 @@ namespace ToeicGenius.Repositories.Implementations
 					Content = g.PassageContent,
 					QuestionCount = g.Questions.Count(),
 					Status = g.Status,
-					CreatedAt = g.CreatedAt
+					CreatedAt = g.CreatedAt,
+					QuestionTypeName = string.Join(", ", g.Questions
+						.Where(q => q.QuestionType != null)
+						.Select(q => q.QuestionType.TypeName)
+						.Distinct()
+						.OrderBy(t => t)
+						.ToList())
 				})
 				.ToListAsync();
 
