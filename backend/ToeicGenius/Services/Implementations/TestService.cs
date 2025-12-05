@@ -1435,15 +1435,33 @@ namespace ToeicGenius.Services.Implementations
 				return Result<object>.Success(lrResult.Data);
 			}
 
-			// 3. Nếu là S/W/SW → trả về SubmitBulkAssessmentResponseDto
+			// 3. Nếu là S/W/SW → trả về TestResultDetailSWDto
 			var aiFeedbacks = await _uow.AIFeedbacks.GetByTestResultIdAsync(testResultId);
 
-			if (!aiFeedbacks.Any())
-				return Result<object>.Failure("No AI feedbacks found for this test.");
+			// Xác định loại test: Simulator hay Practice
+			bool isSimulator = testResult.Test?.TestType == TestType.Simulator;
+			int totalQuestions = testResult.Test?.TotalQuestion ?? 0;
 
-			// Lấy điểm từ SkillScores (đã được convert sang TOEIC scale 0-200)
+			// Lấy điểm từ SkillScores
 			var writingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Writing");
 			var speakingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Speaking");
+
+			// Tính raw scores từ AI feedbacks
+			var writingFeedbacks = aiFeedbacks.Where(f =>
+				f.UserAnswer?.TestQuestion?.Part?.PartType?.StartsWith("writing") == true).ToList();
+			var speakingFeedbacks = aiFeedbacks.Where(f =>
+				f.UserAnswer?.TestQuestion?.Part?.PartType?.StartsWith("writing") != true).ToList();
+
+			double? writingRawScore = writingFeedbacks.Any()
+				? writingFeedbacks.Average(f => (double)f.Score)
+				: null;
+			double? speakingRawScore = speakingFeedbacks.Any()
+				? speakingFeedbacks.Average(f => (double)f.Score)
+				: null;
+
+			// Đếm số câu đã trả lời và bỏ qua
+			int answeredQuestions = aiFeedbacks.Count;
+			int skippedQuestions = totalQuestions - answeredQuestions;
 
 			// Lấy tất cả TestQuestionId từ feedbacks
 			var testQuestionIds = aiFeedbacks
@@ -1465,16 +1483,31 @@ namespace ToeicGenius.Services.Implementations
 				TestType = testResult.Test?.TestType ?? TestType.Practice,
 				TestSkill = testResult.Test?.TestSkill ?? TestSkill.LR,
 				Duration = testResult.Test?.Duration ?? 0,
-                TimeResuilt = testResult.Duration,
-                QuantityQuestion = testResult.Test?.TotalQuestion ?? 0,
+				TimeResuilt = testResult.Duration,
+				QuantityQuestion = totalQuestions,
 
-				// Lấy điểm từ SkillScores (TOEIC scale: 0-200)
-				WritingScore = writingSkillScore != null ? (double?)writingSkillScore.Score : null,
-				SpeakingScore = speakingSkillScore != null ? (double?)speakingSkillScore.Score : null,
+				// Mode indicator
+				IsSimulator = isSimulator,
+
+				// TOEIC Scaled scores (0-200) - Chỉ có giá trị khi Simulator
+				WritingScore = isSimulator && writingSkillScore != null ? (double?)writingSkillScore.Score : null,
+				SpeakingScore = isSimulator && speakingSkillScore != null ? (double?)speakingSkillScore.Score : null,
+
+				// TotalScore: Simulator = 0-400, Practice = 0-100
 				TotalScore = (double)testResult.TotalScore,
+
+				// Raw scores (0-100) - Luôn có giá trị nếu có feedback
+				WritingRawScore = writingRawScore,
+				SpeakingRawScore = speakingRawScore,
+
+				// Question counts
+				TotalQuestions = totalQuestions,
+				AnsweredQuestions = answeredQuestions,
+				SkippedQuestions = skippedQuestions,
+
 				IsSelectTime = testResult.IsSelectTime,
 				Status = testResult.Status,
-                PerPartFeedbacks = aiFeedbacks.Select(f =>
+				PerPartFeedbacks = aiFeedbacks.Select(f =>
 				{
 					var testQuestionId = f.UserAnswer?.TestQuestionId ?? 0;
 					var testQuestion = testQuestions.FirstOrDefault(tq => tq.TestQuestionId == testQuestionId);
