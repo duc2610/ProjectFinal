@@ -59,11 +59,11 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                     details[qid] = {
                         content: q.content || q.Content || "",
                         partName: q.partName || q.PartName || q.part?.name || "",
-                        questionTypeName: q.questionTypeName || q.QuestionTypeName || q.type?.name || "",
+                        questionTypeName: q.questionTypeName || q.QuestionTypeName || q.questionType?.typeName || q.questionType?.name || q.type?.name || "",
                         options: options,
                         audioUrl: q.audioUrl || q.AudioUrl || "",
                         imageUrl: q.imageUrl || q.ImageUrl || "",
-                        explanation: q.explanation || q.Explanation || "",
+                        explanation: q.explanation || q.Explanation || q.solution || q.Solution || "",
                     };
                 } catch (error) {
                     console.error(`Error loading question ${qid}:`, error);
@@ -105,6 +105,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         passage: g.passageContent || g.passage || g.PassageContent || g.Passage || "",
                         partName: g.partName || g.PartName || g.part?.name || "",
                         imageUrl: g.imageUrl || g.ImageUrl || "",
+                        audioUrl: g.audioUrl || g.AudioUrl || "",
                         questions: questions,
                     };
                 } catch (error) {
@@ -172,20 +173,26 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         const tqs = p.testQuestions || p.TestQuestions || [];
                         if (tqs && tqs.length > 0) {
                             tqs.forEach((tq) => {
-                                const isGroup = tq.isGroup ?? tq.IsGroup;
+                                // Check isGroup với nhiều cách parse để đảm bảo đúng
+                                const isGroup = tq.isGroup === true || tq.IsGroup === true || 
+                                               (typeof tq.isGroup === 'boolean' && tq.isGroup) ||
+                                               (typeof tq.IsGroup === 'boolean' && tq.IsGroup);
+                                
                                 if (isGroup) {
                                     const gSnap = tq.questionGroupSnapshotDto || tq.QuestionGroupSnapshotDto;
                                     if (gSnap) {
-                                        const gid = gSnap.questionGroupId ?? gSnap.QuestionGroupId;
-                                        if (gid != null && !groupIds.includes(gid)) {
+                                        const gid = gSnap.questionGroupId ?? gSnap.QuestionGroupId ?? gSnap.id;
+                                        // Chỉ thêm nếu ID hợp lệ (không phải 0, null, undefined)
+                                        if (gid != null && gid !== 0 && !groupIds.includes(gid)) {
                                             groupIds.push(gid);
                                         }
                                     }
                                 } else {
                                     const qSnap = tq.questionSnapshotDto || tq.QuestionSnapshotDto;
                                     if (qSnap) {
-                                        const qid = qSnap.questionId ?? qSnap.QuestionId;
-                                        if (qid != null && !singleIds.includes(qid)) {
+                                        const qid = qSnap.questionId ?? qSnap.QuestionId ?? qSnap.id;
+                                        // Chỉ thêm nếu ID hợp lệ (không phải 0, null, undefined)
+                                        if (qid != null && qid !== 0 && !singleIds.includes(qid)) {
                                             singleIds.push(qid);
                                         }
                                     }
@@ -332,81 +339,11 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
 
             message.success(editingId ? "Cập nhật bài thi thành công" : `Tạo bài thi thành công! (${totalQuestions} câu hỏi)`);
             
-            if (editingId) {
-                // Khi update, reload dữ liệu mà không đóng modal
-                try {
-                    const detail = await getTestById(editingId);
-                    const d = detail?.data || detail || {};
-                    const skillVal = toSkillId(d.testSkill ?? d.TestSkill);
-                    
-                    const singleIds = [];
-                    const groupIds = [];
-                    const partsArr = d.parts || d.Parts || [];
-                    
-                    if (partsArr && partsArr.length > 0) {
-                        (partsArr).forEach((p) => {
-                            const tqs = p.testQuestions || p.TestQuestions || [];
-                            if (tqs && tqs.length > 0) {
-                                tqs.forEach((tq) => {
-                                    const isGroup = tq.isGroup ?? tq.IsGroup;
-                                    if (isGroup) {
-                                        const gSnap = tq.questionGroupSnapshotDto || tq.QuestionGroupSnapshotDto;
-                                        if (gSnap) {
-                                            const gid = gSnap.questionGroupId ?? gSnap.QuestionGroupId;
-                                            if (gid != null && !groupIds.includes(gid)) {
-                                                groupIds.push(gid);
-                                            }
-                                        }
-                                    } else {
-                                        const qSnap = tq.questionSnapshotDto || tq.QuestionSnapshotDto;
-                                        if (qSnap) {
-                                            const qid = qSnap.questionId ?? qSnap.QuestionId;
-                                            if (qid != null && !singleIds.includes(qid)) {
-                                                singleIds.push(qid);
-                                            }
-                                        }
-                                    }
-                                });
-                            }
-                        });
-                    }
-
-                    // Lưu số lượng group questions trước khi update để biết có thêm mới không
-                    const previousGroupCount = selectedGroupQuestions.length;
-                    
-                    setSelectedSingleQuestions(singleIds);
-                    setSelectedGroupQuestions(groupIds);
-                    
-                    // Load details cho các câu hỏi mới
-                    const newSingleIds = singleIds.filter(id => !questionDetails[id]);
-                    const newGroupIds = groupIds.filter(id => !groupDetails[id]);
-                    
-                    if (newSingleIds.length > 0) {
-                        loadQuestionDetails(newSingleIds);
-                    }
-                    if (newGroupIds.length > 0) {
-                        loadGroupDetails(newGroupIds);
-                    }
-                    
-                    // Nếu vừa thêm group questions mới (số lượng tăng) và đang ở tab single, chuyển sang tab group
-                    // Hoặc nếu đang ở tab group, giữ nguyên tab group
-                    if (activeTab === "group" || (activeTab === "single" && groupIds.length > previousGroupCount && groupIds.length > 0)) {
-                        setActiveTab("group");
-                    }
-                    
-                    onSuccess();
-                } catch (error) {
-                    console.error("Error reloading test data:", error);
-                    onSuccess();
-                    onClose();
-                }
-            } else {
-                // Khi tạo mới, đóng modal
-                setTimeout(() => {
-                    onSuccess();
-                    onClose();
-                }, 300);
-            }
+            // Sau khi update hoặc create thành công, đóng modal
+            setTimeout(() => {
+                onSuccess();
+                onClose();
+            }, 300);
         } catch (error) {
             console.error("Error creating test:", error);
             const errorMessage = error?.response?.data?.message || 
@@ -924,15 +861,13 @@ function QuestionSelector({
                                 </div>
                                     
                                     <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, borderTop: "1px solid #e8e8e8", paddingTop: 12 }}>
-                                        {content && (
-                                            <Button 
-                                                size="small"
-                                                icon={<EyeOutlined />} 
-                                                onClick={() => setViewingQuestionId && setViewingQuestionId(isViewing ? null : qid)}
-                                            >
-                                                {isViewing ? "Ẩn chi tiết" : "Xem chi tiết"}
-                                            </Button>
-                                        )}
+                                        <Button 
+                                            size="small"
+                                            icon={<EyeOutlined />} 
+                                            onClick={() => setViewingQuestionId && setViewingQuestionId(isViewing ? null : qid)}
+                                        >
+                                            {isViewing ? "Ẩn chi tiết" : "Xem chi tiết"}
+                                        </Button>
                                 {!readOnly && (
                                 <Button 
                                     danger 
@@ -976,8 +911,14 @@ function QuestionSelector({
                             const passage = detail.passage || "";
                             const partName = detail.partName || "";
                             const imageUrl = detail.imageUrl || "";
+                            const audioUrl = detail.audioUrl || "";
                             const questions = detail.questions || [];
                             const isViewing = viewingGroupId === gid;
+                            
+                            // Kiểm tra partId từ partName để xác định có phải part 3, 4 không (không có passage)
+                            const partIdMatch = partName?.match(/Part\s*(\d+)/i);
+                            const partId = partIdMatch ? Number(partIdMatch[1]) : null;
+                            const isPassageOptional = partId && [3, 4].includes(partId);
                             
                             return (
                             <div 
@@ -997,7 +938,7 @@ function QuestionSelector({
                                         </Space>
                                         <div style={{ marginTop: 8 }}>
                                             <strong>Nhóm câu hỏi #{index + 1}</strong>
-                                            {passage ? (
+                                            {passage && passage.trim() ? (
                                                 <div style={{ 
                                                     marginTop: 8, 
                                                     padding: 12, 
@@ -1015,11 +956,72 @@ function QuestionSelector({
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div style={{ color: "#999", fontStyle: "italic", marginTop: 4 }}>
-                                                    Đang tải nội dung...
+                                                <div style={{ marginTop: 8 }}>
+                                                    {(() => {
+                                                        // Nếu đã load xong (có partName) nhưng không có passage
+                                                        if (partName) {
+                                                            if (isPassageOptional) {
+                                                                // Part 3, 4 không có passage là bình thường
+                                                                const info = [];
+                                                                if (audioUrl) {
+                                                                    info.push(<Tag key="audio" color="green" style={{ fontSize: 11 }}>🔊 Audio</Tag>);
+                                                                }
+                                                                if (imageUrl) {
+                                                                    info.push(<Tag key="image" color="orange" style={{ fontSize: 11 }}>🖼️ Ảnh</Tag>);
+                                                                }
+                                                                if (questions.length > 0) {
+                                                                    info.push(<Tag key="questions" color="blue" style={{ fontSize: 11 }}>{questions.length} câu hỏi</Tag>);
+                                                                }
+                                                                
+                                                                if (info.length > 0) {
+                                                                    return (
+                                                                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+                                                                            <span style={{ color: "#999", fontStyle: "italic", fontSize: 12, marginRight: 8 }}>
+                                                                                Không có đoạn văn (Part {partId})
+                                                                            </span>
+                                                                            {info}
+                                                                        </div>
+                                                                    );
+                                                                }
+                                                                
+                                                                return (
+                                                                    <span style={{ color: "#999", fontStyle: "italic", fontSize: 12 }}>
+                                                                        Không có đoạn văn (Part {partId})
+                                                                    </span>
+                                                                );
+                                                            } else {
+                                                                // Part 6, 7 bắt buộc có passage
+                                                                return (
+                                                                    <span style={{ color: "#ff4d4f", fontStyle: "italic", fontSize: 12 }}>
+                                                                        ⚠️ Chưa có đoạn văn
+                                                                    </span>
+                                                                );
+                                                            }
+                                                        }
+                                                        // Chưa load xong
+                                                        return (
+                                                            <div style={{ color: "#999", fontStyle: "italic", marginTop: 4 }}>
+                                                                Đang tải nội dung...
+                                                            </div>
+                                                        );
+                                                    })()}
                                                 </div>
                                             )}
                                         </div>
+                                        
+                                        {/* Hiển thị audio của group nếu có */}
+                                        {isViewing && audioUrl && (
+                                            <div style={{ marginTop: 12 }}>
+                                                <strong style={{ display: "block", marginBottom: 8 }}>Audio:</strong>
+                                                <audio
+                                                    controls
+                                                    src={audioUrl}
+                                                    style={{ width: "100%" }}
+                                                >
+                                                    Trình duyệt không hỗ trợ phát audio.
+                                                </audio>
+                                            </div>
+                                        )}
                                         
                                         {/* Hiển thị ảnh nếu có */}
                                         {isViewing && imageUrl && (
@@ -1157,15 +1159,13 @@ function QuestionSelector({
                                 </div>
                                     
                                     <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, borderTop: "1px solid #e8e8e8", paddingTop: 12 }}>
-                                        {passage && (
-                                            <Button 
-                                                size="small"
-                                                icon={<EyeOutlined />} 
-                                                onClick={() => setViewingGroupId && setViewingGroupId(isViewing ? null : gid)}
-                                            >
-                                                {isViewing ? "Ẩn chi tiết" : "Xem chi tiết"}
-                                            </Button>
-                                        )}
+                                        <Button 
+                                            size="small"
+                                            icon={<EyeOutlined />} 
+                                            onClick={() => setViewingGroupId && setViewingGroupId(isViewing ? null : gid)}
+                                        >
+                                            {isViewing ? "Ẩn chi tiết" : "Xem chi tiết"}
+                                        </Button>
                                 {!readOnly && (
                                 <Button 
                                     danger 

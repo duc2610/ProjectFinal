@@ -13,7 +13,7 @@ namespace ToeicGenius.Services.Interfaces
 		#region Test Creator
 		Task<Result<string>> CreateManualAsync(Guid userId, CreateTestManualDto request);
 		Task<Result<string>> CreateFromBankAsync(Guid userId,CreateTestFromBankDto request);
-		Task<Result<string>> CreateFromBankRandomAsync(CreateTestFromBankRandomDto request);
+		Task<Result<string>> CreateFromBankRandomAsync(Guid userId,CreateTestFromBankRandomDto request);
 		Task<Result<PaginationResponse<TestListResponseDto>>> FilterAllAsync(TestFilterDto request, Guid? creatorId = null);
 		Task<Result<string>> UpdateStatusAsync(UpdateTestVisibilityStatusDto request, Guid userId, bool isAdmin = false);
 		Task<Result<TestDetailDto>> GetDetailAsync(int id, Guid? userId = null, bool isAdmin = false);

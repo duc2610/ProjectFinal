@@ -2,6 +2,35 @@
 {
 	public class ToeicScoreTable
 	{
+		#region Part Weights for Speaking & Writing (TOEIC Standard)
+
+		// Speaking Parts Weight (Total = 100%)
+		// Part 1-2: Read Aloud (Questions 1-2) - 15%
+		// Part 3: Describe Picture (Question 3) - 15%
+		// Part 4: Respond to Questions (Questions 4-6) - 20%
+		// Part 5: Respond with Info (Questions 7-9) - 20%
+		// Part 6: Express Opinion (Questions 10-11) - 30%
+		public static readonly Dictionary<string, double> SpeakingPartWeights = new()
+		{
+			{ "read_aloud", 0.15 },           // Part 1-2
+			{ "describe_picture", 0.15 },     // Part 3
+			{ "respond_questions", 0.20 },    // Part 4
+			{ "respond_with_info", 0.20 },    // Part 5
+			{ "express_opinion", 0.30 }       // Part 6
+		};
+
+		// Writing Parts Weight (Total = 100%)
+		// Part 1: Sentence (Questions 1-5) - 20%
+		// Part 2: Email (Questions 6-7) - 30%
+		// Part 3: Essay (Question 8) - 50%
+		public static readonly Dictionary<string, double> WritingPartWeights = new()
+		{
+			{ "writing_sentence", 0.20 },     // Part 1
+			{ "writing_email", 0.30 },        // Part 2
+			{ "writing_essay", 0.50 }         // Part 3
+		};
+
+		#endregion
 		public static readonly Dictionary<int, int> ListeningScores = new()
 	{
 		{ 0, 5 }, { 1, 5 }, { 2, 5 }, { 3, 10 }, { 4, 15 }, { 5, 20 },
@@ -112,5 +141,83 @@
 				_ => 15          // Level 1: 0-30
 			};
 		}
+
+		#region Weighted Score Calculation for Simulator Mode
+
+		/// <summary>
+		/// Calculate weighted Speaking score for Simulator mode
+		/// Each part has different weight based on TOEIC standard
+		/// </summary>
+		/// <param name="partScores">Dictionary of partType -> raw score (0-100)</param>
+		/// <returns>Weighted average raw score (0-100)</returns>
+		public static double CalculateWeightedSpeakingScore(Dictionary<string, List<double>> partScores)
+		{
+			if (partScores == null || !partScores.Any())
+				return 0;
+
+			double totalWeightedScore = 0;
+			double totalWeight = 0;
+
+			foreach (var part in partScores)
+			{
+				if (SpeakingPartWeights.TryGetValue(part.Key, out double weight) && part.Value.Any())
+				{
+					double partAvg = part.Value.Average();
+					totalWeightedScore += partAvg * weight;
+					totalWeight += weight;
+				}
+			}
+
+			// Normalize by actual weight used (in case not all parts are present)
+			return totalWeight > 0 ? totalWeightedScore / totalWeight * 100 / 100 : 0;
+		}
+
+		/// <summary>
+		/// Calculate weighted Writing score for Simulator mode
+		/// Each part has different weight based on TOEIC standard
+		/// </summary>
+		/// <param name="partScores">Dictionary of partType -> raw score (0-100)</param>
+		/// <returns>Weighted average raw score (0-100)</returns>
+		public static double CalculateWeightedWritingScore(Dictionary<string, List<double>> partScores)
+		{
+			if (partScores == null || !partScores.Any())
+				return 0;
+
+			double totalWeightedScore = 0;
+			double totalWeight = 0;
+
+			foreach (var part in partScores)
+			{
+				if (WritingPartWeights.TryGetValue(part.Key, out double weight) && part.Value.Any())
+				{
+					double partAvg = part.Value.Average();
+					totalWeightedScore += partAvg * weight;
+					totalWeight += weight;
+				}
+			}
+
+			// Normalize by actual weight used (in case not all parts are present)
+			return totalWeight > 0 ? totalWeightedScore / totalWeight * 100 / 100 : 0;
+		}
+
+		#endregion
+
+		#region Practice Mode Score Calculation
+
+		/// <summary>
+		/// Calculate simple average score for Practice mode
+		/// No TOEIC scale conversion, just raw average
+		/// </summary>
+		/// <param name="rawScores">List of raw scores (0-100)</param>
+		/// <returns>Average raw score (0-100)</returns>
+		public static double CalculatePracticeAverage(List<double> rawScores)
+		{
+			if (rawScores == null || !rawScores.Any())
+				return 0;
+
+			return rawScores.Average();
+		}
+
+		#endregion
 	}
 }

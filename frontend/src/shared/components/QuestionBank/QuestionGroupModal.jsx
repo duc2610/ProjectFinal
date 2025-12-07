@@ -699,7 +699,7 @@ export default function QuestionGroupModal({
           <Col span={8}>
             <Form.Item
               name="partId"
-              label="Part (Nhóm chỉ: 3, 4, 6, 7)"
+              label="Part"
               validateTrigger={['onBlur', 'onChange']}
               rules={[
                 {

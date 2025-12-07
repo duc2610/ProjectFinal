@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert } from "antd";
-import { SearchOutlined } from "@ant-design/icons";
-import { getQuestions, buildQuestionListParams } from "@services/questionsService";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert, Button, Drawer, Divider } from "antd";
+import { SearchOutlined, EyeOutlined } from "@ant-design/icons";
+import { getQuestions, buildQuestionListParams, getQuestionById } from "@services/questionsService";
 import { loadPartsBySkill, TEST_SKILL } from "@shared/constants/toeicStructure";
 
 const { Option } = Select;
-
-const READING_PARTS = [5, 6, 7];
-const LISTENING_PARTS = [1, 2, 3, 4];
 
 // Parts dành cho group questions: 3, 4, 6, 7 (L&R) và 13, 14 (Speaking)
 const GROUP_PARTS = [3, 4, 6, 7, 13, 14];
@@ -29,11 +26,18 @@ export default function QuestionBankSelectorModal({
         pageSize: 10,
         total: 0,
     });
+    const selectedIdsSet = useMemo(() => new Set(selectedIds || []), [selectedIds]);
     
     // Filters
     const [searchKeyword, setSearchKeyword] = useState("");
     const [filterPart, setFilterPart] = useState(null);
     const searchDebounceRef = useRef(null);
+    
+    // Detail view
+    const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+    const [viewingQuestionId, setViewingQuestionId] = useState(null);
+    const [questionDetail, setQuestionDetail] = useState(null);
+    const [loadingDetail, setLoadingDetail] = useState(false);
 
     useEffect(() => {
         if (open && skill) {
@@ -45,101 +49,146 @@ export default function QuestionBankSelectorModal({
 
     const loadParts = async () => {
         try {
-            const normalizedSkill = Number(skill);
-            let loadedParts = [];
-
-            if (normalizedSkill) {
-                loadedParts = await loadPartsBySkill(normalizedSkill);
-            }
-
+            const loadedParts = await loadPartsBySkill(skill);
             // Filter: loại bỏ các part group (3, 4, 6, 7, 13, 14) - chỉ dành cho group questions
             const filteredParts = (loadedParts || []).filter(p => {
                 const pid = Number(p.partId || p.id);
                 return !isGroupPart(pid);
             });
-            setParts(filteredParts);
+            // Chuẩn hóa dữ liệu part để tránh mất part (ví dụ Part 5)
+            const formattedParts = filteredParts.map(p => {
+                const pid = Number(p.partId || p.id);
+                return {
+                    ...p,
+                    partId: pid,
+                    name: p.name || p.partName || `Part ${pid}`,
+                };
+            });
+            setParts(formattedParts);
         } catch (error) {
             console.error("Error loading parts:", error);
         }
     };
 
-    const resolveSkillForRequest = () => {
-        const normalizedSkill = Number(skill);
-        if (normalizedSkill !== TEST_SKILL.LR) {
-            return normalizedSkill;
-        }
+    const mapQuestions = (data = []) => {
+        return (data || [])
+            .filter((q) => {
+                // Filter: loại bỏ single questions có part group (3, 4, 6, 7)
+                const partId = Number(q.partId || q.part?.id);
+                return !isGroupPart(partId);
+            })
+            .filter((q) => {
+                const id = q.questionId ?? q.id;
+                return !selectedIdsSet.has(id);
+            })
+            .map((q) => {
+                const rawStatus = q.status;
+                let statusNum;
+                if (typeof rawStatus === "number") {
+                    // BE: 1 = Active, -1 = Inactive
+                    statusNum = rawStatus === 1 ? 1 : -1;
+                } else if (typeof rawStatus === "string") {
+                    const s = rawStatus.toLowerCase();
+                    statusNum = s === "active" ? 1 : -1;
+                } else {
+                    statusNum = q.isActive === true ? 1 : -1;
+                }
 
-        if (filterPart != null) {
-            const partNum = Number(filterPart);
-            if (READING_PARTS.includes(partNum)) {
-                return 4; // Reading skill
-            }
-            if (LISTENING_PARTS.includes(partNum)) {
-                return 3; // Listening skill
-            }
-        }
+                const partId = Number(q.partId || q.part?.id);
+                const isContentOptional = [1, 2, 6].includes(partId);
 
-        return TEST_SKILL.LR; // default (backend expected to map to listening)
+                return {
+                    id: q.questionId ?? q.id,
+                    partName: q.partName ?? q.part ?? q.partId,
+                    questionTypeName: q.questionTypeName ?? q.QuestionTypeName ?? q.typeName ?? q.name ?? "",
+                    content: q.content ?? "",
+                    status: statusNum,
+                    partId: partId,
+                    hasAudio: !!(q.audioUrl || q.audioName),
+                    hasImage: !!(q.imageUrl || q.imageName),
+                    optionsCount: Array.isArray(q.options) ? q.options.length : 0,
+                    isContentOptional: isContentOptional,
+                };
+            });
     };
 
     const loadQuestions = async (page = 1, pageSize = 10, withFilters = false) => {
         setLoading(true);
         try {
-            const requestSkill = resolveSkillForRequest();
-            const baseParams = buildQuestionListParams({ 
-                page, 
-                pageSize, 
-                skill: requestSkill,
-                partId: withFilters ? filterPart : undefined,
-                keyword: withFilters ? searchKeyword : undefined
-            });
-            const params = baseParams;
+            const partFilter = withFilters && filterPart !== null ? Number(filterPart) : undefined;
+            const keywordFilter = withFilters ? searchKeyword : undefined;
 
-            const response = await getQuestions(params);
-            const payload = response?.data || response || {};
-            const data = payload.dataPaginated || payload.items || payload.records || [];
-            const currentPage = payload.currentPage || page;
-            const size = payload.pageSize || pageSize;
-            const totalCount = payload.totalCount || payload.total || data.length || 0;
-
-            const mapped = (data || [])
-                .filter((q) => {
-                    // Filter: loại bỏ single questions có part group (3, 4, 6, 7)
-                    const partId = Number(q.partId || q.part?.id);
-                    return !isGroupPart(partId);
-                })
-                .map((q) => {
-                    const rawStatus = q.status;
-                    let statusNum;
-                    if (typeof rawStatus === "number") {
-                        // BE: 1 = Active, -1 = Inactive
-                        statusNum = rawStatus === 1 ? 1 : -1;
-                    } else if (typeof rawStatus === "string") {
-                        const s = rawStatus.toLowerCase();
-                        statusNum = s === "active" ? 1 : -1;
-                    } else {
-                        statusNum = q.isActive === true ? 1 : -1;
-                    }
-
-                    const partId = Number(q.partId || q.part?.id);
-                    const isContentOptional = [1, 2, 6].includes(partId);
-
-                    return {
-                        id: q.questionId ?? q.id,
-                        partName: q.partName ?? q.part ?? q.partId,
-                        questionTypeName: q.questionTypeName ?? q.typeName ?? q.name,
-                        content: q.content ?? "",
-                        status: statusNum,
-                        partId: partId,
-                        hasAudio: !!(q.audioUrl || q.audioName),
-                        hasImage: !!(q.imageUrl || q.imageName),
-                        optionsCount: Array.isArray(q.options) ? q.options.length : 0,
-                        isContentOptional: isContentOptional,
-                    };
+            // Nếu skill = L&R, cần tách skill Listening (3) và Reading (4)
+            if (skill === TEST_SKILL.LR) {
+                // Khi chọn part cụ thể: xác định skill theo part
+                if (partFilter != null) {
+                    const effectiveSkill = partFilter >= 5 ? 4 : 3;
+                    const params = buildQuestionListParams({ 
+                        page, 
+                        pageSize, 
+                        skill: effectiveSkill,
+                        partId: partFilter,
+                        keyword: keywordFilter
+                    });
+                    const response = await getQuestions(params);
+                    const payload = response?.data || response || {};
+                    const data = payload.dataPaginated || payload.items || payload.records || [];
+                    const currentPage = payload.currentPage || page;
+                    const size = payload.pageSize || pageSize;
+                    const totalCount = payload.totalCount || payload.total || data.length || 0;
+                    const mapped = mapQuestions(data);
+                    setQuestions(mapped);
+                    setPagination({ current: currentPage, pageSize: size, total: totalCount });
+                } else {
+                    // Không chọn part: load cả Listening + Reading rồi paginate ở frontend
+                    const paramsListening = buildQuestionListParams({
+                        page: 1,
+                        pageSize: 1000,
+                        skill: 3, // Listening
+                        keyword: keywordFilter,
+                    });
+                    const paramsReading = buildQuestionListParams({
+                        page: 1,
+                        pageSize: 1000,
+                        skill: 4, // Reading
+                        keyword: keywordFilter,
+                    });
+                    const [resL, resR] = await Promise.all([
+                        getQuestions(paramsListening),
+                        getQuestions(paramsReading),
+                    ]);
+                    const payloadL = resL?.data || resL || {};
+                    const payloadR = resR?.data || resR || {};
+                    const dataL = payloadL.dataPaginated || payloadL.items || payloadL.records || [];
+                    const dataR = payloadR.dataPaginated || payloadR.items || payloadR.records || [];
+                    const combined = [...mapQuestions(dataL), ...mapQuestions(dataR)];
+                    const start = (page - 1) * pageSize;
+                    const paged = combined.slice(start, start + pageSize);
+                    setQuestions(paged);
+                    setPagination({ current: page, pageSize, total: combined.length });
+                }
+            } else {
+                // Skill khác: logic cũ
+                const params = buildQuestionListParams({ 
+                    page, 
+                    pageSize, 
+                    skill,
+                    partId: partFilter,
+                    keyword: keywordFilter
                 });
 
-            setQuestions(mapped);
-            setPagination({ current: currentPage, pageSize: size, total: totalCount });
+                const response = await getQuestions(params);
+                const payload = response?.data || response || {};
+                const data = payload.dataPaginated || payload.items || payload.records || [];
+                const currentPage = payload.currentPage || page;
+                const size = payload.pageSize || pageSize;
+                const totalCount = payload.totalCount || payload.total || data.length || 0;
+
+                const mapped = mapQuestions(data);
+
+                setQuestions(mapped);
+                setPagination({ current: currentPage, pageSize: size, total: totalCount });
+            }
         } catch (error) {
             console.error("Error loading questions:", error);
             message.error("Lỗi khi tải danh sách câu hỏi");
@@ -187,6 +236,39 @@ export default function QuestionBankSelectorModal({
         onClose();
     };
 
+    const handleViewDetail = async (questionId) => {
+        setViewingQuestionId(questionId);
+        setDetailDrawerOpen(true);
+        setLoadingDetail(true);
+        
+        try {
+            const question = await getQuestionById(questionId);
+            const q = question?.data || question || {};
+            const options = (q.options || q.Options || []).map(opt => ({
+                label: opt.label || opt.Label || "",
+                content: opt.content || opt.Content || "",
+                isCorrect: opt.isCorrect || opt.IsCorrect || false,
+            }));
+            
+            setQuestionDetail({
+                id: q.questionId || q.id,
+                content: q.content || q.Content || "",
+                partName: q.partName || q.PartName || q.part?.name || "",
+                questionTypeName: q.questionTypeName || q.QuestionTypeName || "",
+                options: options,
+                audioUrl: q.audioUrl || q.AudioUrl || "",
+                imageUrl: q.imageUrl || q.ImageUrl || "",
+                explanation: q.explanation || q.Explanation || q.solution || q.Solution || "",
+            });
+        } catch (error) {
+            console.error(`Error loading question detail ${questionId}:`, error);
+            message.error("Không tải được chi tiết câu hỏi");
+            setQuestionDetail(null);
+        } finally {
+            setLoadingDetail(false);
+        }
+    };
+
     const rowSelection = {
         selectedRowKeys,
         onChange: (keys) => {
@@ -213,12 +295,33 @@ export default function QuestionBankSelectorModal({
             title: "Loại",
             dataIndex: "questionTypeName",
             key: "questionTypeName",
-            width: 150,
+            width: 350,
+            ellipsis: { showTitle: false },
+            render: (text) => {
+                if (!text || !text.trim()) {
+                    return <span style={{ color: "#999", fontStyle: "italic" }}>-</span>;
+                }
+                return (
+                    <Tooltip title={text}>
+                        <div style={{ 
+                            maxWidth: "100%",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap"
+                        }}>
+                            <Tag color="purple" style={{ margin: 0 }}>
+                                {text}
+                            </Tag>
+                        </div>
+                    </Tooltip>
+                );
+            }
         },
         {
             title: "Nội dung",
             dataIndex: "content",
             key: "content",
+            width: 200,
             ellipsis: { showTitle: false },
             render: (text, record) => {
                 if (text && text.trim()) {
@@ -268,15 +371,32 @@ export default function QuestionBankSelectorModal({
                 </Tag>
             )
         },
+        {
+            title: "Hành động",
+            key: "action",
+            width: 100,
+            align: "center",
+            render: (_, record) => (
+                <Tooltip title="Xem chi tiết">
+                    <Button
+                        type="text"
+                        icon={<EyeOutlined />}
+                        onClick={() => handleViewDetail(record.id)}
+                        style={{ color: '#1890ff' }}
+                    />
+                </Tooltip>
+            )
+        },
     ];
 
     return (
+        <>
         <Modal
             title={`Chọn câu hỏi đơn - ${skill === 1 ? "Speaking" : skill === 2 ? "Writing" : "L&R"}`}
             open={open}
             onCancel={onClose}
             onOk={handleOk}
-            width={1000}
+            width={1400}
             okText={`Chọn (${selectedRowKeys.length})`}
             cancelText="Hủy"
         >
@@ -303,7 +423,7 @@ export default function QuestionBankSelectorModal({
                         placeholder="Chọn Part"
                         value={filterPart}
                         onChange={(value) => {
-                            const partId = value === "all" ? null : value;
+                            const partId = value === "all" ? null : Number(value);
                             handlePartFilterChange(partId);
                         }}
                         style={{ width: 180 }}
@@ -312,7 +432,7 @@ export default function QuestionBankSelectorModal({
                         <Option value="all">Tất cả Part</Option>
                         {parts.map(part => (
                             <Option key={part.partId} value={part.partId}>
-                                {part.name}
+                                {part.name || `Part ${part.partId}`}
                             </Option>
                         ))}
                     </Select>
@@ -341,9 +461,141 @@ export default function QuestionBankSelectorModal({
                     pageSizeOptions: ['10', '20', '50'],
                 }}
                 onChange={handleTableChange}
-                scroll={{ y: 400 }}
+                scroll={{ y: 400, x: 1200 }}
             />
         </Modal>
+
+        <Drawer
+            title={`Chi tiết câu hỏi #${viewingQuestionId || ''}`}
+            placement="right"
+            width={600}
+            onClose={() => {
+                setDetailDrawerOpen(false);
+                setViewingQuestionId(null);
+                setQuestionDetail(null);
+            }}
+            open={detailDrawerOpen}
+            loading={loadingDetail}
+        >
+            {questionDetail && (
+                <div>
+                    <div style={{ marginBottom: 16 }}>
+                        <Space>
+                            <Tag color="blue">ID: {questionDetail.id}</Tag>
+                            {questionDetail.partName && <Tag color="green">{questionDetail.partName}</Tag>}
+                            {questionDetail.questionTypeName && <Tag color="purple">{questionDetail.questionTypeName}</Tag>}
+                        </Space>
+                    </div>
+
+                    {questionDetail.content && questionDetail.content.trim() && (
+                        <>
+                            <Divider orientation="left">Nội dung câu hỏi</Divider>
+                            <div style={{ 
+                                padding: 12, 
+                                background: "#f5f5f5", 
+                                borderRadius: 4,
+                                marginBottom: 16,
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word"
+                            }}>
+                                {questionDetail.content}
+                            </div>
+                        </>
+                    )}
+
+                    {questionDetail.imageUrl && (
+                        <>
+                            <Divider orientation="left">Hình ảnh</Divider>
+                            <div style={{ marginBottom: 16 }}>
+                                <img 
+                                    src={questionDetail.imageUrl} 
+                                    alt="Question" 
+                                    style={{ 
+                                        maxWidth: "100%", 
+                                        maxHeight: 400, 
+                                        borderRadius: 4,
+                                        border: "1px solid #e8e8e8",
+                                        objectFit: "contain"
+                                    }} 
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {questionDetail.audioUrl && (
+                        <>
+                            <Divider orientation="left">Audio</Divider>
+                            <div style={{ marginBottom: 16 }}>
+                                <audio
+                                    controls
+                                    src={questionDetail.audioUrl}
+                                    style={{ width: "100%" }}
+                                >
+                                    Trình duyệt không hỗ trợ phát audio.
+                                </audio>
+                            </div>
+                        </>
+                    )}
+
+                    {questionDetail.options && questionDetail.options.length > 0 && (
+                        <>
+                            <Divider orientation="left">Đáp án ({questionDetail.options.length})</Divider>
+                            <div style={{ marginBottom: 16 }}>
+                                {questionDetail.options.map((opt, idx) => (
+                                    <div 
+                                        key={idx}
+                                        style={{ 
+                                            marginBottom: 8,
+                                            padding: 12,
+                                            background: opt.isCorrect ? "#f6ffed" : "#fafafa",
+                                            border: opt.isCorrect ? "1px solid #b7eb8f" : "1px solid #e8e8e8",
+                                            borderRadius: 4,
+                                            display: "flex",
+                                            alignItems: "flex-start",
+                                            gap: 8
+                                        }}
+                                    >
+                                        <Tag color={opt.isCorrect ? "success" : "default"} style={{ margin: 0, minWidth: 30, textAlign: "center" }}>
+                                            {opt.label}
+                                        </Tag>
+                                        <span style={{ flex: 1, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                                            {opt.content || "(Không có nội dung)"}
+                                        </span>
+                                        {opt.isCorrect && (
+                                            <Tag color="success" style={{ margin: 0 }}>Đúng</Tag>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+
+                    {questionDetail.explanation && questionDetail.explanation.trim() && (
+                        <>
+                            <Divider orientation="left">Giải thích</Divider>
+                            <div style={{ 
+                                padding: 12, 
+                                background: "#f5f5f5", 
+                                borderRadius: 4,
+                                whiteSpace: "pre-wrap",
+                                wordBreak: "break-word"
+                            }}>
+                                {questionDetail.explanation}
+                            </div>
+                        </>
+                    )}
+
+                    {!questionDetail.content && !questionDetail.imageUrl && !questionDetail.audioUrl && 
+                     (!questionDetail.options || questionDetail.options.length === 0) && 
+                     !questionDetail.explanation && (
+                        <div style={{ textAlign: "center", padding: 40, color: "#999" }}>
+                            Không có thông tin chi tiết
+                        </div>
+                    )}
+                </div>
+            )}
+        </Drawer>
+        </>
     );
 }
 
