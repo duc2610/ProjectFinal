@@ -105,6 +105,84 @@ export default function ExamScreen() {
     });
   }, [questions]);
 
+  // Tính toán lại part number để liên tục giữa Writing và Speaking
+  const questionsWithAdjustedPartNames = useMemo(() => {
+    // Kiểm tra xem có cả Writing và Speaking không
+    const hasWriting = questions.some(q => q.partId >= 8 && q.partId <= 10);
+    const hasSpeaking = questions.some(q => q.partId >= 11 && q.partId <= 15);
+    
+    if (!hasWriting || !hasSpeaking) {
+      // Nếu không có cả 2, trả về questions gốc
+      return questions;
+    }
+
+    // Đếm số Writing parts (unique partId từ 8-10)
+    const writingPartIds = new Set();
+    questions.forEach(q => {
+      if (q.partId >= 8 && q.partId <= 10) {
+        writingPartIds.add(q.partId);
+      }
+    });
+    const writingPartCount = writingPartIds.size;
+
+    // Tạo map để lưu part number mới cho mỗi partId
+    const partNumberMap = new Map();
+    let currentPartNumber = 1;
+
+    // Xử lý Writing parts (sắp xếp theo partId tăng dần)
+    const sortedWritingPartIds = Array.from(writingPartIds).sort((a, b) => a - b);
+    sortedWritingPartIds.forEach(partId => {
+      partNumberMap.set(partId, currentPartNumber);
+      currentPartNumber++;
+    });
+
+    // Xử lý Speaking parts (sắp xếp theo partId tăng dần, cộng thêm số Writing parts)
+    const speakingPartIds = new Set();
+    questions.forEach(q => {
+      if (q.partId >= 11 && q.partId <= 15) {
+        speakingPartIds.add(q.partId);
+      }
+    });
+    const sortedSpeakingPartIds = Array.from(speakingPartIds).sort((a, b) => a - b);
+    sortedSpeakingPartIds.forEach(partId => {
+      partNumberMap.set(partId, currentPartNumber);
+      currentPartNumber++;
+    });
+
+    // Tạo mảng questions mới với partName đã được cập nhật
+    return questions.map(q => {
+      if (q.partId >= 11 && q.partId <= 15) {
+        // Nếu là Speaking part, cập nhật partName
+        const newPartNumber = partNumberMap.get(q.partId);
+        if (newPartNumber && q.partName) {
+          // Thay thế số part trong partName
+          // Hỗ trợ các format: "S-PART 1", "S-PART 1 - ...", "SPART 1", v.v.
+          let updatedPartName = q.partName;
+          
+          // Thử thay thế với format "S-PART X" hoặc "SPART X"
+          if (updatedPartName.match(/S[- ]?PART\s+\d+/i)) {
+            updatedPartName = updatedPartName.replace(
+              /(S[- ]?PART\s+)\d+/i,
+              `$1${newPartNumber}`
+            );
+          } else {
+            // Nếu không match format trên, thử tìm và thay thế số đầu tiên sau "PART"
+            updatedPartName = updatedPartName.replace(
+              /(PART\s+)\d+/i,
+              `$1${newPartNumber}`
+            );
+          }
+          
+          return {
+            ...q,
+            partName: updatedPartName
+          };
+        }
+      }
+      return q;
+    });
+  }, [questions]);
+
   // Sync ref với state
   useEffect(() => {
     isSubmittingRef.current = isSubmitting;
@@ -995,7 +1073,7 @@ export default function ExamScreen() {
       className={`${styles.sideNav} ${isCompactView ? styles.sideNavCompact : ""}`}
     >
       <QuestionNavigator
-        questions={questions}
+        questions={questionsWithAdjustedPartNames}
         currentIndex={currentIndex}
         answers={answers}
         goToQuestionByIndex={goToQuestionByIndex}
@@ -1112,7 +1190,7 @@ export default function ExamScreen() {
               />
             )}
             <QuestionCard
-              question={questions[currentIndex]}
+              question={questionsWithAdjustedPartNames[currentIndex]}
               currentIndex={currentIndex}
               totalCount={totalCount}
               answers={answers}

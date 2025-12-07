@@ -846,34 +846,65 @@ export default function QuestionCard({
                 zIndex: 20,
               }}
             >
-              {HIGHLIGHT_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
+              {/* Kiểm tra xem vùng đã chọn có nằm trong highlight nào không */}
+              {(() => {
+                const start = pendingSelection.start;
+                const end = pendingSelection.end;
+                const overlappingHighlight = highlights.find(
+                  (h) => !(h.end <= start || h.start >= end)
+                );
+                return overlappingHighlight;
+              })() ? (
+                // Nếu có highlight chồng lấn, hiển thị nút "Bỏ highlight"
+                <Button
+                  size="small"
+                  danger
+                  style={{ borderRadius: 16, padding: "0 10px", marginRight: 4 }}
                   onClick={() => {
-                    if (pendingSelection.end > pendingSelection.start) {
-                      const start = pendingSelection.start;
-                      const end = pendingSelection.end;
-                      setHighlights((prev) => {
-                        // Loại bỏ mọi highlight cũ bị chồng lấn với vùng mới
-                        const cleaned = prev.filter(
-                          (h) => h.end <= start || h.start >= end
-                        );
-                        return [...cleaned, { start, end, color: c }];
-                      });
-                      setHighlightColor(c);
-                    }
+                    const start = pendingSelection.start;
+                    const end = pendingSelection.end;
+                    setHighlights((prev) => {
+                      // Xóa tất cả highlight bị chồng lấn với vùng đã chọn
+                      return prev.filter((h) => h.end <= start || h.start >= end);
+                    });
+                    setHighlightToolbarVisible(false);
                   }}
-                  style={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: 4,
-                    border: c === highlightColor ? "2px solid #fff" : "1px solid #e5e7eb",
-                    backgroundColor: c,
-                    cursor: "pointer",
-                  }}
-                />
-              ))}
+                >
+                  Bỏ highlight
+                </Button>
+              ) : (
+                // Nếu không có highlight, hiển thị các nút màu để highlight
+                <>
+                  {HIGHLIGHT_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        if (pendingSelection.end > pendingSelection.start) {
+                          const start = pendingSelection.start;
+                          const end = pendingSelection.end;
+                          setHighlights((prev) => {
+                            // Loại bỏ mọi highlight cũ bị chồng lấn với vùng mới
+                            const cleaned = prev.filter(
+                              (h) => h.end <= start || h.start >= end
+                            );
+                            return [...cleaned, { start, end, color: c }];
+                          });
+                          setHighlightColor(c);
+                        }
+                      }}
+                      style={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: 4,
+                        border: c === highlightColor ? "2px solid #fff" : "1px solid #e5e7eb",
+                        backgroundColor: c,
+                        cursor: "pointer",
+                      }}
+                    />
+                  ))}
+                </>
+              )}
               <span
                 style={{
                   width: 1,
