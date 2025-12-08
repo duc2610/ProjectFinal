@@ -1241,12 +1241,16 @@ namespace ToeicGenius.Services.Implementations
 				var savedAnswers = await _uow.UserAnswers.GetByTestResultIdAsync(request.TestResultId.Value);
 				if (savedAnswers != null && savedAnswers.Any())
 				{
-					request.Answers = savedAnswers.Select(sa => new UserLRAnswerDto
-					{
-						TestQuestionId = sa.TestQuestionId,
-						SubQuestionIndex = sa.SubQuestionIndex,
-						ChosenOptionLabel = sa.ChosenOptionLabel
-					}).ToList();
+					// Group by (TestQuestionId, SubQuestionIndex) và lấy answer mới nhất để tránh duplicate
+					request.Answers = savedAnswers
+						.GroupBy(sa => new { sa.TestQuestionId, sa.SubQuestionIndex })
+						.Select(g => g.OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt).First())
+						.Select(sa => new UserLRAnswerDto
+						{
+							TestQuestionId = sa.TestQuestionId,
+							SubQuestionIndex = sa.SubQuestionIndex,
+							ChosenOptionLabel = sa.ChosenOptionLabel
+						}).ToList();
 				}
 				else
 				{
@@ -1750,11 +1754,13 @@ namespace ToeicGenius.Services.Implementations
 			var userAnswers = new List<UserAnswer>();
 
 			// Tạo map để tra nhanh câu trả lời người dùng (O(1))
+			// Xử lý duplicate: nếu có nhiều answer cùng (TestQuestionId, SubQuestionIndex), lấy cái đầu tiên
 			var answerMap = request.Answers
 				.GroupBy(a => a.TestQuestionId)
 				.ToDictionary(
 					g => g.Key,
-					g => g.ToDictionary(a => a.SubQuestionIndex ?? 0)
+					g => g.GroupBy(a => a.SubQuestionIndex ?? 0)
+						  .ToDictionary(sg => sg.Key, sg => sg.First())
 				);
 
 			foreach (var tq in testQuestions)
