@@ -2304,19 +2304,48 @@ namespace ToeicGenius.Services.Implementations
 		/// </summary>
 		private async Task<Result<string>> UpdateTestQuestionGroupAsync(TestQuestion testQuestion, UpdateTestQuestionDto dto, Guid userId, bool isAdmin)
 		{
-			// Deserialize current QuestionGroupSnapshot
+			// Try to get version history (new format), or migrate from old format
+			QuestionGroupVersionHistory? versionHistory = null;
 			QuestionGroupSnapshotDto? currentGroupSnapshot = null;
-			try
+
+			if (!string.IsNullOrEmpty(testQuestion.SnapshotVersions))
 			{
-				currentGroupSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionGroupSnapshotDto>(testQuestion.SnapshotJson);
+				// New format: Use SnapshotVersions
+				try
+				{
+					versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionGroupVersionHistory>(testQuestion.SnapshotVersions);
+				}
+				catch
+				{
+					return Result<string>.Failure("Invalid question group snapshot versions format");
+				}
+
+				if (versionHistory == null || !versionHistory.Versions.Any())
+					return Result<string>.Failure("Failed to deserialize question group version history");
+
+				currentGroupSnapshot = versionHistory.GetLatestSnapshot();
 			}
-			catch
+			else
 			{
-				return Result<string>.Failure("Invalid question group snapshot JSON format");
+				// Old format: Migrate from SnapshotJson to SnapshotVersions
+				try
+				{
+					currentGroupSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionGroupSnapshotDto>(testQuestion.SnapshotJson);
+				}
+				catch
+				{
+					return Result<string>.Failure("Invalid question group snapshot JSON format");
+				}
+
+				if (currentGroupSnapshot == null)
+					return Result<string>.Failure("Failed to deserialize question group snapshot");
+
+				// Initialize version history with current snapshot
+				versionHistory = QuestionGroupVersionHistory.CreateInitial(currentGroupSnapshot, testQuestion.CreatedAt);
 			}
 
 			if (currentGroupSnapshot == null)
-				return Result<string>.Failure("Failed to deserialize question group snapshot");
+				return Result<string>.Failure("No question group snapshot found");
 
 			// Clone the snapshot for the new version
 			var newGroupSnapshot = new QuestionGroupSnapshotDto
@@ -2400,7 +2429,27 @@ namespace ToeicGenius.Services.Implementations
 				}
 			}
 
-			// Update SnapshotJson with new group snapshot
+			// Check if anyone has answered this question group
+			var anyUserAnswers = (await _uow.UserAnswers.GetAllAsync())
+				.Any(ua => ua.TestQuestionId == testQuestion.TestQuestionId);
+
+			if (anyUserAnswers)
+			{
+				// Add as new version (preserve old version for users who already answered)
+				versionHistory.AddVersion(newGroupSnapshot, Now);
+				testQuestion.CurrentVersion = versionHistory.CurrentVersion;
+			}
+			else
+			{
+				// No one answered yet, update the current version directly
+				versionHistory.Versions[versionHistory.Versions.Count - 1].Snapshot = newGroupSnapshot;
+				versionHistory.Versions[versionHistory.Versions.Count - 1].CreatedAt = Now;
+			}
+
+			// Serialize updated version history (new format)
+			testQuestion.SnapshotVersions = System.Text.Json.JsonSerializer.Serialize(versionHistory);
+
+			// Also update SnapshotJson with latest version (for backward compatibility)
 			testQuestion.SnapshotJson = System.Text.Json.JsonSerializer.Serialize(newGroupSnapshot);
 			testQuestion.UpdatedAt = Now;
 
@@ -2470,6 +2519,7 @@ namespace ToeicGenius.Services.Implementations
 			await _uow.SaveChangesAsync();
 			await _uow.CommitTransactionAsync();
 			return Result<string>.Success("TestQuestion (Group) updated successfully" +
+				(anyUserAnswers ? $" (new version {testQuestion.CurrentVersion})" : "") +
 				(dto.AlsoUpdateSourceInBank && testQuestion.SourceQuestionGroupId.HasValue
 					? " (including source QuestionGroup in bank)"
 					: ""));
