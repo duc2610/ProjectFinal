@@ -2,6 +2,7 @@ using System.Text.Json;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Report;
 using ToeicGenius.Domains.DTOs.Responses.Question;
+using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.DTOs.Responses.Report;
 using ToeicGenius.Domains.Entities;
 using ToeicGenius.Domains.Enums;
@@ -165,8 +166,10 @@ namespace ToeicGenius.Services.Implementations
 		private QuestionReportDto MapToDto(QuestionReport report)
 		{
 			// Deserialize SnapshotJson to get full question details
-			QuestionSnapshotDto? snapshot = null;
+			QuestionSnapshotDto? questionSnapshot = null;
+			QuestionGroupSnapshotDto? questionGroupSnapshot = null;
 			string? questionContent = null;
+			bool isQuestionGroup = report.TestQuestion?.IsQuestionGroup ?? false;
 
 			if (!string.IsNullOrEmpty(report.TestQuestion?.SnapshotJson))
 			{
@@ -176,8 +179,20 @@ namespace ToeicGenius.Services.Implementations
 					{
 						PropertyNameCaseInsensitive = true
 					};
-					snapshot = JsonSerializer.Deserialize<QuestionSnapshotDto>(report.TestQuestion.SnapshotJson, options);
-					questionContent = snapshot?.Content; // Lấy nội dung câu hỏi
+
+					if (isQuestionGroup)
+					{
+						// Deserialize as QuestionGroupSnapshotDto
+						questionGroupSnapshot = JsonSerializer.Deserialize<QuestionGroupSnapshotDto>(report.TestQuestion.SnapshotJson, options);
+						// For question groups, use Passage as the content preview
+						questionContent = questionGroupSnapshot?.Passage;
+					}
+					else
+					{
+						// Deserialize as QuestionSnapshotDto
+						questionSnapshot = JsonSerializer.Deserialize<QuestionSnapshotDto>(report.TestQuestion.SnapshotJson, options);
+						questionContent = questionSnapshot?.Content;
+					}
 				}
 				catch (Exception ex)
 				{
@@ -194,7 +209,9 @@ namespace ToeicGenius.Services.Implementations
 			{
 				ReportId = report.ReportId,
 				TestQuestionId = report.TestQuestionId,
-				QuestionSnapshot = snapshot,
+				IsQuestionGroup = isQuestionGroup,
+				QuestionSnapshot = questionSnapshot,
+				QuestionGroupSnapshot = questionGroupSnapshot,
 				QuestionContent = questionContent,
 				PartId = report.TestQuestion?.PartId,
 				PartName = report.TestQuestion?.Part?.Name,

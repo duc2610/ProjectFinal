@@ -2101,186 +2101,428 @@ namespace ToeicGenius.Services.Implementations
 				if (!isAdmin && testQuestion.Test?.CreatedById != userId)
 					return Result<string>.Failure("You don't have permission to update this question. Only the test creator can modify.");
 
-				// Try to get version history (new format), or migrate from old format
-				QuestionVersionHistory? versionHistory = null;
-				QuestionSnapshotDto? currentSnapshot = null;
-
-				if (!string.IsNullOrEmpty(testQuestion.SnapshotVersions))
+				// Branch based on whether this is a question group or single question
+				if (testQuestion.IsQuestionGroup)
 				{
-					// New format: Use SnapshotVersions
-					try
-					{
-						versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionVersionHistory>(testQuestion.SnapshotVersions);
-					}
-					catch
-					{
-						return Result<string>.Failure("Invalid snapshot versions format");
-					}
-
-					if (versionHistory == null || !versionHistory.Versions.Any())
-						return Result<string>.Failure("Failed to deserialize version history");
-
-					currentSnapshot = versionHistory.GetLatestSnapshot();
+					return await UpdateTestQuestionGroupAsync(testQuestion, dto, userId, isAdmin);
 				}
 				else
 				{
-					// Old format: Migrate from SnapshotJson to SnapshotVersions
-					try
-					{
-						currentSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionSnapshotDto>(testQuestion.SnapshotJson);
-					}
-					catch
-					{
-						return Result<string>.Failure("Invalid snapshot JSON format");
-					}
-
-					if (currentSnapshot == null)
-						return Result<string>.Failure("Failed to deserialize snapshot");
-
-					// Initialize version history with current snapshot
-					versionHistory = QuestionVersionHistory.CreateInitial(currentSnapshot, testQuestion.CreatedAt);
+					return await UpdateSingleTestQuestionAsync(testQuestion, dto, userId, isAdmin);
 				}
-
-				if (currentSnapshot == null)
-					return Result<string>.Failure("No snapshot found");
-
-				var snapshot = currentSnapshot;
-
-				// Clone the snapshot for the new version
-				var newSnapshot = new QuestionSnapshotDto
-				{
-					QuestionId = snapshot.QuestionId,
-					PartId = snapshot.PartId,
-					Content = snapshot.Content,
-					AudioUrl = snapshot.AudioUrl,
-					ImageUrl = snapshot.ImageUrl,
-					Explanation = snapshot.Explanation,
-					Options = snapshot.Options.Select(o => new OptionSnapshotDto
-					{
-						Label = o.Label,
-						Content = o.Content,
-						IsCorrect = o.IsCorrect
-					}).ToList(),
-					UserAnswer = snapshot.UserAnswer,
-					IsCorrect = snapshot.IsCorrect
-				};
-
-				// Update new snapshot with changes
-				if (!string.IsNullOrEmpty(dto.Content))
-					newSnapshot.Content = dto.Content;
-
-				if (dto.Audio != null)
-				{
-					// Upload new audio
-					var audioUploadResult = await _fileService.UploadFileAsync(dto.Audio, "audios");
-					if (!audioUploadResult.IsSuccess)
-						return Result<string>.Failure($"Failed to upload audio: {audioUploadResult.ErrorMessage}");
-					newSnapshot.AudioUrl = audioUploadResult.Data;
-				}
-
-				if (dto.Image != null)
-				{
-					// Upload new image
-					var imageUploadResult = await _fileService.UploadFileAsync(dto.Image, "images");
-					if (!imageUploadResult.IsSuccess)
-						return Result<string>.Failure($"Failed to upload image: {imageUploadResult.ErrorMessage}");
-					newSnapshot.ImageUrl = imageUploadResult.Data;
-				}
-
-				if (!string.IsNullOrEmpty(dto.Solution))
-					newSnapshot.Explanation = dto.Solution;
-
-				if (dto.AnswerOptions != null && dto.AnswerOptions.Any())
-				{
-					newSnapshot.Options = dto.AnswerOptions.Select(o => new OptionSnapshotDto
-					{
-						Label = o.Label,
-						Content = o.Content,
-						IsCorrect = o.IsCorrect
-					}).ToList();
-				}
-
-				// Check if anyone has answered this question
-				var anyUserAnswers = (await _uow.UserAnswers.GetAllAsync())
-					.Any(ua => ua.TestQuestionId == testQuestionId);
-
-				if (anyUserAnswers)
-				{
-					// Add as new version (preserve old version)
-					versionHistory.AddVersion(newSnapshot, Now);
-					testQuestion.CurrentVersion = versionHistory.CurrentVersion;
-				}
-				else
-				{
-					// No one answered yet, update the current version directly
-					versionHistory.Versions[versionHistory.Versions.Count - 1].Snapshot = newSnapshot;
-					versionHistory.Versions[versionHistory.Versions.Count - 1].CreatedAt = Now;
-				}
-
-				// Serialize updated version history (new format)
-				testQuestion.SnapshotVersions = System.Text.Json.JsonSerializer.Serialize(versionHistory);
-
-				// Also update SnapshotJson with latest version (for backward compatibility)
-				testQuestion.SnapshotJson = System.Text.Json.JsonSerializer.Serialize(newSnapshot);
-				testQuestion.UpdatedAt = Now;
-
-				await _uow.TestQuestions.UpdateTestQuestionAsync(testQuestion);
-
-				// If requested, also update the source Question in bank
-				if (dto.AlsoUpdateSourceInBank && testQuestion.SourceQuestionId.HasValue)
-				{
-					var sourceQuestion = await _uow.Questions.GetByIdAsync(testQuestion.SourceQuestionId.Value);
-					if (sourceQuestion != null)
-					{
-						// Update Question entity
-						if (!string.IsNullOrEmpty(dto.Content))
-							sourceQuestion.Content = dto.Content;
-
-						if (dto.Audio != null && !string.IsNullOrEmpty(newSnapshot.AudioUrl))
-							sourceQuestion.AudioUrl = newSnapshot.AudioUrl;
-
-						if (dto.Image != null && !string.IsNullOrEmpty(newSnapshot.ImageUrl))
-							sourceQuestion.ImageUrl = newSnapshot.ImageUrl;
-
-						if (!string.IsNullOrEmpty(dto.Solution))
-							sourceQuestion.Explanation = dto.Solution;
-
-						sourceQuestion.UpdatedAt = Now;
-						await _uow.Questions.UpdateAsync(sourceQuestion);
-
-						// Update Options in bank
-						if (dto.AnswerOptions != null && dto.AnswerOptions.Any())
-						{
-							var existingOptions = await _uow.Options.GetOptionsByQuestionIdAsync(sourceQuestion.QuestionId);
-							_uow.Options.RemoveRange(existingOptions);
-
-							foreach (var optDto in dto.AnswerOptions)
-							{
-								await _uow.Options.AddAsync(new Option
-								{
-									QuestionId = sourceQuestion.QuestionId,
-									Label = optDto.Label,
-									Content = optDto.Content,
-									IsCorrect = optDto.IsCorrect
-								});
-							}
-						}
-					}
-				}
-
-				// Save all changes to database before committing transaction
-				await _uow.SaveChangesAsync();
-				await _uow.CommitTransactionAsync();
-				return Result<string>.Success("TestQuestion updated successfully" +
-					(dto.AlsoUpdateSourceInBank && testQuestion.SourceQuestionId.HasValue
-						? " (including source Question in bank)"
-						: ""));
 			}
 			catch (Exception ex)
 			{
 				await _uow.RollbackTransactionAsync();
 				return Result<string>.Failure($"Error updating TestQuestion: {ex.Message}");
 			}
+		}
+
+		/// <summary>
+		/// Update a single question (not a group)
+		/// </summary>
+		private async Task<Result<string>> UpdateSingleTestQuestionAsync(TestQuestion testQuestion, UpdateTestQuestionDto dto, Guid userId, bool isAdmin)
+		{
+			// Try to get version history (new format), or migrate from old format
+			QuestionVersionHistory? versionHistory = null;
+			QuestionSnapshotDto? currentSnapshot = null;
+
+			if (!string.IsNullOrEmpty(testQuestion.SnapshotVersions))
+			{
+				// New format: Use SnapshotVersions
+				try
+				{
+					versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionVersionHistory>(testQuestion.SnapshotVersions);
+				}
+				catch
+				{
+					return Result<string>.Failure("Invalid snapshot versions format");
+				}
+
+				if (versionHistory == null || !versionHistory.Versions.Any())
+					return Result<string>.Failure("Failed to deserialize version history");
+
+				currentSnapshot = versionHistory.GetLatestSnapshot();
+			}
+			else
+			{
+				// Old format: Migrate from SnapshotJson to SnapshotVersions
+				try
+				{
+					currentSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionSnapshotDto>(testQuestion.SnapshotJson);
+				}
+				catch
+				{
+					return Result<string>.Failure("Invalid snapshot JSON format");
+				}
+
+				if (currentSnapshot == null)
+					return Result<string>.Failure("Failed to deserialize snapshot");
+
+				// Initialize version history with current snapshot
+				versionHistory = QuestionVersionHistory.CreateInitial(currentSnapshot, testQuestion.CreatedAt);
+			}
+
+			if (currentSnapshot == null)
+				return Result<string>.Failure("No snapshot found");
+
+			var snapshot = currentSnapshot;
+
+			// Clone the snapshot for the new version
+			var newSnapshot = new QuestionSnapshotDto
+			{
+				QuestionId = snapshot.QuestionId,
+				PartId = snapshot.PartId,
+				Content = snapshot.Content,
+				AudioUrl = snapshot.AudioUrl,
+				ImageUrl = snapshot.ImageUrl,
+				Explanation = snapshot.Explanation,
+				Options = snapshot.Options.Select(o => new OptionSnapshotDto
+				{
+					Label = o.Label,
+					Content = o.Content,
+					IsCorrect = o.IsCorrect
+				}).ToList(),
+				UserAnswer = snapshot.UserAnswer,
+				IsCorrect = snapshot.IsCorrect
+			};
+
+			// Update new snapshot with changes
+			if (!string.IsNullOrEmpty(dto.Content))
+				newSnapshot.Content = dto.Content;
+
+			if (dto.Audio != null)
+			{
+				// Upload new audio
+				var audioUploadResult = await _fileService.UploadFileAsync(dto.Audio, "audios");
+				if (!audioUploadResult.IsSuccess)
+					return Result<string>.Failure($"Failed to upload audio: {audioUploadResult.ErrorMessage}");
+				newSnapshot.AudioUrl = audioUploadResult.Data;
+			}
+
+			if (dto.Image != null)
+			{
+				// Upload new image
+				var imageUploadResult = await _fileService.UploadFileAsync(dto.Image, "images");
+				if (!imageUploadResult.IsSuccess)
+					return Result<string>.Failure($"Failed to upload image: {imageUploadResult.ErrorMessage}");
+				newSnapshot.ImageUrl = imageUploadResult.Data;
+			}
+
+			if (!string.IsNullOrEmpty(dto.Solution))
+				newSnapshot.Explanation = dto.Solution;
+
+			if (dto.AnswerOptions != null && dto.AnswerOptions.Any())
+			{
+				newSnapshot.Options = dto.AnswerOptions.Select(o => new OptionSnapshotDto
+				{
+					Label = o.Label,
+					Content = o.Content,
+					IsCorrect = o.IsCorrect
+				}).ToList();
+			}
+
+			// Check if anyone has answered this question
+			var anyUserAnswers = (await _uow.UserAnswers.GetAllAsync())
+				.Any(ua => ua.TestQuestionId == testQuestion.TestQuestionId);
+
+			if (anyUserAnswers)
+			{
+				// Add as new version (preserve old version)
+				versionHistory.AddVersion(newSnapshot, Now);
+				testQuestion.CurrentVersion = versionHistory.CurrentVersion;
+			}
+			else
+			{
+				// No one answered yet, update the current version directly
+				versionHistory.Versions[versionHistory.Versions.Count - 1].Snapshot = newSnapshot;
+				versionHistory.Versions[versionHistory.Versions.Count - 1].CreatedAt = Now;
+			}
+
+			// Serialize updated version history (new format)
+			testQuestion.SnapshotVersions = System.Text.Json.JsonSerializer.Serialize(versionHistory);
+
+			// Also update SnapshotJson with latest version (for backward compatibility)
+			testQuestion.SnapshotJson = System.Text.Json.JsonSerializer.Serialize(newSnapshot);
+			testQuestion.UpdatedAt = Now;
+
+			await _uow.TestQuestions.UpdateTestQuestionAsync(testQuestion);
+
+			// If requested, also update the source Question in bank
+			if (dto.AlsoUpdateSourceInBank && testQuestion.SourceQuestionId.HasValue)
+			{
+				var sourceQuestion = await _uow.Questions.GetByIdAsync(testQuestion.SourceQuestionId.Value);
+				if (sourceQuestion != null)
+				{
+					// Update Question entity
+					if (!string.IsNullOrEmpty(dto.Content))
+						sourceQuestion.Content = dto.Content;
+
+					if (dto.Audio != null && !string.IsNullOrEmpty(newSnapshot.AudioUrl))
+						sourceQuestion.AudioUrl = newSnapshot.AudioUrl;
+
+					if (dto.Image != null && !string.IsNullOrEmpty(newSnapshot.ImageUrl))
+						sourceQuestion.ImageUrl = newSnapshot.ImageUrl;
+
+					if (!string.IsNullOrEmpty(dto.Solution))
+						sourceQuestion.Explanation = dto.Solution;
+
+					sourceQuestion.UpdatedAt = Now;
+					await _uow.Questions.UpdateAsync(sourceQuestion);
+
+					// Update Options in bank
+					if (dto.AnswerOptions != null && dto.AnswerOptions.Any())
+					{
+						var existingOptions = await _uow.Options.GetOptionsByQuestionIdAsync(sourceQuestion.QuestionId);
+						_uow.Options.RemoveRange(existingOptions);
+
+						foreach (var optDto in dto.AnswerOptions)
+						{
+							await _uow.Options.AddAsync(new Option
+							{
+								QuestionId = sourceQuestion.QuestionId,
+								Label = optDto.Label,
+								Content = optDto.Content,
+								IsCorrect = optDto.IsCorrect
+							});
+						}
+					}
+				}
+			}
+
+			// Save all changes to database before committing transaction
+			await _uow.SaveChangesAsync();
+			await _uow.CommitTransactionAsync();
+			return Result<string>.Success("TestQuestion updated successfully" +
+				(dto.AlsoUpdateSourceInBank && testQuestion.SourceQuestionId.HasValue
+					? " (including source Question in bank)"
+					: ""));
+		}
+
+		/// <summary>
+		/// Update a question group (Part 3, 4, 6, 7)
+		/// </summary>
+		private async Task<Result<string>> UpdateTestQuestionGroupAsync(TestQuestion testQuestion, UpdateTestQuestionDto dto, Guid userId, bool isAdmin)
+		{
+			// Try to get version history (new format), or migrate from old format
+			QuestionGroupVersionHistory? versionHistory = null;
+			QuestionGroupSnapshotDto? currentGroupSnapshot = null;
+
+			if (!string.IsNullOrEmpty(testQuestion.SnapshotVersions))
+			{
+				// New format: Use SnapshotVersions
+				try
+				{
+					versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionGroupVersionHistory>(testQuestion.SnapshotVersions);
+				}
+				catch
+				{
+					return Result<string>.Failure("Invalid question group snapshot versions format");
+				}
+
+				if (versionHistory == null || !versionHistory.Versions.Any())
+					return Result<string>.Failure("Failed to deserialize question group version history");
+
+				currentGroupSnapshot = versionHistory.GetLatestSnapshot();
+			}
+			else
+			{
+				// Old format: Migrate from SnapshotJson to SnapshotVersions
+				try
+				{
+					currentGroupSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionGroupSnapshotDto>(testQuestion.SnapshotJson);
+				}
+				catch
+				{
+					return Result<string>.Failure("Invalid question group snapshot JSON format");
+				}
+
+				if (currentGroupSnapshot == null)
+					return Result<string>.Failure("Failed to deserialize question group snapshot");
+
+				// Initialize version history with current snapshot
+				versionHistory = QuestionGroupVersionHistory.CreateInitial(currentGroupSnapshot, testQuestion.CreatedAt);
+			}
+
+			if (currentGroupSnapshot == null)
+				return Result<string>.Failure("No question group snapshot found");
+
+			// Clone the snapshot for the new version
+			var newGroupSnapshot = new QuestionGroupSnapshotDto
+			{
+				QuestionGroupId = currentGroupSnapshot.QuestionGroupId,
+				PartId = currentGroupSnapshot.PartId,
+				Passage = currentGroupSnapshot.Passage,
+				AudioUrl = currentGroupSnapshot.AudioUrl,
+				ImageUrl = currentGroupSnapshot.ImageUrl,
+				QuestionSnapshots = currentGroupSnapshot.QuestionSnapshots.Select(q => new QuestionSnapshotDto
+				{
+					QuestionId = q.QuestionId,
+					PartId = q.PartId,
+					Content = q.Content,
+					AudioUrl = q.AudioUrl,
+					ImageUrl = q.ImageUrl,
+					Explanation = q.Explanation,
+					Options = q.Options.Select(o => new OptionSnapshotDto
+					{
+						Label = o.Label,
+						Content = o.Content,
+						IsCorrect = o.IsCorrect
+					}).ToList(),
+					UserAnswer = q.UserAnswer,
+					IsCorrect = q.IsCorrect
+				}).ToList()
+			};
+
+			// Update Passage if provided
+			if (!string.IsNullOrEmpty(dto.Passage))
+				newGroupSnapshot.Passage = dto.Passage;
+
+			// Update Audio if provided
+			if (dto.Audio != null)
+			{
+				var audioUploadResult = await _fileService.UploadFileAsync(dto.Audio, "audios");
+				if (!audioUploadResult.IsSuccess)
+					return Result<string>.Failure($"Failed to upload audio: {audioUploadResult.ErrorMessage}");
+				newGroupSnapshot.AudioUrl = audioUploadResult.Data;
+			}
+
+			// Update Image if provided
+			if (dto.Image != null)
+			{
+				var imageUploadResult = await _fileService.UploadFileAsync(dto.Image, "images");
+				if (!imageUploadResult.IsSuccess)
+					return Result<string>.Failure($"Failed to upload image: {imageUploadResult.ErrorMessage}");
+				newGroupSnapshot.ImageUrl = imageUploadResult.Data;
+			}
+
+			// Update sub-questions if provided
+			if (dto.Questions != null && dto.Questions.Any())
+			{
+				foreach (var subQDto in dto.Questions)
+				{
+					// Find the sub-question to update by QuestionId
+					var subQuestion = newGroupSnapshot.QuestionSnapshots
+						.FirstOrDefault(q => q.QuestionId == subQDto.QuestionId);
+
+					if (subQuestion != null)
+					{
+						// Update content if provided
+						if (!string.IsNullOrEmpty(subQDto.Content))
+							subQuestion.Content = subQDto.Content;
+
+						// Update explanation if provided
+						if (!string.IsNullOrEmpty(subQDto.Explanation))
+							subQuestion.Explanation = subQDto.Explanation;
+
+						// Update options if provided
+						if (subQDto.Options != null && subQDto.Options.Any())
+						{
+							subQuestion.Options = subQDto.Options.Select(o => new OptionSnapshotDto
+							{
+								Label = o.Label,
+								Content = o.Content,
+								IsCorrect = o.IsCorrect
+							}).ToList();
+						}
+					}
+				}
+			}
+
+			// Check if anyone has answered this question group
+			var anyUserAnswers = (await _uow.UserAnswers.GetAllAsync())
+				.Any(ua => ua.TestQuestionId == testQuestion.TestQuestionId);
+
+			if (anyUserAnswers)
+			{
+				// Add as new version (preserve old version for users who already answered)
+				versionHistory.AddVersion(newGroupSnapshot, Now);
+				testQuestion.CurrentVersion = versionHistory.CurrentVersion;
+			}
+			else
+			{
+				// No one answered yet, update the current version directly
+				versionHistory.Versions[versionHistory.Versions.Count - 1].Snapshot = newGroupSnapshot;
+				versionHistory.Versions[versionHistory.Versions.Count - 1].CreatedAt = Now;
+			}
+
+			// Serialize updated version history (new format)
+			testQuestion.SnapshotVersions = System.Text.Json.JsonSerializer.Serialize(versionHistory);
+
+			// Also update SnapshotJson with latest version (for backward compatibility)
+			testQuestion.SnapshotJson = System.Text.Json.JsonSerializer.Serialize(newGroupSnapshot);
+			testQuestion.UpdatedAt = Now;
+
+			await _uow.TestQuestions.UpdateTestQuestionAsync(testQuestion);
+
+			// If requested, also update the source QuestionGroup in bank
+			if (dto.AlsoUpdateSourceInBank && testQuestion.SourceQuestionGroupId.HasValue)
+			{
+				var sourceGroup = await _uow.QuestionGroups.GetGroupWithQuestionsEntityAsync(testQuestion.SourceQuestionGroupId.Value);
+				if (sourceGroup != null)
+				{
+					// Update QuestionGroup entity
+					if (!string.IsNullOrEmpty(dto.Passage))
+						sourceGroup.PassageContent = dto.Passage;
+
+					if (dto.Audio != null && !string.IsNullOrEmpty(newGroupSnapshot.AudioUrl))
+						sourceGroup.AudioUrl = newGroupSnapshot.AudioUrl;
+
+					if (dto.Image != null && !string.IsNullOrEmpty(newGroupSnapshot.ImageUrl))
+						sourceGroup.ImageUrl = newGroupSnapshot.ImageUrl;
+
+					sourceGroup.UpdatedAt = Now;
+
+					// Update sub-questions in bank if provided
+					if (dto.Questions != null && dto.Questions.Any())
+					{
+						foreach (var subQDto in dto.Questions)
+						{
+							if (subQDto.QuestionId.HasValue)
+							{
+								var bankQuestion = sourceGroup.Questions.FirstOrDefault(q => q.QuestionId == subQDto.QuestionId.Value);
+								if (bankQuestion != null)
+								{
+									if (!string.IsNullOrEmpty(subQDto.Content))
+										bankQuestion.Content = subQDto.Content;
+
+									if (!string.IsNullOrEmpty(subQDto.Explanation))
+										bankQuestion.Explanation = subQDto.Explanation;
+
+									bankQuestion.UpdatedAt = Now;
+
+									// Update options
+									if (subQDto.Options != null && subQDto.Options.Any())
+									{
+										var existingOptions = await _uow.Options.GetOptionsByQuestionIdAsync(bankQuestion.QuestionId);
+										_uow.Options.RemoveRange(existingOptions);
+
+										foreach (var optDto in subQDto.Options)
+										{
+											await _uow.Options.AddAsync(new Option
+											{
+												QuestionId = bankQuestion.QuestionId,
+												Label = optDto.Label,
+												Content = optDto.Content,
+												IsCorrect = optDto.IsCorrect
+											});
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// Save all changes to database before committing transaction
+			await _uow.SaveChangesAsync();
+			await _uow.CommitTransactionAsync();
+			return Result<string>.Success("TestQuestion (Group) updated successfully" +
+				(anyUserAnswers ? $" (new version {testQuestion.CurrentVersion})" : "") +
+				(dto.AlsoUpdateSourceInBank && testQuestion.SourceQuestionGroupId.HasValue
+					? " (including source QuestionGroup in bank)"
+					: ""));
 		}
 		#endregion
 

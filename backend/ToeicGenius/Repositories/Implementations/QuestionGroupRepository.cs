@@ -61,6 +61,15 @@ namespace ToeicGenius.Repositories.Implementations
 
 			return group;
 		}
+
+		public async Task<QuestionGroup?> GetGroupWithQuestionsEntityAsync(int id)
+		{
+			return await _context.QuestionGroups
+				.Include(g => g.Part)
+				.Include(g => g.Questions)
+					.ThenInclude(q => q.Options)
+				.FirstOrDefaultAsync(g => g.QuestionGroupId == id);
+		}
 		public async Task<PaginationResponse<QuestionListItemDto>> FilterGroupAsync(int? partId, string? keyWord, int? skill, string sortOrder, int page, int pageSize, CommonStatus status, Guid? creatorId = null)
 		{
 			var query = _context.QuestionGroups
