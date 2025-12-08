@@ -1,4 +1,5 @@
 using ToeicGenius.Domains.DTOs.Responses.Question;
+using ToeicGenius.Domains.DTOs.Responses.QuestionGroup;
 using ToeicGenius.Domains.Enums;
 
 namespace ToeicGenius.Domains.DTOs.Responses.Report
@@ -8,9 +9,16 @@ namespace ToeicGenius.Domains.DTOs.Responses.Report
 		public int ReportId { get; set; }
 		public int TestQuestionId { get; set; }
 
-		// Question info (from SnapshotJson)
+		// Indicates whether this is a question group or single question
+		public bool IsQuestionGroup { get; set; }
+
+		// Question info (from SnapshotJson) - for single questions
 		public QuestionSnapshotDto? QuestionSnapshot { get; set; }
-		public string? QuestionContent { get; set; } // Nội dung câu hỏi để hiển thị
+
+		// Question Group info (from SnapshotJson) - for question groups
+		public QuestionGroupSnapshotDto? QuestionGroupSnapshot { get; set; }
+
+		public string? QuestionContent { get; set; } // Nội dung câu hỏi để hiển thị (Content for single, Passage for group)
 		public int? PartId { get; set; }
 		public string? PartName { get; set; }
 
