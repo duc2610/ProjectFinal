@@ -33,6 +33,7 @@ namespace ToeicGenius.Tests.UnitTests
 			out Mock<IUserAnswerRepository> userAnswerRepoMock)
 		{
 			var fileServiceMock = new Mock<IFileService>();
+			var assessmentServiceMock = new Mock<IAssessmentService>();
 			uowMock = new Mock<IUnitOfWork>();
 			testRepoMock = new Mock<ITestRepository>();
 			testResultRepoMock = new Mock<ITestResultRepository>();
@@ -43,7 +44,7 @@ namespace ToeicGenius.Tests.UnitTests
 			uowMock.SetupGet(u => u.UserAnswers).Returns(userAnswerRepoMock.Object);
 			uowMock.Setup(u => u.SaveChangesAsync()).ReturnsAsync(1);
 
-			return new TestService(uowMock.Object, fileServiceMock.Object);
+			return new TestService(uowMock.Object, fileServiceMock.Object, assessmentServiceMock.Object);
 		}
 
 		private Test CreateTest(

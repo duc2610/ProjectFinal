@@ -3,6 +3,7 @@ using Newtonsoft.Json.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ToeicGenius.Domains.DTOs.Common;
+using ToeicGenius.Domains.DTOs.Requests.AI;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using ToeicGenius.Domains.DTOs.Requests.Test;
 using ToeicGenius.Domains.DTOs.Requests.TestQuestion;
@@ -25,10 +26,13 @@ namespace ToeicGenius.Services.Implementations
 	{
 		private readonly IUnitOfWork _uow;
 		private readonly IFileService _fileService;
-		public TestService(IUnitOfWork unitOfWork, IFileService fileService)
+		private readonly IAssessmentService _assessmentService;
+
+		public TestService(IUnitOfWork unitOfWork, IFileService fileService, IAssessmentService assessmentService)
 		{
 			_uow = unitOfWork;
 			_fileService = fileService;
+			_assessmentService = assessmentService;
 		}
 
 		#region Manage Tests - Test Creator
@@ -1071,51 +1075,52 @@ namespace ToeicGenius.Services.Implementations
 			{
 				userTest = existingTestResult;
 
-				// Check if test time has expired + 5 minutes grace period -> auto-submit
-				var elapsedTime = Now - userTest.CreatedAt;
-				var testDurationWithGrace = TimeSpan.FromMinutes(test.Duration + 5);
-
-				if (elapsedTime > testDurationWithGrace && userTest.Status == TestResultStatus.InProgress)
+				// Chỉ auto-submit nếu bài thi có tính giờ (IsSelectTime = true)
+				if (userTest.IsSelectTime)
 				{
-					// Auto-submit the test based on test skill
-					if (test.TestSkill == TestSkill.LR)
+					// Check if test time has expired + 5 minutes grace period -> auto-submit
+					var elapsedTime = Now - userTest.CreatedAt;
+					var testDurationWithGrace = TimeSpan.FromMinutes(test.Duration + 5);
+
+					if (elapsedTime > testDurationWithGrace && userTest.Status == TestResultStatus.InProgress)
 					{
-						// For LR tests, call SubmitLRTestAsync
-						var submitRequest = new SubmitLRTestRequestDto
+						// Auto-submit the test based on test skill
+						if (test.TestSkill == TestSkill.LR)
 						{
+							// For LR tests, call SubmitLRTestAsync
+							var submitRequest = new SubmitLRTestRequestDto
+							{
+								TestId = test.TestId,
+								TestResultId = userTest.TestResultId,
+								Duration = (int)elapsedTime.TotalMinutes,
+								TestType = test.TestType,
+								Answers = new List<UserLRAnswerDto>() // Empty - will get from DB
+							};
+
+							await SubmitLRTestAsync(userId, submitRequest);
+						}
+						else
+						{
+							// For Speaking/Writing/SW tests, build bulk request from saved answers and call AI grading
+							await AutoSubmitSWTestAsync(userTest, test, (int)elapsedTime.TotalMinutes);
+						}
+
+						// After auto-submit, create a new test session for the user to start fresh
+						userTest = new TestResult
+						{
+							UserId = userId,
 							TestId = test.TestId,
-							TestResultId = userTest.TestResultId,
-							Duration = (int)elapsedTime.TotalMinutes,
+							Status = TestResultStatus.InProgress,
+							Duration = 0,
+							TotalScore = 0,
 							TestType = test.TestType,
-							Answers = new List<UserLRAnswerDto>() // Empty answers list for auto-submit
+							CreatedAt = Now,
+							IsSelectTime = request.IsSelectTime
 						};
 
-						await SubmitLRTestAsync(userId, submitRequest);
-					}
-					else
-					{
-						// For Speaking/Writing/SW tests, just mark as submitted (grading happens separately via bulk grading)
-						userTest.Status = TestResultStatus.Graded;
-						userTest.Duration = (int)elapsedTime.TotalMinutes;
-						userTest.UpdatedAt = Now;
+						await _uow.TestResults.AddAsync(userTest);
 						await _uow.SaveChangesAsync();
 					}
-
-					// After auto-submit, create a new test session for the user to start fresh
-					userTest = new TestResult
-					{
-						UserId = userId,
-						TestId = test.TestId,
-						Status = TestResultStatus.InProgress,
-						Duration = 0,
-						TotalScore = 0,
-						TestType = test.TestType,
-						CreatedAt = Now,
-						IsSelectTime = request.IsSelectTime
-					};
-
-					await _uow.TestResults.AddAsync(userTest);
-					await _uow.SaveChangesAsync();
 				}
 			}
 			else
@@ -1218,22 +1223,36 @@ namespace ToeicGenius.Services.Implementations
 		// Submit listening & reading test
 		public async Task<Result<GeneralLRResultDto>> SubmitLRTestAsync(Guid userId, SubmitLRTestRequestDto request)
 		{
-			if (request.Answers == null || !request.Answers.Any())
-				return Result<GeneralLRResultDto>.Failure("No answers provided.");
-
 			if (!request.TestResultId.HasValue)
 				return Result<GeneralLRResultDto>.Failure("Test session must be provided.");
-			TestResult? testResult = null;
-			if (request.TestResultId.HasValue)
-			{
-				testResult = await _uow.TestResults.GetByIdAsync(request.TestResultId.Value);
 
-				if (testResult == null)
-					return Result<GeneralLRResultDto>.Failure("Test session not found.");
-				if (testResult.UserId != userId || testResult.TestId != request.TestId)
-					return Result<GeneralLRResultDto>.Failure("Test session does not match the submitted data.");
-				if (testResult.Status == TestResultStatus.Graded)
-					return Result<GeneralLRResultDto>.Failure("This test session has already been submitted.");
+			TestResult? testResult = await _uow.TestResults.GetByIdAsync(request.TestResultId.Value);
+
+			if (testResult == null)
+				return Result<GeneralLRResultDto>.Failure("Test session not found.");
+			if (testResult.UserId != userId || testResult.TestId != request.TestId)
+				return Result<GeneralLRResultDto>.Failure("Test session does not match the submitted data.");
+			if (testResult.Status == TestResultStatus.Graded)
+				return Result<GeneralLRResultDto>.Failure("This test session has already been submitted.");
+
+			// Nếu Answers rỗng (auto-submit), lấy từ DB (saved answers từ save-progress)
+			if (request.Answers == null || !request.Answers.Any())
+			{
+				var savedAnswers = await _uow.UserAnswers.GetByTestResultIdAsync(request.TestResultId.Value);
+				if (savedAnswers != null && savedAnswers.Any())
+				{
+					request.Answers = savedAnswers.Select(sa => new UserLRAnswerDto
+					{
+						TestQuestionId = sa.TestQuestionId,
+						SubQuestionIndex = sa.SubQuestionIndex,
+						ChosenOptionLabel = sa.ChosenOptionLabel
+					}).ToList();
+				}
+				else
+				{
+					// Không có answers nào được lưu, tạo list rỗng để xử lý như bỏ trống tất cả
+					request.Answers = new List<UserLRAnswerDto>();
+				}
 			}
 
 			// Tổng số câu hỏi
@@ -2085,6 +2104,85 @@ namespace ToeicGenius.Services.Implementations
 			{
 				return Result<string>.Failure($"Error saving progress: {ex.Message}");
 			}
+		}
+
+		/// <summary>
+		/// Auto-submit Speaking/Writing test when time expires.
+		/// Builds bulk request from saved answers and calls AI grading service.
+		/// </summary>
+		private async Task AutoSubmitSWTestAsync(TestResult testResult, Test test, int duration)
+		{
+			try
+			{
+				// Lấy saved answers từ DB
+				var savedAnswers = await _uow.UserAnswers.GetByTestResultIdAsync(testResult.TestResultId);
+
+				// Lấy test questions với Part để xác định PartType
+				var testQuestions = await _uow.TestQuestions.GetByTestIdWithPartAsync(test.TestId);
+
+				// Build danh sách parts cho bulk request
+				var parts = new List<BulkAssessmentPartDto>();
+
+				foreach (var tq in testQuestions)
+				{
+					var savedAnswer = savedAnswers.FirstOrDefault(sa => sa.TestQuestionId == tq.TestQuestionId);
+					var partType = GetPartTypeFromPart(tq.Part);
+
+					parts.Add(new BulkAssessmentPartDto
+					{
+						TestQuestionId = tq.TestQuestionId,
+						PartType = partType,
+						AnswerText = savedAnswer?.AnswerText,
+						AudioFileUrl = savedAnswer?.AnswerAudioUrl
+					});
+				}
+
+				// Build bulk request
+				var bulkRequest = new SubmitBulkAssessmentRequestDto
+				{
+					TestResultId = testResult.TestResultId,
+					Duration = duration,
+					TestType = test.TestType.ToString(),
+					Parts = parts
+				};
+
+				// Gọi Assessment Service để chấm điểm
+				await _assessmentService.SubmitBulkAssessmentAsync(bulkRequest, testResult.UserId);
+			}
+			catch (Exception)
+			{
+				// Nếu AI grading fail, vẫn mark là Graded với score = 0 để không block user
+				testResult.Status = TestResultStatus.Graded;
+				testResult.Duration = duration;
+				testResult.TotalScore = 0;
+				testResult.UpdatedAt = Now;
+				await _uow.SaveChangesAsync();
+			}
+		}
+
+		/// <summary>
+		/// Get part type string from Part entity for bulk assessment
+		/// </summary>
+		private static string GetPartTypeFromPart(Part? part)
+		{
+			if (part == null)
+				return "writing_sentence";
+
+			return part.PartNumber switch
+			{
+				// Writing parts
+				8 => "writing_sentence",
+				9 => "writing_email",
+				10 => "writing_essay",
+				// Speaking parts
+				11 => "read_aloud",
+				12 => "describe_picture",
+				13 => "respond_questions",
+				14 => "respond_with_info",
+				15 => "express_opinion",
+				// Fallback based on Skill
+				_ => part.Skill == QuestionSkill.Writing ? "writing_sentence" : "read_aloud"
+			};
 		}
 
 		public async Task<Result<string>> UpdateTestQuestionAsync(int testQuestionId, UpdateTestQuestionDto dto, Guid userId, bool isAdmin = false)

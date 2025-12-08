@@ -258,9 +258,10 @@ namespace ToeicGenius.Repositories.Implementations
 			try
 			{
 				// Get all InProgress test results with their test details
+				// Chỉ lấy những bài có IsSelectTime = true (có tính giờ)
 				var inProgressTests = await _context.TestResults
 					.Include(tr => tr.Test)
-					.Where(tr => tr.Status == TestResultStatus.InProgress)
+					.Where(tr => tr.Status == TestResultStatus.InProgress && tr.IsSelectTime == true)
 					.ToListAsync();
 
 				// Filter expired tests (CreatedAt + Duration + 5 minutes grace period < Now)
