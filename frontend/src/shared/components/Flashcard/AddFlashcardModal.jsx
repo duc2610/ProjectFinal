@@ -8,7 +8,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
   const [bulkForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("single");
-  const [bulkCards, setBulkCards] = useState([{ term: "", definition: "", pronunciation: "", notes: "", example1: "", example2: "" }]);
+  const [bulkCards, setBulkCards] = useState([{ term: "", definition: "", pronunciation: "", wordType: "", notes: "", examples: "" }]);
 
   const handleSubmit = async () => {
     try {
@@ -48,7 +48,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
   const handleCancel = () => {
     form.resetFields();
     bulkForm.resetFields();
-    setBulkCards([{ term: "", definition: "", pronunciation: "", notes: "", example1: "", example2: "" }]);
+    setBulkCards([{ term: "", definition: "", pronunciation: "", wordType: "", notes: "", examples: "" }]);
     setActiveTab("single");
     onClose?.();
   };
@@ -58,22 +58,36 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
       await bulkForm.validateFields();
       setLoading(true);
       
-      // Lấy giá trị từ form
-      const formValues = bulkForm.getFieldsValue();
+      // Lấy giá trị từ form - đảm bảo lấy tất cả các trường (kể cả chưa touched)
+      const formValues = bulkForm.getFieldsValue(true);
       
       // Lọc các flashcard có đủ thông tin (term và definition bắt buộc)
       const validCards = bulkCards
         .map((card, index) => {
-          const term = formValues[`card_${index}_term`]?.trim() || card.term?.trim() || "";
-          const definition = formValues[`card_${index}_definition`]?.trim() || card.definition?.trim() || "";
+          // Lấy tất cả giá trị trực tiếp từ form, xử lý giống như tab "Thêm một"
+          const term = (formValues[`card_${index}_term`] || "").trim();
+          const definition = (formValues[`card_${index}_definition`] || "").trim();
+          
+          // Xử lý các trường tùy chọn giống như tab "Thêm một": trim và chuyển empty string thành null
+          const pronunciation = (formValues[`card_${index}_pronunciation`] || "").trim() || null;
+          const wordType = (formValues[`card_${index}_wordType`] || "").trim() || null;
+          const notes = (formValues[`card_${index}_notes`] || "").trim() || null;
+          
+          // Xử lý examples giống như tab "Thêm một" - split theo dòng
+          const examplesText = (formValues[`card_${index}_examples`] || "").trim();
+          const examples = examplesText
+            ? examplesText.split("\n")
+                .map((s) => s.trim())
+                .filter(Boolean)
+            : [];
           
           return {
             term,
             definition,
-            pronunciation: formValues[`card_${index}_pronunciation`]?.trim() || card.pronunciation?.trim() || null,
-            notes: formValues[`card_${index}_notes`]?.trim() || card.notes?.trim() || null,
-            example1: formValues[`card_${index}_example1`]?.trim() || card.example1?.trim() || null,
-            example2: formValues[`card_${index}_example2`]?.trim() || card.example2?.trim() || null,
+            pronunciation,
+            wordType,
+            notes,
+            examples,
           };
         })
         .filter(card => card.term && card.definition);
@@ -89,10 +103,13 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
         flashcards: validCards,
       };
 
+      // Debug: log dữ liệu để kiểm tra
+      console.log("Bulk flashcards data to send:", JSON.stringify(data, null, 2));
+
       const result = await bulkCreateFlashcards(data);
       message.success(`Đã thêm ${validCards.length} thẻ flashcard thành công!`);
       bulkForm.resetFields();
-      setBulkCards([{ term: "", definition: "", pronunciation: "", notes: "", example1: "", example2: "" }]);
+      setBulkCards([{ term: "", definition: "", pronunciation: "", wordType: "", notes: "", examples: "" }]);
       onSuccess?.(result);
       onClose?.();
     } catch (error) {
@@ -110,7 +127,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
   };
 
   const handleAddBulkCard = () => {
-    setBulkCards([...bulkCards, { term: "", definition: "", pronunciation: "", notes: "", example1: "", example2: "" }]);
+    setBulkCards([...bulkCards, { term: "", definition: "", pronunciation: "", wordType: "", notes: "", examples: "" }]);
   };
 
   const handleRemoveBulkCard = (index) => {
@@ -127,9 +144,9 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
         newFormValues[`card_${newIndex}_term`] = formValues[`card_${oldIndex}_term`] || "";
         newFormValues[`card_${newIndex}_definition`] = formValues[`card_${oldIndex}_definition`] || "";
         newFormValues[`card_${newIndex}_pronunciation`] = formValues[`card_${oldIndex}_pronunciation`] || "";
+        newFormValues[`card_${newIndex}_wordType`] = formValues[`card_${oldIndex}_wordType`] || "";
         newFormValues[`card_${newIndex}_notes`] = formValues[`card_${oldIndex}_notes`] || "";
-        newFormValues[`card_${newIndex}_example1`] = formValues[`card_${oldIndex}_example1`] || "";
-        newFormValues[`card_${newIndex}_example2`] = formValues[`card_${oldIndex}_example2`] || "";
+        newFormValues[`card_${newIndex}_examples`] = formValues[`card_${oldIndex}_examples`] || "";
       });
       
       // Xóa các field của card đã xóa
@@ -138,9 +155,9 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
           newFormValues[`card_${i}_term`] = undefined;
           newFormValues[`card_${i}_definition`] = undefined;
           newFormValues[`card_${i}_pronunciation`] = undefined;
+          newFormValues[`card_${i}_wordType`] = undefined;
           newFormValues[`card_${i}_notes`] = undefined;
-          newFormValues[`card_${i}_example1`] = undefined;
-          newFormValues[`card_${i}_example2`] = undefined;
+          newFormValues[`card_${i}_examples`] = undefined;
         }
       }
       
@@ -168,9 +185,9 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
         formValues[`card_${index}_term`] = card.term;
         formValues[`card_${index}_definition`] = card.definition;
         formValues[`card_${index}_pronunciation`] = card.pronunciation;
+        formValues[`card_${index}_wordType`] = card.wordType;
         formValues[`card_${index}_notes`] = card.notes;
-        formValues[`card_${index}_example1`] = card.example1;
-        formValues[`card_${index}_example2`] = card.example2;
+        formValues[`card_${index}_examples`] = card.examples;
       });
       bulkForm.setFieldsValue(formValues);
     }
@@ -379,17 +396,6 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
           layout="vertical"
           style={{ marginTop: 16, maxHeight: "60vh", overflowY: "auto" }}
         >
-          <div style={{ marginBottom: 16 }}>
-            <Button
-              type="dashed"
-              icon={<PlusOutlined />}
-              onClick={handleAddBulkCard}
-              block
-            >
-              Thêm flashcard
-            </Button>
-          </div>
-
           {bulkCards.map((card, index) => (
             <div
               key={index}
@@ -466,7 +472,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
                 style={{ marginBottom: 12 }}
               >
                 <Input.TextArea
-                  rows={3}
+                  rows={4}
                   placeholder="Nhập định nghĩa hoặc nghĩa của từ"
                   maxLength={1000}
                   showCount
@@ -485,120 +491,123 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
                 />
               </Form.Item>
 
-              <Space direction="vertical" style={{ width: "100%" }} size="small">
-                <Form.Item
-                  name={`card_${index}_pronunciation`}
-                  label="Phiên âm (tùy chọn)"
-                  initialValue={card.pronunciation}
-                  validateTrigger={['onBlur']}
-                  rules={[
-                    { max: 255, message: "Phiên âm tối đa 255 ký tự" },
-                  ]}
-                  style={{ marginBottom: 8 }}
-                >
-                  <Input
-                    placeholder="Ví dụ: /əˈkʌmplɪʃ/"
-                    maxLength={255}
-                    onChange={(e) => {
-                      handleBulkCardChange(index, "pronunciation", e.target.value);
-                      // Xóa lỗi khi đang sửa (nếu có)
-                      const errors = bulkForm.getFieldsError([`card_${index}_pronunciation`]);
-                      if (errors[0]?.errors?.length > 0) {
-                        bulkForm.setFields([{ name: `card_${index}_pronunciation`, errors: [] }]);
-                      }
-                    }}
-                    onFocus={() => {
-                      // Validate các trường trước đó khi focus vào trường này
-                      bulkForm.validateFields([`card_${index}_term`, `card_${index}_definition`]).catch(() => {});
-                    }}
-                  />
-                </Form.Item>
+              <Form.Item
+                name={`card_${index}_pronunciation`}
+                label="Phiên âm (tùy chọn)"
+                initialValue={card.pronunciation}
+                validateTrigger={['onBlur']}
+                rules={[
+                  { max: 255, message: "Phiên âm tối đa 255 ký tự" },
+                ]}
+                style={{ marginBottom: 12 }}
+              >
+                <Input
+                  placeholder="Ví dụ: /əˈkʌmplɪʃ/"
+                  maxLength={255}
+                  onChange={(e) => {
+                    handleBulkCardChange(index, "pronunciation", e.target.value);
+                    // Xóa lỗi khi đang sửa (nếu có)
+                    const errors = bulkForm.getFieldsError([`card_${index}_pronunciation`]);
+                    if (errors[0]?.errors?.length > 0) {
+                      bulkForm.setFields([{ name: `card_${index}_pronunciation`, errors: [] }]);
+                    }
+                  }}
+                  onFocus={() => {
+                    // Validate các trường trước đó khi focus vào trường này
+                    bulkForm.validateFields([`card_${index}_term`, `card_${index}_definition`]).catch(() => {});
+                  }}
+                />
+              </Form.Item>
 
-                <Form.Item
-                  name={`card_${index}_example1`}
-                  label="Ví dụ 1 (tùy chọn)"
-                  initialValue={card.example1}
-                  validateTrigger={['onBlur']}
-                  rules={[
-                    { max: 500, message: "Ví dụ tối đa 500 ký tự" },
-                  ]}
-                  style={{ marginBottom: 8 }}
-                >
-                  <Input
-                    placeholder="Ví dụ: She accomplished her goal."
-                    maxLength={500}
-                    onChange={(e) => {
-                      handleBulkCardChange(index, "example1", e.target.value);
-                      // Xóa lỗi khi đang sửa (nếu có)
-                      const errors = bulkForm.getFieldsError([`card_${index}_example1`]);
-                      if (errors[0]?.errors?.length > 0) {
-                        bulkForm.setFields([{ name: `card_${index}_example1`, errors: [] }]);
-                      }
-                    }}
-                    onFocus={() => {
-                      // Validate các trường trước đó khi focus vào trường này
-                      bulkForm.validateFields([`card_${index}_term`, `card_${index}_definition`]).catch(() => {});
-                    }}
-                  />
-                </Form.Item>
+              <Form.Item
+                name={`card_${index}_wordType`}
+                label="Loại từ (tùy chọn)"
+                initialValue={card.wordType}
+                validateTrigger={['onBlur']}
+                rules={[
+                  { max: 50, message: "Loại từ tối đa 50 ký tự" },
+                ]}
+                style={{ marginBottom: 12 }}
+              >
+                <Input
+                  placeholder="Ví dụ: N (Noun), V (Verb), ADJ (Adjective)"
+                  maxLength={50}
+                  onChange={(e) => {
+                    handleBulkCardChange(index, "wordType", e.target.value);
+                    // Xóa lỗi khi đang sửa (nếu có)
+                    const errors = bulkForm.getFieldsError([`card_${index}_wordType`]);
+                    if (errors[0]?.errors?.length > 0) {
+                      bulkForm.setFields([{ name: `card_${index}_wordType`, errors: [] }]);
+                    }
+                  }}
+                  onFocus={() => {
+                    // Validate các trường trước đó khi focus vào trường này
+                    bulkForm.validateFields([`card_${index}_term`, `card_${index}_definition`]).catch(() => {});
+                  }}
+                />
+              </Form.Item>
 
-                <Form.Item
-                  name={`card_${index}_example2`}
-                  label="Ví dụ 2 (tùy chọn)"
-                  initialValue={card.example2}
-                  validateTrigger={['onBlur']}
-                  rules={[
-                    { max: 500, message: "Ví dụ tối đa 500 ký tự" },
-                  ]}
-                  style={{ marginBottom: 8 }}
-                >
-                  <Input
-                    placeholder="Ví dụ: We accomplished the task on time."
-                    maxLength={500}
-                    onChange={(e) => {
-                      handleBulkCardChange(index, "example2", e.target.value);
-                      // Xóa lỗi khi đang sửa (nếu có)
-                      const errors = bulkForm.getFieldsError([`card_${index}_example2`]);
-                      if (errors[0]?.errors?.length > 0) {
-                        bulkForm.setFields([{ name: `card_${index}_example2`, errors: [] }]);
-                      }
-                    }}
-                    onFocus={() => {
-                      // Validate các trường trước đó khi focus vào trường này
-                      bulkForm.validateFields([`card_${index}_term`, `card_${index}_definition`]).catch(() => {});
-                    }}
-                  />
-                </Form.Item>
+              <Form.Item
+                name={`card_${index}_notes`}
+                label="Ghi chú (tùy chọn)"
+                initialValue={card.notes}
+                validateTrigger={['onBlur']}
+                style={{ marginBottom: 12 }}
+              >
+                <Input.TextArea
+                  rows={2}
+                  placeholder="Nhập ghi chú bổ sung"
+                  maxLength={500}
+                  showCount
+                  onChange={(e) => {
+                    handleBulkCardChange(index, "notes", e.target.value);
+                    // Xóa lỗi khi đang sửa (nếu có)
+                    const errors = bulkForm.getFieldsError([`card_${index}_notes`]);
+                    if (errors[0]?.errors?.length > 0) {
+                      bulkForm.setFields([{ name: `card_${index}_notes`, errors: [] }]);
+                    }
+                  }}
+                  onFocus={() => {
+                    // Validate các trường trước đó khi focus vào trường này
+                    bulkForm.validateFields([`card_${index}_term`, `card_${index}_definition`]).catch(() => {});
+                  }}
+                />
+              </Form.Item>
 
-                <Form.Item
-                  name={`card_${index}_notes`}
-                  label="Ghi chú (tùy chọn)"
-                  initialValue={card.notes}
-                  validateTrigger={['onBlur']}
-                  style={{ marginBottom: 0 }}
-                >
-                  <Input.TextArea
-                    rows={2}
-                    placeholder="Ví dụ: Verb - Common in business"
-                    maxLength={500}
-                    showCount
-                    onChange={(e) => {
-                      handleBulkCardChange(index, "notes", e.target.value);
-                      // Xóa lỗi khi đang sửa (nếu có)
-                      const errors = bulkForm.getFieldsError([`card_${index}_notes`]);
-                      if (errors[0]?.errors?.length > 0) {
-                        bulkForm.setFields([{ name: `card_${index}_notes`, errors: [] }]);
-                      }
-                    }}
-                    onFocus={() => {
-                      // Validate các trường trước đó khi focus vào trường này
-                      bulkForm.validateFields([`card_${index}_term`, `card_${index}_definition`]).catch(() => {});
-                    }}
-                  />
-                </Form.Item>
-              </Space>
+              <Form.Item
+                name={`card_${index}_examples`}
+                label="Ví dụ (mỗi dòng một câu, tùy chọn)"
+                tooltip="Nhập 1–3 câu ví dụ cho từ này. Mỗi câu một dòng."
+                initialValue={card.examples}
+                validateTrigger={['onBlur']}
+                style={{ marginBottom: 0 }}
+              >
+                <Input.TextArea
+                  rows={3}
+                  placeholder={"Ví dụ:\nShe accomplished her goal of running a marathon.\nWe accomplished the task on time."}
+                  maxLength={1000}
+                  showCount
+                  onChange={(e) => {
+                    handleBulkCardChange(index, "examples", e.target.value);
+                  }}
+                  onFocus={() => {
+                    bulkForm.validateFields([`card_${index}_term`, `card_${index}_definition`]).catch(() => {});
+                  }}
+                />
+              </Form.Item>
             </div>
           ))}
+
+          <div style={{ marginTop: 16, marginBottom: 16 }}>
+            <Button
+              type="dashed"
+              icon={<PlusOutlined />}
+              onClick={handleAddBulkCard}
+              block
+            >
+              Thêm flashcard
+            </Button>
+          </div>
 
           <div style={{ marginTop: 16, padding: 12, backgroundColor: "#e6f7ff", borderRadius: 4 }}>
             <strong>Số flashcard hợp lệ: {bulkCards.filter(c => c.term && c.definition).length} / {bulkCards.length}</strong>

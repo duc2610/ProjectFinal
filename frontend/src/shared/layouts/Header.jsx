@@ -1,6 +1,5 @@
-import { Layout, Avatar, Badge, Space, Typography } from "antd";
+import { Layout, Avatar, Space, Typography } from "antd";
 import {
-  BellOutlined,
   UserOutlined,
   LogoutOutlined,
   DownOutlined,
@@ -120,10 +119,6 @@ export default function Header() {
           </nav>
 
           <div className={styles.actions}>
-            <Badge dot offset={[-2, 4]} className={styles.badge}>
-              <BellOutlined className={styles.bell} />
-            </Badge>
-
             {isAuthenticated && (
               <Text className={styles.fullname} ellipsis>
                 {fullName}

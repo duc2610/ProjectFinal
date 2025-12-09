@@ -336,12 +336,35 @@ export function ReportTab() {
           "Processing": { label: "Đang xử lý", color: "processing" },
           "Resolved": { label: "Đã xử lý", color: "success" },
           "Rejected": { label: "Từ chối", color: "error" },
+          "Reviewing": { label: "Đang xem xét", color: "processing" },
+          "Approved": { label: "Đã duyệt", color: "success" },
+          "Closed": { label: "Đã đóng", color: "default" },
         };
-        const statusInfo = statusMap[status] || { label: status || "—", color: "default" };
+        
+        // Nếu không tìm thấy trong map, dịch sang tiếng Việt hoặc dùng label mặc định
+        let statusInfo = statusMap[status];
+        if (!statusInfo && status) {
+          // Dịch các trạng thái tiếng Anh phổ biến sang tiếng Việt
+          const fallbackTranslations = {
+            "pending": "Chờ xử lý",
+            "processing": "Đang xử lý",
+            "resolved": "Đã xử lý",
+            "rejected": "Từ chối",
+            "reviewing": "Đang xem xét",
+            "approved": "Đã duyệt",
+            "closed": "Đã đóng",
+          };
+          const lowerStatus = status.toLowerCase();
+          const translatedLabel = fallbackTranslations[lowerStatus] || status;
+          statusInfo = { label: translatedLabel, color: "default" };
+        }
+        
+        const finalStatusInfo = statusInfo || { label: "—", color: "default" };
+        
         return (
           <div style={cellCardStyle}>
             <div style={sectionTitleStyle}>Trạng thái</div>
-            <Tag color={statusInfo.color}>{statusInfo.label}</Tag>
+            <Tag color={finalStatusInfo.color}>{finalStatusInfo.label}</Tag>
           </div>
         );
       },

@@ -88,7 +88,7 @@ const SCORE_META = [
     key: "writing",
     label: "Viết",
     resultKey: "writingScore",
-    max: 200,
+    max: 200, // Sẽ được điều chỉnh động dựa trên mode
     color: "#722ed1",
     icon: <FileTextOutlined />,
   },
@@ -96,7 +96,7 @@ const SCORE_META = [
     key: "speaking",
     label: "Nói",
     resultKey: "speakingScore",
-    max: 200,
+    max: 200, // Sẽ được điều chỉnh động dựa trên mode
     color: "#13c2c2",
     icon: <CustomerServiceOutlined />,
   },
@@ -850,7 +850,6 @@ export default function ResultScreen() {
         answerText: feedback.answerText || "",
         answerAudioUrl: feedback.answerAudioUrl || "",
         score: feedback.score || 0,
-        overallScore: feedback.detailedScores?.overall || 0,
         content: feedback.content || "",
         feedback,
         aiScorer: feedback.aiScorer,
@@ -933,13 +932,43 @@ export default function ResultScreen() {
     [normalizedTestType, skillGroup]
   );
 
+  // Kiểm tra xem có phải Simulator mode không
+  const isSimulatorMode = useMemo(
+    () => result?.isSimulator ?? (normalizedTestType === "Simulator"),
+    [result?.isSimulator, normalizedTestType]
+  );
+
   const scoreConfigs = useMemo(
     () =>
-      SCORE_META.map((meta) => ({
-        ...meta,
-        score: result ? result[meta.resultKey] : undefined,
-      })),
-    [result]
+      SCORE_META.map((meta) => {
+        let score = undefined;
+        let max = meta.max;
+        if (result) {
+          // Đối với Writing và Speaking, kiểm tra mode để dùng đúng trường
+          if (meta.resultKey === "writingScore") {
+            score = isSimulatorMode 
+              ? result.writingScore 
+              : result.writingRawScore;
+            // Practice mode: max = 100, Simulator mode: max = 200
+            max = isSimulatorMode ? 200 : 100;
+          } else if (meta.resultKey === "speakingScore") {
+            score = isSimulatorMode 
+              ? result.speakingScore 
+              : result.speakingRawScore;
+            // Practice mode: max = 100, Simulator mode: max = 200
+            max = isSimulatorMode ? 200 : 100;
+          } else {
+            // Listening và Reading giữ nguyên
+            score = result[meta.resultKey];
+          }
+        }
+        return {
+          ...meta,
+          score,
+          max,
+        };
+      }),
+    [result, isSimulatorMode]
   );
 
   const lrQuestionTotals = useMemo(() => {
@@ -1334,24 +1363,13 @@ export default function ResultScreen() {
       },
     },
     {
-      title: "Điểm tổng",
-      dataIndex: "overallScore",
-      width: 120,
-      align: "center",
-      render: (score) => (
-        <Text strong style={{ fontSize: 16 }}>
-          {score || 0}/100
-        </Text>
-      ),
-    },
-    {
       title: "Điểm số",
       dataIndex: "score",
       width: 120,
       align: "center",
       render: (score) => (
-        <Text strong style={{ color: "#1890ff" }}>
-          {score || 0}
+        <Text strong style={{ color: "#1890ff", fontSize: 16 }}>
+          {score || 0}/100
         </Text>
       ),
     },
@@ -1863,15 +1881,47 @@ export default function ResultScreen() {
       const writingFeedbacks = swFeedbacks.writing || [];
       const writingCount = writingFeedbacks.length;
       
+      // Lấy thông tin từ API response
+      const totalQuestions = result?.totalQuestions ?? result?.quantityQuestion ?? 0;
+      const answeredQuestions = result?.answeredQuestions ?? writingCount;
+      const skippedQuestions = result?.skippedQuestions ?? Math.max(0, totalQuestions - answeredQuestions);
+      
       tiles.push({
-        label: "Số câu phần Viết",
-        value: writingCount,
+        label: "Tổng số câu phần Viết",
+        value: totalQuestions > 0 ? totalQuestions : writingCount,
         color: "#0958d9",
       });
-      if (result?.writingScore != null) {
+      tiles.push({
+        label: "Câu đã làm",
+        value: answeredQuestions,
+        color: "#1d39c4",
+      });
+      tiles.push({
+        label: "Câu bỏ qua",
+        value: skippedQuestions,
+        color: "#fa8c16",
+      });
+      
+      const writingScore = isSimulatorMode 
+        ? result?.writingScore 
+        : result?.writingRawScore;
+      // Debug: log để kiểm tra giá trị từ API
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Writing Score Debug:', {
+          isSimulatorMode,
+          writingScore,
+          writingRawScore: result?.writingRawScore,
+          writingScore_simulator: result?.writingScore,
+          totalScore: result?.totalScore,
+          totalQuestions,
+          answeredQuestions,
+          skippedQuestions,
+        });
+      }
+      if (writingScore != null) {
         tiles.push({
           label: "Điểm Writing",
-          value: result.writingScore,
+          value: writingScore,
           color: "#fa541c",
         });
       }
@@ -1880,15 +1930,34 @@ export default function ResultScreen() {
       const speakingFeedbacks = swFeedbacks.speaking || [];
       const speakingCount = speakingFeedbacks.length;
       
+      // Lấy thông tin từ API response
+      const totalQuestions = result?.totalQuestions ?? result?.quantityQuestion ?? 0;
+      const answeredQuestions = result?.answeredQuestions ?? speakingCount;
+      const skippedQuestions = result?.skippedQuestions ?? Math.max(0, totalQuestions - answeredQuestions);
+      
       tiles.push({
-        label: "Số câu phần Nói",
-        value: speakingCount,
+        label: "Tổng số câu phần Nói",
+        value: totalQuestions > 0 ? totalQuestions : speakingCount,
         color: "#0958d9",
       });
-      if (result?.speakingScore != null) {
+      tiles.push({
+        label: "Câu đã làm",
+        value: answeredQuestions,
+        color: "#1d39c4",
+      });
+      tiles.push({
+        label: "Câu bỏ qua",
+        value: skippedQuestions,
+        color: "#fa8c16",
+      });
+      
+      const speakingScore = isSimulatorMode 
+        ? result?.speakingScore 
+        : result?.speakingRawScore;
+      if (speakingScore != null) {
         tiles.push({
           label: "Điểm Speaking",
-          value: result.speakingScore,
+          value: speakingScore,
           color: "#fa8c16",
         });
       }
@@ -1927,7 +1996,10 @@ export default function ResultScreen() {
         });
       } else {
         const totalQuestions =
-          result?.questionQuantity ?? testMeta?.questionQuantity ?? 0;
+          result?.totalQuestions ?? result?.questionQuantity ?? testMeta?.questionQuantity ?? 0;
+        const answeredQuestions = result?.answeredQuestions ?? 0;
+        const skippedQuestions = result?.skippedQuestions ?? Math.max(0, totalQuestions - answeredQuestions);
+        
         if (totalQuestions > 0) {
           tiles.push({
             label: "Tổng số câu trong đề",
@@ -1935,27 +2007,58 @@ export default function ResultScreen() {
             color: "#0958d9",
           });
         }
+        if (answeredQuestions > 0 || skippedQuestions > 0) {
+          tiles.push({
+            label: "Câu đã làm",
+            value: answeredQuestions,
+            color: "#1d39c4",
+          });
+          tiles.push({
+            label: "Câu bỏ qua",
+            value: skippedQuestions,
+            color: "#fa8c16",
+          });
+        }
         if (skillGroup === "sw") {
-          if (result?.writingScore != null) {
+          const writingScore = isSimulatorMode 
+            ? result?.writingScore 
+            : result?.writingRawScore;
+          const speakingScore = isSimulatorMode 
+            ? result?.speakingScore 
+            : result?.speakingRawScore;
+          
+          // Debug: log để kiểm tra giá trị từ API
+          if (process.env.NODE_ENV === 'development') {
+            console.log('SW Score Debug:', {
+              isSimulatorMode,
+              writingScore,
+              writingRawScore: result?.writingRawScore,
+              speakingScore,
+              speakingRawScore: result?.speakingRawScore,
+              totalScore: result?.totalScore,
+            });
+          }
+          
+          if (writingScore != null) {
             tiles.push({
               label: "Điểm Writing",
-              value: result.writingScore,
+              value: writingScore,
               color: "#fa541c",
             });
           }
-          if (result?.speakingScore != null) {
+          if (speakingScore != null) {
             tiles.push({
               label: "Điểm Speaking",
-              value: result.speakingScore,
+              value: speakingScore,
               color: "#fa8c16",
             });
           }
-          // Chỉ hiển thị tổng điểm khi có cả 2 phần SW
+          // Chỉ hiển thị tổng điểm khi có cả 2 phần SW và là Simulator
           if (
             result?.totalScore != null &&
-            normalizedTestType !== "Practice" &&
-            result?.writingScore != null &&
-            result?.speakingScore != null
+            isSimulatorMode &&
+            writingScore != null &&
+            speakingScore != null
           ) {
             tiles.push({
               label: "Tổng điểm",
@@ -2401,18 +2504,10 @@ export default function ResultScreen() {
                           </div>
                           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, marginLeft: 16 }}>
                             <div>
-                              <Text type="secondary" style={{ fontSize: 12 }}>Điểm tổng</Text>
-                              <div>
-                                <Text strong style={{ fontSize: 20, color: "#1890ff" }}>
-                                  {item.overallScore || 0}/100
-                                </Text>
-                              </div>
-                            </div>
-                            <div>
                               <Text type="secondary" style={{ fontSize: 12 }}>Điểm số</Text>
                               <div>
-                                <Text strong style={{ fontSize: 18, color: "#52c41a" }}>
-                                  {item.score || 0}
+                                <Text strong style={{ fontSize: 20, color: "#52c41a" }}>
+                                  {item.score || 0}/100
                                 </Text>
                               </div>
                             </div>

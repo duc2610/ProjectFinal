@@ -544,10 +544,14 @@ export function TestHistoryTab() {
         });
       } else {
         setSwDetail(data?.perPartFeedbacks || []);
+        const isSimulator = data?.isSimulator ?? (normalizeTestType(data?.testType ?? record.testType) === "Simulator");
         setDetailSummary({
           totalScore: data?.totalScore ?? record.totalScore ?? null,
-          writingScore: data?.writingScore ?? null,
-          speakingScore: data?.speakingScore ?? null,
+          writingScore: isSimulator ? (data?.writingScore ?? null) : (data?.writingRawScore ?? null),
+          speakingScore: isSimulator ? (data?.speakingScore ?? null) : (data?.speakingRawScore ?? null),
+          writingRawScore: data?.writingRawScore ?? null,
+          speakingRawScore: data?.speakingRawScore ?? null,
+          isSimulator: isSimulator,
           quantityQuestion: data?.quantityQuestion ?? record.totalQuestion ?? null,
           duration: data?.duration ?? record.duration ?? null,
           timeResult: timeResult,
@@ -1561,26 +1565,30 @@ export function TestHistoryTab() {
           color: "#0958d9",
         });
       }
-      if (detailSummary.writingScore != null) {
+      const isSimulator = detailSummary.isSimulator ?? (normalizeTestType(detailSummary.testType) === "Simulator");
+      const writingScore = detailSummary.writingScore;
+      const speakingScore = detailSummary.speakingScore;
+      
+      if (writingScore != null) {
         tiles.push({
           label: "Điểm Writing",
-          value: detailSummary.writingScore,
+          value: writingScore,
           color: "#fa541c",
         });
       }
-      if (detailSummary.speakingScore != null) {
+      if (speakingScore != null) {
         tiles.push({
           label: "Điểm Speaking",
-          value: detailSummary.speakingScore,
+          value: speakingScore,
           color: "#fa8c16",
         });
       }
-      // Chỉ hiển thị tổng điểm khi có cả 2 phần SW
+      // Chỉ hiển thị tổng điểm khi có cả 2 phần SW và là Simulator
       if (
         detailSummary.totalScore != null &&
-        !isPracticeLrMode &&
-        detailSummary.writingScore != null &&
-        detailSummary.speakingScore != null
+        isSimulator &&
+        writingScore != null &&
+        speakingScore != null
       ) {
         tiles.push({
           label: "Tổng điểm",
@@ -1711,26 +1719,30 @@ export function TestHistoryTab() {
           color: "#0958d9",
         });
       }
-      if (detailSummary.writingScore != null) {
+      const isSimulator = detailSummary.isSimulator ?? (normalizeTestType(detailSummary.testType) === "Simulator");
+      const writingScore = detailSummary.writingScore;
+      const speakingScore = detailSummary.speakingScore;
+      
+      if (writingScore != null) {
         detailTiles.push({
           label: "Điểm Writing",
-          value: detailSummary.writingScore,
+          value: writingScore,
           color: "#fa541c",
         });
       }
-      if (detailSummary.speakingScore != null) {
+      if (speakingScore != null) {
         detailTiles.push({
           label: "Điểm Speaking",
-          value: detailSummary.speakingScore,
+          value: speakingScore,
           color: "#fa8c16",
         });
       }
-      // Chỉ hiển thị tổng điểm khi có cả 2 phần SW
+      // Chỉ hiển thị tổng điểm khi có cả 2 phần SW và là Simulator
       if (
         detailSummary.totalScore != null &&
-        !isPracticeLrMode &&
-        detailSummary.writingScore != null &&
-        detailSummary.speakingScore != null
+        isSimulator &&
+        writingScore != null &&
+        speakingScore != null
       ) {
         detailTiles.push({
           label: "Tổng điểm",
@@ -1800,34 +1812,42 @@ export function TestHistoryTab() {
               )}
               
               {/* Writing Score */}
-              {detailSummary.writingScore !== undefined && detailSummary.writingScore !== null && (
-                <Col span={12}>
-                  <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
-                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
-                      <EditOutlined /> Writing
+              {detailSummary.writingScore !== undefined && detailSummary.writingScore !== null && (() => {
+                const isSimulator = detailSummary.isSimulator ?? (normalizeTestType(detailSummary.testType) === "Simulator");
+                const maxScore = isSimulator ? 200 : 100;
+                return (
+                  <Col span={12}>
+                    <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                      <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                        <EditOutlined /> Writing
+                      </div>
+                      <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                        {detailSummary.writingScore}
+                        <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>/{maxScore}</span>
+                      </div>
                     </div>
-                    <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
-                      {detailSummary.writingScore}
-                      <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>/200</span>
-                    </div>
-                  </div>
-                </Col>
-              )}
+                  </Col>
+                );
+              })()}
               
               {/* Speaking Score */}
-              {detailSummary.speakingScore !== undefined && detailSummary.speakingScore !== null && (
-                <Col span={12}>
-                  <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
-                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
-                      <SoundOutlined /> Speaking
+              {detailSummary.speakingScore !== undefined && detailSummary.speakingScore !== null && (() => {
+                const isSimulator = detailSummary.isSimulator ?? (normalizeTestType(detailSummary.testType) === "Simulator");
+                const maxScore = isSimulator ? 200 : 100;
+                return (
+                  <Col span={12}>
+                    <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                      <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                        <SoundOutlined /> Speaking
+                      </div>
+                      <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                        {detailSummary.speakingScore}
+                        <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>/{maxScore}</span>
+                      </div>
                     </div>
-                    <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
-                      {detailSummary.speakingScore}
-                      <span style={{ fontSize: 12, fontWeight: 400, marginLeft: 2 }}>/200</span>
-                    </div>
-                  </div>
-                </Col>
-              )}
+                  </Col>
+                );
+              })()}
               
               {/* Correct Count per part (for LR) */}
               {isLR && detailSummary.correctCount !== undefined && detailSummary.correctCount !== null && (
