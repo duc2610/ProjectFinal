@@ -108,14 +108,14 @@ export function TestHistoryTab() {
     if (typeof skill === "string") {
       const upper = skill.toUpperCase();
       if (upper === "LR" || upper === "LISTENING & READING") return "Listening & Reading";
-      if (upper === "SW" || upper === "S&W") return "S&W";
+      if (upper === "SW" || upper === "S&W") return "Speaking & Writing";
       return skill;
     }
     const skillMap = {
       1: "Speaking",
       2: "Writing",
       3: "Listening & Reading",
-      4: "S&W",
+      4: "Speaking & Writing",
     };
     return skillMap[skill] || skill;
   };
@@ -543,7 +543,42 @@ export function TestHistoryTab() {
           testSkill: data?.testSkill ?? record.testSkill ?? null,
         });
       } else {
-        setSwDetail(data?.perPartFeedbacks || []);
+        // Chuẩn hóa partName để thứ tự Writing -> Speaking liền mạch
+        const rawSw = data?.perPartFeedbacks || [];
+        const hasWriting = rawSw.some((f) => {
+          const scorer = (f.aiScorer || "").toLowerCase();
+          const partId = f.partId || 0;
+          return scorer === "writing" || (partId >= 8 && partId <= 10);
+        });
+        const hasSpeaking = rawSw.some((f) => {
+          const scorer = (f.aiScorer || "").toLowerCase();
+          const partId = f.partId || 0;
+          return scorer === "speaking" || (partId >= 11 && partId <= 15);
+        });
+        const shouldRenumber = hasWriting && hasSpeaking;
+        let partNumberMap = new Map();
+        if (shouldRenumber) {
+          let nextNo = 1;
+          const orderedPartIds = [8, 9, 10, 11, 12, 13, 14, 15];
+          orderedPartIds.forEach((pid) => {
+            if (rawSw.some((f) => f.partId === pid)) {
+              partNumberMap.set(pid, nextNo++);
+            }
+          });
+        }
+        const normalizedSw = rawSw.map((f) => {
+          if (!shouldRenumber) return f;
+          const newNo = partNumberMap.get(f.partId);
+          if (!newNo) return f;
+          let partName = f.partName || "";
+          if (partName.match(/part\s*\d+/i)) {
+            partName = partName.replace(/(part\s*)\d+/i, `$1${newNo}`);
+          } else {
+            partName = `Part ${newNo}`;
+          }
+          return { ...f, partName };
+        });
+        setSwDetail(normalizedSw);
         const isSimulator = data?.isSimulator ?? (normalizeTestType(data?.testType ?? record.testType) === "Simulator");
         setDetailSummary({
           totalScore: data?.totalScore ?? record.totalScore ?? null,
@@ -553,6 +588,9 @@ export function TestHistoryTab() {
           speakingRawScore: data?.speakingRawScore ?? null,
           isSimulator: isSimulator,
           quantityQuestion: data?.quantityQuestion ?? record.totalQuestion ?? null,
+          totalQuestions: data?.totalQuestions ?? data?.quantityQuestion ?? record.totalQuestion ?? null,
+          answeredQuestions: data?.answeredQuestions ?? null,
+          skippedQuestions: data?.skippedQuestions ?? null,
           duration: data?.duration ?? record.duration ?? null,
           timeResult: timeResult,
           isSelectTime: isSelectTime,
@@ -1557,43 +1595,46 @@ export function TestHistoryTab() {
       });
     } else {
       // SW mode
-      const totalQuestions = detailSummary.quantityQuestion ?? 0;
-      if (totalQuestions > 0) {
-        tiles.push({
-          label: "Tổng số câu trong đề",
-          value: totalQuestions,
-          color: "#0958d9",
-        });
-      }
-      const isSimulator = detailSummary.isSimulator ?? (normalizeTestType(detailSummary.testType) === "Simulator");
+      const totalQuestions = detailSummary.totalQuestions ?? detailSummary.quantityQuestion ?? 0;
+      const answeredQuestions = detailSummary.answeredQuestions ?? 0;
+      const skippedQuestions = detailSummary.skippedQuestions ?? Math.max(0, totalQuestions - answeredQuestions);
       const writingScore = detailSummary.writingScore;
       const speakingScore = detailSummary.speakingScore;
       
-      if (writingScore != null) {
+      // Phân loại Writing và Speaking từ swDetail
+      const writingFeedbacks = swDetail?.filter(item => {
+        const scorer = (item.aiScorer || "").toLowerCase();
+        const partId = item.partId || 0;
+        return scorer === "writing" || (partId >= 8 && partId <= 10);
+      }) || [];
+      
+      const speakingFeedbacks = swDetail?.filter(item => {
+        const scorer = (item.aiScorer || "").toLowerCase();
+        const partId = item.partId || 0;
+        return scorer === "speaking" || (partId >= 11 && partId <= 15);
+      }) || [];
+      
+      const hasWriting = writingFeedbacks.length > 0;
+      const hasSpeaking = speakingFeedbacks.length > 0;
+      const hasBoth = hasWriting && hasSpeaking;
+      
+      const isSimulator = detailSummary.isSimulator ?? (normalizeTestType(detailSummary.testType) === "Simulator");
+      
+      // Thông tin Writing - chỉ hiển thị "Tổng số câu phần Viết" nếu có cả Writing và Speaking
+      if (hasWriting && hasBoth) {
         tiles.push({
-          label: "Điểm Writing",
-          value: writingScore,
-          color: "#fa541c",
+          label: "Tổng số câu phần Viết",
+          value: writingFeedbacks.length,
+          color: "#0958d9",
         });
       }
-      if (speakingScore != null) {
+      
+      // Thông tin Speaking - chỉ hiển thị "Tổng số câu phần Nói" nếu có cả Writing và Speaking
+      if (hasSpeaking && hasBoth) {
         tiles.push({
-          label: "Điểm Speaking",
-          value: speakingScore,
-          color: "#fa8c16",
-        });
-      }
-      // Chỉ hiển thị tổng điểm khi có cả 2 phần SW và là Simulator
-      if (
-        detailSummary.totalScore != null &&
-        isSimulator &&
-        writingScore != null &&
-        speakingScore != null
-      ) {
-        tiles.push({
-          label: "Tổng điểm",
-          value: detailSummary.totalScore,
-          color: "#722ed1",
+          label: "Tổng số câu phần Nói",
+          value: speakingFeedbacks.length,
+          color: "#0958d9",
         });
       }
     }
@@ -1656,7 +1697,9 @@ export function TestHistoryTab() {
   const renderSummaryChips = () => {
     const isLR = detailMode === "LR";
     const totalScore = detailSummary.totalScore;
-    const maxScore = isLR ? 990 : 400;
+    const isSimulator = detailSummary.isSimulator ?? (normalizeTestType(detailSummary.testType) === "Simulator");
+    // LR: 990, SW Simulator: 400, SW Practice: 100
+    const maxScore = isLR ? 990 : (isSimulator ? 400 : 100);
     
     // Tạo tiles cho thông tin chi tiết
     const detailTiles = [];
@@ -1711,43 +1754,46 @@ export function TestHistoryTab() {
       });
     } else {
       // SW mode
-      const totalQuestions = detailSummary.quantityQuestion ?? 0;
-      if (totalQuestions > 0) {
-        detailTiles.push({
-          label: "Tổng số câu trong đề",
-          value: totalQuestions,
-          color: "#0958d9",
-        });
-      }
+      const totalQuestions = detailSummary.totalQuestions ?? detailSummary.quantityQuestion ?? 0;
+      const answeredQuestions = detailSummary.answeredQuestions ?? 0;
+      const skippedQuestions = detailSummary.skippedQuestions ?? Math.max(0, totalQuestions - answeredQuestions);
+      
+      // Phân loại Writing và Speaking từ swDetail
+      const writingFeedbacks = swDetail?.filter(item => {
+        const scorer = (item.aiScorer || "").toLowerCase();
+        const partId = item.partId || 0;
+        return scorer === "writing" || (partId >= 8 && partId <= 10);
+      }) || [];
+      
+      const speakingFeedbacks = swDetail?.filter(item => {
+        const scorer = (item.aiScorer || "").toLowerCase();
+        const partId = item.partId || 0;
+        return scorer === "speaking" || (partId >= 11 && partId <= 15);
+      }) || [];
+      
+      const hasWriting = writingFeedbacks.length > 0;
+      const hasSpeaking = speakingFeedbacks.length > 0;
+      const hasBoth = hasWriting && hasSpeaking;
+      
       const isSimulator = detailSummary.isSimulator ?? (normalizeTestType(detailSummary.testType) === "Simulator");
       const writingScore = detailSummary.writingScore;
       const speakingScore = detailSummary.speakingScore;
       
-      if (writingScore != null) {
+      // Thông tin Writing - chỉ hiển thị "Tổng số câu phần Viết" nếu có cả Writing và Speaking
+      if (hasWriting && hasBoth) {
         detailTiles.push({
-          label: "Điểm Writing",
-          value: writingScore,
-          color: "#fa541c",
+          label: "Tổng số câu phần Viết",
+          value: writingFeedbacks.length,
+          color: "#0958d9",
         });
       }
-      if (speakingScore != null) {
+      
+      // Thông tin Speaking - chỉ hiển thị "Tổng số câu phần Nói" nếu có cả Writing và Speaking
+      if (hasSpeaking && hasBoth) {
         detailTiles.push({
-          label: "Điểm Speaking",
-          value: speakingScore,
-          color: "#fa8c16",
-        });
-      }
-      // Chỉ hiển thị tổng điểm khi có cả 2 phần SW và là Simulator
-      if (
-        detailSummary.totalScore != null &&
-        isSimulator &&
-        writingScore != null &&
-        speakingScore != null
-      ) {
-        detailTiles.push({
-          label: "Tổng điểm",
-          value: detailSummary.totalScore,
-          color: "#722ed1",
+          label: "Tổng số câu phần Nói",
+          value: speakingFeedbacks.length,
+          color: "#0958d9",
         });
       }
     }
@@ -1885,19 +1931,53 @@ export function TestHistoryTab() {
                 </>
               )}
               
-              {/* Số câu hỏi (for SW) */}
-              {!isLR && detailSummary.quantityQuestion !== undefined && detailSummary.quantityQuestion !== null && (
-                <Col span={12}>
-                  <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
-                    <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
-                      <FileTextOutlined /> Số câu hỏi
-                    </div>
-                    <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
-                      {detailSummary.quantityQuestion}
-                    </div>
-                  </div>
-                </Col>
-              )}
+              {/* Thông tin số câu hỏi (for SW) */}
+              {!isLR && (() => {
+                const totalQuestions = detailSummary.totalQuestions ?? detailSummary.quantityQuestion ?? null;
+                const answeredQuestions = detailSummary.answeredQuestions ?? null;
+                const skippedQuestions = detailSummary.skippedQuestions ?? null;
+                
+                return (
+                  <>
+                    {totalQuestions !== null && totalQuestions !== undefined && (
+                      <Col span={12}>
+                        <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                            <FileTextOutlined /> Tổng số câu
+                          </div>
+                          <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                            {totalQuestions}
+                          </div>
+                        </div>
+                      </Col>
+                    )}
+                    {answeredQuestions !== null && answeredQuestions !== undefined && (
+                      <Col span={12}>
+                        <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                            <CheckCircleOutlined /> Câu đã làm
+                          </div>
+                          <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                            {answeredQuestions}
+                          </div>
+                        </div>
+                      </Col>
+                    )}
+                    {skippedQuestions !== null && skippedQuestions !== undefined && skippedQuestions > 0 && (
+                      <Col span={12}>
+                        <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
+                          <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
+                            <CloseCircleOutlined /> Câu bỏ qua
+                          </div>
+                          <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
+                            {skippedQuestions}
+                          </div>
+                        </div>
+                      </Col>
+                    )}
+                  </>
+                );
+              })()}
             </Row>
           </Col>
         </Row>
@@ -2051,12 +2131,14 @@ export function TestHistoryTab() {
       render: (_, record) => {
         // Kiểm tra xem có phải Speaking hoặc Writing không (không có khái niệm "câu đúng")
         const testSkill = record.testSkill || "";
-        const isSW = testSkill === "Writing" || testSkill === "Speaking" || testSkill === "S&W" || 
+        const skillGroup = getSkillGroupFromValue(record.testSkill);
+        const isSW = skillGroup === "sw" || 
+                     testSkill === "Writing" || testSkill === "Speaking" || 
+                     testSkill === "S&W" || testSkill === "Speaking & Writing" ||
                      testSkill === 2 || testSkill === 1 || testSkill === 4;
         
         // Kiểm tra xem có phải Practice LR không
         const normalizedTestType = normalizeTestType(record.testType);
-        const skillGroup = getSkillGroupFromValue(record.testSkill);
         const isPracticeLR = normalizedTestType === "Practice" && skillGroup === "lr";
         
           // Tất cả đều hiển thị totalScore từ API, nếu không có thì hiển thị 0
@@ -2116,11 +2198,6 @@ export function TestHistoryTab() {
                 {record.correctQuestion ?? 0}/{record.totalQuestion ?? 0} câu đúng
               </span>
                     </>
-                  )}
-                  {isSW && totalCount > 0 && (
-                    <span style={{ fontSize: 12, color: "#666" }}>
-                      {accuracy}% chính xác
-                    </span>
                   )}
                 </>
             )}

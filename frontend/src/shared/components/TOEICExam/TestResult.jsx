@@ -830,6 +830,47 @@ export default function ResultScreen() {
     let speakingIndex = 1;
     let rowKeyCounter = 1;
 
+    // Xác định có đủ cả Writing & Speaking để renumber part
+    const hasWritingPart = sortedFeedbacks.some((f) => {
+      const partType = resolveSwPartType(f);
+      const scorer = (f.aiScorer || "").toLowerCase();
+      return scorer === "writing" || partType.startsWith("writing");
+    });
+    const hasSpeakingPart = sortedFeedbacks.some((f) => {
+      const partType = resolveSwPartType(f);
+      const scorer = (f.aiScorer || "").toLowerCase();
+      return scorer === "speaking" || partType.startsWith("speaking");
+    });
+    const shouldRenumber = hasWritingPart && hasSpeakingPart;
+
+    // Map partType -> new sequential part number (writing first then speaking)
+    const partNumberMap = new Map();
+    if (shouldRenumber) {
+      let nextPartNo = 1;
+      const writingTypes = [
+        "writing_sentence",
+        "writing_email",
+        "writing_essay",
+      ];
+      const speakingTypes = [
+        "speaking_read_aloud",
+        "speaking_describe_picture",
+        "speaking_respond_questions",
+        "speaking_respond_questions_info",
+        "speaking_express_opinion",
+      ];
+      writingTypes.forEach((t) => {
+        if (sortedFeedbacks.some((f) => resolveSwPartType(f) === t)) {
+          partNumberMap.set(t, nextPartNo++);
+        }
+      });
+      speakingTypes.forEach((t) => {
+        if (sortedFeedbacks.some((f) => resolveSwPartType(f) === t)) {
+          partNumberMap.set(t, nextPartNo++);
+        }
+      });
+    }
+
     sortedFeedbacks.forEach((feedback) => {
       const partType = resolveSwPartType(feedback);
       const scorer = (feedback.aiScorer || "").toLowerCase();
@@ -840,12 +881,24 @@ export default function ResultScreen() {
         return;
       }
 
+      // Tính partName hiển thị theo renumber nếu cần
+      let displayPartName = feedback.partName || "";
+      if (shouldRenumber && partNumberMap.has(partType)) {
+        const newNo = partNumberMap.get(partType);
+        // Giữ nhãn gốc nếu có, chỉ thay số part
+        if (displayPartName.match(/part\s*\d+/i)) {
+          displayPartName = displayPartName.replace(/(part\s*)\d+/i, `$1${newNo}`);
+        } else {
+          displayPartName = `Part ${newNo}`;
+        }
+      }
+
       const mappedIndex = questionOrderMap[feedback.testQuestionId];
       const baseRow = {
         key: feedback.testQuestionId || rowKeyCounter++,
         testQuestionId: feedback.testQuestionId,
         partType,
-        partName: feedback.partName || "",
+        partName: displayPartName,
         questionContent: feedback.questionContent?.content || "",
         answerText: feedback.answerText || "",
         answerAudioUrl: feedback.answerAudioUrl || "",
@@ -2051,19 +2104,6 @@ export default function ResultScreen() {
               label: "Điểm Speaking",
               value: speakingScore,
               color: "#fa8c16",
-            });
-          }
-          // Chỉ hiển thị tổng điểm khi có cả 2 phần SW và là Simulator
-          if (
-            result?.totalScore != null &&
-            isSimulatorMode &&
-            writingScore != null &&
-            speakingScore != null
-          ) {
-            tiles.push({
-              label: "Tổng điểm",
-              value: result.totalScore,
-              color: "#722ed1",
             });
           }
         }
