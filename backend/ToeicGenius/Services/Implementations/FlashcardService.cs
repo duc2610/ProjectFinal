@@ -262,18 +262,17 @@ namespace ToeicGenius.Services.Implementations
 			var flashcards = new List<Flashcard>();
 			foreach (var item in dto.Flashcards)
 			{
-				var examples = new List<string>();
-				if (!string.IsNullOrEmpty(item.Example1)) examples.Add(item.Example1);
-				if (!string.IsNullOrEmpty(item.Example2)) examples.Add(item.Example2);
-
 				flashcards.Add(new Flashcard
 				{
 					SetId = dto.SetId,
 					Term = item.Term,
 					Definition = item.Definition,
 					Pronunciation = item.Pronunciation,
-					Examples = examples.Count > 0 ? JsonSerializer.Serialize(examples) : null,
+					ImageUrl = item.ImageUrl,
+					WordType = item.WordType,
+					Examples = item.Examples != null && item.Examples.Count > 0 ? JsonSerializer.Serialize(item.Examples) : null,
 					Notes = item.Notes,
+					AudioUrl = item.AudioUrl,
 					CreatedAt = Now
 				});
 			}

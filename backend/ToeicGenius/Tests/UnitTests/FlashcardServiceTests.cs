@@ -647,7 +647,7 @@ namespace ToeicGenius.Tests.UnitTests
 				SetId = 1,
 				Flashcards = new List<BulkFlashcardItemDto>
 				{
-					new() { Term = "A", Example1 = "ex1", Example2 = "ex2" },
+					new() { Term = "A", Examples = new List<string> { "ex1", "ex2" } },
 					new() { Term = "B" }
 				}
 			};

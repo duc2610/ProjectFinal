@@ -20,13 +20,18 @@ namespace ToeicGenius.Domains.DTOs.Requests.Flashcard
 
 		public string? Definition { get; set; } // Định nghĩa
 
-		public string? Example1 { get; set; } // Ví dụ 1
-
-		public string? Example2 { get; set; } // Ví dụ 2
-
 		[MaxLength(255)]
 		public string? Pronunciation { get; set; } // Phiên âm
 
+		public string? ImageUrl { get; set; } // Ảnh minh họa
+
+		[MaxLength(50)]
+		public string? WordType { get; set; } // N, V, ADJ, ADV, etc.
+
+		public List<string>? Examples { get; set; } // Ví dụ (tối đa 10 câu)
+
 		public string? Notes { get; set; } // Ghi chú
+
+		public string? AudioUrl { get; set; } // Audio pronunciation
 	}
 }
