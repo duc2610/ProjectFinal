@@ -55,7 +55,8 @@ namespace ToeicGenius.Repositories.Implementations
 		public async Task UpdateTestQuestionAsync(TestQuestion testQuestion)
 		{
 			_context.TestQuestions.Update(testQuestion);
-			await _context.SaveChangesAsync();
+			// Don't call SaveChangesAsync here - let the service manage the transaction
+			// await _context.SaveChangesAsync();
 		}
 	}
 }

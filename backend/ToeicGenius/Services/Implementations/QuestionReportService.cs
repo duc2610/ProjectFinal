@@ -29,8 +29,33 @@ namespace ToeicGenius.Services.Implementations
 			if (question == null)
 				return Result<QuestionReportDto>.Failure("Question not found");
 
-			// Check if user has already reported this question
-			var alreadyReported = await _uow.QuestionReports.HasUserReportedQuestionAsync(request.TestQuestionId, userId);
+			// Validate SubQuestionId for question groups
+			if (question.IsQuestionGroup)
+			{
+				// For question groups, SubQuestionId is required
+				if (!request.SubQuestionId.HasValue)
+					return Result<QuestionReportDto>.Failure("SubQuestionId is required when reporting a question in a group");
+
+				// Validate that SubQuestionId exists in the group
+				if (!string.IsNullOrEmpty(question.SnapshotJson))
+				{
+					try
+					{
+						var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+						var groupSnapshot = JsonSerializer.Deserialize<QuestionGroupSnapshotDto>(question.SnapshotJson, options);
+						var subQuestion = groupSnapshot?.QuestionSnapshots?.FirstOrDefault(q => q.QuestionId == request.SubQuestionId);
+						if (subQuestion == null)
+							return Result<QuestionReportDto>.Failure($"SubQuestionId {request.SubQuestionId} not found in question group");
+					}
+					catch
+					{
+						return Result<QuestionReportDto>.Failure("Failed to validate SubQuestionId");
+					}
+				}
+			}
+
+			// Check if user has already reported this question (with same SubQuestionId for groups)
+			var alreadyReported = await _uow.QuestionReports.HasUserReportedQuestionAsync(request.TestQuestionId, userId, request.SubQuestionId);
 			if (alreadyReported)
 				return Result<QuestionReportDto>.Failure("You have already reported this question");
 
@@ -43,6 +68,7 @@ namespace ToeicGenius.Services.Implementations
 			var report = new QuestionReport
 			{
 				TestQuestionId = request.TestQuestionId,
+				SubQuestionId = request.SubQuestionId,
 				ReportedBy = userId,
 				ReportType = request.ReportType,
 				Description = request.Description,
@@ -168,7 +194,12 @@ namespace ToeicGenius.Services.Implementations
 			// Deserialize SnapshotJson to get full question details
 			QuestionSnapshotDto? questionSnapshot = null;
 			QuestionGroupSnapshotDto? questionGroupSnapshot = null;
+			QuestionSnapshotDto? reportedSubQuestion = null;
 			string? questionContent = null;
+			string? groupPassage = null;
+			string? groupAudioUrl = null;
+			string? groupImageUrl = null;
+			int? groupQuestionCount = null;
 			bool isQuestionGroup = report.TestQuestion?.IsQuestionGroup ?? false;
 
 			if (!string.IsNullOrEmpty(report.TestQuestion?.SnapshotJson))
@@ -184,8 +215,26 @@ namespace ToeicGenius.Services.Implementations
 					{
 						// Deserialize as QuestionGroupSnapshotDto
 						questionGroupSnapshot = JsonSerializer.Deserialize<QuestionGroupSnapshotDto>(report.TestQuestion.SnapshotJson, options);
-						// For question groups, use Passage as the content preview
-						questionContent = questionGroupSnapshot?.Passage;
+
+						// Extract group context info (for Creator to see full context)
+						groupPassage = questionGroupSnapshot?.Passage;
+						groupAudioUrl = questionGroupSnapshot?.AudioUrl;
+						groupImageUrl = questionGroupSnapshot?.ImageUrl;
+						groupQuestionCount = questionGroupSnapshot?.QuestionSnapshots?.Count;
+
+						// Extract the specific sub-question that was reported
+						if (report.SubQuestionId.HasValue && questionGroupSnapshot?.QuestionSnapshots != null)
+						{
+							reportedSubQuestion = questionGroupSnapshot.QuestionSnapshots
+								.FirstOrDefault(q => q.QuestionId == report.SubQuestionId);
+							// Use sub-question content as main content (for display in list)
+							questionContent = reportedSubQuestion?.Content;
+						}
+						else
+						{
+							// Fallback: use Passage as content preview
+							questionContent = questionGroupSnapshot?.Passage;
+						}
 					}
 					else
 					{
@@ -210,8 +259,14 @@ namespace ToeicGenius.Services.Implementations
 				ReportId = report.ReportId,
 				TestQuestionId = report.TestQuestionId,
 				IsQuestionGroup = isQuestionGroup,
+				SubQuestionId = report.SubQuestionId,
 				QuestionSnapshot = questionSnapshot,
 				QuestionGroupSnapshot = questionGroupSnapshot,
+				ReportedSubQuestion = reportedSubQuestion,
+				GroupPassage = groupPassage,
+				GroupAudioUrl = groupAudioUrl,
+				GroupImageUrl = groupImageUrl,
+				GroupQuestionCount = groupQuestionCount,
 				QuestionContent = questionContent,
 				PartId = report.TestQuestion?.PartId,
 				PartName = report.TestQuestion?.Part?.Name,

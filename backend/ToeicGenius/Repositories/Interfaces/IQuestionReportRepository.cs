@@ -41,9 +41,9 @@ namespace ToeicGenius.Repositories.Interfaces
 		Task<QuestionReport> UpdateReportAsync(QuestionReport report);
 
 		/// <summary>
-		/// Check if user has already reported this question
+		/// Check if user has already reported this question (with optional SubQuestionId for groups)
 		/// </summary>
-		Task<bool> HasUserReportedQuestionAsync(int testQuestionId, Guid userId);
+		Task<bool> HasUserReportedQuestionAsync(int testQuestionId, Guid userId, int? subQuestionId = null);
 
 		/// <summary>
 		/// Get pending reports count (for admin dashboard)

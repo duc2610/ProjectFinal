@@ -15,6 +15,12 @@ namespace ToeicGenius.Domains.Entities
 		public int TestQuestionId { get; set; }
 		public TestQuestion TestQuestion { get; set; } = null!;
 
+		/// <summary>
+		/// ID của câu hỏi con trong group (chỉ dùng khi report câu hỏi trong Question Group)
+		/// Null nếu report câu hỏi đơn
+		/// </summary>
+		public int? SubQuestionId { get; set; }
+
 		// Người report
 		[Required]
 		public Guid ReportedBy { get; set; }
