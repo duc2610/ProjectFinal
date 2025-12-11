@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   AppstoreOutlined,
   DatabaseOutlined,
@@ -11,16 +11,19 @@ import {
 } from "@ant-design/icons";
 import {
   Avatar,
+  Badge,
   Dropdown,
   Layout,
   Menu,
   Typography,
   Button,
   Space,
+  Tooltip,
 } from "antd";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@shared/hooks/useAuth";
 import { ROLES } from "@shared/utils/acl";
+import { getQuestionReports } from "@services/questionReportService";
 
 const { Header, Content, Sider } = Layout;
 const { Text } = Typography;
@@ -35,6 +38,36 @@ export default function AdminShell() {
   const roles = Array.isArray(user?.roles) ? user.roles : [];
   const isAdmin = roles.includes(ROLES.Admin);
   const isCreator = roles.includes(ROLES.TestCreator);
+  const [pendingReportsCount, setPendingReportsCount] = useState(0);
+
+  // Fetch số lượng báo cáo đang chờ xử lý (chỉ cho TestCreator)
+  useEffect(() => {
+    if (isCreator) {
+      const fetchPendingCount = async () => {
+        try {
+          const res = await getQuestionReports({
+            status: 0, // Pending status
+            page: 1,
+            pageSize: 1, // Chỉ cần lấy 1 bản ghi, dùng total từ API
+          });
+          
+          // Lấy total từ API response
+          const total = res?.totalRecords ?? res?.total ?? 0;
+          setPendingReportsCount(total);
+        } catch (error) {
+          // Không hiển thị lỗi, chỉ set về 0
+          setPendingReportsCount(0);
+        }
+      };
+
+      fetchPendingCount();
+      
+      // Refresh mỗi 30 giây để cập nhật số lượng
+      const interval = setInterval(fetchPendingCount, 30000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isCreator, location.pathname]); // Refresh khi pathname thay đổi (khi user vào trang reports)
 
   const handleLogout = () => {
     signOut();
@@ -103,7 +136,24 @@ export default function AdminShell() {
       {
         key: "/reports/question",
         icon: <WarningOutlined />,
-        label: "Báo cáo câu hỏi",
+        label: (
+          <Space>
+            <span>Báo cáo câu hỏi</span>
+            {pendingReportsCount > 0 && (
+              <Tooltip title={`${pendingReportsCount} báo cáo đang chờ xử lý`}>
+                <Badge 
+                  count={pendingReportsCount} 
+                  showZero={false} 
+                  overflowCount={99}
+                  style={{ 
+                    backgroundColor: '#ff4d4f',
+                    boxShadow: '0 0 0 1px rgba(255, 255, 255, 0.3)'
+                  }}
+                />
+              </Tooltip>
+            )}
+          </Space>
+        ),
       },
     ];
   }
