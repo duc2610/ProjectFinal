@@ -369,7 +369,8 @@ namespace ToeicGenius.Services.Implementations
             }
             else
             {
-                // Practice: Average of raw scores for answered questions
+                // Practice: Average of ALL raw scores (including 0 for skipped questions)
+                // Ví dụ: 5 câu, làm 3 câu (80, 90, 70), bỏ 2 câu → (80+90+70+0+0)/5 = 48
                 var allRawScores = rawWritingScores.Concat(rawSpeakingScores).ToList();
                 testResult.TotalScore = allRawScores.Any() ? (decimal)allRawScores.Average() : 0;
             }
@@ -1083,30 +1084,32 @@ namespace ToeicGenius.Services.Implementations
         #region Helper Methods
 
         /// <summary>
-        /// Xác định partType từ Part entity dựa trên PartNumber và Skill
-        /// TOEIC S&W structure:
-        /// Writing: Part 8 = writing_sentence, Part 9 = writing_email, Part 10 = writing_essay
-        /// Speaking: Part 11 = read_aloud, Part 12 = describe_picture, Part 13 = respond_questions,
-        ///           Part 14 = respond_with_info, Part 15 = express_opinion
+        /// Xác định partType từ Part entity dựa trên PartId
+        /// TOEIC S&W structure (sử dụng PartId làm key):
+        /// Writing: PartId 8 = writing_sentence, PartId 9 = writing_email, PartId 10 = writing_essay
+        /// Speaking: PartId 11 = read_aloud, PartId 12 = describe_picture, PartId 13 = respond_questions,
+        ///           PartId 14 = respond_with_info, PartId 15 = express_opinion
         /// </summary>
         private static string GetPartTypeFromPart(Part? part)
         {
             if (part == null)
                 return "writing_sentence";
 
-            return part.PartNumber switch
+            // FIX: Dùng PartId (8-15) thay vì PartNumber (1-5)
+            // PartId là unique identifier trong DB seed data
+            return part.PartId switch
             {
-                // Writing parts
-                8 => "writing_sentence",
-                9 => "writing_email",
-                10 => "writing_essay",
-                // Speaking parts
-                11 => "read_aloud",
-                12 => "describe_picture",
-                13 => "respond_questions",
-                14 => "respond_with_info",
-                15 => "express_opinion",
-                // Fallback based on Skill
+                // Writing parts (PartId 8-10)
+                8 => "writing_sentence",    // W-Part 1: Write a sentence based on a picture
+                9 => "writing_email",       // W-Part 2: Respond to a written request
+                10 => "writing_essay",      // W-Part 3: Write an opinion essay
+                // Speaking parts (PartId 11-15)
+                11 => "read_aloud",         // S-Part 1: Read a text aloud
+                12 => "describe_picture",   // S-Part 2: Describe a picture
+                13 => "respond_questions",  // S-Part 3: Respond to questions
+                14 => "respond_with_info",  // S-Part 4: Respond to questions using information provided
+                15 => "express_opinion",    // S-Part 5: Express an opinion
+                // Fallback based on Skill (for safety)
                 _ => part.Skill == QuestionSkill.Writing ? "writing_sentence" : "read_aloud"
             };
         }
