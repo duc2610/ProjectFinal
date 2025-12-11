@@ -96,7 +96,22 @@ export async function reviewReport(reportId, payload) {
  * Request body: multipart/form-data (UpdateTestQuestionDto)
  *
  * @param {number} testQuestionId
- * @param {{ content?: string, solution?: string, alsoUpdateSourceInBank?: boolean, audioFile?: File|null, imageFile?: File|null, answerOptions?: Array<{label: string, content: string, isCorrect: boolean}> }} data
+ * @param {{ 
+ *   content?: string, 
+ *   solution?: string, 
+ *   alsoUpdateSourceInBank?: boolean, 
+ *   audioFile?: File|null, 
+ *   imageFile?: File|null, 
+ *   answerOptions?: Array<{label: string, content: string, isCorrect: boolean}>,
+ *   // For question group:
+ *   passage?: string,
+ *   questions?: Array<{
+ *     questionId: number,
+ *     content: string,
+ *     explanation: string,
+ *     options: Array<{label: string, content: string, isCorrect: boolean}>
+ *   }>
+ * }} data
  */
 export async function updateTestQuestionFromReport(testQuestionId, data) {
   const {
@@ -106,12 +121,20 @@ export async function updateTestQuestionFromReport(testQuestionId, data) {
     audioFile = null,
     imageFile = null,
     answerOptions = [],
+    // Question group fields
+    passage,
+    questions = [],
   } = data || {};
 
   const formData = new FormData();
 
+  // Single question fields
   if (content != null) formData.append("Content", content);
   if (solution != null) formData.append("Solution", solution);
+  
+  // Question group fields
+  if (passage != null) formData.append("Passage", passage);
+  
   formData.append("AlsoUpdateSourceInBank", alsoUpdateSourceInBank ? "true" : "false");
 
   if (audioFile) {
@@ -122,6 +145,7 @@ export async function updateTestQuestionFromReport(testQuestionId, data) {
     formData.append("Image", imageFile);
   }
 
+  // Single question answer options
   if (Array.isArray(answerOptions) && answerOptions.length > 0) {
     answerOptions.forEach((opt, index) => {
       if (opt.label != null) {
@@ -135,6 +159,38 @@ export async function updateTestQuestionFromReport(testQuestionId, data) {
           `AnswerOptions[${index}].IsCorrect`,
           opt.isCorrect ? "true" : "false"
         );
+      }
+    });
+  }
+
+  // Question group sub-questions
+  if (Array.isArray(questions) && questions.length > 0) {
+    questions.forEach((q, qIndex) => {
+      if (q.questionId != null) {
+        formData.append(`Questions[${qIndex}].QuestionId`, q.questionId.toString());
+      }
+      if (q.content != null) {
+        formData.append(`Questions[${qIndex}].Content`, q.content);
+      }
+      if (q.explanation != null) {
+        formData.append(`Questions[${qIndex}].Explanation`, q.explanation);
+      }
+      
+      if (Array.isArray(q.options) && q.options.length > 0) {
+        q.options.forEach((opt, optIndex) => {
+          if (opt.label != null) {
+            formData.append(`Questions[${qIndex}].Options[${optIndex}].Label`, opt.label);
+          }
+          if (opt.content != null) {
+            formData.append(`Questions[${qIndex}].Options[${optIndex}].Content`, opt.content);
+          }
+          if (typeof opt.isCorrect === "boolean") {
+            formData.append(
+              `Questions[${qIndex}].Options[${optIndex}].IsCorrect`,
+              opt.isCorrect ? "true" : "false"
+            );
+          }
+        });
       }
     });
   }

@@ -122,6 +122,7 @@ export default function QuestionReportManagement() {
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [updatingQuestion, setUpdatingQuestion] = useState(false);
   const [editableQuestion, setEditableQuestion] = useState(null);
+  const [editableQuestionGroup, setEditableQuestionGroup] = useState(null);
   const [audioFile, setAudioFile] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [audioPreviewUrl, setAudioPreviewUrl] = useState(null);
@@ -213,18 +214,50 @@ export default function QuestionReportManagement() {
 
   const openReviewModal = (record) => {
     setSelectedReport(record);
-    const snapshot = record.questionSnapshot || {};
-    const options = Array.isArray(snapshot.options) ? snapshot.options : [];
+    
+    // Kiểm tra xem là question group hay single question
+    const isQuestionGroup = record.isQuestionGroup === true || record.questionGroupSnapshot != null;
+    
+    if (isQuestionGroup) {
+      // Xử lý question group
+      const groupSnapshot = record.questionGroupSnapshot || {};
+      const questionSnapshots = Array.isArray(groupSnapshot.questionSnapshots) 
+        ? groupSnapshot.questionSnapshots 
+        : [];
+      
+      setEditableQuestionGroup({
+        passage: groupSnapshot.passage || record.questionContent || "",
+        questions: questionSnapshots.map((q) => ({
+          questionId: q.questionId,
+          content: q.content || "",
+          explanation: q.explanation || "",
+          options: Array.isArray(q.options) 
+            ? q.options.map((opt) => ({
+                label: opt.label,
+                content: opt.content,
+                isCorrect: !!opt.isCorrect,
+              }))
+            : [],
+        })),
+      });
+      setEditableQuestion(null);
+    } else {
+      // Xử lý single question
+      const snapshot = record.questionSnapshot || {};
+      const options = Array.isArray(snapshot.options) ? snapshot.options : [];
 
-    setEditableQuestion({
-      content: snapshot.content || record.questionContent || "",
-      explanation: snapshot.explanation || "",
-      options: options.map((opt) => ({
-        label: opt.label,
-        content: opt.content,
-        isCorrect: !!opt.isCorrect,
-      })),
-    });
+      setEditableQuestion({
+        content: snapshot.content || record.questionContent || "",
+        explanation: snapshot.explanation || "",
+        options: options.map((opt) => ({
+          label: opt.label,
+          content: opt.content,
+          isCorrect: !!opt.isCorrect,
+        })),
+      });
+      setEditableQuestionGroup(null);
+    }
+    
     setAudioFile(null);
     setImageFile(null);
     setAudioPreviewUrl(null);
@@ -276,7 +309,12 @@ export default function QuestionReportManagement() {
   };
 
   const handleQuickUpdateQuestion = async () => {
-    if (!selectedReport || !editableQuestion) return;
+    if (!selectedReport) return;
+    
+    const isQuestionGroup = selectedReport.isQuestionGroup === true || selectedReport.questionGroupSnapshot != null;
+    
+    if (isQuestionGroup && !editableQuestionGroup) return;
+    if (!isQuestionGroup && !editableQuestion) return;
 
     Modal.confirm({
       title: "Cập nhật nhanh câu hỏi theo snapshot?",
@@ -288,18 +326,37 @@ export default function QuestionReportManagement() {
       onOk: async () => {
         try {
           setUpdatingQuestion(true);
-          const payload = {
-            content: editableQuestion.content ?? "",
-            solution: editableQuestion.explanation ?? "",
-            alsoUpdateSourceInBank: alsoUpdateSourceInBank,
-            audioFile,
-            imageFile,
-            answerOptions: Array.isArray(editableQuestion.options)
-              ? editableQuestion.options
-              : [],
-          };
-
-          // Debug payload trước khi gửi BE
+          
+          let payload;
+          if (isQuestionGroup) {
+            // Question group payload
+            payload = {
+              passage: editableQuestionGroup.passage ?? "",
+              alsoUpdateSourceInBank: alsoUpdateSourceInBank,
+              audioFile,
+              imageFile,
+              questions: Array.isArray(editableQuestionGroup.questions)
+                ? editableQuestionGroup.questions.map((q) => ({
+                    questionId: q.questionId,
+                    content: q.content ?? "",
+                    explanation: q.explanation ?? "",
+                    options: Array.isArray(q.options) ? q.options : [],
+                  }))
+                : [],
+            };
+          } else {
+            // Single question payload
+            payload = {
+              content: editableQuestion.content ?? "",
+              solution: editableQuestion.explanation ?? "",
+              alsoUpdateSourceInBank: alsoUpdateSourceInBank,
+              audioFile,
+              imageFile,
+              answerOptions: Array.isArray(editableQuestion.options)
+                ? editableQuestion.options
+                : [],
+            };
+          }
 
           await updateTestQuestionFromReport(
             selectedReport.testQuestionId,
@@ -438,6 +495,15 @@ export default function QuestionReportManagement() {
 
   const renderQuestionSnapshot = (isReadOnly = false) => {
     if (!selectedReport) return null;
+    
+    // Kiểm tra xem là question group hay single question
+    const isQuestionGroup = selectedReport.isQuestionGroup === true || selectedReport.questionGroupSnapshot != null;
+    
+    if (isQuestionGroup) {
+      return renderQuestionGroupSnapshot(isReadOnly);
+    }
+    
+    // Single question rendering
     const snapshot = selectedReport.questionSnapshot || {};
     const options = Array.isArray(editableQuestion?.options)
       ? editableQuestion.options
@@ -705,6 +771,399 @@ export default function QuestionReportManagement() {
                   </Space>
                 </Card>
               ))}
+            </Space>
+          </>
+        )}
+      </Card>
+    );
+  };
+
+  const renderQuestionGroupSnapshot = (isReadOnly = false) => {
+    if (!selectedReport) return null;
+    
+    const groupSnapshot = selectedReport.questionGroupSnapshot || {};
+    
+    // Lấy questions từ editableQuestionGroup nếu có, nếu không thì từ snapshot
+    let questions = [];
+    if (editableQuestionGroup && Array.isArray(editableQuestionGroup.questions)) {
+      questions = editableQuestionGroup.questions;
+    } else if (Array.isArray(groupSnapshot.questionSnapshots)) {
+      // Map từ snapshot sang format editable
+      questions = groupSnapshot.questionSnapshots.map((q) => ({
+        questionId: q.questionId,
+        content: q.content || "",
+        explanation: q.explanation || "",
+        options: Array.isArray(q.options) 
+          ? q.options.map((opt) => ({
+              label: opt.label,
+              content: opt.content,
+              isCorrect: !!opt.isCorrect,
+            }))
+          : [],
+      }));
+    }
+    
+    const passage = editableQuestionGroup?.passage ?? groupSnapshot.passage ?? selectedReport.questionContent ?? "";
+    
+    // Kiểm tra testType: chỉ hiển thị checkbox khi test là PRACTICE
+    const testType = selectedReport.testType ?? groupSnapshot.testType ?? selectedReport.TestType;
+    const isPracticeTest = 
+      testType === 2 || 
+      testType === "Practice" || 
+      testType === "PRACTICE" ||
+      selectedReport.sourceQuestionGroupId != null || // Nếu có sourceQuestionGroupId thì là Practice
+      groupSnapshot.sourceQuestionGroupId != null;
+
+    const partId = groupSnapshot.partId || selectedReport.partId;
+    const skill = getSkillFromPart(partId, selectedReport.partName);
+    const imageRule = requiresImage(partId, skill);
+    const showAudioControls = requiresAudio(skill);
+    const showImageControls = imageRule.show;
+
+    return (
+      <Card
+        size="small"
+        title="Snapshot nhóm câu hỏi tại thời điểm báo cáo"
+        extra={
+          !isReadOnly && (
+            <Space>
+              {showAudioControls && (
+                <Upload
+                  accept="audio/*"
+                  showUploadList={false}
+                  beforeUpload={(file) => {
+                    setAudioFile(file);
+                    if (audioPreviewUrl) {
+                      URL.revokeObjectURL(audioPreviewUrl);
+                    }
+                    const url = URL.createObjectURL(file);
+                    setAudioPreviewUrl(url);
+                    message.success(
+                      "Đã chọn file audio mới. Nhấn 'Cập nhật câu hỏi' để lưu."
+                    );
+                    return false;
+                  }}
+                >
+                  <Button size="small" icon={<UploadOutlined />}>
+                    Chọn audio mới
+                  </Button>
+                </Upload>
+              )}
+              {showImageControls && (
+                <Upload
+                  accept="image/*"
+                  showUploadList={false}
+                  beforeUpload={(file) => {
+                    setImageFile(file);
+                    if (imagePreviewUrl) {
+                      URL.revokeObjectURL(imagePreviewUrl);
+                    }
+                    const url = URL.createObjectURL(file);
+                    setImagePreviewUrl(url);
+                    message.success(
+                      "Đã chọn ảnh mới. Nhấn 'Cập nhật câu hỏi' để lưu."
+                    );
+                    return false;
+                  }}
+                >
+                  <Button size="small" icon={<UploadOutlined />}>
+                    Chọn ảnh mới
+                  </Button>
+                </Upload>
+              )}
+              <Tooltip title="Cập nhật nhanh nhóm câu hỏi trong bài test theo snapshot hiện tại">
+                <Button
+                  size="small"
+                  icon={<SettingOutlined />}
+                  loading={updatingQuestion}
+                  onClick={handleQuickUpdateQuestion}
+                >
+                  Cập nhật câu hỏi
+                </Button>
+              </Tooltip>
+            </Space>
+          )
+        }
+      >
+        {/* Checkbox để update source question trong bank - chỉ hiển thị cho Practice test */}
+        {!isReadOnly && isPracticeTest && (
+          <div style={{ 
+            marginBottom: 16, 
+            padding: 12, 
+            background: "#e6f7ff", 
+            borderRadius: 6,
+            border: "1px solid #91d5ff"
+          }}>
+            <Checkbox
+              checked={alsoUpdateSourceInBank}
+              onChange={(e) => setAlsoUpdateSourceInBank(e.target.checked)}
+              style={{ fontSize: 14 }}
+            >
+              <Text strong style={{ fontSize: 14 }}>Cập nhật cả nhóm câu hỏi gốc trong ngân hàng</Text>
+            </Checkbox>
+            <div style={{ marginTop: 8, marginLeft: 24 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                Khi bật: Thay đổi sẽ được áp dụng cho cả nhóm câu hỏi trong bài test và nhóm câu hỏi gốc trong ngân hàng câu hỏi
+              </Text>
+            </div>
+          </div>
+        )}
+        
+        <Descriptions column={1} size="small">
+          <Descriptions.Item label="Đoạn văn (Passage)">
+            <Input.TextArea
+              rows={6}
+              value={passage}
+              onChange={(e) =>
+                !isReadOnly &&
+                setEditableQuestionGroup((prev) => ({
+                  ...(prev || { questions: [] }),
+                  passage: e.target.value,
+                }))
+              }
+              disabled={isReadOnly}
+              placeholder="Nội dung đoạn văn / passage"
+            />
+          </Descriptions.Item>
+          
+          {(audioPreviewUrl ||
+            imagePreviewUrl ||
+            groupSnapshot.audioUrl ||
+            groupSnapshot.imageUrl) && (
+            <Descriptions.Item label="Media">
+              <div
+                style={{
+                  display: "flex",
+                  gap: 16,
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                }}
+              >
+                {(audioPreviewUrl || groupSnapshot.audioUrl) && (
+                  <div style={{ flex: "0 0 260px", minWidth: 220 }}>
+                    <audio
+                      src={audioPreviewUrl || groupSnapshot.audioUrl}
+                      controls
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                )}
+                {(imagePreviewUrl || groupSnapshot.imageUrl) && (
+                  <div
+                    style={{
+                      flex: "1 1 260px",
+                      maxWidth: 360,
+                    }}
+                  >
+                    <img
+                      src={imagePreviewUrl || groupSnapshot.imageUrl}
+                      alt="Question Group"
+                      style={{
+                        width: "100%",
+                        height: "auto",
+                        borderRadius: 10,
+                        border: "1px solid #e5e7eb",
+                        objectFit: "cover",
+                      }}
+                    />
+                    {imagePreviewUrl && (
+                      <Text
+                        type="secondary"
+                        style={{ fontSize: 12, display: "block", marginTop: 4 }}
+                      >
+                        Đang hiển thị ảnh mới (chưa lưu). Nhấn "Cập nhật câu hỏi"
+                        để gửi lên server.
+                      </Text>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Descriptions.Item>
+          )}
+        </Descriptions>
+
+        {questions.length > 0 && (
+          <>
+            <Divider style={{ margin: "16px 0" }} />
+            <Title level={5} style={{ marginBottom: 12 }}>
+              Các câu hỏi trong nhóm ({questions.length} câu)
+            </Title>
+            <Space direction="vertical" style={{ width: "100%" }} size="large">
+              {questions.map((q, qIndex) => {
+                const questionId = q.questionId ?? qIndex;
+                const questionContent = q.content ?? "";
+                const questionExplanation = q.explanation ?? "";
+                const questionOptions = Array.isArray(q.options) ? q.options : [];
+                
+                return (
+                  <Card
+                    key={questionId}
+                    size="small"
+                    title={`Câu ${qIndex + 1}${questionId ? ` (ID: ${questionId})` : ""}`}
+                    style={{ border: "1px solid #e5e7eb" }}
+                  >
+                    <Space direction="vertical" style={{ width: "100%" }} size="middle">
+                      <div>
+                        <Text strong style={{ display: "block", marginBottom: 4 }}>
+                          Nội dung câu hỏi:
+                        </Text>
+                        <Input.TextArea
+                          rows={2}
+                          value={questionContent}
+                          onChange={(e) => {
+                            if (isReadOnly) return;
+                            setEditableQuestionGroup((prev) => {
+                              const current = prev || { passage: "", questions: [] };
+                              const newQuestions = [...(current.questions || [])];
+                              if (newQuestions[qIndex]) {
+                                newQuestions[qIndex] = {
+                                  ...newQuestions[qIndex],
+                                  content: e.target.value,
+                                };
+                              } else {
+                                newQuestions[qIndex] = {
+                                  questionId,
+                                  content: e.target.value,
+                                  explanation: "",
+                                  options: [],
+                                };
+                              }
+                              return { ...current, questions: newQuestions };
+                            });
+                          }}
+                          disabled={isReadOnly}
+                          placeholder="Nội dung câu hỏi"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Text strong style={{ display: "block", marginBottom: 4 }}>
+                          Giải thích:
+                        </Text>
+                        <Input.TextArea
+                          rows={2}
+                          value={questionExplanation}
+                          onChange={(e) => {
+                            if (isReadOnly) return;
+                            setEditableQuestionGroup((prev) => {
+                              const current = prev || { passage: "", questions: [] };
+                              const newQuestions = [...(current.questions || [])];
+                              if (newQuestions[qIndex]) {
+                                newQuestions[qIndex] = {
+                                  ...newQuestions[qIndex],
+                                  explanation: e.target.value,
+                                };
+                              } else {
+                                newQuestions[qIndex] = {
+                                  questionId,
+                                  content: "",
+                                  explanation: e.target.value,
+                                  options: [],
+                                };
+                              }
+                              return { ...current, questions: newQuestions };
+                            });
+                          }}
+                          disabled={isReadOnly}
+                          placeholder="Giải thích đáp án"
+                        />
+                      </div>
+                      
+                      {questionOptions.length > 0 && (
+                        <div>
+                          <Text strong style={{ display: "block", marginBottom: 8 }}>
+                            Đáp án:
+                          </Text>
+                          <Space direction="vertical" style={{ width: "100%" }} size="small">
+                            {questionOptions.map((opt) => (
+                              <Card
+                                key={opt.label}
+                                size="small"
+                                style={{
+                                  borderColor: opt.isCorrect ? "#52c41a" : "#f0f0f0",
+                                  background: opt.isCorrect ? "#f6ffed" : "#ffffff",
+                                }}
+                              >
+                                <Space>
+                                  <Checkbox
+                                    checked={!!opt.isCorrect}
+                                    disabled={isReadOnly}
+                                    onChange={(e) => {
+                                      if (isReadOnly) return;
+                                      const checked = e.target.checked;
+                                      setEditableQuestionGroup((prev) => {
+                                        const current = prev || { passage: "", questions: [] };
+                                        const newQuestions = [...(current.questions || [])];
+                                        if (!newQuestions[qIndex]) {
+                                          newQuestions[qIndex] = {
+                                            questionId,
+                                            content: "",
+                                            explanation: "",
+                                            options: [],
+                                          };
+                                        }
+                                        const newOptions = (newQuestions[qIndex].options || []).map(
+                                          (o) => {
+                                            if (o.label === opt.label) {
+                                              return { ...o, isCorrect: checked };
+                                            }
+                                            return checked ? { ...o, isCorrect: false } : o;
+                                          }
+                                        );
+                                        newQuestions[qIndex] = {
+                                          ...newQuestions[qIndex],
+                                          options: newOptions,
+                                        };
+                                        return { ...current, questions: newQuestions };
+                                      });
+                                    }}
+                                  >
+                                    Đáp án đúng
+                                  </Checkbox>
+                                  <Text strong>{opt.label}.</Text>
+                                  <Input
+                                    value={opt.content}
+                                    disabled={isReadOnly}
+                                    onChange={(e) => {
+                                      if (isReadOnly) return;
+                                      const value = e.target.value;
+                                      setEditableQuestionGroup((prev) => {
+                                        const current = prev || { passage: "", questions: [] };
+                                        const newQuestions = [...(current.questions || [])];
+                                        if (!newQuestions[qIndex]) {
+                                          newQuestions[qIndex] = {
+                                            questionId,
+                                            content: "",
+                                            explanation: "",
+                                            options: [],
+                                          };
+                                        }
+                                        const newOptions = (newQuestions[qIndex].options || []).map(
+                                          (o) =>
+                                            o.label === opt.label
+                                              ? { ...o, content: value }
+                                              : o
+                                        );
+                                        newQuestions[qIndex] = {
+                                          ...newQuestions[qIndex],
+                                          options: newOptions,
+                                        };
+                                        return { ...current, questions: newQuestions };
+                                      });
+                                    }}
+                                    placeholder="Nội dung đáp án"
+                                  />
+                                </Space>
+                              </Card>
+                            ))}
+                          </Space>
+                        </div>
+                      )}
+                    </Space>
+                  </Card>
+                );
+              })}
             </Space>
           </>
         )}

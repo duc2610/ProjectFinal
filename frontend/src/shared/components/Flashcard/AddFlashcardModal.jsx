@@ -86,8 +86,8 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
             definition,
             pronunciation,
             wordType,
-            notes,
             examples,
+            notes,
           };
         })
         .filter(card => card.term && card.definition);
@@ -127,7 +127,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
   };
 
   const handleAddBulkCard = () => {
-    setBulkCards([...bulkCards, { term: "", definition: "", pronunciation: "", wordType: "", notes: "", examples: "" }]);
+      setBulkCards([...bulkCards, { term: "", definition: "", pronunciation: "", wordType: "", notes: "", examples: "" }]);
   };
 
   const handleRemoveBulkCard = (index) => {

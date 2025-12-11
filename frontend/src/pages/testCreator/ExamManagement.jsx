@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Input, Table, Space, Tag, message, Tooltip, Select, Row, Col, Modal, Upload, Switch } from "antd";
+import { Card, Button, Input, Table, Space, Tag, message, Tooltip, Select, Row, Col, Modal, Upload, Switch, Typography, DatePicker } from "antd";
+import dayjs from "dayjs";
 import { PlusOutlined, EditOutlined, SearchOutlined, DownloadOutlined, UploadOutlined, FileExcelOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import { 
     getTests, 
@@ -19,6 +20,8 @@ import TestTypeSelectionModal from "@shared/components/ExamManagement/TestTypeSe
 import FromBankTestForm from "@shared/components/ExamManagement/FromBankTestForm";
 import ManualTestForm from "@shared/components/ExamManagement/ManualTestForm";
 import TestVersionsModal from "@shared/components/ExamManagement/TestVersionsModal";
+
+const { Text } = Typography;
 
 export default function ExamManagement() {
     const [exams, setExams] = useState([]);
@@ -41,6 +44,7 @@ export default function ExamManagement() {
     const [filterTestType, setFilterTestType] = useState("all");
     const [filterStatus, setFilterStatus] = useState("all");
     const [filterCreationStatus, setFilterCreationStatus] = useState("all");
+    const [dateRange, setDateRange] = useState(null);
     const [searchTimeout, setSearchTimeout] = useState(null);
     const [importModalOpen, setImportModalOpen] = useState(false);
     const [importTestType, setImportTestType] = useState("LR"); // "LR" or "SW"
@@ -162,7 +166,7 @@ export default function ExamManagement() {
                 message.success("Đã ẩn bài thi.");
             }
             // Reload danh sách sau khi toggle thành công
-            await fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus);
+            await fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
         } catch (error) {
             console.error("Toggle visibility error:", error);
             const errorMsg = error?.response?.data?.message || error?.message || "Lỗi khi cập nhật trạng thái hiển thị";
@@ -172,7 +176,7 @@ export default function ExamManagement() {
         }
     };
 
-    const fetchExams = async (page = 1, pageSize = 10, search = "", skill = "all", testType = "all", status = "all", creationStatus = "all") => {
+    const fetchExams = async (page = 1, pageSize = 10, search = "", skill = "all", testType = "all", status = "all", creationStatus = "all", dateRangeFilter = null) => {
         setLoading(true);
         try {
             // Fetch tất cả tests (không paginate) để đảm bảo có đủ tất cả versions để filter
@@ -212,6 +216,20 @@ export default function ExamManagement() {
                     allExams = allExams.filter(exam => {
                         const examCreationStatus = normalizeCreationStatusValue(exam.creationStatus ?? exam.CreationStatus);
                         return examCreationStatus === creationStatus;
+                    });
+                }
+                
+                // Filter theo khoảng ngày tạo
+                if (dateRangeFilter && dateRangeFilter.length === 2) {
+                    const startDate = dayjs(dateRangeFilter[0]).startOf('day');
+                    const endDate = dayjs(dateRangeFilter[1]).endOf('day');
+                    allExams = allExams.filter(exam => {
+                        const examDate = exam.createdAt || exam.CreatedAt || exam.created_at;
+                        if (!examDate) return false;
+                        const examDateObj = dayjs(examDate);
+                        return examDateObj.isAfter(startDate) && examDateObj.isBefore(endDate) || 
+                               examDateObj.isSame(startDate, 'day') || 
+                               examDateObj.isSame(endDate, 'day');
                     });
                 }
                 
@@ -283,7 +301,7 @@ export default function ExamManagement() {
     };
 
     useEffect(() => {
-        fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus);
+        fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
         
         // Cleanup timeout khi component unmount
         return () => {
@@ -294,7 +312,7 @@ export default function ExamManagement() {
     }, []);
 
     const handleTableChange = (newPagination) => {
-        fetchExams(newPagination.current, newPagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus);
+        fetchExams(newPagination.current, newPagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
     };
 
     const handleSearchChange = (e) => {
@@ -309,7 +327,7 @@ export default function ExamManagement() {
         // Tạo timeout mới để debounce search
         const newTimeout = setTimeout(() => {
             setPagination({ ...pagination, current: 1 });
-            fetchExams(1, pagination.pageSize, value, filterSkill, filterTestType, filterStatus, filterCreationStatus);
+            fetchExams(1, pagination.pageSize, value, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
         }, 500); // Delay 500ms sau khi người dùng ngừng gõ
         
         setSearchTimeout(newTimeout);
@@ -318,25 +336,31 @@ export default function ExamManagement() {
     const handleFilterChange = (skill) => {
         setFilterSkill(skill);
         setPagination({ ...pagination, current: 1 });
-        fetchExams(1, pagination.pageSize, searchExam, skill, filterTestType, filterStatus, filterCreationStatus);
+        fetchExams(1, pagination.pageSize, searchExam, skill, filterTestType, filterStatus, filterCreationStatus, dateRange);
     };
 
     const handleTestTypeFilterChange = (testType) => {
         setFilterTestType(testType);
         setPagination({ ...pagination, current: 1 });
-        fetchExams(1, pagination.pageSize, searchExam, filterSkill, testType, filterStatus, filterCreationStatus);
+        fetchExams(1, pagination.pageSize, searchExam, filterSkill, testType, filterStatus, filterCreationStatus, dateRange);
     };
 
     const handleStatusFilterChange = (status) => {
         setFilterStatus(status);
         setPagination({ ...pagination, current: 1 });
-        fetchExams(1, pagination.pageSize, searchExam, filterSkill, filterTestType, status, filterCreationStatus);
+        fetchExams(1, pagination.pageSize, searchExam, filterSkill, filterTestType, status, filterCreationStatus, dateRange);
     };
 
     const handleCreationStatusFilterChange = (creationStatus) => {
         setFilterCreationStatus(creationStatus);
         setPagination({ ...pagination, current: 1 });
-        fetchExams(1, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, creationStatus);
+        fetchExams(1, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, creationStatus, dateRange);
+    };
+
+    const handleDateRangeChange = (dates) => {
+        setDateRange(dates);
+        setPagination({ ...pagination, current: 1 });
+        fetchExams(1, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dates);
     };
 
     const handleDownloadTemplate = async () => {
@@ -545,7 +569,7 @@ export default function ExamManagement() {
 
     const handleTestCreated = () => {
 
-        fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus);
+        fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
     };
 
     const openStatusModal = (exam) => {
@@ -576,7 +600,7 @@ export default function ExamManagement() {
             setStatusModalOpen(false);
             setSelectedTest(null);
             setSelectedStatus(null);
-            fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus);
+            fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
         } catch (error) {
             console.error("Update status error:", error);
             const errorMsg = error?.response?.data?.message || error?.message || "Lỗi khi cập nhật trạng thái";
@@ -625,7 +649,7 @@ export default function ExamManagement() {
             setStatusModalOpen(false);
             setSelectedTest(null);
             setSelectedStatus(null);
-            fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus);
+            fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
         } catch (error) {
             console.error("Error finalizing test:", error);
             const errorMessage = error.response?.data?.message 
@@ -685,7 +709,7 @@ export default function ExamManagement() {
             setFinalizingId(examId);
             await finalizeTest(examId);
             message.success("Đã hoàn tất bài thi thành công! Bây giờ bạn có thể công khai hoặc ẩn bài thi.");
-            fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus);
+            fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
         } catch (error) {
             console.error("Error finalizing test:", error);
             const errorMessage = error.response?.data?.message 
@@ -699,87 +723,196 @@ export default function ExamManagement() {
     };
 
 
-    const examColumns = [
-        { 
-            title: "Loại bài thi", 
-            dataIndex: "testType", 
-            key: "testType",
-            width: 130,
-            render: (type) => {
+    // Hàm format ngày tháng theo định dạng tiếng Việt
+    const formatDate = (dateString) => {
+        if (!dateString) return "—";
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleString("vi-VN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+            });
+        } catch (error) {
+            return dateString;
+        }
+    };
 
-                let color = "cyan"
-                let label = type
-                if(type ==="Simulator"){
-                    color= "blue"
-                    label="Thi mô phỏng"
-                }else if (type === "Practice"){
-                    color= "magenta"
-                    label="Luyện tập"
-                }
-                return <Tag color={color}>{label}</Tag>;
+    const examColumns = [
+        {
+            title: "STT",
+            key: "stt",
+            width: 60,
+            align: "center",
+            render: (_, __, index) => {
+                const currentPage = pagination.current;
+                const pageSize = pagination.pageSize;
+                return (currentPage - 1) * pageSize + index + 1;
             }
         },
         { 
-            title: "Kỹ năng", 
-            dataIndex: "testSkill", 
-            key: "testSkill",
-            width: 150,
-            render: (skill) => {
-                let color = "cyan";
-                let label = skill;
+            title: "ID", 
+            dataIndex: "id", 
+            key: "id",
+            width: 70,
+            align: "center",
+            render: (id, record) => {
+                const examId = id ?? record.Id ?? record.testId ?? record.TestId ?? "—";
+                return <Text strong style={{ color: "#1890ff" }}>{examId}</Text>;
+            }
+        },
+        { 
+            title: "Thông tin đề thi", 
+            key: "examBasicInfo",
+            width: 220,
+            render: (_, record) => {
+                const type = record.testType;
+                const skill = record.testSkill;
+                const title = record.title || "—";
                 
+                // Xử lý loại bài thi
+                let typeColor = "cyan";
+                let typeLabel = type;
+                if(type === "Simulator"){
+                    typeColor = "blue";
+                    typeLabel = "Thi mô phỏng";
+                } else if (type === "Practice"){
+                    typeColor = "magenta";
+                    typeLabel = "Luyện tập";
+                }
+                
+                // Xử lý kỹ năng
+                let skillColor = "cyan";
+                let skillLabel = skill;
                 const s = typeof skill === "string" ? skill.toUpperCase() : skill;
                 if (s === "LR" || s === 3) {
-                    color = "purple";
-                    label = "Nghe & Đọc";
+                    skillColor = "purple";
+                    skillLabel = "Nghe & Đọc";
                 } else if (s === "SPEAKING" || s === 1) {
-                    color = "green";
-                    label = "Nói";
+                    skillColor = "green";
+                    skillLabel = "Nói";
                 } else if (s === "WRITING" || s === 2) {
-                    color = "cyan";
-                    label = "Viết";
+                    skillColor = "cyan";
+                    skillLabel = "Viết";
                 } else if (s === "SW" || s === 4) {
-                    color = "blue";
-                    label = "Nói & Viết";
+                    skillColor = "blue";
+                    skillLabel = "Nói & Viết";
                 }
                 
-                return <Tag color={color}>{label}</Tag>;
+                return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <Tag color={typeColor}>{typeLabel}</Tag>
+                            <Tag color={skillColor}>{skillLabel}</Tag>
+                        </div>
+                        <div>
+                            <Text strong style={{ fontSize: 14 }}>{title}</Text>
+                        </div>
+                    </div>
+                );
             }
         },
         { 
-            title: "Tiêu đề", 
-            dataIndex: "title", 
-            key: "title",
+            title: "Thông tin bài thi", 
+            key: "examInfo", 
+            width: 160,
+            align: "center",
+            render: (_, record) => {
+                const duration = record.duration || 0;
+                const questionQuantity = record.questionQuantity || 0;
+                const versionNum = record.version || 1;
+                const parentId = record.parentTestId;
+                
+                return (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+                        <div>
+                            <Text strong>Thời lượng: </Text>
+                            <Text>{duration} phút</Text>
+                        </div>
+                        <div>
+                            <Text strong>Số câu hỏi: </Text>
+                            <Text>{questionQuantity}</Text>
+                        </div>
+                        <div>
+                            <Text strong>Version: </Text>
+                            <Text>{`v${versionNum}`}</Text>
+                            {parentId && (
+                                <Tooltip title={`Version của bài thi ID ${parentId}`}>
+                                    <Tag color="blue" style={{ marginLeft: 4, fontSize: 10 }}>
+                                        #{parentId}
+                                    </Tag>
+                                </Tooltip>
+                            )}
+                        </div>
+                    </div>
+                );
+            }
+        },
+        {
+            title: "Ngày tạo",
+            dataIndex: "createdAt",
+            key: "createdAt",
             width: 150,
-            ellipsis: true,
-        },
-        { 
-            title: "Thời lượng", 
-            dataIndex: "duration", 
-            key: "duration", 
-            width: 120,
             align: "center",
-            render: d => `${d} phút` 
-        },
-        { 
-            title: "Số câu hỏi", 
-            dataIndex: "questionQuantity", 
-            key: "questionQuantity", 
-            width: 120,
-            align: "center",
-        },
-        { 
-            title: "Version", 
-            dataIndex: "version", 
-            key: "version", 
-            width: 100,
-            align: "center",
-            render: (version) => version ? `v${version}` : "v1"
+            render: (date, record) => {
+                const dateValue = date || record.CreatedAt || record.created_at;
+                return (
+                    <div style={{ fontSize: 12 }}>
+                        <div>{formatDate(dateValue)}</div>
+                        {dateValue && (
+                            <Text type="secondary" style={{ fontSize: 11 }}>
+                                {(() => {
+                                    try {
+                                        const dateObj = new Date(dateValue);
+                                        const now = new Date();
+                                        const diffMs = now - dateObj;
+                                        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                                        
+                                        if (diffDays === 0) {
+                                            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                                            if (diffHours === 0) {
+                                                const diffMins = Math.floor(diffMs / (1000 * 60));
+                                                return diffMins <= 1 ? "Vừa xong" : `${diffMins} phút trước`;
+                                            }
+                                            return `${diffHours} giờ trước`;
+                                        } else if (diffDays === 1) {
+                                            return "Hôm qua";
+                                        } else if (diffDays < 7) {
+                                            return `${diffDays} ngày trước`;
+                                        } else if (diffDays < 30) {
+                                            const weeks = Math.floor(diffDays / 7);
+                                            return `${weeks} tuần trước`;
+                                        } else if (diffDays < 365) {
+                                            const months = Math.floor(diffDays / 30);
+                                            return `${months} tháng trước`;
+                                        } else {
+                                            const years = Math.floor(diffDays / 365);
+                                            return `${years} năm trước`;
+                                        }
+                                    } catch (e) {
+                                        return "";
+                                    }
+                                })()}
+                            </Text>
+                        )}
+                    </div>
+                );
+            },
+            sorter: (a, b) => {
+                const dateA = a.createdAt || a.CreatedAt || a.created_at;
+                const dateB = b.createdAt || b.CreatedAt || b.created_at;
+                if (!dateA && !dateB) return 0;
+                if (!dateA) return 1;
+                if (!dateB) return -1;
+                return new Date(dateA) - new Date(dateB);
+            },
         },
         {
             title: "Trạng thái tạo bài",
             key: "creationStatus",
-            width: 170,
+            width: 140,
             align: "center",
             render: (_, rec) => {
                 const creationStatus = normalizeCreationStatusValue(rec.creationStatus ?? rec.CreationStatus);
@@ -796,7 +929,7 @@ export default function ExamManagement() {
         { 
             title: "Trạng thái", 
             key: "status", 
-            width: 160,
+            width: 130,
             align: "center",
             render: (_, rec) => {
                 const normalizedStatus = deriveStatusKey(rec);
@@ -832,7 +965,7 @@ export default function ExamManagement() {
         {
             title: "Hiển thị",
             key: "visibilitySwitch",
-            width: 140,
+            width: 100,
             align: "center",
             render: (_, rec) => {
                 const creationStatus = normalizeCreationStatusValue(rec.creationStatus ?? rec.CreationStatus);
@@ -858,8 +991,7 @@ export default function ExamManagement() {
         {
             title: "Thao tác", 
             key: "actions", 
-            width: 200,
-            fixed: 'right',
+            width: 150,
             align: "center",
             render: (_, rec) => {
                 const creationStatus = normalizeCreationStatusValue(rec.creationStatus ?? rec.CreationStatus);
@@ -941,7 +1073,7 @@ export default function ExamManagement() {
 
                     {/* Filter Row */}
                     <Row gutter={[16, 16]}>
-                        <Col xs={24} sm={12} md={6}>
+                        <Col xs={24} sm={12} md={4}>
                             <div style={{ marginBottom: 4, fontSize: 13, color: '#666', fontWeight: 500 }}>
                                 Kỹ năng
                             </div>
@@ -958,7 +1090,7 @@ export default function ExamManagement() {
                                 <Select.Option value={2}>Viết</Select.Option>
                             </Select>
                         </Col>
-                        <Col xs={24} sm={12} md={6}>
+                        <Col xs={24} sm={12} md={4}>
                             <div style={{ marginBottom: 4, fontSize: 13, color: '#666', fontWeight: 500 }}>
                                 Loại bài thi
                             </div>
@@ -974,7 +1106,7 @@ export default function ExamManagement() {
                                 <Select.Option value="Simulator">Mô phỏng</Select.Option>
                             </Select>
                     </Col>
-                        <Col xs={24} sm={12} md={6}>
+                        <Col xs={24} sm={12} md={4}>
                             <div style={{ marginBottom: 4, fontSize: 13, color: '#666', fontWeight: 500 }}>
                                 Trạng thái
                             </div>
@@ -990,7 +1122,7 @@ export default function ExamManagement() {
                                 <Select.Option value="Hidden">Đã ẩn</Select.Option>
                             </Select>
                         </Col>
-                        <Col xs={24} sm={12} md={6}>
+                        <Col xs={24} sm={12} md={4}>
                             <div style={{ marginBottom: 4, fontSize: 13, color: '#666', fontWeight: 500 }}>
                                 Trạng thái tạo bài
                             </div>
@@ -1006,6 +1138,20 @@ export default function ExamManagement() {
                                 <Select.Option value="InProgress">Đang tiến hành</Select.Option>
                                 <Select.Option value="Completed">Hoàn thành</Select.Option>
                             </Select>
+                    </Col>
+                    <Col xs={24} sm={12} md={8}>
+                        <div style={{ marginBottom: 4, fontSize: 13, color: '#666', fontWeight: 500 }}>
+                            Lọc theo ngày tạo
+                        </div>
+                        <DatePicker.RangePicker
+                            value={dateRange}
+                            onChange={handleDateRangeChange}
+                            style={{ width: '100%' }}
+                            size="large"
+                            format="DD/MM/YYYY"
+                            placeholder={['Từ ngày', 'Đến ngày']}
+                            allowClear
+                        />
                     </Col>
                 </Row>
                 </Space>
@@ -1026,7 +1172,7 @@ export default function ExamManagement() {
                         pageSizeOptions: ['10', '20', '50', '100'],
                     }}
                     onChange={handleTableChange}
-                    scroll={{ x: 1400 }}
+                    scroll={false}
                 />
             </Card>
 
