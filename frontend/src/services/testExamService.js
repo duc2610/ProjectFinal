@@ -6,7 +6,6 @@ export async function startTest(testId, isSelectTime = false) {
     const res = await api.get(url);
     return res?.data?.data ?? res?.data;
   } catch (error) {
-    console.error(`Error starting test ${testId}:`, error);
     throw error;
   }
 }
@@ -18,7 +17,6 @@ export async function submitTest(payload) {
     const res = await api.post(url, payload);
     return res?.data?.data ?? res?.data; // Trả về data
   } catch (error) {
-    console.error("Submit failed:", error.response?.data || error);
     throw error;
   }
 }
@@ -28,7 +26,6 @@ export async function getTestResultDetail(testResultId) {
     const res = await api.get(url);
     return res?.data?.data ?? res?.data;
   } catch (error) {
-    console.error(`Error fetching test result detail ${testResultId}:`, error.response?.data || error);
     throw error;
   }
 }
@@ -49,7 +46,6 @@ export async function submitAssessmentBulk(payload) {
     const res = await api.post(url, payload);
     return res?.data?.data ?? res?.data;
   } catch (error) {
-    console.error("Assessment bulk failed:", error.response?.data || error);
     throw error;
   }
 }
@@ -65,7 +61,6 @@ export async function saveProgress(testResultId, answers) {
     const res = await api.post(url, payload);
     return res?.data?.data ?? res?.data;
   } catch (error) {
-    console.error("Save progress failed:", error.response?.data || error);
     throw error;
   }
 }

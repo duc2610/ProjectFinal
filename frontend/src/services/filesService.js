@@ -21,12 +21,6 @@ export const uploadFile = async (file, type = "image") => {
     // Backend returns ApiResponse<string> with data property
     return response.data.data || response.data;
   } catch (error) {
-    console.error("Upload error details:", {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      headers: error.response?.headers,
-    });
     throw error;
   }
 };
@@ -51,7 +45,6 @@ export const rollbackFiles = async (urls) => {
   try {
     await deleteFiles(urls);
   } catch (error) {
-    console.error("Failed to rollback files:", error);
   }
 };
 

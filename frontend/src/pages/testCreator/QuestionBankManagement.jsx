@@ -15,7 +15,10 @@ import {
   Row,
   Col,
   Alert,
+  Typography,
+  DatePicker,
 } from "antd";
+import dayjs from "dayjs";
 import { 
   SearchOutlined, 
   EditOutlined, 
@@ -86,6 +89,18 @@ const normalizeStatus = (raw) => {
   return { isActive: false, text: "Ngưng hoạt động", color: "red" };
 };
 
+const { Text } = Typography;
+
+const formatDate = (dateString) => {
+  if (!dateString) return "—";
+  try {
+    const date = dayjs(dateString);
+    return date.format("DD/MM/YYYY, HH:mm");
+  } catch (error) {
+    return dateString;
+  }
+};
+
 export default function QuanLyNganHangCauHoi() {
   const [listLoading, setListLoading] = useState(false);
   const [dataSource, setDataSource] = useState([]);
@@ -100,6 +115,7 @@ export default function QuanLyNganHangCauHoi() {
   const [filterSkill, setFilterSkill] = useState("all");
   const [filterPart, setFilterPart] = useState("all");
   const [filterQuestionType, setFilterQuestionType] = useState("all");
+  const [dateRange, setDateRange] = useState(null);
   const [partsList, setPartsList] = useState([]);
   const [questionTypes, setQuestionTypes] = useState([]);
   const [searchTimeout, setSearchTimeout] = useState(null);
@@ -118,14 +134,22 @@ export default function QuanLyNganHangCauHoi() {
     keyword = "",
     skill = "all",
     partId = "all",
-    questionTypeId = "all"
+    questionTypeId = "all",
+    dateRangeFilter = null
   ) => {
     try {
       setListLoading(true);
+      // Nếu keyword là số (có thể là ID), không gửi lên API vì API có thể không hỗ trợ tìm kiếm theo ID
+      // Sẽ filter trên frontend thay vào đó
+      // Cần lấy nhiều dữ liệu hơn để có thể tìm trên toàn bộ
+      const isNumericKeyword = keyword && /^\d+$/.test(keyword.trim());
+      const effectivePageSize = isNumericKeyword ? 10000 : pageSize; // Lấy nhiều hơn khi tìm theo ID
       const params = buildQuestionListParams({ 
-        page, 
-        pageSize,
-        keyword: keyword || undefined,
+        page: isNumericKeyword ? 1 : page, // Reset về trang 1 khi tìm theo ID
+        pageSize: effectivePageSize,
+        // Chỉ gửi keyword lên API nếu không phải là số (ID)
+        // Nếu là số, sẽ filter trên frontend
+        keyword: (keyword && !isNumericKeyword) ? keyword : undefined,
         skill: skill !== "all" ? skill : undefined,
         partId: partId !== "all" ? partId : undefined,
         questionTypeId: questionTypeId !== "all" ? questionTypeId : undefined,
@@ -170,6 +194,8 @@ export default function QuanLyNganHangCauHoi() {
               __hasAudio: !!(r.audioUrl || r.audioName),
               __hasImage: !!(r.imageUrl || r.imageName),
               __questionsCount: Array.isArray(r.questions) ? r.questions.length : 0,
+              __createdAt: r.createdAt || r.CreatedAt || r.created_at,
+              __questionTypeName: r.questionTypeName || r.questionType?.name || r.typeName,
             };
           }
 
@@ -189,6 +215,8 @@ export default function QuanLyNganHangCauHoi() {
             __hasAudio: !!(r.audioUrl || r.audioName),
             __hasImage: !!(r.imageUrl || r.imageName),
             __optionsCount: Array.isArray(r.options) ? r.options.length : 0,
+            __createdAt: r.createdAt || r.CreatedAt || r.created_at,
+            __questionTypeName: r.questionTypeName || r.questionType?.name || r.typeName,
           };
         })
         .filter((item) => {
@@ -204,9 +232,73 @@ export default function QuanLyNganHangCauHoi() {
           }
         });
 
-      const total = data?.totalCount ?? data?.total ?? items.length;
-      setDataSource(items);
-      setPagination({ current: page, pageSize, total });
+      // Client-side filtering theo keyword (ID và nội dung)
+      // Luôn filter trên frontend để đảm bảo tìm kiếm theo ID hoạt động
+      let filteredItems = items;
+      if (keyword && keyword.trim()) {
+        const searchLower = keyword.toLowerCase().trim();
+        filteredItems = items.filter((item) => {
+          // Tìm theo ID - kiểm tra tất cả các trường ID có thể
+          const itemId = String(item.id || "");
+          const questionId = String(item.questionId || item.QuestionId || "");
+          const questionGroupId = String(item.questionGroupId || item.QuestionGroupId || "");
+          const groupId = String(item.groupId || item.GroupId || "");
+          const rawId = String(item.id || item.Id || "");
+          
+          if (
+            itemId.toLowerCase().includes(searchLower) ||
+            questionId.toLowerCase().includes(searchLower) ||
+            questionGroupId.toLowerCase().includes(searchLower) ||
+            groupId.toLowerCase().includes(searchLower) ||
+            rawId.toLowerCase().includes(searchLower)
+          ) {
+            return true;
+          }
+          
+          // Tìm theo nội dung (content hoặc passageContent)
+          const content = (item.content || item.passageContent || "").toLowerCase();
+          if (content.includes(searchLower)) {
+            return true;
+          }
+          
+          // Tìm theo nội dung các câu hỏi con (cho group questions)
+          if (item.isGroupQuestion && Array.isArray(item.questions)) {
+            const hasMatchingQuestion = item.questions.some((q) => {
+              const qContent = (q.content || "").toLowerCase();
+              return qContent.includes(searchLower);
+            });
+            if (hasMatchingQuestion) {
+              return true;
+            }
+          }
+          
+          // Tìm theo nội dung các đáp án (cho single questions)
+          if (!item.isGroupQuestion && Array.isArray(item.options)) {
+            const hasMatchingOption = item.options.some((opt) => {
+              const optContent = (opt.content || "").toLowerCase();
+              return optContent.includes(searchLower);
+            });
+            if (hasMatchingOption) {
+              return true;
+            }
+          }
+          
+          return false;
+        });
+      }
+
+      // Total là số lượng sau khi filter trên frontend
+      // Nếu có keyword, total sẽ là số lượng items sau khi filter
+      // Nếu không có keyword, có thể dùng total từ API hoặc items.length
+      const total = (keyword && keyword.trim()) 
+        ? filteredItems.length 
+        : (data?.totalCount ?? data?.total ?? filteredItems.length);
+      
+      // Nếu đang tìm kiếm theo ID (numeric keyword), reset về trang 1
+      const finalPage = isNumericKeyword ? 1 : page;
+      
+      setDataSource(filteredItems);
+      setPagination({ current: finalPage, pageSize, total });
 
       // Extract unique parts from dataSource for filter (only when no skill filter)
       if (skill === "all") {
@@ -223,7 +315,6 @@ export default function QuanLyNganHangCauHoi() {
       }
     } catch (e) {
       message.error("Không tải được danh sách câu hỏi");
-      console.error(e);
     } finally {
       setListLoading(false);
     }
@@ -254,7 +345,6 @@ export default function QuanLyNganHangCauHoi() {
             }));
           setPartsList(filteredParts);
         } catch (e) {
-          console.error("Error loading parts:", e);
         }
       } else {
         setPartsList([]);
@@ -269,7 +359,7 @@ export default function QuanLyNganHangCauHoi() {
     setFilterPart("all");
     setFilterQuestionType("all");
     setQuestionTypes([]);
-    loadList(1, 10, searchKeyword, filterSkill, "all", "all");
+    loadList(1, 10, searchKeyword, filterSkill, "all", "all", dateRange);
     
     return () => {
       if (searchTimeout) {
@@ -279,8 +369,8 @@ export default function QuanLyNganHangCauHoi() {
   }, [showDeleted, tabKey]);
   
   useEffect(() => {
-    loadList(1, 10, searchKeyword, filterSkill, filterPart, filterQuestionType);
-  }, [filterPart, filterQuestionType]);
+    loadList(1, 10, searchKeyword, filterSkill, filterPart, filterQuestionType, dateRange);
+  }, [filterPart, filterQuestionType, dateRange]);
 
   const filteredData = useMemo(() => dataSource, [dataSource]);
 
@@ -305,7 +395,13 @@ export default function QuanLyNganHangCauHoi() {
   };
 
   const afterSaved = () => {
-    loadList(pagination.current, pagination.pageSize, searchKeyword, filterSkill, filterPart);
+    loadList(pagination.current, pagination.pageSize, searchKeyword, filterSkill, filterPart, filterQuestionType, dateRange);
+  };
+
+  const handleDateRangeChange = (dates) => {
+    setDateRange(dates);
+    setPagination({ ...pagination, current: 1 });
+    loadList(1, pagination.pageSize, searchKeyword, filterSkill, filterPart, filterQuestionType, dates);
   };
 
   const handleSearchChange = (e) => {
@@ -324,7 +420,8 @@ export default function QuanLyNganHangCauHoi() {
         value,
         filterSkill,
         filterPart,
-        filterQuestionType
+        filterQuestionType,
+        dateRange
       );
     }, 500);
     
@@ -337,14 +434,14 @@ export default function QuanLyNganHangCauHoi() {
     setFilterQuestionType("all");
     setQuestionTypes([]);
     setPagination({ ...pagination, current: 1 });
-    loadList(1, pagination.pageSize, searchKeyword, skill, "all", "all");
+    loadList(1, pagination.pageSize, searchKeyword, skill, "all", "all", dateRange);
   };
 
   const handlePartFilterChange = (partId) => {
     setFilterPart(partId);
     setFilterQuestionType("all");
     setPagination({ ...pagination, current: 1 });
-    loadList(1, pagination.pageSize, searchKeyword, filterSkill, partId, "all");
+    loadList(1, pagination.pageSize, searchKeyword, filterSkill, partId, "all", dateRange);
 
     // Load question types theo Part (chỉ khi chọn một Part cụ thể)
     (async () => {
@@ -362,7 +459,6 @@ export default function QuanLyNganHangCauHoi() {
         }));
         setQuestionTypes(mapped);
       } catch (err) {
-        console.error("Error loading question types:", err);
         setQuestionTypes([]);
       }
     })();
@@ -377,7 +473,8 @@ export default function QuanLyNganHangCauHoi() {
       searchKeyword,
       filterSkill,
       filterPart,
-      questionTypeId
+      questionTypeId,
+      dateRange
     );
   };
 
@@ -403,9 +500,9 @@ export default function QuanLyNganHangCauHoi() {
       >
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col flex="auto">
-            <Space size="middle" style={{ width: '100%' }}>
+            <Space size="middle" style={{ width: '100%', flexWrap: 'wrap' }}>
               <Input
-                placeholder="Tìm kiếm theo nội dung..."
+                placeholder="Tìm kiếm theo ID, nội dung..."
                 style={{ width: 300 }}
                 value={searchKeyword}
                 onChange={handleSearchChange}
@@ -453,6 +550,14 @@ export default function QuanLyNganHangCauHoi() {
                   </Select.Option>
                 ))}
               </Select>
+              <DatePicker.RangePicker
+                value={dateRange}
+                onChange={handleDateRangeChange}
+                style={{ width: 300 }}
+                format="DD/MM/YYYY"
+                placeholder={['Từ ngày', 'Đến ngày']}
+                allowClear
+              />
             </Space>
           </Col>
         </Row>
@@ -471,7 +576,12 @@ export default function QuanLyNganHangCauHoi() {
           rowKey={(r) => `${r.id}-${r.isGroupQuestion ? "G" : "S"}`}
           dataSource={filteredData}
           loading={listLoading}
-          pagination={pagination}
+          pagination={{
+            ...pagination,
+            showSizeChanger: true,
+            showTotal: (total) => `Tổng ${total} câu hỏi`,
+            pageSizeOptions: ['10', '20', '50', '100'],
+          }}
           onChange={(pager) => {
             const current = pager?.current || 1;
             const pageSize = pager?.pageSize || 10;
@@ -480,10 +590,29 @@ export default function QuanLyNganHangCauHoi() {
               current,
               pageSize,
             }));
-            loadList(current, pageSize, searchKeyword, filterSkill, filterPart);
+            loadList(current, pageSize, searchKeyword, filterSkill, filterPart, filterQuestionType, dateRange);
           }}
           columns={[
-            { title: "ID", dataIndex: "id", width: 80 },
+            {
+              title: "STT",
+              key: "stt",
+              width: 60,
+              align: "center",
+              render: (_, __, index) => {
+                const currentPage = pagination.current;
+                const pageSize = pagination.pageSize;
+                return (currentPage - 1) * pageSize + index + 1;
+              }
+            },
+            { 
+              title: "ID", 
+              dataIndex: "id", 
+              width: 80,
+              align: "center",
+              render: (id) => {
+                return <Text strong style={{ color: "#1890ff" }}>{id}</Text>;
+              }
+            },
             {
               title: "Part",
               dataIndex: "partName",
@@ -491,26 +620,39 @@ export default function QuanLyNganHangCauHoi() {
               render: (_, r) => r.partName || r.partId || "-",
             },
             {
-              title: "Kỹ năng",
-              dataIndex: "__skillName",
-              width: 120,
-              render: (v, r) => {
-                const skillName = r.__skillName || "";
+              title: "Thông tin câu hỏi",
+              key: "questionInfo",
+              width: 300,
+              render: (_, record) => {
+                const skillName = record.__skillName || "";
                 const skillMap = {
                   "Listening": "Nghe",
                   "Reading": "Đọc",
                   "Speaking": "Nói",
                   "Writing": "Viết",
                 };
-                return skillMap[skillName] || skillName || "-";
+                const skillLabel = skillMap[skillName] || skillName || "-";
+                const typeName = record.__questionTypeName;
+                const isGroup = record.isGroupQuestion;
+                
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <Tag color="blue">{skillLabel}</Tag>
+                      {isGroup ? <Tag color="purple">Nhóm</Tag> : <Tag color="orange">Đơn</Tag>}
+                    </div>
+                    {typeName ? (
+                      <Tooltip title={typeName}>
+                        <Text style={{ fontSize: 12 }} ellipsis={{ tooltip: typeName }}>
+                          {typeName}
+                        </Text>
+                      </Tooltip>
+                    ) : (
+                      <Text type="secondary" style={{ fontSize: 12 }}>—</Text>
+                    )}
+                  </div>
+                );
               },
-            },
-            {
-              title: "Loại",
-              dataIndex: "isGroupQuestion",
-              width: 100,
-              render: (v) =>
-                v ? <Tag color="purple">Nhóm</Tag> : <Tag color="orange">Đơn</Tag>,
             },
             {
               title: "Nội dung / Đoạn văn",
@@ -615,6 +757,66 @@ export default function QuanLyNganHangCauHoi() {
               dataIndex: "status",
               width: 110,
               render: (_, r) => <Tag color={r.statusColor}>{r.statusText}</Tag>,
+            },
+            {
+              title: "Ngày tạo",
+              dataIndex: "__createdAt",
+              key: "createdAt",
+              width: 180,
+              align: "center",
+              render: (dateString, record) => {
+                const dateValue = dateString || record.createdAt || record.CreatedAt || record.created_at;
+                if (!dateValue) return "—";
+                return (
+                  <div style={{ fontSize: 12 }}>
+                    <div>{formatDate(dateValue)}</div>
+                    {dateValue && (
+                      <Text type="secondary" style={{ fontSize: 11 }}>
+                        {(() => {
+                          try {
+                            const dateObj = dayjs(dateValue);
+                            const now = dayjs();
+                            const diffDays = now.diff(dateObj, 'day');
+                            
+                            if (diffDays === 0) {
+                              const diffHours = now.diff(dateObj, 'hour');
+                              if (diffHours === 0) {
+                                const diffMins = now.diff(dateObj, 'minute');
+                                return diffMins <= 1 ? "Vừa xong" : `${diffMins} phút trước`;
+                              }
+                              return `${diffHours} giờ trước`;
+                            } else if (diffDays === 1) {
+                              return "Hôm qua";
+                            } else if (diffDays < 7) {
+                              return `${diffDays} ngày trước`;
+                            } else if (diffDays < 30) {
+                              const weeks = Math.floor(diffDays / 7);
+                              return `${weeks} tuần trước`;
+                            } else if (diffDays < 365) {
+                              const months = Math.floor(diffDays / 30);
+                              return `${months} tháng trước`;
+                            } else {
+                              const years = Math.floor(diffDays / 365);
+                              return `${years} năm trước`;
+                            }
+                          } catch (e) {
+                            return "";
+                          }
+                        })()}
+                      </Text>
+                    )}
+                  </div>
+                );
+              },
+              sorter: (a, b) => {
+                const dateA = a.__createdAt || a.createdAt || a.CreatedAt || a.created_at;
+                const dateB = b.__createdAt || b.createdAt || b.CreatedAt || b.created_at;
+                if (!dateA && !dateB) return 0;
+                if (!dateA) return 1;
+                if (!dateB) return -1;
+                return dayjs(dateA).valueOf() - dayjs(dateB).valueOf();
+              },
+              defaultSortOrder: 'descend',
             },
             {
               title: "Hành động",

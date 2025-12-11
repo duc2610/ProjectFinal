@@ -286,7 +286,6 @@ export async function updateTestFromBank(id, data) {
     const res = await api.put(`/api/tests/from-bank/${id}`, payload);
     return res?.data?.data ?? res?.data;
   } catch (error) {
-    console.error("Error message:", error?.message);
     throw error;
   }
 }

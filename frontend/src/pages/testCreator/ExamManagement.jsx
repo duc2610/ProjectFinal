@@ -168,7 +168,6 @@ export default function ExamManagement() {
             // Reload danh sách sau khi toggle thành công
             await fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
         } catch (error) {
-            console.error("Toggle visibility error:", error);
             const errorMsg = error?.response?.data?.message || error?.message || "Lỗi khi cập nhật trạng thái hiển thị";
             message.error(errorMsg);
         } finally {
@@ -192,6 +191,26 @@ export default function ExamManagement() {
             if (response?.success && response?.data) {
                 const { dataPaginated, currentPage, pageSize: size, totalCount } = response.data;
                 let allExams = dataPaginated || [];
+                
+                // Client-side filtering theo search keyword (ID và tên đề thi)
+                if (search && search.trim()) {
+                    const searchLower = search.toLowerCase().trim();
+                    allExams = allExams.filter((exam) => {
+                        // Tìm theo ID
+                        const examId = String(exam.id ?? exam.Id ?? exam.testId ?? exam.TestId ?? "");
+                        if (examId.toLowerCase().includes(searchLower)) {
+                            return true;
+                        }
+                        
+                        // Tìm theo tên đề thi (title)
+                        const title = (exam.title || "").toLowerCase();
+                        if (title.includes(searchLower)) {
+                            return true;
+                        }
+                        
+                        return false;
+                    });
+                }
                 
                 if (testType !== "all") {
                     allExams = allExams.filter(exam => exam.testType === testType);
@@ -293,7 +312,6 @@ export default function ExamManagement() {
                 message.error("Không thể tải dữ liệu bài thi");
             }
         } catch (error) {
-            console.error("Error fetching tests:", error);
             message.error("Lỗi khi tải dữ liệu: " + (error.message || "Unknown error"));
         } finally {
             setLoading(false);
@@ -386,7 +404,6 @@ export default function ExamManagement() {
             message.success("Đã tải template Nghe & Đọc thành công");
             setDownloadTemplateModalOpen(false);
         } catch (error) {
-            console.error("Download template error:", error);
             const errorMsg = error?.response?.data?.message || error?.message || "Unknown error";
             message.error("Lỗi khi tải template: " + errorMsg);
         }
@@ -415,7 +432,6 @@ export default function ExamManagement() {
             message.success("Đã tải template Nói & Viết thành công");
             setDownloadTemplateModalOpen(false);
         } catch (error) {
-            console.error("Download template S&W error:", error);
             const errorMsg = error?.response?.data?.message || error?.message || "Unknown error";
             message.error("Lỗi khi tải template: " + errorMsg);
         }
@@ -472,7 +488,6 @@ export default function ExamManagement() {
                 setImportTestType("LR");
                 handleTestCreated(); // Reload danh sách
             } catch (error) {
-                console.error("Import Excel error:", error);
                 const errorMsg = error?.response?.data?.message || error?.response?.data?.data || error?.message || "Unknown error";
                 message.error("Lỗi khi import: " + errorMsg);
             } finally {
@@ -490,7 +505,6 @@ export default function ExamManagement() {
                 setImportTestType("LR");
                 handleTestCreated(); // Reload danh sách
             } catch (error) {
-                console.error("Import Excel S&W error:", error);
                 const errorMsg = error?.response?.data?.message || error?.response?.data?.data || error?.message || "Unknown error";
                 message.error("Lỗi khi import: " + errorMsg);
             } finally {
@@ -559,7 +573,6 @@ export default function ExamManagement() {
                 testType: normalizedType,
             });
         } catch (error) {
-            console.error("Error loading test version detail:", error);
             // Fallback: chỉ set id nếu có lỗi, vẫn cho phép xem ở chế độ mặc định
             setViewingExam({ id: testId });
         }
@@ -602,7 +615,6 @@ export default function ExamManagement() {
             setSelectedStatus(null);
             fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
         } catch (error) {
-            console.error("Update status error:", error);
             const errorMsg = error?.response?.data?.message || error?.message || "Lỗi khi cập nhật trạng thái";
             message.error(errorMsg);
         }
@@ -823,7 +835,6 @@ export default function ExamManagement() {
                 const duration = record.duration || 0;
                 const questionQuantity = record.questionQuantity || 0;
                 const versionNum = record.version || 1;
-                const parentId = record.parentTestId;
                 
                 return (
                     <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
@@ -838,13 +849,6 @@ export default function ExamManagement() {
                         <div>
                             <Text strong>Version: </Text>
                             <Text>{`v${versionNum}`}</Text>
-                            {parentId && (
-                                <Tooltip title={`Version của bài thi ID ${parentId}`}>
-                                    <Tag color="blue" style={{ marginLeft: 4, fontSize: 10 }}>
-                                        #{parentId}
-                                    </Tag>
-                                </Tooltip>
-                            )}
                         </div>
                     </div>
                 );
@@ -1041,7 +1045,7 @@ export default function ExamManagement() {
                 <Row gutter={16} align="middle">
                     <Col flex="auto">
                             <Input 
-                                placeholder="Tìm kiếm bài thi..." 
+                                placeholder="Tìm kiếm theo ID, tên đề thi..." 
                                 size="large"
                                 style={{ width: '100%', maxWidth: 400 }} 
                                 value={searchExam} 

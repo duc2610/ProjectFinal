@@ -127,18 +127,13 @@ export function RoleRoute({ allow }) {
     // Kiểm tra xem path hiện tại có phù hợp với role của user không
     const isPathAllowed = isPathAllowedForRole(currentPath, roles);
     
-    // Nếu path hiện tại phù hợp với role, không hiển thị warning
-    // Và không render Outlet (để Route khác xử lý)
-    // Điều này tránh hiển thị warning khi có nhiều RoleRoute lồng nhau
-    if (isPathAllowed) {
-      // User đang ở đúng path, không render gì (sẽ được xử lý bởi RoleRoute khác match)
-      // Return fragment rỗng để không render gì
-      return <></>;
-    }
-    
-    // Nếu path không phù hợp với role, kiểm tra xem có đang trong quá trình auto redirect không
-    // Chỉ hiển thị warning khi không phải auto redirect (user thực sự cố gắng truy cập)
-    const shouldShowWarning = !isAutoRedirecting && warningShownForPath !== currentPath;
+    // Hiển thị warning khi:
+    // 1. Không phải auto redirect
+    // 2. Path không phù hợp với role (user đang cố truy cập trang không thuộc role của họ)
+    // 3. Chưa hiển thị warning cho path này
+    // Lưu ý: Nếu path phù hợp với role nhưng route yêu cầu role khác (nested route),
+    // thì vẫn nên hiển thị warning vì user không có quyền truy cập route cụ thể đó
+    const shouldShowWarning = !isAutoRedirecting && !isPathAllowed && warningShownForPath !== currentPath;
     
     if (shouldShowWarning) {
       warningShownForPath = currentPath;
@@ -148,7 +143,8 @@ export function RoleRoute({ allow }) {
     // Đánh dấu đang trong quá trình auto redirect
     isAutoRedirecting = true;
     
-    // Redirect về trang phù hợp với role
+    // Luôn redirect về trang phù hợp với role khi không có quyền
+    // Điều này đảm bảo user không bao giờ thấy màn hình trắng
     if (roles.includes(ROLES.Admin)) {
       return <Navigate to="/admin/dashboard" replace />;
     }

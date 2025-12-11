@@ -117,7 +117,6 @@ export default function TestCreatorDashboard() {
         topTests: transformedTopTests,
       });
     } catch (error) {
-      console.error("Error fetching dashboard data:", error);
       // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
     } finally {
       setLoading(false);

@@ -33,7 +33,6 @@ export async function logout() {
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      console.error("Logout error:", error);
     }
   }
   

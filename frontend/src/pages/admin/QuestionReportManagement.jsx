@@ -19,6 +19,7 @@ import {
   Typography,
   Upload,
   message,
+  DatePicker,
 } from "antd";
 import {
   CheckCircleOutlined,
@@ -26,6 +27,7 @@ import {
   EyeOutlined,
   FilterOutlined,
   ReloadOutlined,
+  SearchOutlined,
   SettingOutlined,
   UploadOutlined,
 } from "@ant-design/icons";
@@ -108,6 +110,9 @@ export default function QuestionReportManagement() {
   const [filters, setFilters] = useState({
     // Mặc định: lấy tất cả trạng thái, không filter theo status
     status: "all",
+    reportType: "all",
+    dateRange: null,
+    searchText: "",
     page: 1,
     // Mặc định lấy nhiều bản ghi để hạn chế phải chuyển trang
     pageSize: 1000,
@@ -115,7 +120,7 @@ export default function QuestionReportManagement() {
   const [dataSource, setDataSource] = useState([]);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 20,
+    pageSize: 10,
     total: 0,
   });
   const [selectedReport, setSelectedReport] = useState(null);
@@ -151,12 +156,84 @@ export default function QuestionReportManagement() {
       const pageSize = res?.pageSize ?? merged.pageSize ?? pagination.pageSize;
       const total = res?.totalRecords ?? res?.total ?? items.length ?? 0;
 
-      const itemsArray = Array.isArray(items)
+      let itemsArray = Array.isArray(items)
         ? items
         : Array.isArray(items.data)
         ? items.data
         : [];
 
+      // Filter theo loại lỗi (reportType)
+      if (merged.reportType && merged.reportType !== "all") {
+        const beforeFilter = itemsArray.length;
+        itemsArray = itemsArray.filter(item => {
+          return item.reportType === merged.reportType;
+        });
+      }
+      
+      // Filter theo khoảng ngày tạo
+      if (merged.dateRange && Array.isArray(merged.dateRange) && merged.dateRange.length === 2) {
+        const beforeFilter = itemsArray.length;
+        const startDate = dayjs(merged.dateRange[0]).startOf('day');
+        const endDate = dayjs(merged.dateRange[1]).endOf('day');
+        itemsArray = itemsArray.filter(item => {
+          const itemDate = item.createdAt || item.CreatedAt;
+          if (!itemDate) return false;
+          const itemDateObj = dayjs(itemDate);
+          const isInRange = itemDateObj.isAfter(startDate) && itemDateObj.isBefore(endDate) || 
+                           itemDateObj.isSame(startDate, 'day') || 
+                           itemDateObj.isSame(endDate, 'day');
+          return isInRange;
+        });
+      }
+      
+      // Filter theo tìm kiếm (nội dung câu hỏi, bài test, người báo cáo, ID)
+      if (merged.searchText && merged.searchText.trim()) {
+        const beforeFilter = itemsArray.length;
+        const searchLower = merged.searchText.toLowerCase().trim();
+        itemsArray = itemsArray.filter(item => {
+          // Tìm theo ID (reportId, testQuestionId, testId)
+          const reportId = String(item.reportId ?? item.id ?? item.Id ?? "");
+          const testQuestionId = String(item.testQuestionId ?? "");
+          const testId = String(item.testId ?? "");
+          if (
+            reportId.toLowerCase().includes(searchLower) ||
+            testQuestionId.toLowerCase().includes(searchLower) ||
+            testId.toLowerCase().includes(searchLower)
+          ) {
+            return true;
+          }
+          
+          // Tìm theo nội dung câu hỏi
+          const questionContent = (
+            item.questionContent ||
+            item?.questionSnapshot?.content ||
+            item?.questionGroupSnapshot?.passage ||
+            ""
+          ).toLowerCase();
+          if (questionContent.includes(searchLower)) {
+            return true;
+          }
+          
+          // Tìm theo tên bài test
+          const testName = (item.testName || "").toLowerCase();
+          if (testName.includes(searchLower)) {
+            return true;
+          }
+          
+          // Tìm theo người báo cáo (tên hoặc email)
+          const reporterName = (item.reporterName || "").toLowerCase();
+          const reporterEmail = (item.reporterEmail || "").toLowerCase();
+          if (
+            reporterName.includes(searchLower) ||
+            reporterEmail.includes(searchLower)
+          ) {
+            return true;
+          }
+          
+          return false;
+        });
+      }
+      
       // Sắp xếp theo thời gian tạo giảm dần (report mới nhất lên đầu)
       // Ưu tiên createdAt, nếu không có thì dùng reportId (id lớn hơn = mới hơn)
       itemsArray.sort((a, b) => {
@@ -177,13 +254,12 @@ export default function QuestionReportManagement() {
 
       setDataSource(itemsArray);
       setPagination({
-        current: pageNumber,
-        pageSize,
-        total,
+        current: merged.page || 1, // Reset về trang 1 khi filter thay đổi
+        pageSize: pagination.pageSize || 10, // Giữ nguyên pageSize hiển thị (không dùng pageSize từ API)
+        total: itemsArray.length, // Total sau khi filter
       });
       setFilters(merged);
     } catch (error) {
-      console.error("Failed to load question reports", error);
       // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
     } finally {
       setLoading(false);
@@ -196,9 +272,12 @@ export default function QuestionReportManagement() {
   }, []);
 
   const handleTableChange = (pag) => {
-    fetchData({
-      page: pag.current,
-      pageSize: pag.pageSize,
+    // Với client-side pagination, chỉ cần cập nhật pagination state
+    // Không cần gọi lại API vì đã có tất cả dữ liệu trong dataSource
+    setPagination({
+      current: pag.current || 1,
+      pageSize: pag.pageSize || pagination.pageSize,
+      total: pagination.total, // Giữ nguyên total (tổng số sau filter)
     });
   };
 
@@ -298,8 +377,6 @@ export default function QuestionReportManagement() {
       if (error?.errorFields) return;
 
       // Lỗi từ API
-      // eslint-disable-next-line no-console
-      console.error("Failed to review report", error);
       const apiMessage =
         error?.response?.data?.message ||
         error?.response?.data?.error ||
@@ -366,7 +443,6 @@ export default function QuestionReportManagement() {
             "Đã cập nhật câu hỏi trong bài test theo dữ liệu snapshot."
           );
         } catch (error) {
-          console.error("Failed to update test question from report", error);
           message.error("Không thể cập nhật câu hỏi từ báo cáo.");
         } finally {
           setUpdatingQuestion(false);
@@ -378,36 +454,65 @@ export default function QuestionReportManagement() {
   const columns = useMemo(
     () => [
       {
-        title: "Câu hỏi",
-        dataIndex: "questionContent",
-        width: 260,
-        ellipsis: true,
-        render: (text, record) => {
-          const content =
-            text ||
-            record?.questionSnapshot?.content ||
-            "(Không có nội dung câu hỏi)";
-          return (
-            <Tooltip title={content}>
-              <span>{content}</span>
-            </Tooltip>
-          );
-        },
+        title: "STT",
+        key: "stt",
+        width: 60,
+        align: "center",
+        render: (_, __, index) => {
+          const currentPage = pagination.current;
+          const pageSize = pagination.pageSize;
+          return (currentPage - 1) * pageSize + index + 1;
+        }
       },
       {
-        title: "Bài test",
-        dataIndex: "testName",
-        width: 200,
-        render: (text, record) => (
-          <Space direction="vertical" size={0}>
-            <Text strong ellipsis style={{ maxWidth: 180 }}>
-              {text || "—"}
-            </Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              ID: {record.testId} · Part {record.partName || record.partId}
-            </Text>
-          </Space>
+        title: "ID",
+        dataIndex: "reportId",
+        key: "reportId",
+        width: 80,
+        align: "center",
+        render: (id) => (
+          <Text strong style={{ color: "#1890ff" }}>{id}</Text>
         ),
+      },
+      {
+        title: "Thông tin báo cáo",
+        key: "reportInfo",
+        width: 350,
+        render: (_, record) => {
+          const content =
+            record.questionContent ||
+            record?.questionSnapshot?.content ||
+            "(Không có nội dung câu hỏi)";
+          const testName = record.testName || "—";
+          const testId = record.testId;
+          const partName = record.partName || record.partId;
+          
+          return (
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>
+                  Nội dung câu hỏi:
+                </Text>
+                <Tooltip title={content}>
+                  <Text ellipsis style={{ display: 'block', maxWidth: '100%', fontSize: 13 }}>
+                    {content}
+                  </Text>
+                </Tooltip>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>
+                  Bài test:
+                </Text>
+                <Space size={4}>
+                  <Text strong style={{ fontSize: 13 }}>{testName}</Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    ID: {testId} · Part {partName}
+                  </Text>
+                </Space>
+              </div>
+            </Space>
+          );
+        },
       },
       {
         title: "Loại lỗi",
@@ -443,21 +548,54 @@ export default function QuestionReportManagement() {
         },
       },
       {
-        title: "Người báo cáo",
-        dataIndex: "reporterName",
-        width: 200,
-        render: (text, record) => (
-          <Space direction="vertical" size={0}>
-            <Text strong>{text}</Text>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {record.reporterEmail}
-            </Text>
-          </Space>
-        ),
+        title: "Người báo cáo & Nội dung",
+        key: "reporterAndDescription",
+        width: 280,
+        render: (_, record) => {
+          const reporterName = record.reporterName || "—";
+          const reporterEmail = record.reporterEmail || "—";
+          const description = record.description || "(Không có mô tả)";
+          
+          return (
+            <Space direction="vertical" size={8} style={{ width: '100%' }}>
+              <div>
+                <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>
+                  Người báo cáo:
+                </Text>
+                <Space direction="vertical" size={2}>
+                  <Text strong style={{ fontSize: 13 }}>{reporterName}</Text>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    {reporterEmail}
+                  </Text>
+                </Space>
+              </div>
+              <div>
+                <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>
+                  Nội dung báo cáo:
+                </Text>
+                <Tooltip title={description}>
+                  <Text 
+                    ellipsis 
+                    style={{ 
+                      display: 'block', 
+                      maxWidth: '100%', 
+                      fontSize: 12,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word'
+                    }}
+                  >
+                    {description}
+                  </Text>
+                </Tooltip>
+              </div>
+            </Space>
+          );
+        },
       },
       {
         title: "Thời gian",
         dataIndex: "createdAt",
+        key: "createdAt",
         width: 180,
         render: (value) => {
           if (!value) return "—";
@@ -471,6 +609,15 @@ export default function QuestionReportManagement() {
             </Space>
           );
         },
+        sorter: (a, b) => {
+          const dateA = a.createdAt || a.CreatedAt;
+          const dateB = b.createdAt || b.CreatedAt;
+          if (!dateA && !dateB) return 0;
+          if (!dateA) return 1;
+          if (!dateB) return -1;
+          return dayjs(dateA).valueOf() - dayjs(dateB).valueOf();
+        },
+        defaultSortOrder: 'descend',
       },
       {
         title: "Thao tác",
@@ -490,7 +637,7 @@ export default function QuestionReportManagement() {
         ),
       },
     ],
-    []
+    [pagination]
   );
 
   const renderQuestionSnapshot = (isReadOnly = false) => {
@@ -1195,32 +1342,96 @@ export default function QuestionReportManagement() {
       </Space>
 
       <div style={{ marginBottom: 16 }}>
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <Text type="secondary" style={{ margin: 0 }}>
-            Trạng thái
-          </Text>
-          <Select
-            style={{ width: 180 }}
-            value={filters.status}
-            onChange={(value) =>
-              handleFilterChange({
-                status: value,
-              })
-            }
-          >
-            {statusOptions.map((opt) => (
-              <Option key={opt.value} value={opt.value}>
-                {opt.label}
-              </Option>
-            ))}
-          </Select>
-        </div>
+        <Row gutter={16} align="middle">
+          <Col span={24}>
+            <Space size="middle" direction="vertical" style={{ width: "100%" }}>
+              {/* Dòng 1: Tìm kiếm */}
+              <div style={{ width: "100%" }}>
+                <Input.Search
+                  placeholder="Tìm kiếm theo ID, nội dung câu hỏi, bài test, người báo cáo..."
+                  allowClear
+                  enterButton={<SearchOutlined />}
+                  size="large"
+                  value={filters.searchText}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFilters((prev) => ({ ...prev, searchText: value }));
+                    // Tự động filter khi người dùng nhập (debounce có thể thêm sau nếu cần)
+                    handleFilterChange({ searchText: value });
+                  }}
+                  onSearch={(value) => {
+                    handleFilterChange({ searchText: value });
+                  }}
+                  style={{ maxWidth: 600 }}
+                />
+              </div>
+              
+              {/* Dòng 2: Các filter khác */}
+              <Space size="middle" wrap>
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <Text type="secondary" style={{ margin: 0 }}>
+                    Trạng thái
+                  </Text>
+                  <Select
+                    style={{ width: 180 }}
+                    value={filters.status}
+                    onChange={(value) =>
+                      handleFilterChange({
+                        status: value,
+                      })
+                    }
+                  >
+                    {statusOptions.map((opt) => (
+                      <Option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+                
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <Text type="secondary" style={{ margin: 0 }}>
+                    Loại lỗi
+                  </Text>
+                  <Select
+                    style={{ width: 200 }}
+                    value={filters.reportType}
+                    onChange={(value) =>
+                      handleFilterChange({
+                        reportType: value,
+                      })
+                    }
+                  >
+                    <Option value="all">Tất cả loại lỗi</Option>
+                    {Object.entries(reportTypeTextMap).map(([key, label]) => (
+                      <Option key={key} value={key}>
+                        {label}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+                
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <Text type="secondary" style={{ margin: 0 }}>
+                    Lọc theo ngày
+                  </Text>
+                  <DatePicker.RangePicker
+                    value={filters.dateRange}
+                    onChange={(dates) =>
+                      handleFilterChange({
+                        dateRange: dates,
+                      })
+                    }
+                    style={{ width: 300 }}
+                    format="DD/MM/YYYY"
+                    placeholder={['Từ ngày', 'Đến ngày']}
+                    allowClear
+                  />
+                </div>
+              </Space>
+            </Space>
+          </Col>
+        </Row>
       </div>
 
       <Table
@@ -1233,7 +1444,7 @@ export default function QuestionReportManagement() {
           showSizeChanger: true,
           showTotal: (total) => `Tổng ${total} báo cáo`,
         }}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1340 }}
         onChange={handleTableChange}
         size="middle"
       />

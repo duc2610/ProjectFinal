@@ -42,7 +42,6 @@ export async function getAllUsers(options = {}) {
     const res = await api.get(url);
     return mapUsersResponse(res, []);
   } catch (error) {
-    console.error("Error fetching all users:", error);
     throw error;
   }
 }
@@ -59,7 +58,6 @@ export async function getUserById(userId) {
     const res = await api.get(url);
     return res?.data?.data ?? res?.data;
   } catch (error) {
-    console.error(`Error fetching user ${userId}:`, error);
     throw error;
   }
 }
@@ -71,7 +69,6 @@ export async function createUser(data) {
     const res = await api.post(url, data);
     return res?.data?.data ?? res?.data;
   } catch (error) {
-    console.error("Error creating user:", error);
     throw error;
   }
 }
@@ -83,7 +80,6 @@ export async function updateUser(userId, data) {
     const res = await api.put(url, data);
     return res?.data?.data ?? res?.data;
   } catch (error) {
-    console.error(`Error updating user ${userId}:`, error);
     throw error;
   }
 }
@@ -95,7 +91,6 @@ export async function banUser(userId) {
     const res = await api.put(url);
     return res?.data?.data ?? res?.data;
   } catch (error) {
-    console.error(`Error banning user ${userId}:`, error);
     throw error;
   }
 }
@@ -107,7 +102,6 @@ export async function unbanUser(userId) {
     const res = await api.put(url);
     return res?.data?.data ?? res?.data;
   } catch (error) {
-    console.error(`Error unbanning user ${userId}:`, error);
     throw error;
   }
 }
