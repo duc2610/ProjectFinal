@@ -103,10 +103,12 @@ namespace ToeicGenius.Repositories.Implementations
 			return report;
 		}
 
-		public async Task<bool> HasUserReportedQuestionAsync(int testQuestionId, Guid userId)
+		public async Task<bool> HasUserReportedQuestionAsync(int testQuestionId, Guid userId, int? subQuestionId = null)
 		{
 			return await _context.QuestionReports
-				.AnyAsync(r => r.TestQuestionId == testQuestionId && r.ReportedBy == userId);
+				.AnyAsync(r => r.TestQuestionId == testQuestionId
+					&& r.ReportedBy == userId
+					&& r.SubQuestionId == subQuestionId);
 		}
 
 		public async Task<int> GetPendingReportsCountAsync(Guid? testCreatorId = null)
