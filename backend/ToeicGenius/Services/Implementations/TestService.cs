@@ -431,7 +431,7 @@ namespace ToeicGenius.Services.Implementations
 
 				// Check ownership - user must be the creator of this test
 				if (test.CreatedById != userId)
-					return Result<string>.Failure(ErrorMessages.NoPermissionToFinalizeTest);
+					return Result<string>.Failure(ErrorMessages.NoPermissionToActionTest);
 
 				if (test.VisibilityStatus == TestVisibilityStatus.Published)
 					return Result<string>.Failure("Cannot edit a published test. Please clone to create a new version.");
@@ -572,7 +572,7 @@ namespace ToeicGenius.Services.Implementations
 
 			// Check ownership - user must be the creator of this test
 			if (test.CreatedById != userId)
-				return Result<string>.Failure(ErrorMessages.NoPermissionToFinalizeTest);
+				return Result<string>.Failure(ErrorMessages.NoPermissionToActionTest);
 
 			// Validate cấu trúc đầy đủ
 			var questions = await _uow.TestQuestions.GetByTestIdAsync(testId);
@@ -627,7 +627,7 @@ namespace ToeicGenius.Services.Implementations
 
 			// Check ownership if not admin
 			if (!isAdmin && userId.HasValue && test.CreatedById != userId.Value)
-				return Result<TestDetailDto>.Failure("You don't have permission to view this test");
+				return Result<TestDetailDto>.Failure(ErrorMessages.NoPermissionToActionTest);
 
 			var result = new TestDetailDto
 			{
@@ -709,13 +709,22 @@ namespace ToeicGenius.Services.Implementations
 
 			// Check ownership if not admin
 			if (!isAdmin && test.CreatedById != userId)
-				return Result<string>.Failure("You don't have permission to update this test");
+				return Result<string>.Failure(ErrorMessages.NoPermissionToActionTest);
 
 			if (test.CreationStatus != TestCreationStatus.Completed)
 			{
 				return Result<string>.Failure("Chỉ những bài test hoàn chỉnh mới có thể thay đổi trạng thái hiển thị.");
 			}
 
+			// Xử lý khi chuyển sang Published
+			if (request.VisibilityStatus == TestVisibilityStatus.Published)
+			{
+				// Xác định rootId (gốc của chuỗi version)
+				int rootId = test.ParentTestId ?? test.TestId;
+
+				// Ẩn tất cả các version KHÁC (trong cùng nhóm) trước khi publish bản này
+				await _uow.Tests.HideAllPreviousVersionAsync(rootId, test.TestId);
+			}
 			test.VisibilityStatus = request.VisibilityStatus;
 			test.UpdatedAt = DateTime.Now;
 			await _uow.SaveChangesAsync();
@@ -738,7 +747,7 @@ namespace ToeicGenius.Services.Implementations
 
 			// Check ownership if not admin
 			if (!isAdmin && existing.CreatedById != userId)
-				return Result<string>.Failure("You don't have permission to update this test");
+				return Result<string>.Failure(ErrorMessages.NoPermissionToActionTest);
 
 			var isPublished = existing.VisibilityStatus == TestVisibilityStatus.Published;
 			Test targetTest;
@@ -846,8 +855,8 @@ namespace ToeicGenius.Services.Implementations
 			// 7️. Trả về kết quả
 			return Result<string>.Success(
 				isPublished
-					? $"Cloned to new version v{targetTest.Version} (TestId={targetTest.TestId})"
-					: $"Updated successfully TestId={targetTest.TestId}");
+					? $"Tạo thành công phiên bản mới v{targetTest.Version} (TestId={targetTest.TestId})"
+					: $"Cập nhật trực tiếp thành công TestId={targetTest.TestId}");
 		}
 
 		// Update Test Manual (simulator test)
@@ -1055,7 +1064,7 @@ namespace ToeicGenius.Services.Implementations
 		{
 			// Check test existed
 			var test = await _uow.Tests.GetTestByIdAsync(request.Id);
-			if (test == null || test.VisibilityStatus != TestVisibilityStatus.Published) return Result<TestStartResponseDto>.Failure("Test not found");
+			if (test == null || test.VisibilityStatus != TestVisibilityStatus.Published) return Result<TestStartResponseDto>.Failure(ErrorMessages.ExamNotFound);
 
 			// Simulator: thời gian cố định
 			// Practice: có thể chọn tính giờ hoặc không
