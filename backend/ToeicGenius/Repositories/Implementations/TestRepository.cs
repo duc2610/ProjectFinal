@@ -14,7 +14,7 @@ namespace ToeicGenius.Repositories.Implementations
 	{
 		public TestRepository(ToeicGeniusDbContext context) : base(context) { }
 
-		public async Task<PaginationResponse<TestListResponseDto>> FilterQuestionsAsync(TestFilterDto request, Guid? creatorId = null)
+		public async Task<PaginationResponse<TestListResponseDto>> FilterTestsAsync(TestFilterDto request, Guid? creatorId = null)
 		{
 			var query = _context.Tests.AsQueryable();
 
@@ -115,8 +115,8 @@ namespace ToeicGenius.Repositories.Implementations
 				.Select(tr => new TestHistoryDto
 				{
 					TestId = tr.TestId,
-                    TestResultId = tr.TestResultId,
-                    TestType = tr.TestType,
+					TestResultId = tr.TestResultId,
+					TestType = tr.TestType,
 					TestSkill = tr.Test.TestSkill,
 					Title = tr.Test.Title,
 					Duration = tr.Duration,
@@ -124,9 +124,9 @@ namespace ToeicGenius.Repositories.Implementations
 					TotalQuestion = tr.TotalQuestions,
 					CorrectQuestion = tr.CorrectCount,
 					TotalScore = (int)tr.TotalScore,
-                    TestStatus = tr.Status.ToString(),
+					TestStatus = tr.Status.ToString(),
 					IsSelectTime = tr.IsSelectTime
-                })
+				})
 				.ToListAsync();
 
 			return query;
@@ -190,6 +190,21 @@ namespace ToeicGenius.Repositories.Implementations
 								.ToListAsync();
 				return result;
 			}
+		}
+
+		public async Task<bool> HideAllPreviousVersionAsync(int parentTestId, int newTestId)
+		{
+			var oldVersions = await _context.Tests
+											.Where(t => t.ParentTestId == parentTestId || t.TestId == parentTestId) // tất cả version thuộc nhóm
+											.Where(t => t.TestId != newTestId) // trừ bản mới
+											.ToListAsync();
+
+			foreach (var test in oldVersions)
+			{
+				test.VisibilityStatus = TestVisibilityStatus.Hidden;
+				test.UpdatedAt = DateTime.UtcNow;
+			}
+			return true;
 		}
 	}
 }

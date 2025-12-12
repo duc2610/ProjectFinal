@@ -19,6 +19,7 @@ using ToeicGenius.Shared.Constants;
 using ToeicGenius.Shared.Helpers;
 using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 using ToeicGenius.Shared.Validators;
+using Microsoft.EntityFrameworkCore;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -149,7 +150,7 @@ namespace ToeicGenius.Services.Implementations
 		}
 
 		// Create from bank with random selection (for practice test)
-		public async Task<Result<string>> CreateFromBankRandomAsync(Guid userId,CreateTestFromBankRandomDto dto)
+		public async Task<Result<string>> CreateFromBankRandomAsync(Guid userId, CreateTestFromBankRandomDto dto)
 		{
 			await _uow.BeginTransactionAsync();
 			try
@@ -426,11 +427,11 @@ namespace ToeicGenius.Services.Implementations
 			{
 				var test = await _uow.Tests.GetByIdAsync(testId);
 				if (test == null)
-					return Result<string>.Failure("Test not found");
+					return Result<string>.Failure(ErrorMessages.ExamNotFound);
 
 				// Check ownership - user must be the creator of this test
 				if (test.CreatedById != userId)
-					return Result<string>.Failure("You don't have permission to modify this test");
+					return Result<string>.Failure(ErrorMessages.NoPermissionToFinalizeTest);
 
 				if (test.VisibilityStatus == TestVisibilityStatus.Published)
 					return Result<string>.Failure("Cannot edit a published test. Please clone to create a new version.");
@@ -442,7 +443,7 @@ namespace ToeicGenius.Services.Implementations
 
 				// Ensure there is something to save
 				if ((dto.Groups == null || !dto.Groups.Any()) && (dto.Questions == null || !dto.Questions.Any()))
-					return Result<string>.Failure("No questions to save for this part.");
+					return Result<string>.Failure(ErrorMessages.NoQuestionsToSaveForThisPart);
 
 				// Xoá dữ liệu cũ của Part này (nếu có)
 				var oldQuestions = await _uow.TestQuestions.GetByTestAndPartAsync(testId, partId);
@@ -567,11 +568,11 @@ namespace ToeicGenius.Services.Implementations
 		{
 			var test = await _uow.Tests.GetByIdAsync(testId);
 			if (test == null)
-				return Result<string>.Failure("Test not found");
+				return Result<string>.Failure(ErrorMessages.ExamNotFound);
 
 			// Check ownership - user must be the creator of this test
 			if (test.CreatedById != userId)
-				return Result<string>.Failure("You don't have permission to finalize this test");
+				return Result<string>.Failure(ErrorMessages.NoPermissionToFinalizeTest);
 
 			// Validate cấu trúc đầy đủ
 			var questions = await _uow.TestQuestions.GetByTestIdAsync(testId);
@@ -614,7 +615,7 @@ namespace ToeicGenius.Services.Implementations
 		// Get list (for TestCreator) - filter by creatorId
 		public async Task<Result<PaginationResponse<TestListResponseDto>>> FilterAllAsync(TestFilterDto request, Guid? creatorId = null)
 		{
-			var result = await _uow.Tests.FilterQuestionsAsync(request, creatorId);
+			var result = await _uow.Tests.FilterTestsAsync(request, creatorId);
 			return Result<PaginationResponse<TestListResponseDto>>.Success(result);
 		}
 
@@ -733,7 +734,7 @@ namespace ToeicGenius.Services.Implementations
 			// 2️. Lấy test hiện tại
 			var existing = await _uow.Tests.GetByIdAsync(testId);
 			if (existing == null)
-				return Result<string>.Failure("Test not found");
+				return Result<string>.Failure(ErrorMessages.ExamNotFound);
 
 			// Check ownership if not admin
 			if (!isAdmin && existing.CreatedById != userId)
@@ -757,7 +758,7 @@ namespace ToeicGenius.Services.Implementations
 					Duration = dto.Duration,
 					TotalQuestion = 0,
 					CreationStatus = TestCreationStatus.Completed,
-					VisibilityStatus = TestVisibilityStatus.Hidden,
+					VisibilityStatus = TestVisibilityStatus.Published,
 					ParentTestId = parentId,
 					Version = newVersion,
 					CreatedById = userId,
@@ -766,6 +767,10 @@ namespace ToeicGenius.Services.Implementations
 
 				await _uow.Tests.AddAsync(targetTest);
 				await _uow.SaveChangesAsync(); // để có TestId
+
+				// Ẩn các bản cũ
+				await _uow.Tests.HideAllPreviousVersionAsync(parentId, targetTest.TestId);
+				await _uow.SaveChangesAsync();
 			}
 			else
 			{
@@ -853,7 +858,7 @@ namespace ToeicGenius.Services.Implementations
 
 				var existing = await _uow.Tests.GetByIdAsync(testId);
 				if (existing == null)
-					return Result<string>.Failure("Test not found");
+					return Result<string>.Failure(ErrorMessages.ExamNotFound);
 				int totalQuestion = GetQuantityQuestion(dto);
 				// Nếu test đang PUBLISHED -> tạo bản clone
 				Test targetTest;
@@ -861,26 +866,31 @@ namespace ToeicGenius.Services.Implementations
 				if (existing.VisibilityStatus == TestVisibilityStatus.Published)
 				{
 					// Lấy version mới
-					int newVersion = await _uow.Tests.GetNextVersionAsync(existing.ParentTestId ?? existing.TestId);
+					int parentId = existing.ParentTestId ?? existing.TestId;
+					int newVersion = await _uow.Tests.GetNextVersionAsync(parentId);
 
-				targetTest = new Test
-				{
-					Title = dto.Title,
-					Description = dto.Description,
-					TestSkill = dto.TestSkill,
-					TestType = dto.TestType,
-					AudioUrl = dto.AudioUrl,
-					Duration = GetTestDuration(dto.TestSkill),
-					TotalQuestion = totalQuestion, 
-					VisibilityStatus = TestVisibilityStatus.Hidden,
-					CreationStatus = TestCreationStatus.Completed,
-					ParentTestId = existing.ParentTestId ?? existing.TestId,
-					CreatedById = userId,
-					Version = newVersion,
-					CreatedAt = Now
-				};
+					targetTest = new Test
+					{
+						Title = dto.Title,
+						Description = dto.Description,
+						TestSkill = dto.TestSkill,
+						TestType = dto.TestType,
+						AudioUrl = dto.AudioUrl,
+						Duration = GetTestDuration(dto.TestSkill),
+						TotalQuestion = totalQuestion,
+						VisibilityStatus = TestVisibilityStatus.Hidden,
+						CreationStatus = TestCreationStatus.Completed,
+						ParentTestId = existing.ParentTestId ?? existing.TestId,
+						CreatedById = userId,
+						Version = newVersion,
+						CreatedAt = Now
+					};
 
 					await _uow.Tests.AddAsync(targetTest);
+					await _uow.SaveChangesAsync();
+
+					// Ẩn các bản cũ
+					await _uow.Tests.HideAllPreviousVersionAsync(parentId, targetTest.TestId);
 					await _uow.SaveChangesAsync();
 				}
 				else
@@ -1332,8 +1342,8 @@ namespace ToeicGenius.Services.Implementations
 				Status = testResult.Status,
 				AudioUrl = test.AudioUrl,
 				Duration = test.Duration,
-                TimeResult = testResult.Duration,
-                QuantityQuestion = test.TotalQuestion,
+				TimeResult = testResult.Duration,
+				QuantityQuestion = test.TotalQuestion,
 				CorrectCount = testResult.CorrectCount,
 				ListeningScore = listeningScore != null ? (int?)listeningScore.Score : null,
 				ReadingScore = readingScore != null ? (int?)readingScore.Score : null,
@@ -2030,11 +2040,11 @@ namespace ToeicGenius.Services.Implementations
 					if (part.Skill != QuestionSkill.Listening && part.Skill != QuestionSkill.Reading)
 						return (false, $"Part {partId} ({part.Name}) is not a Listening or Reading part. TestSkill is LR but Part skill is {part.Skill}");
 					break;
-                case TestSkill.SW:
-                    if (part.Skill != QuestionSkill.Speaking && part.Skill != QuestionSkill.Writing)
-                        return (false, $"Part {partId} ({part.Name}) is not a Speaking or Reading part. TestSkill is LR but Part skill is {part.Skill}");
-                    break;
-                default:
+				case TestSkill.SW:
+					if (part.Skill != QuestionSkill.Speaking && part.Skill != QuestionSkill.Writing)
+						return (false, $"Part {partId} ({part.Name}) is not a Speaking or Reading part. TestSkill is LR but Part skill is {part.Skill}");
+					break;
+				default:
 					return (false, $"Invalid TestSkill: {testSkill}");
 			}
 
