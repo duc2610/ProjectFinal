@@ -163,6 +163,7 @@ namespace ToeicGenius.Tests.UnitTests
         {
             // Arrange
             var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+            var requestedByUserId = Guid.NewGuid();
             var user = CreateTestUser(userId, "user@example.com", "Test User");
             user.Status = UserStatus.Banned; // Current status
 
@@ -175,7 +176,7 @@ namespace ToeicGenius.Tests.UnitTests
             var service = CreateService();
 
             // Act
-            var result = await service.UpdateStatus(userId, UserStatus.Active);
+            var result = await service.UpdateStatus(userId, UserStatus.Active, requestedByUserId);
 
             // Assert
             result.IsSuccess.Should().BeTrue();
@@ -191,7 +192,8 @@ namespace ToeicGenius.Tests.UnitTests
         {
             // Arrange
             var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-            var user = CreateTestUser(userId, "user@example.com", "Test User");
+            var requestedByUserId = Guid.NewGuid();
+			var user = CreateTestUser(userId, "user@example.com", "Test User");
             user.Status = UserStatus.Active; // Current status
 
             _unitOfWorkMock.Setup(u => u.Users.GetByIdAsync(userId)).ReturnsAsync(user);
@@ -203,7 +205,7 @@ namespace ToeicGenius.Tests.UnitTests
             var service = CreateService();
 
             // Act
-            var result = await service.UpdateStatus(userId, UserStatus.Banned);
+            var result = await service.UpdateStatus(userId, UserStatus.Banned, requestedByUserId);
 
             // Assert
             result.IsSuccess.Should().BeTrue();
@@ -219,7 +221,8 @@ namespace ToeicGenius.Tests.UnitTests
         {
             // Arrange
             var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
-            var user = CreateTestUser(userId, "user@example.com", "Test User");
+			var requestedByUserId = Guid.NewGuid();
+			var user = CreateTestUser(userId, "user@example.com", "Test User");
             user.Status = UserStatus.Active; // Current status
 
             _unitOfWorkMock.Setup(u => u.Users.GetByIdAsync(userId)).ReturnsAsync(user);
@@ -231,7 +234,7 @@ namespace ToeicGenius.Tests.UnitTests
             var service = CreateService();
 
             // Act
-            var result = await service.UpdateStatus(userId, UserStatus.Deleted);
+            var result = await service.UpdateStatus(userId, UserStatus.Deleted, requestedByUserId);
 
             // Assert
             result.IsSuccess.Should().BeTrue();
@@ -247,12 +250,13 @@ namespace ToeicGenius.Tests.UnitTests
         {
             // Arrange
             var userId = Guid.Parse("22222222-2222-2222-2222-222222222222");
-            _unitOfWorkMock.Setup(u => u.Users.GetByIdAsync(userId)).ReturnsAsync((User)null!);
+			var requestedByUserId = Guid.NewGuid();
+			_unitOfWorkMock.Setup(u => u.Users.GetByIdAsync(userId)).ReturnsAsync((User)null!);
 
             var service = CreateService();
 
             // Act
-            var result = await service.UpdateStatus(userId, UserStatus.Active);
+            var result = await service.UpdateStatus(userId, UserStatus.Active, requestedByUserId);
 
             // Assert
             result.IsSuccess.Should().BeFalse();
@@ -268,12 +272,13 @@ namespace ToeicGenius.Tests.UnitTests
         {
             // Arrange
             var emptyGuid = Guid.Empty;
-            _unitOfWorkMock.Setup(u => u.Users.GetByIdAsync(emptyGuid)).ReturnsAsync((User)null!);
+			var requestedByUserId = Guid.NewGuid();
+			_unitOfWorkMock.Setup(u => u.Users.GetByIdAsync(emptyGuid)).ReturnsAsync((User)null!);
 
             var service = CreateService();
 
             // Act
-            var result = await service.UpdateStatus(emptyGuid, UserStatus.Active);
+            var result = await service.UpdateStatus(emptyGuid, UserStatus.Active, requestedByUserId);
 
             // Assert
             result.IsSuccess.Should().BeFalse();
@@ -289,14 +294,15 @@ namespace ToeicGenius.Tests.UnitTests
         {
             // Arrange
             var userId = Guid.NewGuid();
-            var exceptionMessage = "Database update failed";
+			var requestedByUserId = Guid.NewGuid();
+			var exceptionMessage = "Database update failed";
             _unitOfWorkMock.Setup(u => u.Users.GetByIdAsync(userId))
                 .ThrowsAsync(new Exception(exceptionMessage));
 
             var service = CreateService();
 
             // Act
-            var result = await service.UpdateStatus(userId, UserStatus.Active);
+            var result = await service.UpdateStatus(userId, UserStatus.Active, requestedByUserId);
 
             // Assert
             result.IsSuccess.Should().BeFalse();
