@@ -68,7 +68,7 @@
 		public const string CannotChangeOwnAccountStatus = "Bạn không được phép tự thay đổi trạng thái tài khoản của chính mình.";
 
 		// Test
-		public const string NoPermissionToFinalizeTest = "Bạn không có quyền để hoàn tất bài kiểm tra này.";
+		public const string NoPermissionToActionTest = "Bạn không có quyền để thao tác trên bài kiểm tra này.";
 		public const string NoQuestionsToSaveForThisPart = "Không có câu hỏi nào để lưu cho phần này.";
 
 	}
