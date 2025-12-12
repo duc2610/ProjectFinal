@@ -13,7 +13,7 @@ namespace ToeicGenius.Services.Interfaces
 		Task<Result<PaginationResponse<UserResponseDto>>> GetUsersAsync(UserResquestDto userResquestDto);
 
 		// Quản lý tài khoản
-		Task<Result<string>> UpdateStatus(Guid userId, UserStatus userStatus);
+		Task<Result<string>> UpdateStatus(Guid userId, UserStatus userStatus, Guid requestedByUserId);
 
 		// CRUD
 		Task<Result<UserResponseDto>> CreateUserAsync(CreateUserDto dto);

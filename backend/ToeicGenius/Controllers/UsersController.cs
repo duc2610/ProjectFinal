@@ -77,7 +77,13 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "Admin")]
 		public async Task<IActionResult> BanUser(Guid id)
 		{
-			var result = await _userService.UpdateStatus(id, UserStatus.Banned);
+			// Get user id from token
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var requestedByUserId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.TokenInvalid));
+			}
+			var result = await _userService.UpdateStatus(id, UserStatus.Banned, requestedByUserId);
 			if (!result.IsSuccess)
 			{
 				return NotFound(ApiResponse<string>.NotFoundResponse(result.ErrorMessage!));
@@ -90,7 +96,13 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "Admin")]
 		public async Task<IActionResult> UnbanUser(Guid id)
 		{
-			var result = await _userService.UpdateStatus(id, UserStatus.Active);
+			// Get user id from token
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var requestedByUserId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.TokenInvalid));
+			}
+			var result = await _userService.UpdateStatus(id, UserStatus.Active, requestedByUserId);
 			if (!result.IsSuccess)
 			{
 				return NotFound(ApiResponse<string>.NotFoundResponse(result.ErrorMessage!));

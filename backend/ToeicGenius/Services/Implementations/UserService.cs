@@ -22,7 +22,7 @@ namespace ToeicGenius.Services.Implementations
 			_emailService = emailService;
 		}
 
-		public async Task<Result<string>> UpdateStatus(Guid userId, UserStatus userStatus)
+		public async Task<Result<string>> UpdateStatus(Guid userId, UserStatus userStatus, Guid requestedByUserId)
 		{
 			try
 			{
@@ -31,10 +31,18 @@ namespace ToeicGenius.Services.Implementations
 				{
 					return Result<string>.Failure(ErrorMessages.UserNotFound);
 				}
-                if (user.IsRoot)
-                {
-                    return Result<string>.Failure(ErrorMessages.CannotChangeRootUserStatus);
-                }
+				// Root user ko được làm gì
+				if (user.IsRoot)
+				{
+					return Result<string>.Failure(ErrorMessages.CannotChangeRootUserStatus);
+				}
+
+				// Ko tự thay đổi trạng thái tài khoản của mình
+				if (userId == requestedByUserId)
+				{
+					return Result<string>.Failure(ErrorMessages.CannotChangeOwnAccountStatus);
+				}
+
 				user.Status = userStatus;
 				await _uow.Users.UpdateAsync(user);
 				await _uow.SaveChangesAsync();
