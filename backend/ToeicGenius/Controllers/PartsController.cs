@@ -23,7 +23,7 @@ namespace ToeicGenius.Controllers
 		{
 			if (!Enum.IsDefined(typeof(QuestionSkill), questionSkill))
 			{
-				return BadRequest("Invalid question skill.");
+				return BadRequest("Kĩ năng không hợp lệ");
 			}
 
 			var result = await _uow.Parts.GetPartsBySkill(questionSkill);

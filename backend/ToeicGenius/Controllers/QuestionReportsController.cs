@@ -5,6 +5,7 @@ using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Report;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Services.Interfaces;
+using ToeicGenius.Shared.Constants;
 
 namespace ToeicGenius.Controllers
 {
@@ -28,7 +29,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var result = await _reportService.CreateReportAsync(request, userId);
 
@@ -47,7 +48,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var result = await _reportService.GetMyReportsAsync(userId, page, pageSize);
 
@@ -71,7 +72,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var isAdmin = User.IsInRole("Admin");
 			var result = await _reportService.GetReportsAsync(status, testQuestionId, userId, isAdmin, page, pageSize);
@@ -92,7 +93,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var isAdmin = User.IsInRole("Admin");
 			var result = await _reportService.GetReportByIdAsync(reportId, userId, isAdmin);
@@ -113,7 +114,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var reviewerId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var isAdmin = User.IsInRole("Admin");
 			var result = await _reportService.ReviewReportAsync(reportId, request, reviewerId, isAdmin);
@@ -134,7 +135,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var isAdmin = User.IsInRole("Admin");
 			var result = await _reportService.GetPendingReportsCountAsync(userId, isAdmin);

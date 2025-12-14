@@ -159,7 +159,7 @@ namespace ToeicGenius.Services.Implementations
 
 				await _uow.SaveChangesAsync();
 				await _uow.CommitTransactionAsync();
-				return Result<string>.Success($"Tạo bài thi thành công (testId: {test.TestId})");
+				return Result<string>.Success(string.Format(SuccessMessages.TestCreatedWithId, test.TestId));
 			}
 			catch (Exception ex)
 			{
@@ -289,7 +289,7 @@ namespace ToeicGenius.Services.Implementations
 
 				await _uow.SaveChangesAsync();
 				await _uow.CommitTransactionAsync();
-				return Result<string>.Success($"Created successfully (testId: {test.TestId}) with {quantityQuestion} questions randomly selected from bank");
+				return Result<string>.Success(string.Format(SuccessMessages.TestCreatedFromBank, test.TestId, quantityQuestion));
 			}
 			catch (Exception ex)
 			{
@@ -396,7 +396,7 @@ namespace ToeicGenius.Services.Implementations
 				await _uow.SaveChangesAsync();
 				await _uow.CommitTransactionAsync();
 
-				return Result<string>.Success($"Created successfully TestId = {test.TestId} with {quantity} questions");
+				return Result<string>.Success(string.Format(SuccessMessages.TestCreatedWithQuestions, test.TestId, quantity));
 			}
 			catch (Exception ex)
 			{
@@ -453,7 +453,7 @@ namespace ToeicGenius.Services.Implementations
 					return Result<string>.Failure(ErrorMessages.NoPermissionToActionTest);
 
 				if (test.VisibilityStatus == TestVisibilityStatus.Published)
-					return Result<string>.Failure("Cannot edit a published test. Please clone to create a new version.");
+					return Result<string>.Failure(ErrorMessages.CannotEditPublishedTest);
 
 				// Validate partId is compatible with test skill
 				var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(partId, test.TestSkill);
@@ -573,7 +573,7 @@ namespace ToeicGenius.Services.Implementations
 				await _uow.SaveChangesAsync();
 				await _uow.CommitTransactionAsync();
 
-				return Result<string>.Success($"Saved Part {partId} successfully");
+				return Result<string>.Success(string.Format(SuccessMessages.PartSaved, partId));
 			}
 			catch (Exception ex)
 			{
@@ -626,7 +626,7 @@ namespace ToeicGenius.Services.Implementations
 
 			await _uow.SaveChangesAsync();
 
-			return Result<string>.Success($"Test {test.Title} finalized successfully!");
+			return Result<string>.Success(string.Format(SuccessMessages.TestFinalized, test.Title));
 		}
 		/* CREATE - End */
 
@@ -748,7 +748,7 @@ namespace ToeicGenius.Services.Implementations
 			test.UpdatedAt = DateTime.Now;
 			await _uow.SaveChangesAsync();
 
-			return Result<string>.Success($"Bài test {test.TestId} đã đổi trạng thái thành {test.VisibilityStatus}.");
+			return Result<string>.Success(string.Format(SuccessMessages.TestStatusChanged, test.TestId, test.VisibilityStatus));
 		}
 
 		// Update Test From Bank (practice test) - check ownership
@@ -757,7 +757,7 @@ namespace ToeicGenius.Services.Implementations
 			// 1️. Kiểm tra input hợp lệ
 			if ((dto.SingleQuestionIds == null || !dto.SingleQuestionIds.Any()) &&
 				(dto.GroupQuestionIds == null || !dto.GroupQuestionIds.Any()))
-				return Result<string>.Failure("Must provide single question id or group question id");
+				return Result<string>.Failure(ErrorMessages.NoQuestionsToSaveForThisTest);
 
 			// 2️. Lấy test hiện tại
 			var existing = await _uow.Tests.GetByIdAsync(testId);
@@ -1304,7 +1304,7 @@ namespace ToeicGenius.Services.Implementations
 			var testQuestions = await _uow.TestQuestions.GetByTestIdAsync(request.TestId);
 
 			if (!testQuestions.Any())
-				return Result<GeneralLRResultDto>.Failure("Invalid test or questions.");
+				return Result<GeneralLRResultDto>.Failure(ErrorMessages.InvalidTestOrQuestions);
 
 			bool isSimulator = request.TestType == TestType.Simulator;
 
@@ -1486,7 +1486,7 @@ namespace ToeicGenius.Services.Implementations
 				return Result<object>.Failure("Test result not found.");
 
 			if (testResult.UserId != userId)
-				return Result<object>.Failure("Unauthorized access.");
+				return Result<object>.Failure(ErrorMessages.UnauthorizedAccess);
 
 			var testSkill = testResult.Test.TestSkill;
 

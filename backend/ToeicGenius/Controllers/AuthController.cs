@@ -196,7 +196,7 @@ namespace ToeicGenius.Controllers
 			var result = await _authService.RefreshTokenAsync(dto.RefreshToken, ipAddress);
 
 			if (!result.IsSuccess)
-				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Refresh token failed"));
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Lỗi khi tạo refresh token"));
 
 			return Ok(ApiResponse<RefreshTokenResponseDto>.SuccessResponse(result.Data!));
 		}

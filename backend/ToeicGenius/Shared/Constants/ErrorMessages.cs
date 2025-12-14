@@ -7,6 +7,8 @@
 		public const string Unauthorized = "Bạn không có quyền truy cập.";
 		public const string TokenExpired = "Token đã hết hạn.";
 		public const string TokenInvalid = "Token không hợp lệ.";
+		public const string LoginSessionTimeOut = "Phiên đăng nhập đã hết hạn.";
+		public const string InvalidOrMissingUserId = "Phiên đăng nhập đã hết hạn.";
 
 		// Password change errors
 		public const string OldPasswordRequired = "Mật khẩu cũ không được để trống";
@@ -70,6 +72,29 @@
 		// Test
 		public const string NoPermissionToActionTest = "Bạn không có quyền để thao tác trên bài kiểm tra này.";
 		public const string NoQuestionsToSaveForThisPart = "Không có câu hỏi nào để lưu cho phần này.";
+		public const string NoQuestionsToSaveForThisTest = "Không có câu hỏi nào để lưu cho test này.";
+		public const string NoQuestionRange = "Bạn phải cung cấp phạm vi câu hỏi để thực hiện.";
 
+		// Token and Authentication
+		public const string InvalidOrMissingUserToken = "Token người dùng không hợp lệ hoặc bị thiếu.";
+
+		// Request Validation
+		public const string RequestCannotBeNull = "Yêu cầu không được để trống.";
+		public const string ExcelFileRequired = "Tệp Excel là bắt buộc.";
+		public const string AudioFileRequired = "Tệp âm thanh là bắt buộc.";
+
+		// File Operations
+		public const string FailedToUploadAudio = "Tải lên tệp âm thanh thất bại.";
+		public const string FailedToParseExcel = "Phân tích tệp Excel thất bại.";
+		public const string FailedToCreateTest = "Tạo bài kiểm tra thất bại.";
+		public const string FailedToGenerateTemplate = "Tạo mẫu thất bại.";
+		public const string FailedToGenerateSWTemplate = "Tạo mẫu S&W thất bại.";
+		public const string FailedToParseSWExcel = "Phân tích tệp Excel S&W thất bại.";
+		public const string FailedToCreateSWTest = "Tạo bài kiểm tra S&W thất bại.";
+
+		// Test Operations
+		public const string CannotEditPublishedTest = "Không thể chỉnh sửa bài kiểm tra đã xuất bản. Vui lòng sao chép để tạo phiên bản mới.";
+		public const string UnauthorizedAccess = "Truy cập không được phép.";
+		public const string InvalidTestOrQuestions = "Bài kiểm tra hoặc câu hỏi không hợp lệ.";
 	}
 }
