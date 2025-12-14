@@ -64,11 +64,13 @@ namespace ToeicGenius.Services.Implementations
 			if (!validTypes.Contains(request.ReportType))
 				return Result<QuestionReportDto>.Failure("Invalid report type");
 
-			// Create report
+			// Create report với snapshot tại thời điểm report
 			var report = new QuestionReport
 			{
 				TestQuestionId = request.TestQuestionId,
 				SubQuestionId = request.SubQuestionId,
+				QuestionSnapshotJson = question.SnapshotJson, // Lưu snapshot để không mất khi Creator edit/xóa
+				IsQuestionGroup = question.IsQuestionGroup,
 				ReportedBy = userId,
 				ReportType = request.ReportType,
 				Description = request.Description,
@@ -200,9 +202,15 @@ namespace ToeicGenius.Services.Implementations
 			string? groupAudioUrl = null;
 			string? groupImageUrl = null;
 			int? groupQuestionCount = null;
-			bool isQuestionGroup = report.TestQuestion?.IsQuestionGroup ?? false;
 
-			if (!string.IsNullOrEmpty(report.TestQuestion?.SnapshotJson))
+			// Ưu tiên dùng snapshot từ report (lưu tại thời điểm tạo report)
+			// Fallback sang TestQuestion.SnapshotJson nếu report cũ không có snapshot
+			bool isQuestionGroup = report.IsQuestionGroup;
+			string? snapshotJson = !string.IsNullOrEmpty(report.QuestionSnapshotJson)
+				? report.QuestionSnapshotJson
+				: report.TestQuestion?.SnapshotJson;
+
+			if (!string.IsNullOrEmpty(snapshotJson))
 			{
 				try
 				{
@@ -214,7 +222,7 @@ namespace ToeicGenius.Services.Implementations
 					if (isQuestionGroup)
 					{
 						// Deserialize as QuestionGroupSnapshotDto
-						questionGroupSnapshot = JsonSerializer.Deserialize<QuestionGroupSnapshotDto>(report.TestQuestion.SnapshotJson, options);
+						questionGroupSnapshot = JsonSerializer.Deserialize<QuestionGroupSnapshotDto>(snapshotJson, options);
 
 						// Extract group context info (for Creator to see full context)
 						groupPassage = questionGroupSnapshot?.Passage;
@@ -239,18 +247,18 @@ namespace ToeicGenius.Services.Implementations
 					else
 					{
 						// Deserialize as QuestionSnapshotDto
-						questionSnapshot = JsonSerializer.Deserialize<QuestionSnapshotDto>(report.TestQuestion.SnapshotJson, options);
+						questionSnapshot = JsonSerializer.Deserialize<QuestionSnapshotDto>(snapshotJson, options);
 						questionContent = questionSnapshot?.Content;
 					}
 				}
 				catch (Exception ex)
 				{
 					// If deserialization fails, log error and try to show raw SnapshotJson
-					Console.WriteLine($"Failed to deserialize SnapshotJson for TestQuestionId {report.TestQuestionId}: {ex.Message}");
+					Console.WriteLine($"Failed to deserialize SnapshotJson for ReportId {report.ReportId}: {ex.Message}");
 					// Fallback: show part of SnapshotJson as questionContent
-					questionContent = report.TestQuestion.SnapshotJson.Length > 200
-						? report.TestQuestion.SnapshotJson.Substring(0, 200) + "..."
-						: report.TestQuestion.SnapshotJson;
+					questionContent = snapshotJson.Length > 200
+						? snapshotJson.Substring(0, 200) + "..."
+						: snapshotJson;
 				}
 			}
 
