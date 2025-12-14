@@ -209,7 +209,7 @@ namespace ToeicGenius.Controllers
             }
             catch (UnauthorizedAccessException)
             {
-                return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Access denied"));
+                return Unauthorized(ApiResponse<string>.UnauthorizedResponse(CommonMessages.AccessDenied));
             }
             catch (Exception ex)
             {
@@ -277,7 +277,7 @@ namespace ToeicGenius.Controllers
 
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
             {
-                throw new UnauthorizedAccessException("Invalid or missing user token");
+                throw new UnauthorizedAccessException(ErrorMessages.InvalidOrMissingUserToken);
             }
 
             return userId;

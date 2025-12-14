@@ -4,6 +4,7 @@ using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Exam;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Services.Interfaces;
+using ToeicGenius.Shared.Constants;
 
 namespace ToeicGenius.Services.Implementations;
 
@@ -24,7 +25,7 @@ public class ExcelService : IExcelService
         {
             // Validate file
             if (excelFile == null || excelFile.Length == 0)
-                return Result<CreateTestManualDto>.Failure("Excel file is required");
+                return Result<CreateTestManualDto>.Failure(ErrorMessages.ExcelFileRequired);
 
             if (!excelFile.FileName.EndsWith(".xlsx") && !excelFile.FileName.EndsWith(".xls"))
                 return Result<CreateTestManualDto>.Failure("File must be Excel format (.xlsx or .xls)");
@@ -1428,7 +1429,7 @@ public class ExcelService : IExcelService
         {
             // Validate file
             if (excelFile == null || excelFile.Length == 0)
-                return Result<CreateTestManualDto>.Failure("Excel file is required");
+                return Result<CreateTestManualDto>.Failure(ErrorMessages.ExcelFileRequired);
 
             if (!excelFile.FileName.EndsWith(".xlsx") && !excelFile.FileName.EndsWith(".xls"))
                 return Result<CreateTestManualDto>.Failure("File must be Excel format (.xlsx or .xls)");
