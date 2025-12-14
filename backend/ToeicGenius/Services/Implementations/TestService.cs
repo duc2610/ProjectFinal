@@ -1944,15 +1944,17 @@ namespace ToeicGenius.Services.Implementations
 		private async Task<QuestionGroupSnapshotDto> HandleQuestionGroupSnapshotAsync(QuestionGroupDto dto, int partId, TestSkill skill)
 		{
 			// Mapping thủ công, tránh phụ thuộc EF entity để snapshot chuẩn nhất
+			// Sử dụng index (1, 2, 3...) làm QuestionId cho các câu trong group (Test Simulator)
+			// Index này dùng làm subQuestionId khi Examinee report câu hỏi trong group
 			return new QuestionGroupSnapshotDto
 			{
 				QuestionGroupId = 0,
 				PartId = partId,
 				Passage = dto.Passage ?? string.Empty,
 				ImageUrl = dto.ImageUrl,
-				QuestionSnapshots = dto.Questions?.Select(q => new QuestionSnapshotDto
+				QuestionSnapshots = dto.Questions?.Select((q, index) => new QuestionSnapshotDto
 				{
-					QuestionId = 0,
+					QuestionId = index + 1, // Index bắt đầu từ 1 (1, 2, 3...)
 					PartId = partId,
 					Content = q.Content ?? string.Empty,
 					ImageUrl = q.ImageUrl,
@@ -1968,9 +1970,10 @@ namespace ToeicGenius.Services.Implementations
 		}
 		private async Task<QuestionSnapshotDto> HandleSingleQuestionSnapshotAsync(QuestionDto dto, int partId, TestSkill skill)
 		{
+			// Câu hỏi đơn không cần subQuestionId khi report, nhưng đặt = 1 để consistency
 			return new QuestionSnapshotDto
 			{
-				QuestionId = 0,
+				QuestionId = 1, // Câu hỏi đơn luôn = 1 (không dùng trong report vì subQuestionId = null)
 				PartId = partId,
 				Content = dto.Content ?? string.Empty,
 				ImageUrl = dto.ImageUrl,
