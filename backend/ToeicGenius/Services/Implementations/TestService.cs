@@ -47,7 +47,7 @@ namespace ToeicGenius.Services.Implementations
 				if ((dto.SingleQuestionIds == null || !dto.SingleQuestionIds.Any()) &&
 					(dto.GroupQuestionIds == null || !dto.GroupQuestionIds.Any()))
 				{
-					return Result<string>.Failure("Must provide single question id or group question id");
+					return Result<string>.Failure(ErrorMessages.NoQuestionsToSaveForThisTest);
 				}
 
 				var test = new Test
@@ -66,26 +66,45 @@ namespace ToeicGenius.Services.Implementations
 				if (dto.SingleQuestionIds != null)
 				{
 					singleQuestions = await _uow.Questions.GetByListIdAsync(dto.SingleQuestionIds);
+					// Có ID không tồn tại trong DB
+					if (singleQuestions.Count != dto.SingleQuestionIds.Count)
+					{
+						var foundIds = singleQuestions.Select(q => q.QuestionId).ToHashSet();
+						var missingIds = dto.SingleQuestionIds.Where(id => !foundIds.Contains(id));
+
+						return Result<string>.Failure(
+							$"Không tìm thấy câu hỏi trong ngân hàng ({string.Join(", ", missingIds)})"
+						);
+					}
 					// Validate all PartIds from fetched questions match TestSkill
 					foreach (var q in singleQuestions)
 					{
 						var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(q.PartId, dto.TestSkill);
 						if (!isValid)
 						{
-							return Result<string>.Failure($"Question {q.QuestionId}: {errorMessage}");
+							return Result<string>.Failure($"Câu hỏi (id = {q.QuestionId}): {errorMessage}");
 						}
 					}
 				}
 				if (dto.GroupQuestionIds != null)
 				{
 					groupQuestions = await _uow.QuestionGroups.GetByListIdAsync(dto.GroupQuestionIds);
+					// Có group ID không tồn tại
+					if (groupQuestions.Count != dto.GroupQuestionIds.Count)
+					{
+						var foundIds = groupQuestions.Select(g => g.QuestionGroupId).ToHashSet();
+						var missingIds = dto.GroupQuestionIds.Where(id => !foundIds.Contains(id));
 
+						return Result<string>.Failure(
+							$"Không tìm thấy câu hỏi nhóm trong ngân hàng ({string.Join(", ", missingIds)})"
+						);
+					}
 					foreach (var g in groupQuestions)
 					{
 						var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(g.PartId, dto.TestSkill);
 						if (!isValid)
 						{
-							return Result<string>.Failure($"QuestionGroup {g.QuestionGroupId}: {errorMessage}");
+							return Result<string>.Failure($"Câu hỏi nhóm (id ={g.QuestionGroupId}): {errorMessage}");
 						}
 					}
 
@@ -140,7 +159,7 @@ namespace ToeicGenius.Services.Implementations
 
 				await _uow.SaveChangesAsync();
 				await _uow.CommitTransactionAsync();
-				return Result<string>.Success($"Created successfully (testId: {test.TestId})");
+				return Result<string>.Success($"Tạo bài thi thành công (testId: {test.TestId})");
 			}
 			catch (Exception ex)
 			{
@@ -157,7 +176,7 @@ namespace ToeicGenius.Services.Implementations
 			{
 				if (dto.QuestionRanges == null || !dto.QuestionRanges.Any())
 				{
-					return Result<string>.Failure("Must provide at least one question range");
+					return Result<string>.Failure(ErrorMessages.NoQuestionRange);
 				}
 
 				// Validate all PartIds match TestSkill
