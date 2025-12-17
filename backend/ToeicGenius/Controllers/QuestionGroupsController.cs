@@ -34,7 +34,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.LoginSessionTimeOut));
 
 			// Deserialize JSON string sang danh sách object
 			try
@@ -59,7 +59,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<QuestionGroupResponseDto>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<QuestionGroupResponseDto>.ErrorResponse(ErrorMessages.LoginSessionTimeOut));
 
 			var isAdmin = User.IsInRole("Admin");
 			var result = await _questionGroupService.GetDetailAsync(id, userId, isAdmin);
@@ -84,7 +84,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(ErrorMessages.LoginSessionTimeOut));
 
 			var result = await _questionGroupService.FilterQuestionGroupAsync(part, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Active, userId);
 			if (!result.IsSuccess)

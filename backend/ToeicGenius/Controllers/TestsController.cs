@@ -8,6 +8,7 @@ using ToeicGenius.Domains.DTOs.Requests.TestQuestion;
 using ToeicGenius.Domains.DTOs.Responses.Test;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Services.Interfaces;
+using ToeicGenius.Shared.Constants;
 using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Controllers
@@ -56,7 +57,7 @@ namespace ToeicGenius.Controllers
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
             {
-                return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+                return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
             }
             var result = await _testService.CreateFromBankRandomAsync(userId, request);
 			if (!result.IsSuccess)
@@ -74,7 +75,7 @@ namespace ToeicGenius.Controllers
 		{
 			if (request == null)
 			{
-				return BadRequest(ApiResponse<string>.ErrorResponse("Request cannot be null"));
+				return BadRequest(ApiResponse<string>.ErrorResponse(ErrorMessages.RequestCannotBeNull));
 			}
 
 			try
@@ -87,13 +88,13 @@ namespace ToeicGenius.Controllers
 				}
 				var result = await _testService.CreateManualAsync(userId, request);
 				if (!result.IsSuccess)
-					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Create test failed."));
+					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? ErrorMessages.FailedToCreateTest));
 
 				return Ok(ApiResponse<string>.SuccessResponse(result.Data!));
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, ApiResponse<string>.ErrorResponse("Internal server error:" + ex));
+				return StatusCode(500, ApiResponse<string>.ErrorResponse(ErrorMessages.InternalServerError + ": " + ex));
 			}
 		}
 
@@ -114,7 +115,7 @@ namespace ToeicGenius.Controllers
 
 			if (request.AudioFile == null)
 			{
-				return BadRequest(ApiResponse<string>.ErrorResponse("Audio file is required"));
+				return BadRequest(ApiResponse<string>.ErrorResponse(ErrorMessages.AudioFileRequired));
 			}
 
 			try
@@ -122,7 +123,7 @@ namespace ToeicGenius.Controllers
 				// Upload audio file to cloud storage
 				var audioUploadResult = await _fileService.UploadFileAsync(request.AudioFile, "audio");
 				if (!audioUploadResult.IsSuccess)
-					return BadRequest(ApiResponse<string>.ErrorResponse(audioUploadResult.ErrorMessage ?? "Failed to upload audio file"));
+					return BadRequest(ApiResponse<string>.ErrorResponse(audioUploadResult.ErrorMessage ?? ErrorMessages.FailedToUploadAudio));
 
 				// Parse Excel (images auto-uploaded during parsing)
 				var parseResult = await _excelService.ParseExcelToTestAsync(request.ExcelFile);
@@ -130,7 +131,7 @@ namespace ToeicGenius.Controllers
 				{
 					// Rollback: delete uploaded audio file
 					await _fileService.DeleteFileAsync(audioUploadResult.Data!);
-					return BadRequest(ApiResponse<string>.ErrorResponse(parseResult.ErrorMessage ?? "Failed to parse Excel file"));
+					return BadRequest(ApiResponse<string>.ErrorResponse(parseResult.ErrorMessage ?? ErrorMessages.FailedToParseExcel));
 				}
 
 				// Set the uploaded audio URL
@@ -142,7 +143,7 @@ namespace ToeicGenius.Controllers
 				{
 					// Rollback: delete uploaded audio file
 					await _fileService.DeleteFileAsync(audioUploadResult.Data!);
-					return BadRequest(ApiResponse<string>.ErrorResponse(createResult.ErrorMessage ?? "Failed to create test"));
+					return BadRequest(ApiResponse<string>.ErrorResponse(createResult.ErrorMessage ?? ErrorMessages.FailedToCreateTest));
 				}
 
 				return Ok(ApiResponse<string>.SuccessResponse(createResult.Data!));
@@ -162,7 +163,7 @@ namespace ToeicGenius.Controllers
 			{
 				var result = await _excelService.GenerateTemplateAsync();
 				if (!result.IsSuccess)
-					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Failed to generate template"));
+					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? ErrorMessages.FailedToGenerateTemplate));
 
 				var fileName = $"TOEIC_LR_Test_Template_{Now:yyyyMMdd}.xlsx";
 
@@ -188,7 +189,7 @@ namespace ToeicGenius.Controllers
 			{
 				var result = await _excelService.GenerateTemplateSWAsync();
 				if (!result.IsSuccess)
-					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? "Failed to generate S&W template"));
+					return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage ?? ErrorMessages.FailedToGenerateSWTemplate));
 
 				var fileName = $"TOEIC_SW_Test_Template_{Now:yyyyMMdd}.xlsx";
 
@@ -220,14 +221,14 @@ namespace ToeicGenius.Controllers
 
 				if (request == null || request.ExcelFile == null)
 				{
-					return BadRequest(ApiResponse<string>.ErrorResponse("Excel file is required"));
+					return BadRequest(ApiResponse<string>.ErrorResponse(ErrorMessages.ExcelFileRequired));
 				}
 
 				// Parse Excel to DTO (with Parts 8-15, images auto-uploaded)
 				var parseResult = await _excelService.ParseExcelToTestSWAsync(request.ExcelFile);
 				if (!parseResult.IsSuccess)
 				{
-					return BadRequest(ApiResponse<string>.ErrorResponse(parseResult.ErrorMessage ?? "Failed to parse S&W Excel file"));
+					return BadRequest(ApiResponse<string>.ErrorResponse(parseResult.ErrorMessage ?? ErrorMessages.FailedToParseSWExcel));
 				}
 
 				// S&W test doesn't require audio file
@@ -237,7 +238,7 @@ namespace ToeicGenius.Controllers
 				var createResult = await _testService.CreateManualAsync(userId, parseResult.Data!);
 				if (!createResult.IsSuccess)
 				{
-					return BadRequest(ApiResponse<string>.ErrorResponse(createResult.ErrorMessage ?? "Failed to create S&W test"));
+					return BadRequest(ApiResponse<string>.ErrorResponse(createResult.ErrorMessage ?? ErrorMessages.FailedToCreateSWTest));
 				}
 
 				return Ok(ApiResponse<string>.SuccessResponse(createResult.Data!));
@@ -256,13 +257,13 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 
 			var result = await _testService.FilterAllAsync(request, userId);
 			if (!result.IsSuccess)
 			{
-				return BadRequest(ApiResponse<PaginationResponse<TestListResponseDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+				return BadRequest(ApiResponse<PaginationResponse<TestListResponseDto>>.ErrorResponse(result.ErrorMessage ?? CommonMessages.UnexpectedError));
 			}
 			return Ok(ApiResponse<PaginationResponse<TestListResponseDto>>.SuccessResponse(result.Data!));
 		}
@@ -275,13 +276,13 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 
 			var result = await _testService.GetDetailAsync(id, userId, isAdmin: false);
 			if (!result.IsSuccess)
 			{
-				return BadRequest(ApiResponse<TestDetailDto>.ErrorResponse(result.ErrorMessage ?? "Error"));
+				return BadRequest(ApiResponse<TestDetailDto>.ErrorResponse(result.ErrorMessage ?? CommonMessages.UnexpectedError));
 			}
 			return Ok(ApiResponse<TestDetailDto>.SuccessResponse(result.Data!));
 		}
@@ -294,7 +295,7 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 
 			var result = await _testService.UpdateManualTestAsync(id, dto, userId, isAdmin: false);
@@ -309,7 +310,7 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 
 			var result = await _testService.UpdateTestFromBankAsync(id, dto, userId, isAdmin: false);
@@ -324,7 +325,7 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 
 			var request = new UpdateTestVisibilityStatusDto
@@ -346,7 +347,7 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 
 			var request = new UpdateTestVisibilityStatusDto
@@ -382,7 +383,7 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 			var result = await _testService.CreateDraftManualAsync(userId, dto);
 			if (!result.IsSuccess)
@@ -402,7 +403,7 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 			var result = await _testService.SavePartManualAsync(userId, testId, partId, dto);
 			if (!result.IsSuccess)
@@ -422,7 +423,7 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 			var result = await _testService.FinalizeTestAsync(userId, testId);
 			if (!result.IsSuccess)
@@ -443,7 +444,7 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 
 			var isAdmin = User.IsInRole("Admin");
@@ -466,7 +467,7 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 
 			var result = await _testService.GetTestStartAsync(request, userId);
@@ -483,7 +484,7 @@ namespace ToeicGenius.Controllers
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var result = await _testService.SubmitLRTestAsync(userId, request);
 			if (!result.IsSuccess)
@@ -499,7 +500,7 @@ namespace ToeicGenius.Controllers
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var result = await _testService.GetTestHistoryAsync(userId);
 
@@ -517,7 +518,7 @@ namespace ToeicGenius.Controllers
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var result = await _testService.GetUnifiedTestResultDetailAsync(testResultId, userId);
 
@@ -535,7 +536,7 @@ namespace ToeicGenius.Controllers
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var result = await _testService.GetListeningReadingResultDetailAsync(testResultId, userId);
 
@@ -592,7 +593,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var result = await _testService.GetDashboardStatisticAsync(userId, skill, range);
 
@@ -611,7 +612,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Invalid or missing user ID."));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.InvalidOrMissingUserId));
 
 			var result = await _testService.SaveProgressAsync(userId, request);
 

@@ -21,6 +21,19 @@ namespace ToeicGenius.Domains.Entities
 		/// </summary>
 		public int? SubQuestionId { get; set; }
 
+		/// <summary>
+		/// Snapshot của câu hỏi tại thời điểm report (lưu để không bị mất khi Creator edit/xóa)
+		/// - Nếu là câu đơn: lưu QuestionSnapshotDto
+		/// - Nếu là group: lưu QuestionGroupSnapshotDto
+		/// </summary>
+		[Column(TypeName = "nvarchar(max)")]
+		public string? QuestionSnapshotJson { get; set; }
+
+		/// <summary>
+		/// Đánh dấu đây là Question Group hay Single Question (lưu để deserialize đúng type)
+		/// </summary>
+		public bool IsQuestionGroup { get; set; }
+
 		// Người report
 		[Required]
 		public Guid ReportedBy { get; set; }

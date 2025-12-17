@@ -25,5 +25,15 @@
 
 		// System
 		public const string OperationSuccess = "Thao tác thành công.";
+
+		// Test Operations (with placeholders)
+		public const string TestCreatedWithId = "Tạo bài thi thành công (testId: {0})";
+		public const string TestCreatedFromBank = "Tạo thành công (testId: {0}) với {1} câu hỏi được chọn ngẫu nhiên từ ngân hàng";
+		public const string TestCreatedWithQuestions = "Tạo thành công TestId = {0} với {1} câu hỏi";
+		public const string TestFinalized = "Bài kiểm tra {0} đã hoàn tất thành công!";
+		public const string PartSaved = "Đã lưu Part {0} thành công";
+		public const string TestStatusChanged = "Bài test {0} đã đổi trạng thái thành {1}.";
+		public const string TestCloned = "Đã sao chép thành công bài test {0} thành bản nháp mới (testId: {1})";
+		public const string ProgressSaved = "Tiến trình đã được lưu thành công.";
 	}
 }
