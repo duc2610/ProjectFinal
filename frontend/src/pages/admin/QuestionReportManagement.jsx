@@ -105,6 +105,35 @@ const reportTypeTextMap = {
   Other: "Khác",
 };
 
+// Convert unknown values (including weird objects) to safe displayable text
+const safeText = (value, fallback = "") => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "bigint") {
+    return String(value);
+  }
+  // Common shapes
+  if (typeof value === "object") {
+    try {
+      if (typeof value.content === "string") return value.content;
+      if (typeof value.passage === "string") return value.passage;
+      if (typeof value.message === "string") return value.message;
+    } catch (_) {
+      // ignore
+    }
+  }
+  try {
+    return String(value);
+  } catch (_) {
+    try {
+      const json = JSON.stringify(value);
+      return typeof json === "string" ? json : fallback;
+    } catch (__) {
+      return fallback;
+    }
+  }
+};
+
 export default function QuestionReportManagement() {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
@@ -204,10 +233,11 @@ export default function QuestionReportManagement() {
           }
           
           // Tìm theo nội dung câu hỏi
-          const questionContent = (
+          const questionContent = safeText(
             item.questionContent ||
-            item?.questionSnapshot?.content ||
-            item?.questionGroupSnapshot?.passage ||
+              item?.questionSnapshot?.content ||
+              item?.questionGroupSnapshot?.passage ||
+              "",
             ""
           ).toLowerCase();
           if (questionContent.includes(searchLower)) {
@@ -215,14 +245,14 @@ export default function QuestionReportManagement() {
           }
           
           // Tìm theo tên bài test
-          const testName = (item.testName || "").toLowerCase();
+          const testName = safeText(item.testName || "", "").toLowerCase();
           if (testName.includes(searchLower)) {
             return true;
           }
           
           // Tìm theo người báo cáo (tên hoặc email)
-          const reporterName = (item.reporterName || "").toLowerCase();
-          const reporterEmail = (item.reporterEmail || "").toLowerCase();
+          const reporterName = safeText(item.reporterName || "", "").toLowerCase();
+          const reporterEmail = safeText(item.reporterEmail || "", "").toLowerCase();
           if (
             reporterName.includes(searchLower) ||
             reporterEmail.includes(searchLower)
@@ -258,12 +288,14 @@ export default function QuestionReportManagement() {
         const snapshot = item.questionSnapshot || {};
         const groupSnapshot = item.questionGroupSnapshot || {};
 
-        const questionContent =
+        const questionContent = safeText(
           (reportedSub && reportedSub.content) ||
-          snapshot.content ||
-          item.questionContent ||
-          groupSnapshot.passage ||
-          "";
+            snapshot.content ||
+            item.questionContent ||
+            groupSnapshot.passage ||
+            "",
+          ""
+        );
 
         return {
           ...item,
@@ -498,12 +530,14 @@ export default function QuestionReportManagement() {
         key: "reportInfo",
         width: 350,
         render: (_, record) => {
-          const content =
+          const content = safeText(
             record?.reportedSubQuestion?.content ||
-            record.questionContent ||
-            record?.questionSnapshot?.content ||
-            "(Không có nội dung câu hỏi)";
-          const testName = record.testName || "—";
+              record.questionContent ||
+              record?.questionSnapshot?.content ||
+              "(Không có nội dung câu hỏi)",
+            "(Không có nội dung câu hỏi)"
+          );
+          const testName = safeText(record.testName || "—", "—");
           const testId = record.testId;
           const partName = record.partName || record.partId;
           const isGroup = record.isQuestionGroup === true || !!record.questionGroupSnapshot;
@@ -591,9 +625,9 @@ export default function QuestionReportManagement() {
         key: "reporterAndDescription",
         width: 280,
         render: (_, record) => {
-          const reporterName = record.reporterName || "—";
-          const reporterEmail = record.reporterEmail || "—";
-          const description = record.description || "(Không có mô tả)";
+          const reporterName = safeText(record.reporterName || "—", "—");
+          const reporterEmail = safeText(record.reporterEmail || "—", "—");
+          const description = safeText(record.description || "(Không có mô tả)", "(Không có mô tả)");
           
           return (
             <Space direction="vertical" size={8} style={{ width: '100%' }}>
