@@ -22,20 +22,16 @@ namespace ToeicGenius.Domains.Entities
         [StringLength(50)]
         public string? AIScorer { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? DetailedScoresJson { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? DetailedAnalysisJson { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? RecommendationsJson { get; set; }
 
         public string? Transcription { get; set; }
         public string? CorrectedText { get; set; }
         public double? AudioDuration { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? PythonApiResponse { get; set; }
 
         public string? AudioFileUrl { get; set; }

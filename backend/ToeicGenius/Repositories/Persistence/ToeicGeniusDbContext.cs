@@ -137,6 +137,49 @@ namespace ToeicGenius.Repositories.Persistence
 				.Property(tq => tq.SnapshotVersions)
 				.HasColumnType(isSqlServer ? "nvarchar(max)" : "text");
 
+			// QuestionReport - Configure column types for cross-database compatibility
+			modelBuilder.Entity<QuestionReport>()
+				.Property(qr => qr.QuestionSnapshotJson)
+				.HasColumnType(isSqlServer ? "nvarchar(max)" : "text");
+
+			modelBuilder.Entity<QuestionReport>()
+				.Property(qr => qr.ReportType)
+				.HasColumnType(isSqlServer ? "nvarchar(50)" : "character varying(50)");
+
+			modelBuilder.Entity<QuestionReport>()
+				.Property(qr => qr.Description)
+				.HasColumnType(isSqlServer ? "nvarchar(1000)" : "character varying(1000)");
+
+			modelBuilder.Entity<QuestionReport>()
+				.Property(qr => qr.ReviewerNotes)
+				.HasColumnType(isSqlServer ? "nvarchar(1000)" : "character varying(1000)");
+
+			// UserAnswer - Configure column types for cross-database compatibility
+			modelBuilder.Entity<UserAnswer>()
+				.Property(ua => ua.AnswerText)
+				.HasColumnType(isSqlServer ? "nvarchar(max)" : "text");
+
+			modelBuilder.Entity<UserAnswer>()
+				.Property(ua => ua.ChosenOptionLabel)
+				.HasColumnType(isSqlServer ? "nvarchar(5)" : "character varying(5)");
+
+			// AIFeedback - Configure column types for cross-database compatibility
+			modelBuilder.Entity<AIFeedback>()
+				.Property(af => af.DetailedScoresJson)
+				.HasColumnType(isSqlServer ? "nvarchar(max)" : "text");
+
+			modelBuilder.Entity<AIFeedback>()
+				.Property(af => af.DetailedAnalysisJson)
+				.HasColumnType(isSqlServer ? "nvarchar(max)" : "text");
+
+			modelBuilder.Entity<AIFeedback>()
+				.Property(af => af.RecommendationsJson)
+				.HasColumnType(isSqlServer ? "nvarchar(max)" : "text");
+
+			modelBuilder.Entity<AIFeedback>()
+				.Property(af => af.PythonApiResponse)
+				.HasColumnType(isSqlServer ? "nvarchar(max)" : "text");
+
 			modelBuilder.Entity<Test>()
 				.HasMany(t => t.TestQuestions)
 				.WithOne(q => q.Test)

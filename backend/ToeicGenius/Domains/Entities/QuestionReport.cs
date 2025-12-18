@@ -26,7 +26,6 @@ namespace ToeicGenius.Domains.Entities
 		/// - Nếu là câu đơn: lưu QuestionSnapshotDto
 		/// - Nếu là group: lưu QuestionGroupSnapshotDto
 		/// </summary>
-		[Column(TypeName = "nvarchar(max)")]
 		public string? QuestionSnapshotJson { get; set; }
 
 		/// <summary>
@@ -43,11 +42,9 @@ namespace ToeicGenius.Domains.Entities
 
 		// Loại lỗi
 		[Required]
-		[Column(TypeName = "nvarchar(50)")]
 		public string ReportType { get; set; } = string.Empty; // "IncorrectAnswer", "Typo", "AudioIssue", "ImageIssue", "Unclear", "Other"
 
 		// Mô tả chi tiết
-		[Column(TypeName = "nvarchar(1000)")]
 		public string? Description { get; set; }
 
 		// Trạng thái xử lý
@@ -60,7 +57,6 @@ namespace ToeicGenius.Domains.Entities
 		public User? Reviewer { get; set; }
 
 		// Ghi chú của reviewer
-		[Column(TypeName = "nvarchar(1000)")]
 		public string? ReviewerNotes { get; set; }
 
 		// Timestamps
