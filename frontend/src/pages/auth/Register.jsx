@@ -21,6 +21,7 @@ const { Title, Text, Link } = Typography;
 export default function Register() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const [loading, setLoading] = React.useState(false);
 
   const collapseSpaces = (s) => {
     if (typeof s !== "string") return s;
@@ -61,6 +62,7 @@ export default function Register() {
 
     const payload = { fullName, email, password };
 
+    setLoading(true);
     try {
       await registerService(payload);
       notification.success({
@@ -86,6 +88,8 @@ export default function Register() {
       const rawMsg = err?.response?.data?.message || "Gửi OTP thất bại";
       const msg = translateError(rawMsg);
       form.setFields([{ name: "email", errors: [msg] }]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -346,6 +350,8 @@ export default function Register() {
               width: "100%",
             }}
             icon={<ArrowRightOutlined />}
+            loading={loading}
+            iconPosition="end"
           >
             Đăng ký
           </Button>

@@ -104,8 +104,11 @@ export default function Login() {
       form.setFieldsValue({ password: "" });
     }
   };
+  const [googleLoading, setGoogleLoading] = React.useState(false);
+  
   const googleLogin = useGoogleLogin({
     onSuccess: async (response) => {
+      setGoogleLoading(true);
       try {
         const res = await signInWithGoogle(response.code);
         if (res.ok) {
@@ -125,6 +128,8 @@ export default function Login() {
           message: "Đăng nhập Google thất bại",
           description: err?.message || "Có lỗi xảy ra, vui lòng thử lại",
         });
+      } finally {
+        setGoogleLoading(false);
       }
     },
     flow: "auth-code",
@@ -212,6 +217,7 @@ export default function Login() {
               icon={<ArrowRightOutlined />}
               loading={loading}
               iconPosition="end"
+              disabled={googleLoading}
             >
               Đăng nhập
             </Button>
@@ -226,6 +232,8 @@ export default function Login() {
               icon={<GoogleOutlined />}
               className={styles.googleButton}
               onClick={() => googleLogin()}
+              loading={googleLoading}
+              disabled={loading || googleLoading}
             >
               Tiếp tục với Google
             </Button>
