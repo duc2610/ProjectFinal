@@ -386,8 +386,9 @@ namespace ToeicGenius.Repositories.Persistence
 			);
 
 			// Seed default account
-			// - SQL Server: dùng Now (datetime2) bình thường
-			// - PostgreSQL: cột CreatedAt map sang timestamp with time zone → cần DateTimeKind.Utc
+			// Dùng một thời điểm UTC cố định để tránh lỗi 'timestamp with time zone' trên PostgreSQL
+			var seedCreatedAtUtc = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
 			var adminConfig = _configuration.GetSection("DefaultAccounts:Admin");
 			var creatorConfig = _configuration.GetSection("DefaultAccounts:TestCreator");
 			var examineeConfig = _configuration.GetSection("DefaultAccounts:Examinee");
@@ -395,10 +396,6 @@ namespace ToeicGenius.Repositories.Persistence
 			var adminId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 			var creatorId = Guid.Parse("22222222-2222-2222-2222-222222222222");
 			var examineeId = Guid.Parse("33333333-3333-3333-3333-333333333333");
-
-			var createdAtForSeed = isSqlServer
-				? Now
-				: DateTime.SpecifyKind(Now, DateTimeKind.Utc);
 
 			modelBuilder.Entity<User>().HasData(
 				new User
@@ -408,7 +405,7 @@ namespace ToeicGenius.Repositories.Persistence
 					FullName = adminConfig["FullName"]!,
 					PasswordHash = SecurityHelper.HashPassword(adminConfig["Password"]!),
 					Status = UserStatus.Active,
-					CreatedAt = createdAtForSeed,
+						CreatedAt = seedCreatedAtUtc,
 					IsRoot = true
 				},
 				new User
@@ -418,7 +415,7 @@ namespace ToeicGenius.Repositories.Persistence
 					FullName = creatorConfig["FullName"]!,
 					PasswordHash = SecurityHelper.HashPassword(creatorConfig["Password"]!),
 					Status = UserStatus.Active,
-					CreatedAt = createdAtForSeed
+						CreatedAt = seedCreatedAtUtc
 				},
 				new User
 				{
@@ -427,7 +424,7 @@ namespace ToeicGenius.Repositories.Persistence
 					FullName = examineeConfig["FullName"]!,
 					PasswordHash = SecurityHelper.HashPassword(examineeConfig["Password"]!),
 					Status = UserStatus.Active,
-					CreatedAt = createdAtForSeed
+						CreatedAt = seedCreatedAtUtc
 				}
 			);
 			// Seed bảng trung gian ẩn danh (UserRoles)
