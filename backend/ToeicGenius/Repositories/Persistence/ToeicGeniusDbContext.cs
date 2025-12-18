@@ -42,6 +42,9 @@ namespace ToeicGenius.Repositories.Persistence
 		{
 			base.OnModelCreating(modelBuilder);
 
+			var providerName = Database.ProviderName ?? string.Empty;
+			var isSqlServer = providerName.Contains("SqlServer", StringComparison.OrdinalIgnoreCase);
+
 
 			// Many-to-many User <-> Role
 			modelBuilder.Entity<User>()
@@ -124,7 +127,7 @@ namespace ToeicGenius.Repositories.Persistence
 			// SnapshotJson is just string; no converter necessary.
 			modelBuilder.Entity<TestQuestion>()
 				.Property(tq => tq.SnapshotJson)
-				.HasColumnType("nvarchar(max)");
+				.HasColumnType(isSqlServer ? "nvarchar(max)" : "text");
 
 			modelBuilder.Entity<Test>()
 				.HasMany(t => t.TestQuestions)
@@ -187,15 +190,15 @@ namespace ToeicGenius.Repositories.Persistence
 			// Default values
 			modelBuilder.Entity<User>()
 				.Property(u => u.CreatedAt)
-				.HasDefaultValueSql("SYSUTCDATETIME()");
+				.HasDefaultValueSql(isSqlServer ? "SYSUTCDATETIME()" : "timezone('utc', now())");
 
 			modelBuilder.Entity<RefreshToken>()
 				.Property(rt => rt.CreatedAt)
-				.HasDefaultValueSql("SYSUTCDATETIME()");
+				.HasDefaultValueSql(isSqlServer ? "SYSUTCDATETIME()" : "timezone('utc', now())");
 
 			modelBuilder.Entity<FlashcardSet>()
 				.Property(fs => fs.CreatedAt)
-				.HasDefaultValueSql("SYSUTCDATETIME()");
+				.HasDefaultValueSql(isSqlServer ? "SYSUTCDATETIME()" : "timezone('utc', now())");
 
 			// Seed Roles
 			modelBuilder.Entity<Role>().HasData(

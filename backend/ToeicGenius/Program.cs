@@ -3,6 +3,7 @@ using Amazon.Runtime;
 using Amazon;
 using Amazon.S3;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -28,7 +29,32 @@ builder.Services.AddControllers(options =>
 
 // DB Context
 builder.Services.AddDbContext<ToeicGeniusDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("MyCnn")));
+{
+    var connStr = builder.Configuration.GetConnectionString("MyCnn");
+    if (string.IsNullOrWhiteSpace(connStr))
+    {
+        connStr = builder.Configuration["ConnectionStrings__MyCnn"];
+    }
+
+    if (string.IsNullOrWhiteSpace(connStr))
+    {
+        throw new InvalidOperationException("Missing database connection string. Set ConnectionStrings:MyCnn (or ConnectionStrings__MyCnn).");
+    }
+
+    var dbProvider = builder.Configuration["DbProvider"] ?? builder.Configuration["DB_PROVIDER"];
+    var usePostgres =
+        string.Equals(dbProvider, "postgres", StringComparison.OrdinalIgnoreCase) ||
+        connStr.Contains("Host=", StringComparison.OrdinalIgnoreCase);
+
+    if (usePostgres)
+    {
+        options.UseNpgsql(connStr);
+    }
+    else
+    {
+        options.UseSqlServer(connStr);
+    }
+});
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -56,10 +82,28 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        // Configure via ENV/config:
+        // - Cors:AllowedOrigins="http://localhost:3000,https://your-frontend.onrender.com"
+        // - or CORS_ALLOWED_ORIGINS="http://localhost:3000,https://your-frontend.onrender.com"
+        var raw =
+            builder.Configuration["Cors:AllowedOrigins"] ??
+            builder.Configuration["CORS_ALLOWED_ORIGINS"];
+
+        var origins = (raw ?? "http://localhost:3000")
+            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (origins.Any(o => o == "*"))
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+        else
+        {
+            policy.WithOrigins(origins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
     });
 });
 // ============ CONFIGURATION SETTINGS ============
@@ -123,6 +167,12 @@ builder.Services.AddDefaultAWSOptions(awsOptions);
 builder.Services.AddAWSService<IAmazonS3>();
 var app = builder.Build();
 
+// Forwarded headers (important when running behind a proxy like Render)
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
 // Auto-migrate database on startup
 using (var scope = app.Services.CreateScope())
 {
@@ -130,7 +180,16 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ToeicGeniusDbContext>();
-        context.Database.Migrate(); // Apply pending migrations automatically
+        if (context.Database.IsSqlServer())
+        {
+            context.Database.Migrate(); // Apply pending migrations automatically (SQL Server)
+        }
+        else
+        {
+            // Provider-agnostic bootstrapping for PostgreSQL on fresh deployments (Render free tier).
+            // Note: EnsureCreated is not a replacement for migrations.
+            context.Database.EnsureCreated();
+        }
     }
     catch (Exception ex)
     {
