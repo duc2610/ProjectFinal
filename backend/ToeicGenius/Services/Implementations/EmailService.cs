@@ -20,17 +20,22 @@ namespace ToeicGenius.Services.Implementations
 		}
 		public async Task SendMailAsync(string toEmail, string subject, string body)
 		{
-			// Kiểm tra xem có ApiKey không để quyết định dùng Resend API hay SMTP
+			// Kiểm tra xem có ApiKey không để quyết định dùng API hay SMTP
 			var apiKey = _configuration["MailSettings:ApiKey"] ?? "";
 			
 			if (!string.IsNullOrEmpty(apiKey) && apiKey.StartsWith("re_"))
 			{
-				// Dùng Resend API (Production - Render)
+				// Dùng Resend API
 				await SendViaResendAsync(toEmail, subject, body);
+			}
+			else if (!string.IsNullOrEmpty(apiKey) && apiKey.StartsWith("xkeysib-"))
+			{
+				// Dùng Brevo Transactional API (Production - Render)
+				await SendViaBrevoApiAsync(toEmail, subject, body);
 			}
 			else
 			{
-				// Dùng SMTP (Local development)
+				// Dùng SMTP (Local development hoặc Brevo SMTP)
 				await SendViaSmtpAsync(toEmail, subject, body);
 			}
 		}
@@ -76,6 +81,51 @@ namespace ToeicGenius.Services.Implementations
 			catch (Exception ex)
 			{
 				_logger.LogError(ex, "Failed to send email to {Email} via Resend: {Message}", toEmail, ex.Message);
+				throw;
+			}
+		}
+
+		private async Task SendViaBrevoApiAsync(string toEmail, string subject, string body)
+		{
+			try
+			{
+				var fromEmail = _configuration["MailSettings:From"] ?? "";
+				var apiKey = _configuration["MailSettings:ApiKey"] ?? "";
+
+				if (string.IsNullOrEmpty(fromEmail) || string.IsNullOrEmpty(apiKey))
+				{
+					_logger.LogError("MailSettings configuration for Brevo API is missing or incomplete");
+					throw new Exception("MailSettings configuration for Brevo API is missing or incomplete");
+				}
+
+				using var httpClient = new HttpClient();
+				httpClient.DefaultRequestHeaders.Add("api-key", apiKey);
+
+				var payload = new
+				{
+					sender = new { email = fromEmail },
+					to = new[] { new { email = toEmail } },
+					subject,
+					htmlContent = body
+				};
+
+				var json = JsonSerializer.Serialize(payload);
+				using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+				var response = await httpClient.PostAsync("https://api.brevo.com/v3/smtp/email", content);
+
+				if (!response.IsSuccessStatusCode)
+				{
+					var respText = await response.Content.ReadAsStringAsync();
+					_logger.LogError("Brevo API error: {StatusCode} - {Response}", (int)response.StatusCode, respText);
+					throw new Exception($"Brevo API error: {(int)response.StatusCode} - {respText}");
+				}
+
+				_logger.LogInformation("Email sent successfully to {Email} via Brevo API", toEmail);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Failed to send email to {Email} via Brevo API: {Message}", toEmail, ex.Message);
 				throw;
 			}
 		}
