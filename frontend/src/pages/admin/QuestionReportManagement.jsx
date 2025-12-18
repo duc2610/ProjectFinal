@@ -252,7 +252,26 @@ export default function QuestionReportManagement() {
         return idB - idA;
       });
 
-      setDataSource(itemsArray);
+      // Chuẩn hóa dữ liệu cho hiển thị (ưu tiên sub-question được report)
+      const normalizedItems = itemsArray.map((item) => {
+        const reportedSub = item.reportedSubQuestion || null;
+        const snapshot = item.questionSnapshot || {};
+        const groupSnapshot = item.questionGroupSnapshot || {};
+
+        const questionContent =
+          (reportedSub && reportedSub.content) ||
+          snapshot.content ||
+          item.questionContent ||
+          groupSnapshot.passage ||
+          "";
+
+        return {
+          ...item,
+          questionContent,
+        };
+      });
+
+      setDataSource(normalizedItems);
       setPagination({
         current: merged.page || 1, // Reset về trang 1 khi filter thay đổi
         pageSize: pagination.pageSize || 10, // Giữ nguyên pageSize hiển thị (không dùng pageSize từ API)
@@ -480,12 +499,27 @@ export default function QuestionReportManagement() {
         width: 350,
         render: (_, record) => {
           const content =
+            record?.reportedSubQuestion?.content ||
             record.questionContent ||
             record?.questionSnapshot?.content ||
             "(Không có nội dung câu hỏi)";
           const testName = record.testName || "—";
           const testId = record.testId;
           const partName = record.partName || record.partId;
+          const isGroup = record.isQuestionGroup === true || !!record.questionGroupSnapshot;
+          let groupInfo = null;
+
+          if (isGroup && record.questionGroupSnapshot && record.reportedSubQuestion) {
+            const qs = Array.isArray(record.questionGroupSnapshot.questionSnapshots)
+              ? record.questionGroupSnapshot.questionSnapshots
+              : [];
+            const idx = qs.findIndex(
+              (q) => q.questionId === record.reportedSubQuestion.questionId
+            );
+            if (idx >= 0) {
+              groupInfo = `Câu ${idx + 1}/${qs.length} trong nhóm`;
+            }
+          }
           
           return (
             <Space direction="vertical" size={8} style={{ width: '100%' }}>
@@ -498,6 +532,11 @@ export default function QuestionReportManagement() {
                     {content}
                   </Text>
                 </Tooltip>
+                {groupInfo && (
+                  <Text type="secondary" style={{ fontSize: 11, display: 'block', marginTop: 2 }}>
+                    {groupInfo}
+                  </Text>
+                )}
               </div>
               <div>
                 <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>
@@ -870,7 +909,14 @@ export default function QuestionReportManagement() {
                     background: opt.isCorrect ? "#f6ffed" : "#ffffff",
                   }}
                 >
-                  <Space>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 12,
+                      width: "100%",
+                    }}
+                  >
                     <Checkbox
                       checked={!!opt.isCorrect}
                       disabled={isReadOnly}
@@ -879,24 +925,20 @@ export default function QuestionReportManagement() {
                         const checked = e.target.checked;
                         setEditableQuestion((prev) => {
                           const current = prev || { options: [] };
-                          const newOptions = (current.options || []).map(
-                            (o) => {
-                              if (o.label === opt.label) {
-                                // Đáp án vừa click: set theo checked
-                                return { ...o, isCorrect: checked };
-                              }
-                              // Các đáp án khác: nếu chọn mới thì tất cả phải false (chỉ cho 1 đáp án đúng)
-                              return checked ? { ...o, isCorrect: false } : o;
+                          const newOptions = (current.options || []).map((o) => {
+                            if (o.label === opt.label) {
+                              return { ...o, isCorrect: checked };
                             }
-                          );
+                            return checked ? { ...o, isCorrect: false } : o;
+                          });
                           return { ...current, options: newOptions };
                         });
                       }}
                     >
                       Đáp án đúng
                     </Checkbox>
-                    <Text strong>{opt.label}.</Text>
-                    <Input
+                    <Text strong style={{ minWidth: 18 }}>{opt.label}.</Text>
+                    <Input.TextArea
                       value={opt.content}
                       disabled={isReadOnly}
                       onChange={(e) => {
@@ -904,18 +946,17 @@ export default function QuestionReportManagement() {
                         const value = e.target.value;
                         setEditableQuestion((prev) => {
                           const current = prev || { options: [] };
-                          const newOptions = (current.options || []).map(
-                            (o) =>
-                              o.label === opt.label
-                                ? { ...o, content: value }
-                                : o
+                          const newOptions = (current.options || []).map((o) =>
+                            o.label === opt.label ? { ...o, content: value } : o
                           );
                           return { ...current, options: newOptions };
                         });
                       }}
+                      autoSize={{ minRows: 1, maxRows: 4 }}
+                      style={{ flex: 1 }}
                       placeholder="Nội dung đáp án"
                     />
-                  </Space>
+                  </div>
                 </Card>
               ))}
             </Space>
@@ -929,6 +970,10 @@ export default function QuestionReportManagement() {
     if (!selectedReport) return null;
     
     const groupSnapshot = selectedReport.questionGroupSnapshot || {};
+    const reportedSubQuestionId =
+      selectedReport.subQuestionId ??
+      selectedReport?.reportedSubQuestion?.questionId ??
+      null;
     
     // Lấy questions từ editableQuestionGroup nếu có, nếu không thì từ snapshot
     let questions = [];
@@ -950,7 +995,11 @@ export default function QuestionReportManagement() {
       }));
     }
     
-    const passage = editableQuestionGroup?.passage ?? groupSnapshot.passage ?? selectedReport.questionContent ?? "";
+    const passage =
+      editableQuestionGroup?.passage ??
+      groupSnapshot.passage ??
+      selectedReport.questionContent ??
+      "";
     
     // Kiểm tra testType: chỉ hiển thị checkbox khi test là PRACTICE
     const testType = selectedReport.testType ?? groupSnapshot.testType ?? selectedReport.TestType;
@@ -1142,13 +1191,32 @@ export default function QuestionReportManagement() {
                 const questionContent = q.content ?? "";
                 const questionExplanation = q.explanation ?? "";
                 const questionOptions = Array.isArray(q.options) ? q.options : [];
+                const isReported =
+                  reportedSubQuestionId != null &&
+                  questionId === reportedSubQuestionId;
                 
                 return (
                   <Card
                     key={questionId}
                     size="small"
-                    title={`Câu ${qIndex + 1}${questionId ? ` (ID: ${questionId})` : ""}`}
-                    style={{ border: "1px solid #e5e7eb" }}
+                    title={
+                      <Space>
+                        <span>{`Câu ${qIndex + 1}${
+                          questionId ? ` (ID: ${questionId})` : ""
+                        }`}</span>
+                        {isReported && (
+                          <Tag color="red" style={{ marginLeft: 8 }}>
+                            ĐANG BỊ BÁO CÁO
+                          </Tag>
+                        )}
+                      </Space>
+                    }
+                    style={{
+                      border: isReported ? "2px solid #fa8c16" : "1px solid #e5e7eb",
+                      boxShadow: isReported
+                        ? "0 0 0 2px rgba(250,140,22,0.12)"
+                        : "none",
+                    }}
                   >
                     <Space direction="vertical" style={{ width: "100%" }} size="middle">
                       <div>
@@ -1232,7 +1300,14 @@ export default function QuestionReportManagement() {
                                   background: opt.isCorrect ? "#f6ffed" : "#ffffff",
                                 }}
                               >
-                                <Space>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "flex-start",
+                                    gap: 12,
+                                    width: "100%",
+                                  }}
+                                >
                                   <Checkbox
                                     checked={!!opt.isCorrect}
                                     disabled={isReadOnly}
@@ -1255,7 +1330,7 @@ export default function QuestionReportManagement() {
                                             if (o.label === opt.label) {
                                               return { ...o, isCorrect: checked };
                                             }
-                                            return checked ? { ...o, isCorrect: false } : o;
+                                            return checked ? { ...o, IsCorrect: false } : o;
                                           }
                                         );
                                         newQuestions[qIndex] = {
@@ -1268,8 +1343,8 @@ export default function QuestionReportManagement() {
                                   >
                                     Đáp án đúng
                                   </Checkbox>
-                                  <Text strong>{opt.label}.</Text>
-                                  <Input
+                                  <Text strong style={{ minWidth: 18 }}>{opt.label}.</Text>
+                                  <Input.TextArea
                                     value={opt.content}
                                     disabled={isReadOnly}
                                     onChange={(e) => {
@@ -1299,9 +1374,11 @@ export default function QuestionReportManagement() {
                                         return { ...current, questions: newQuestions };
                                       });
                                     }}
+                                    autoSize={{ minRows: 1, maxRows: 4 }}
+                                    style={{ flex: 1 }}
                                     placeholder="Nội dung đáp án"
                                   />
-                                </Space>
+                                </div>
                               </Card>
                             ))}
                           </Space>
@@ -1483,7 +1560,7 @@ export default function QuestionReportManagement() {
           return isReadOnly ? undefined : "Lưu xử lý";
         })()}
         cancelText="Đóng"
-        width={900}
+        width={1100}
       >
         {selectedReport && (() => {
           // Tính isReadOnly một lần để dùng chung
@@ -1519,6 +1596,24 @@ export default function QuestionReportManagement() {
                     <Descriptions.Item label="Part">
                       {selectedReport.partName || selectedReport.partId}
                     </Descriptions.Item>
+                    {/* Với question group: hiển thị rõ câu nào đang bị report */}
+                    {selectedReport.isQuestionGroup && (
+                      <Descriptions.Item label="Câu bị report trong group">
+                        {(() => {
+                          const reportedId =
+                            selectedReport.subQuestionId ??
+                            selectedReport?.reportedSubQuestion?.questionId ??
+                            null;
+                          if (!reportedId) return "Không xác định";
+                          const qs =
+                            selectedReport?.questionGroupSnapshot?.questionSnapshots || [];
+                          const idx = qs.findIndex((q) => q.questionId === reportedId);
+                          return idx >= 0
+                            ? `Câu ${idx + 1}/${qs.length} (ID: ${reportedId})`
+                            : `ID: ${reportedId}`;
+                        })()}
+                      </Descriptions.Item>
+                    )}
                     <Descriptions.Item label="Người báo cáo">
                       <Space direction="vertical" size={0}>
                         <Text strong>{selectedReport.reporterName}</Text>
