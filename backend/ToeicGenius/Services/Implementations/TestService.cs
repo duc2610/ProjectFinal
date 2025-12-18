@@ -2293,6 +2293,12 @@ namespace ToeicGenius.Services.Implementations
 		/// </summary>
 		private async Task<Result<string>> UpdateSingleTestQuestionAsync(TestQuestion testQuestion, UpdateTestQuestionDto dto, Guid userId, bool isAdmin)
 		{
+			// Use case-insensitive JSON options to support both PascalCase and camelCase snapshots
+			var jsonOptions = new System.Text.Json.JsonSerializerOptions
+			{
+				PropertyNameCaseInsensitive = true
+			};
+
 			// Try to get version history (new format), or migrate from old format
 			QuestionVersionHistory? versionHistory = null;
 			QuestionSnapshotDto? currentSnapshot = null;
@@ -2302,7 +2308,7 @@ namespace ToeicGenius.Services.Implementations
 				// New format: Use SnapshotVersions
 				try
 				{
-					versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionVersionHistory>(testQuestion.SnapshotVersions);
+					versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionVersionHistory>(testQuestion.SnapshotVersions, jsonOptions);
 				}
 				catch
 				{
@@ -2319,7 +2325,7 @@ namespace ToeicGenius.Services.Implementations
 				// Old format: Migrate from SnapshotJson to SnapshotVersions
 				try
 				{
-					currentSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionSnapshotDto>(testQuestion.SnapshotJson);
+					currentSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionSnapshotDto>(testQuestion.SnapshotJson, jsonOptions);
 				}
 				catch
 				{
@@ -2474,6 +2480,12 @@ namespace ToeicGenius.Services.Implementations
 		/// </summary>
 		private async Task<Result<string>> UpdateTestQuestionGroupAsync(TestQuestion testQuestion, UpdateTestQuestionDto dto, Guid userId, bool isAdmin)
 		{
+			// Use case-insensitive JSON options to support both PascalCase and camelCase snapshots
+			var jsonOptions = new System.Text.Json.JsonSerializerOptions
+			{
+				PropertyNameCaseInsensitive = true
+			};
+
 			// Try to get version history (new format), or migrate from old format
 			QuestionGroupVersionHistory? versionHistory = null;
 			QuestionGroupSnapshotDto? currentGroupSnapshot = null;
@@ -2483,7 +2495,7 @@ namespace ToeicGenius.Services.Implementations
 				// New format: Use SnapshotVersions
 				try
 				{
-					versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionGroupVersionHistory>(testQuestion.SnapshotVersions);
+					versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionGroupVersionHistory>(testQuestion.SnapshotVersions, jsonOptions);
 				}
 				catch
 				{
@@ -2500,7 +2512,7 @@ namespace ToeicGenius.Services.Implementations
 				// Old format: Migrate from SnapshotJson to SnapshotVersions
 				try
 				{
-					currentGroupSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionGroupSnapshotDto>(testQuestion.SnapshotJson);
+					currentGroupSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionGroupSnapshotDto>(testQuestion.SnapshotJson, jsonOptions);
 				}
 				catch
 				{
