@@ -133,6 +133,10 @@ namespace ToeicGenius.Repositories.Persistence
 				.Property(tq => tq.SnapshotJson)
 				.HasColumnType(isSqlServer ? "nvarchar(max)" : "text");
 
+			modelBuilder.Entity<TestQuestion>()
+				.Property(tq => tq.SnapshotVersions)
+				.HasColumnType(isSqlServer ? "nvarchar(max)" : "text");
+
 			modelBuilder.Entity<Test>()
 				.HasMany(t => t.TestQuestions)
 				.WithOne(q => q.Test)
