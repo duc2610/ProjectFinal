@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import styles from "@shared/styles/Profile.module.css";
 import { getTestHistory } from "@services/testsService";
 import { startTest, getTestResultDetail } from "@services/testExamService";
+import { useAuth } from "@shared/hooks/useAuth";
 
 const EMPTY_LR_MESSAGE =
   "Không có câu trả lời cho phần này. Có thể bạn chưa làm hoặc dữ liệu chưa được ghi nhận.";
@@ -43,6 +44,7 @@ export function TestHistoryTab() {
   const [selectedHistory, setSelectedHistory] = useState(null);
   const [detailData, setDetailData] = useState(null); // Lưu toàn bộ detailData từ API
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchHistory();
@@ -469,6 +471,8 @@ export function TestHistoryTab() {
       
       const payload = {
         ...data,
+        ownerUserId: user?.id || user?.userId || user?.Id || null,
+        ownerEmail: user?.email || user?.Email || null,
         testId: testIdNum,
         testResultId: originalTestResultId, // Dùng testResultId từ history, không phải từ startTest
         originalTestResultId: originalTestResultId, // Lưu thêm để dễ debug

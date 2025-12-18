@@ -103,6 +103,13 @@ export function AuthProvider({ children }) {
     svcLogout();
     setUser(null);
     removeCookie("user");
+    // Clear TOEIC exam session data to prevent cross-account session leakage
+    try {
+      sessionStorage.removeItem("toeic_testData");
+      sessionStorage.removeItem("toeic_resultMeta");
+    } catch (e) {
+      // ignore
+    }
     // Navigate về login sau khi đăng xuất
     navigate("/login", { replace: true });
   };

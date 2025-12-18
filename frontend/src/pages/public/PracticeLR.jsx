@@ -12,12 +12,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { getPracticeTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_LABELS } from "@services/testsService";
 import { startTest } from "@services/testExamService";
 import styles from "@shared/styles/PracticeLR.module.css";
+import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text, Paragraph } = Typography;
 
 export default function PracticeLR() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [tests, setTests] = useState([]);
 
@@ -220,6 +222,8 @@ export default function PracticeLR() {
 
             const payload = {
                 ...data,
+                ownerUserId: user?.id || user?.userId || user?.Id || null,
+                ownerEmail: user?.email || user?.Email || null,
                 testId: testIdNum,
                 testResultId: testResultId,
                 originalTestResultId: testResultId,

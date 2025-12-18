@@ -10,10 +10,34 @@ import { getMyQuestionReports } from "../../../services/questionReportService";
 import { translateErrorMessage } from "@shared/utils/translateError";
 import { useNavigate } from "react-router-dom";
 import { SaveOutlined } from "@ant-design/icons";
+import { useAuth } from "@shared/hooks/useAuth";
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
 const MOBILE_NAV_BREAKPOINT = 992;
+const TOEIC_TEST_DATA_KEY = "toeic_testData";
+const TOEIC_RESULT_META_KEY = "toeic_resultMeta";
+
+const safeReadSessionJson = (key, fallback = {}) => {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch (e) {
+    return fallback;
+  }
+};
+
+const clearToeicSession = () => {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(TOEIC_TEST_DATA_KEY);
+    sessionStorage.removeItem(TOEIC_RESULT_META_KEY);
+  } catch (e) {
+    // ignore
+  }
+};
 
 const getIsCompactViewport = () => {
   if (typeof window === "undefined") return false;
@@ -22,7 +46,10 @@ const getIsCompactViewport = () => {
 
 export default function ExamScreen() {
   const navigate = useNavigate();
-  const rawTestData = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
+  const { user, loading: authLoading, isAuthenticated } = useAuth();
+  const currentUserId = useMemo(() => user?.id || user?.userId || user?.Id || null, [user]);
+  const rawTestData = safeReadSessionJson(TOEIC_TEST_DATA_KEY, {});
+  const hasRedirectedRef = useRef(false);
   const [questions] = useState(rawTestData.questions || []);
   // Lần đầu vào: dùng answers từ sessionStorage (đã được load từ ExamSelection/Profile)
   // Khi reload: sẽ load lại từ API startTest
@@ -84,6 +111,57 @@ export default function ExamScreen() {
   const timerRef = useRef(null);
   const isSubmittingRef = useRef(false);
   const startTimestampRef = useRef(safeStartTimestamp);
+
+  const isExamSessionValid = useMemo(() => {
+    const hasIds = !!rawTestData?.testId && !!rawTestData?.testResultId;
+    const hasQuestions = Array.isArray(questions) && questions.length > 0;
+    return hasIds && hasQuestions;
+  }, [rawTestData?.testId, rawTestData?.testResultId, questions]);
+
+  // Guard: prevent opening ExamScreen without a valid started test or with a different account
+  useEffect(() => {
+    if (hasRedirectedRef.current) return;
+
+    if (!isExamSessionValid) {
+      hasRedirectedRef.current = true;
+      message.error({
+        content:
+          'Phiên làm bài không hợp lệ hoặc bạn chưa bắt đầu bài thi. Vui lòng chọn bài thi và nhấn "Bắt đầu làm bài".',
+        key: "exam_guard",
+      });
+      clearToeicSession();
+      navigate("/test-list", { replace: true });
+      return;
+    }
+
+    // Only check ownership once auth is resolved
+    if (authLoading) return;
+
+    // If user is logged in but session has no owner (legacy), block to prevent cross-account leakage
+    if (isAuthenticated && currentUserId && !rawTestData?.ownerUserId) {
+      hasRedirectedRef.current = true;
+      message.error({
+        content:
+          'Phiên làm bài này không được gắn với tài khoản (dữ liệu cũ). Vui lòng bắt đầu lại từ danh sách bài thi.',
+        key: "exam_guard",
+      });
+      clearToeicSession();
+      navigate("/test-list", { replace: true });
+      return;
+    }
+
+    if (isAuthenticated && currentUserId && rawTestData?.ownerUserId && rawTestData.ownerUserId !== currentUserId) {
+      const ownerLabel = rawTestData?.ownerEmail ? ` (${rawTestData.ownerEmail})` : "";
+      hasRedirectedRef.current = true;
+      message.error({
+        content:
+          `Bài thi này thuộc về tài khoản khác${ownerLabel}. Vui lòng đăng nhập đúng tài khoản hoặc bắt đầu bài thi mới.`,
+        key: "exam_guard",
+      });
+      clearToeicSession();
+      navigate("/test-list", { replace: true });
+    }
+  }, [authLoading, isAuthenticated, currentUserId, isExamSessionValid, navigate, rawTestData?.ownerUserId, rawTestData?.ownerEmail]);
   useEffect(() => {
     answersRef.current = answers;
   }, [answers]);
@@ -363,8 +441,16 @@ export default function ExamScreen() {
     window.addEventListener("popstate", handlePopState);
 
     if (!rawTestData.testResultId || questions.length === 0) {
-      message.error("Không có dữ liệu bài thi");
-      navigate("/test-list");
+      if (!hasRedirectedRef.current) {
+        hasRedirectedRef.current = true;
+        message.error({
+          content:
+            'Phiên làm bài không hợp lệ hoặc bạn chưa bắt đầu bài thi. Vui lòng chọn bài thi và nhấn "Bắt đầu làm bài".',
+          key: "exam_guard",
+        });
+        clearToeicSession();
+        navigate("/test-list", { replace: true });
+      }
       return () => {
         window.removeEventListener("popstate", handlePopState);
       };
@@ -663,7 +749,11 @@ export default function ExamScreen() {
   const handleSaveProgress = useCallback(async (answersSnapshot = null) => {
     const testResultId = rawTestData.testResultId;
     if (!testResultId) {
-      message.warning("Không tìm thấy testResultId");
+      message.error(
+        'Phiên làm bài không hợp lệ hoặc đã hết hạn. Vui lòng bắt đầu lại từ danh sách bài thi.'
+      );
+      clearToeicSession();
+      navigate("/test-list", { replace: true });
       return;
     }
 
@@ -735,6 +825,16 @@ export default function ExamScreen() {
     const finalAnswers = answersToSubmit || answers;
     // Prevent multiple submissions
     if (isSubmitting) {
+      return;
+    }
+
+    // Guard invalid session early (avoid "Không tìm thấy testResultId" noise)
+    if (!rawTestData?.testResultId || !rawTestData?.testId || !questions?.length) {
+      message.error(
+        'Phiên làm bài không hợp lệ hoặc bạn chưa bắt đầu bài thi. Vui lòng bắt đầu lại từ danh sách bài thi.'
+      );
+      clearToeicSession();
+      navigate("/test-list", { replace: true });
       return;
     }
 
@@ -945,6 +1045,7 @@ export default function ExamScreen() {
   };
 
   useEffect(() => {
+    if (!isExamSessionValid) return;
     if (isSelectTime && timeLeft === 0 && !isSubmittingRef.current) {
       // Nếu mất mạng khi hết thời gian, hiển thị thông báo và submit với offlineAnswers
       if (!navigator.onLine && offlineAnswers) {
@@ -961,7 +1062,7 @@ export default function ExamScreen() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSelectTime, timeLeft]);
+  }, [isSelectTime, timeLeft, isExamSessionValid]);
 
   // Phát hiện mất mạng/kết nối lại
   useEffect(() => {

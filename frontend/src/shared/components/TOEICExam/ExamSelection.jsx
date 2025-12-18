@@ -6,6 +6,7 @@ import { startTest } from "../../../services/testExamService";
 import { getTestById } from "../../../services/testsService";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { translateErrorMessage } from "@shared/utils/translateError";
+import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text } = Typography;
 
@@ -98,6 +99,7 @@ const buildQuestions = (parts = []) => {
 export default function ExamSelection() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const testIdParam = searchParams.get("testId");
 
@@ -247,6 +249,8 @@ export default function ExamSelection() {
       
       const payload = {
         ...data,
+        ownerUserId: user?.id || user?.userId || user?.Id || null,
+        ownerEmail: user?.email || user?.Email || null,
         testId,
         testResultId: data.testResultId,
         testType: normalizeTestType(data.testType || testInfo?.testType),

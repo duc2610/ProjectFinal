@@ -31,6 +31,7 @@ import { getTestResultDetail, startTest } from "../../../services/testExamServic
 import { translateErrorMessage } from "@shared/utils/translateError";
 import { reportQuestion as reportQuestionAPI, getTestResultReports, getMyQuestionReports } from "../../../services/questionReportService";
 import styles from "../../styles/Result.module.css";
+import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text } = Typography;
 
@@ -255,6 +256,7 @@ const buildQuestions = (parts = []) => {
 export default function ResultScreen() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { testResultId: stateTestResultId, testMeta: stateTestMeta, autoSubmit } = state || {};
 
 
@@ -446,6 +448,8 @@ export default function ResultScreen() {
       // Tạo payload cho bài thi mới
       const payload = {
         ...data,
+        ownerUserId: user?.id || user?.userId || user?.Id || null,
+        ownerEmail: user?.email || user?.Email || null,
         testId: testIdNum, // ID của bài test (giữ nguyên)
         testResultId: data.testResultId, // ID của bài thi mới (từ API trả về)
         testType: normalizeTestType(data.testType || retakeTestInfo?.testType || result?.testType),
