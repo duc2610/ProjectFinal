@@ -311,7 +311,7 @@ namespace ToeicGenius.Services.Implementations
 				TotalCards = set.TotalCards,
 				UserId = set.UserId,
 				CreatorName = set.User?.FullName ?? set.User?.Email ?? "Unknown",
-				CreatedAt = DateTimeHelper.ToVietnamTime(set.CreatedAt),
+				CreatedAt = ToVietnamTime(set.CreatedAt),
 				IsStudying = setIdsWithProgress.Contains(set.SetId)
 			});
 
@@ -511,8 +511,8 @@ namespace ToeicGenius.Services.Implementations
 				IsPublic = set.IsPublic,
 				UserId = set.UserId,
 				TotalCards = set.TotalCards,
-				CreatedAt = DateTimeHelper.ToVietnamTime(set.CreatedAt),
-				UpdatedAt = set.UpdatedAt.HasValue ? DateTimeHelper.ToVietnamTime(set.UpdatedAt.Value) : null
+				CreatedAt = ToVietnamTime(set.CreatedAt),
+				UpdatedAt = set.UpdatedAt.HasValue ? ToVietnamTime(set.UpdatedAt.Value) : null
 			};
 		}
 
@@ -540,8 +540,8 @@ namespace ToeicGenius.Services.Implementations
 				Examples = examples,
 				Notes = card.Notes,
 				AudioUrl = card.AudioUrl,
-				CreatedAt = DateTimeHelper.ToVietnamTime(card.CreatedAt),
-				UpdatedAt = card.UpdatedAt.HasValue ? DateTimeHelper.ToVietnamTime(card.UpdatedAt.Value) : null
+				CreatedAt = ToVietnamTime(card.CreatedAt),
+				UpdatedAt = card.UpdatedAt.HasValue ? ToVietnamTime(card.UpdatedAt.Value) : null
 			};
 		}
 

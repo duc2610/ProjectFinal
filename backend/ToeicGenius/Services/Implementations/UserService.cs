@@ -78,7 +78,7 @@ namespace ToeicGenius.Services.Implementations
 					Id = userId,
 					Email = user.Email,
 					FullName = user.FullName,
-					CreatedAt = DateTimeHelper.ToVietnamTime(user.CreatedAt),
+					CreatedAt = ToVietnamTime(user.CreatedAt),
 					Status = user.Status,
 					IsRoot = user.IsRoot,
 					Roles = roles.Select(x => x.RoleName).ToList(),
@@ -100,7 +100,7 @@ namespace ToeicGenius.Services.Implementations
 				// Convert UTC → Vietnam time cho tất cả items
 				foreach (var item in result.DataPaginated)
 				{
-					item.CreatedAt = DateTimeHelper.ToVietnamTime(item.CreatedAt);
+					item.CreatedAt = ToVietnamTime(item.CreatedAt);
 				}
 				return Result<PaginationResponse<UserResponseDto>>.Success(result);
 			}
@@ -169,7 +169,7 @@ namespace ToeicGenius.Services.Implementations
 				Email = user.Email,
 				FullName = user.FullName,
 				Status = user.Status,
-				CreatedAt = DateTimeHelper.ToVietnamTime(user.CreatedAt),
+				CreatedAt = ToVietnamTime(user.CreatedAt),
 				Roles = roles.Select(r => r.RoleName).ToList()
 			};
 
@@ -237,7 +237,7 @@ namespace ToeicGenius.Services.Implementations
 				Email = user.Email,
 				FullName = user.FullName,
 				Status = user.Status,
-				CreatedAt = DateTimeHelper.ToVietnamTime(user.CreatedAt),
+				CreatedAt = ToVietnamTime(user.CreatedAt),
 				Roles = updatedRoles.Select(r => r.RoleName).ToList()
 			};
 			// GỬI EMAIL SAU KHI CẬP NHẬT

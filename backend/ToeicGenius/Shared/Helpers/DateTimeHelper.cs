@@ -44,6 +44,17 @@ namespace ToeicGenius.Shared.Helpers
 		}
 
 		/// <summary>
+		/// Chuyển đổi DateTime? UTC sang múi giờ Việt Nam (nullable)
+		/// </summary>
+		public static DateTime? ToVietnamTime(DateTime? utcDateTime)
+		{
+			if (!utcDateTime.HasValue)
+				return null;
+			
+			return ToVietnamTime(utcDateTime.Value);
+		}
+
+		/// <summary>
 		/// Chuyển đổi DateTime từ múi giờ Việt Nam sang UTC
 		/// </summary>
 		public static DateTime ToUtcTime(DateTime vietnamDateTime)

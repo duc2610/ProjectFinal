@@ -251,7 +251,7 @@ namespace ToeicGenius.Services.Implementations
                         Transcription = aiResponse.Transcription ?? string.Empty,
                         CorrectedText = aiResponse.CorrectedText ?? string.Empty,
                         AudioDuration = aiResponse.AudioDuration,
-                        CreatedAt = DateTimeHelper.ToVietnamTime(aiResponse.CreatedAt)
+                        CreatedAt = ToVietnamTime(aiResponse.CreatedAt)
                     };
 
                     perPartResponses.Add(mapped);
@@ -1075,7 +1075,7 @@ namespace ToeicGenius.Services.Implementations
                 CorrectedText = feedback.CorrectedText ?? string.Empty,
                 AudioDuration = (double?)feedback.AudioDuration,
                 PythonApiResponse = feedback.PythonApiResponse,
-                CreatedAt = DateTimeHelper.ToVietnamTime(feedback.CreatedAt)
+                CreatedAt = ToVietnamTime(feedback.CreatedAt)
             };
         }
 

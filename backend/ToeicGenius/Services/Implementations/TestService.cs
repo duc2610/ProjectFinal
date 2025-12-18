@@ -638,7 +638,8 @@ namespace ToeicGenius.Services.Implementations
 			// Convert UTC → Vietnam time cho tất cả items
 			foreach (var item in result.DataPaginated)
 			{
-				item.CreatedAt = DateTimeHelper.ToVietnamTime(item.CreatedAt);
+				if (item.CreatedAt.HasValue)
+					item.CreatedAt = ToVietnamTime(item.CreatedAt.Value);
 			}
 			return Result<PaginationResponse<TestListResponseDto>>.Success(result);
 		}
@@ -665,8 +666,8 @@ namespace ToeicGenius.Services.Implementations
 				TestSkill = test.TestSkill,
 				CreationStatus = test.CreationStatus,
 				VisibilityStatus = test.VisibilityStatus,
-				CreatedAt = DateTimeHelper.ToVietnamTime(test.CreatedAt),
-				UpdatedAt = test.UpdatedAt.HasValue ? DateTimeHelper.ToVietnamTime(test.UpdatedAt.Value) : null
+				CreatedAt = ToVietnamTime(test.CreatedAt),
+				UpdatedAt = test.UpdatedAt.HasValue ? ToVietnamTime(test.UpdatedAt.Value) : null
 			};
 			// N?u test chua c� c�u h?i
 			if (test.TestQuestions == null || !test.TestQuestions.Any())
@@ -1081,9 +1082,9 @@ namespace ToeicGenius.Services.Implementations
 			// Convert UTC → Vietnam time
 			foreach (var dto in dtos)
 			{
-				dto.CreatedAt = DateTimeHelper.ToVietnamTime(dto.CreatedAt);
+				dto.CreatedAt = ToVietnamTime(dto.CreatedAt);
 				if (dto.UpdatedAt.HasValue)
-					dto.UpdatedAt = DateTimeHelper.ToVietnamTime(dto.UpdatedAt.Value);
+					dto.UpdatedAt = ToVietnamTime(dto.UpdatedAt.Value);
 			}
 
 			return Result<List<TestVersionDto>>.Success(dtos);
@@ -1115,8 +1116,8 @@ namespace ToeicGenius.Services.Implementations
 				AudioUrl = test.AudioUrl,
 				Duration = duration,
 				QuantityQuestion = test.TotalQuestion,
-				CreatedAt = DateTimeHelper.ToVietnamTime(test.CreatedAt),
-				UpdatedAt = test.UpdatedAt.HasValue ? DateTimeHelper.ToVietnamTime(test.UpdatedAt.Value) : null
+				CreatedAt = ToVietnamTime(test.CreatedAt),
+				UpdatedAt = test.UpdatedAt.HasValue ? ToVietnamTime(test.UpdatedAt.Value) : null
 			};
 
 			// Reuse active test session if available to avoid duplicates
@@ -1265,8 +1266,8 @@ namespace ToeicGenius.Services.Implementations
 				AnswerText = ua.AnswerText,
 				AnswerAudioUrl = ua.AnswerAudioUrl,
 				SubQuestionIndex = ua.SubQuestionIndex,
-				CreatedAt = DateTimeHelper.ToVietnamTime(ua.CreatedAt),
-				UpdatedAt = ua.UpdatedAt.HasValue ? DateTimeHelper.ToVietnamTime(ua.UpdatedAt.Value) : null
+				CreatedAt = ToVietnamTime(ua.CreatedAt),
+				UpdatedAt = ua.UpdatedAt.HasValue ? ToVietnamTime(ua.UpdatedAt.Value) : null
 			}).ToList();
 
 			return Result<TestStartResponseDto>.Success(result);
@@ -1360,7 +1361,7 @@ namespace ToeicGenius.Services.Implementations
 			// Convert UTC → Vietnam time cho tất cả items
 			foreach (var item in result)
 			{
-				item.CreatedAt = DateTimeHelper.ToVietnamTime(item.CreatedAt);
+				item.CreatedAt = ToVietnamTime(item.CreatedAt);
 			}
 			return Result<List<TestHistoryDto>>.Success(result);
 		}
@@ -1639,7 +1640,7 @@ namespace ToeicGenius.Services.Implementations
 						Transcription = f.Transcription ?? string.Empty,
 						CorrectedText = f.CorrectedText ?? string.Empty,
 						AudioDuration = f.AudioDuration,
-						CreatedAt = DateTimeHelper.ToVietnamTime(f.CreatedAt),
+						CreatedAt = ToVietnamTime(f.CreatedAt),
 						// Question content
 						PartId = testQuestion?.PartId ?? 0,
 						PartName = testQuestion?.Part?.Name,
@@ -1661,9 +1662,10 @@ namespace ToeicGenius.Services.Implementations
 			// Convert UTC → Vietnam time cho tất cả items
 			foreach (var item in result)
 			{
-				item.CreatedAt = DateTimeHelper.ToVietnamTime(item.CreatedAt);
+				if (item.CreatedAt.HasValue)
+					item.CreatedAt = ToVietnamTime(item.CreatedAt.Value);
 				if (item.ResultProgress != null && item.ResultProgress.CreatedAt != default)
-					item.ResultProgress.CreatedAt = DateTimeHelper.ToVietnamTime(item.ResultProgress.CreatedAt);
+					item.ResultProgress.CreatedAt = ToVietnamTime(item.ResultProgress.CreatedAt);
 			}
 			return Result<List<TestListResponseDto>>.Success(result);
 		}

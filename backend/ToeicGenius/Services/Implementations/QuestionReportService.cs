@@ -291,8 +291,8 @@ namespace ToeicGenius.Services.Implementations
 				ReviewedBy = report.ReviewedBy,
 				ReviewerName = report.Reviewer?.FullName,
 				ReviewerNotes = report.ReviewerNotes,
-				CreatedAt = DateTimeHelper.ToVietnamTime(report.CreatedAt),
-				ReviewedAt = report.ReviewedAt.HasValue ? DateTimeHelper.ToVietnamTime(report.ReviewedAt.Value) : null
+				CreatedAt = ToVietnamTime(report.CreatedAt),
+				ReviewedAt = report.ReviewedAt.HasValue ? ToVietnamTime(report.ReviewedAt.Value) : null
 			};
 		}
 	}

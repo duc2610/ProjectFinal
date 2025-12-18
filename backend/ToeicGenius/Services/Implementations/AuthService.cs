@@ -133,7 +133,7 @@ namespace ToeicGenius.Services.Implementations
 				Fullname = user.FullName,
 				Email = user.Email,
 				UserId = user.Id,
-				ExpireAt = DateTimeHelper.ToVietnamTime(UtcNow.AddMinutes(30))
+				ExpireAt = ToVietnamTime(UtcNow.AddMinutes(30))
 			};
 
 			return Result<LoginResponseDto>.Success(response);
@@ -199,7 +199,7 @@ namespace ToeicGenius.Services.Implementations
 				Email = user.Email,
 				Token = accessToken,
 				RefreshToken = refreshToken.Token,
-				ExpireAt = DateTimeHelper.ToVietnamTime(UtcNow.AddMinutes(30))
+				ExpireAt = ToVietnamTime(UtcNow.AddMinutes(30))
 			};
 		}
 

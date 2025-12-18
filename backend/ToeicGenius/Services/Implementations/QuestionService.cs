@@ -456,7 +456,7 @@ namespace ToeicGenius.Services.Implementations
 				// Convert UTC → Vietnam time cho tất cả items
 				foreach (var item in result.DataPaginated)
 				{
-					item.CreatedAt = DateTimeHelper.ToVietnamTime(item.CreatedAt);
+					item.CreatedAt = ToVietnamTime(item.CreatedAt);
 				}
 				return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
 			}
