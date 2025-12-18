@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Table, Space, Tag, Row, Col, Statistic, Alert } from "antd";
+import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Table, Space, Tag, Row, Col, Statistic, Alert, Drawer, Divider } from "antd";
 import { PlusOutlined, DeleteOutlined, CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { createTestFromBank, getTestById, updateTestFromBank, createTestFromBankRandom } from "@services/testsService";
 import { getQuestionById } from "@services/questionsService";
@@ -32,6 +32,10 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
     const [activeTab, setActiveTab] = useState("single");
     const [selectionMode, setSelectionMode] = useState("manual");
     const [questionRanges, setQuestionRanges] = useState([]);
+    const [isEditingPublished, setIsEditingPublished] = useState(false);
+    const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+    const [detailMode, setDetailMode] = useState(null); // "single" | "group"
+    const [detailId, setDetailId] = useState(null);
 
     const toSkillId = (val) => {
         if (val == null) return undefined;
@@ -42,6 +46,16 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
         if (s === "2" || s.includes("writing")) return TEST_SKILL.WRITING;
         const n = Number(val);
         return Number.isFinite(n) ? n : undefined;
+    };
+
+    const normalizeVisibilityStatusValue = (value) => {
+        if (value === undefined || value === null) return undefined;
+        const str = String(value).toLowerCase();
+        if (str === "published" || str === "1" || str === "3" || str === "active") return "Published";
+        if (str === "hidden" || str === "hide" || str === "-1" || str === "0" || str === "inactive") {
+            return "Hidden";
+        }
+        return undefined;
     };
 
     const loadQuestionDetails = async (questionIds) => {
@@ -142,6 +156,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
             setActiveTab("single");
             setSelectionMode("manual");
             setQuestionRanges([]);
+            setIsEditingPublished(false);
         }
 
         const loadForEdit = async (id) => {
@@ -152,8 +167,11 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                 const titleVal = d.title ?? d.Title;
                 const descVal = d.description ?? d.Description;
                 const durationVal = d.duration ?? d.Duration;
+                const visibilityRaw = d.visibilityStatus ?? d.VisibilityStatus ?? d.status ?? d.Status;
+                const normalizedVisibility = normalizeVisibilityStatusValue(visibilityRaw);
 
                 setSelectedSkill(skillVal);
+                setIsEditingPublished(normalizedVisibility === "Published");
                 form.setFieldsValue({
                     title: titleVal,
                     description: descVal,
@@ -330,6 +348,25 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                 groupQuestionIds: selectedGroupQuestions,
             };
 
+            // Nếu đang sửa 1 bài đã publish, hỏi confirm trước khi clone version mới
+            if (editingId && isEditingPublished) {
+                const confirmed = await new Promise((resolve) => {
+                    Modal.confirm({
+                        title: "Tạo phiên bản mới để chỉnh sửa?",
+                        content:
+                            "Bài thi luyện tập này đang được công khai. Hệ thống sẽ tạo một phiên bản mới (clone) để bạn chỉnh sửa, và ẩn các phiên bản cũ. Bạn có chắc chắn muốn tiếp tục?",
+                        okText: "Tạo phiên bản mới",
+                        cancelText: "Hủy",
+                        onOk: () => resolve(true),
+                        onCancel: () => resolve(false),
+                    });
+                });
+
+                if (!confirmed) {
+                    return;
+                }
+            }
+
             setLoading(true);
             if (editingId) {
                 await updateTestFromBank(editingId, payload);
@@ -354,6 +391,20 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleShowQuestionDetail = (questionId) => {
+        if (!questionId) return;
+        setDetailMode("single");
+        setDetailId(questionId);
+        setDetailDrawerOpen(true);
+    };
+
+    const handleShowGroupDetail = (groupId) => {
+        if (!groupId) return;
+        setDetailMode("group");
+        setDetailId(groupId);
+        setDetailDrawerOpen(true);
     };
 
     const totalSelected = selectedSingleQuestions.length + selectedGroupQuestions.length;
@@ -535,28 +586,30 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                                 </div>
 
                                 <QuestionSelector
-                            skill={selectedSkill}
-                            parts={parts}
-                            selectedSingleQuestions={selectedSingleQuestions}
-                            selectedGroupQuestions={selectedGroupQuestions}
-                            onSelectSingleQuestions={(ids) => {
-                                setSelectedSingleQuestions(ids);
-                                loadQuestionDetails(ids);
-                            }}
-                            onSelectGroupQuestions={(ids) => {
-                                setSelectedGroupQuestions(ids);
-                                loadGroupDetails(ids);
-                            }}
-                            questionDetails={questionDetails}
-                            groupDetails={groupDetails}
-                            viewingQuestionId={viewingQuestionId}
-                            viewingGroupId={viewingGroupId}
-                            setViewingQuestionId={setViewingQuestionId}
-                            setViewingGroupId={setViewingGroupId}
-                            activeTab={activeTab}
-                            setActiveTab={setActiveTab}
-                            readOnly={readOnly}
-                        />
+                                    skill={selectedSkill}
+                                    parts={parts}
+                                    selectedSingleQuestions={selectedSingleQuestions}
+                                    selectedGroupQuestions={selectedGroupQuestions}
+                                    onSelectSingleQuestions={(ids) => {
+                                        setSelectedSingleQuestions(ids);
+                                        loadQuestionDetails(ids);
+                                    }}
+                                    onSelectGroupQuestions={(ids) => {
+                                        setSelectedGroupQuestions(ids);
+                                        loadGroupDetails(ids);
+                                    }}
+                                    questionDetails={questionDetails}
+                                    groupDetails={groupDetails}
+                                    viewingQuestionId={null}
+                                    viewingGroupId={null}
+                                    setViewingQuestionId={null}
+                                    setViewingGroupId={null}
+                                    activeTab={activeTab}
+                                    setActiveTab={setActiveTab}
+                                    readOnly={readOnly}
+                                    onShowQuestionDetail={handleShowQuestionDetail}
+                                    onShowGroupDetail={handleShowGroupDetail}
+                                />
                             </>
                         ) : (
                             <RandomQuestionSelector
@@ -580,6 +633,243 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                     </div>
                 )}
             </Form>
+
+            {/* Drawer hiển thị chi tiết câu hỏi */}
+            <Drawer
+                title={detailMode === "group" ? `Chi tiết nhóm câu hỏi #${detailId || ""}` : `Chi tiết câu hỏi #${detailId || ""}`}
+                placement="right"
+                width={detailMode === "group" ? 700 : 600}
+                onClose={() => setDetailDrawerOpen(false)}
+                open={detailDrawerOpen}
+            >
+                {detailMode === "single" && detailId && questionDetails[detailId] && (
+                    <div>
+                        <Space style={{ marginBottom: 16 }}>
+                            <Tag color="blue">ID: {detailId}</Tag>
+                            {questionDetails[detailId].partName && (
+                                <Tag color="green">{questionDetails[detailId].partName}</Tag>
+                            )}
+                            {questionDetails[detailId].questionTypeName && (
+                                <Tag color="purple">{questionDetails[detailId].questionTypeName}</Tag>
+                            )}
+                        </Space>
+
+                        {questionDetails[detailId].content && (
+                            <>
+                                <Divider orientation="left">Nội dung câu hỏi</Divider>
+                                <div
+                                    style={{
+                                        padding: 12,
+                                        background: "#f5f5f5",
+                                        borderRadius: 4,
+                                        marginBottom: 16,
+                                        whiteSpace: "pre-wrap",
+                                        wordBreak: "break-word",
+                                    }}
+                                >
+                                    {questionDetails[detailId].content}
+                                </div>
+                            </>
+                        )}
+
+                        {questionDetails[detailId].audioUrl && (
+                            <>
+                                <Divider orientation="left">Audio</Divider>
+                                <audio
+                                    controls
+                                    src={questionDetails[detailId].audioUrl}
+                                    style={{ width: "100%", marginBottom: 16 }}
+                                />
+                            </>
+                        )}
+
+                        {questionDetails[detailId].imageUrl && (
+                            <>
+                                <Divider orientation="left">Hình ảnh</Divider>
+                                <img
+                                    src={questionDetails[detailId].imageUrl}
+                                    alt="Question"
+                                    style={{
+                                        maxWidth: "100%",
+                                        maxHeight: 300,
+                                        objectFit: "contain",
+                                        borderRadius: 4,
+                                        border: "1px solid #f0f0f0",
+                                    }}
+                                />
+                            </>
+                        )}
+
+                        {Array.isArray(questionDetails[detailId].options) && questionDetails[detailId].options.length > 0 && (
+                            <>
+                                <Divider orientation="left">Đáp án</Divider>
+                                <Space direction="vertical" style={{ width: "100%" }}>
+                                    {questionDetails[detailId].options.map((opt, idx) => (
+                                        <div
+                                            key={idx}
+                                            style={{
+                                                padding: 8,
+                                                borderRadius: 4,
+                                                border: "1px solid #e8e8e8",
+                                                background: opt.isCorrect ? "#f6ffed" : "#fafafa",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 8,
+                                            }}
+                                        >
+                                            <Tag color={opt.isCorrect ? "success" : "default"}>{opt.label}</Tag>
+                                            <span style={{ flex: 1 }}>{opt.content || "(Không có nội dung)"}</span>
+                                            {opt.isCorrect && <Tag color="success">Đúng</Tag>}
+                                        </div>
+                                    ))}
+                                </Space>
+                            </>
+                        )}
+
+                        {questionDetails[detailId].explanation && (
+                            <>
+                                <Divider orientation="left">Giải thích</Divider>
+                                <div
+                                    style={{
+                                        padding: 12,
+                                        background: "#fafafa",
+                                        borderRadius: 4,
+                                        border: "1px solid #f0f0f0",
+                                        whiteSpace: "pre-wrap",
+                                        wordBreak: "break-word",
+                                    }}
+                                >
+                                    {questionDetails[detailId].explanation}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {detailMode === "group" && detailId && groupDetails[detailId] && (
+                    <div>
+                        <Space style={{ marginBottom: 16 }}>
+                            <Tag color="green">Group ID: {detailId}</Tag>
+                            {groupDetails[detailId].partName && (
+                                <Tag color="blue">{groupDetails[detailId].partName}</Tag>
+                            )}
+                        </Space>
+
+                        {groupDetails[detailId].audioUrl && (
+                            <>
+                                <Divider orientation="left">Audio</Divider>
+                                <audio
+                                    controls
+                                    src={groupDetails[detailId].audioUrl}
+                                    style={{ width: "100%", marginBottom: 16 }}
+                                />
+                            </>
+                        )}
+
+                        {groupDetails[detailId].imageUrl && (
+                            <>
+                                <Divider orientation="left">Hình ảnh</Divider>
+                                <img
+                                    src={groupDetails[detailId].imageUrl}
+                                    alt="Group"
+                                    style={{
+                                        maxWidth: "100%",
+                                        maxHeight: 300,
+                                        objectFit: "contain",
+                                        borderRadius: 4,
+                                        border: "1px solid #f0f0f0",
+                                    }}
+                                />
+                            </>
+                        )}
+
+                        {Array.isArray(groupDetails[detailId].questions) && groupDetails[detailId].questions.length > 0 && (
+                            <>
+                                <Divider orientation="left">Câu hỏi trong nhóm</Divider>
+                                <Space direction="vertical" style={{ width: "100%" }}>
+                                    {groupDetails[detailId].questions.map((q, qIdx) => (
+                                        <div
+                                            key={qIdx}
+                                            style={{
+                                                padding: 12,
+                                                borderRadius: 4,
+                                                border: "1px solid #e8e8e8",
+                                                background: "#fafafa",
+                                            }}
+                                        >
+                                            <div style={{ marginBottom: 8, fontWeight: 500 }}>
+                                                Câu {qIdx + 1}: {q.content || "(Không có nội dung)"}
+                                            </div>
+
+                                            {q.imageUrl && (
+                                                <img
+                                                    src={q.imageUrl}
+                                                    alt={`Question ${qIdx + 1}`}
+                                                    style={{
+                                                        maxWidth: "100%",
+                                                        maxHeight: 200,
+                                                        objectFit: "contain",
+                                                        borderRadius: 4,
+                                                        border: "1px solid #f0f0f0",
+                                                        marginBottom: 8,
+                                                    }}
+                                                />
+                                            )}
+
+                                            {q.audioUrl && (
+                                                <audio
+                                                    controls
+                                                    src={q.audioUrl}
+                                                    style={{ width: "100%", marginBottom: 8 }}
+                                                />
+                                            )}
+
+                                            {Array.isArray(q.options) && q.options.length > 0 && (
+                                                <Space direction="vertical" style={{ width: "100%", marginTop: 4 }}>
+                                                    {q.options.map((opt, optIdx) => (
+                                                        <div
+                                                            key={optIdx}
+                                                            style={{
+                                                                padding: 8,
+                                                                borderRadius: 4,
+                                                                border: "1px solid #e8e8e8",
+                                                                background: opt.isCorrect ? "#f6ffed" : "#fff",
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                gap: 8,
+                                                            }}
+                                                        >
+                                                            <Tag color={opt.isCorrect ? "success" : "default"}>{opt.label}</Tag>
+                                                            <span style={{ flex: 1 }}>{opt.content || "(Không có nội dung)"}</span>
+                                                            {opt.isCorrect && <Tag color="success">Đúng</Tag>}
+                                                        </div>
+                                                    ))}
+                                                </Space>
+                                            )}
+
+                                            {q.explanation && (
+                                                <div
+                                                    style={{
+                                                        marginTop: 8,
+                                                        padding: 8,
+                                                        borderRadius: 4,
+                                                        border: "1px solid #f0f0f0",
+                                                        background: "#fff",
+                                                        whiteSpace: "pre-wrap",
+                                                        wordBreak: "break-word",
+                                                    }}
+                                                >
+                                                    {q.explanation}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </Space>
+                            </>
+                        )}
+                    </div>
+                )}
+            </Drawer>
         </Modal>
     );
 }
@@ -601,6 +891,8 @@ function QuestionSelector({
     activeTab: activeTabProp = "single",
     setActiveTab: setActiveTabProp = null,
     readOnly,
+    onShowQuestionDetail,
+    onShowGroupDetail,
 }) {
     const [internalActiveTab, setInternalActiveTab] = useState(activeTabProp);
     const [singleQuestionModalOpen, setSingleQuestionModalOpen] = useState(false);
@@ -688,7 +980,6 @@ function QuestionSelector({
                             const options = detail.options || [];
                             const imageUrl = detail.imageUrl || "";
                             const explanation = detail.explanation || "";
-                            const isViewing = viewingQuestionId === qid;
                             const hasOptions = options.length > 0;
                             
                             return (
@@ -771,7 +1062,7 @@ function QuestionSelector({
                                         </div>
                                         
                                         {/* Hiển thị ảnh nếu có */}
-                                        {isViewing && imageUrl && (
+                                        {false && imageUrl && (
                                             <div style={{ marginTop: 12 }}>
                                                 <strong style={{ display: "block", marginBottom: 8 }}>Hình ảnh:</strong>
                                                 <img 
@@ -789,7 +1080,7 @@ function QuestionSelector({
                                         )}
                                         
                                         {/* Hiển thị audio nếu có */}
-                                        {isViewing && detail.audioUrl && (
+                                        {false && detail.audioUrl && (
                                             <div style={{ marginTop: 12 }}>
                                                 <strong style={{ display: "block", marginBottom: 8 }}>Audio:</strong>
                                                 <audio
@@ -803,7 +1094,7 @@ function QuestionSelector({
                                         )}
                                         
                                         {/* Hiển thị đáp án nếu có */}
-                                        {isViewing && hasOptions && (
+                                        {false && hasOptions && (
                                             <div style={{ marginTop: 12 }}>
                                                 <strong style={{ display: "block", marginBottom: 8 }}>Đáp án:</strong>
                                                 <div style={{ 
@@ -842,7 +1133,7 @@ function QuestionSelector({
                                         )}
                                         
                                         {/* Hiển thị giải thích nếu có */}
-                                        {isViewing && explanation && (
+                                        {false && explanation && (
                                             <div style={{ marginTop: 12 }}>
                                                 <strong style={{ display: "block", marginBottom: 8 }}>Giải thích:</strong>
                                                 <div style={{ 
@@ -864,9 +1155,9 @@ function QuestionSelector({
                                         <Button 
                                             size="small"
                                             icon={<EyeOutlined />} 
-                                            onClick={() => setViewingQuestionId && setViewingQuestionId(isViewing ? null : qid)}
+                                            onClick={() => onShowQuestionDetail && onShowQuestionDetail(qid)}
                                         >
-                                            {isViewing ? "Ẩn chi tiết" : "Xem chi tiết"}
+                                            Xem chi tiết
                                         </Button>
                                 {!readOnly && (
                                 <Button 
@@ -913,7 +1204,6 @@ function QuestionSelector({
                             const imageUrl = detail.imageUrl || "";
                             const audioUrl = detail.audioUrl || "";
                             const questions = detail.questions || [];
-                            const isViewing = viewingGroupId === gid;
                             
                             // Kiểm tra partId từ partName để xác định có phải part 3, 4 không (không có passage)
                             const partIdMatch = partName?.match(/Part\s*(\d+)/i);
@@ -946,9 +1236,7 @@ function QuestionSelector({
                                                     borderRadius: 4,
                                                     border: "1px solid #e8e8e8",
                                                     whiteSpace: "pre-wrap",
-                                                    wordBreak: "break-word",
-                                                    maxHeight: isViewing ? "none" : 100,
-                                                    overflow: isViewing ? "visible" : "hidden"
+                                                    wordBreak: "break-word"
                                                 }}>
                                                     <strong>Passage:</strong>
                                                     <div style={{ marginTop: 4 }}>
@@ -993,7 +1281,7 @@ function QuestionSelector({
                                                                 // Part 6, 7 bắt buộc có passage
                                                                 return (
                                                                     <span style={{ color: "#ff4d4f", fontStyle: "italic", fontSize: 12 }}>
-                                                                        ⚠️ Chưa có đoạn văn
+                                                                        Chưa có đoạn văn
                                                                     </span>
                                                                 );
                                                             }
@@ -1010,7 +1298,7 @@ function QuestionSelector({
                                         </div>
                                         
                                         {/* Hiển thị audio của group nếu có */}
-                                        {isViewing && audioUrl && (
+                                        {false && audioUrl && (
                                             <div style={{ marginTop: 12 }}>
                                                 <strong style={{ display: "block", marginBottom: 8 }}>Audio:</strong>
                                                 <audio
@@ -1024,7 +1312,7 @@ function QuestionSelector({
                                         )}
                                         
                                         {/* Hiển thị ảnh nếu có */}
-                                        {isViewing && imageUrl && (
+                                        {false && imageUrl && (
                                             <div style={{ marginTop: 12 }}>
                                                 <strong style={{ display: "block", marginBottom: 8 }}>Hình ảnh:</strong>
                                                 <img 
@@ -1042,7 +1330,7 @@ function QuestionSelector({
                                         )}
                                         
                                         {/* Hiển thị câu hỏi trong group */}
-                                        {isViewing && questions.length > 0 && (
+                                        {false && questions.length > 0 && (
                                             <div style={{ marginTop: 12 }}>
                                                 <strong style={{ display: "block", marginBottom: 8 }}>
                                                     Câu hỏi trong nhóm ({questions.length}):
@@ -1162,9 +1450,9 @@ function QuestionSelector({
                                         <Button 
                                             size="small"
                                             icon={<EyeOutlined />} 
-                                            onClick={() => setViewingGroupId && setViewingGroupId(isViewing ? null : gid)}
+                                            onClick={() => onShowGroupDetail && onShowGroupDetail(gid)}
                                         >
-                                            {isViewing ? "Ẩn chi tiết" : "Xem chi tiết"}
+                                            Xem chi tiết
                                         </Button>
                                 {!readOnly && (
                                 <Button 

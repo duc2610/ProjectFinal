@@ -39,6 +39,7 @@ export default function QuestionGroupSelectorModal({
     const [viewingGroupId, setViewingGroupId] = useState(null);
     const [groupDetail, setGroupDetail] = useState(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
+    const selectedIdsSet = React.useMemo(() => new Set(selectedIds || []), [selectedIds]);
 
     useEffect(() => {
         if (open && skill) {
@@ -118,6 +119,11 @@ export default function QuestionGroupSelectorModal({
                     // Filter: chỉ hiển thị group questions có part group (3, 4, 6, 7, 13, 14)
                     const partId = Number(g.partId || g.part?.id);
                     return isGroupPart(partId);
+                })
+                .filter((g) => {
+                    // Ẩn các group đã được chọn trước đó (selectedIds)
+                    const gid = g.questionGroupId ?? g.groupId ?? g.id;
+                    return !selectedIdsSet.has(gid);
                 })
                 .map((g) => {
                     const partId = Number(g.partId || g.part?.id);
