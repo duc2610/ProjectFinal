@@ -41,7 +41,7 @@ namespace ToeicGenius.Domains.Entities
         public string? AudioFileUrl { get; set; }
         public string? ImageFileUrl { get; set; }
 
-        public DateTime CreatedAt { get; set; } = Now;
+        public DateTime CreatedAt { get; set; } = UtcNow;
         public DateTime? UpdatedAt { get; set; }
     }
 }

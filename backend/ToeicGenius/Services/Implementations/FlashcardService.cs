@@ -29,7 +29,7 @@ namespace ToeicGenius.Services.Implementations
 				Language = dto.Language,
 				IsPublic = dto.IsPublic,
 				UserId = userId,
-				CreatedAt = Now
+				CreatedAt = UtcNow
 			};
 
 			await _uow.FlashcardSets.AddAsync(flashcardSet);
@@ -87,7 +87,7 @@ namespace ToeicGenius.Services.Implementations
 			set.Description = dto.Description;
 			set.Language = dto.Language;
 			set.IsPublic = dto.IsPublic;
-			set.UpdatedAt = Now;
+			set.UpdatedAt = UtcNow;
 
 			await _uow.FlashcardSets.UpdateAsync(set);
 			await _uow.SaveChangesAsync();
@@ -131,7 +131,7 @@ namespace ToeicGenius.Services.Implementations
 				Examples = dto.Examples != null ? JsonSerializer.Serialize(dto.Examples) : null,
 				Notes = dto.Notes,
 				AudioUrl = dto.AudioUrl,
-				CreatedAt = Now
+				CreatedAt = UtcNow
 			};
 
 			await _uow.Flashcards.AddAsync(flashcard);
@@ -159,7 +159,7 @@ namespace ToeicGenius.Services.Implementations
 					Language = dto.NewSet.Language,
 					IsPublic = dto.NewSet.IsPublic,
 					UserId = userId,
-					CreatedAt = Now
+					CreatedAt = UtcNow
 				};
 
 				await _uow.FlashcardSets.AddAsync(newSet);
@@ -184,7 +184,7 @@ namespace ToeicGenius.Services.Implementations
 				WordType = dto.WordType,
 				Examples = dto.Examples != null ? JsonSerializer.Serialize(dto.Examples) : null,
 				Notes = dto.Notes,
-				CreatedAt = Now
+				CreatedAt = UtcNow
 			};
 
 			await _uow.Flashcards.AddAsync(flashcard);
@@ -228,7 +228,7 @@ namespace ToeicGenius.Services.Implementations
 			card.Examples = dto.Examples != null ? JsonSerializer.Serialize(dto.Examples) : null;
 			card.Notes = dto.Notes;
 			card.AudioUrl = dto.AudioUrl;
-			card.UpdatedAt = Now;
+			card.UpdatedAt = UtcNow;
 
 			await _uow.Flashcards.UpdateAsync(card);
 			await _uow.SaveChangesAsync();
@@ -273,7 +273,7 @@ namespace ToeicGenius.Services.Implementations
 					Examples = item.Examples != null && item.Examples.Count > 0 ? JsonSerializer.Serialize(item.Examples) : null,
 					Notes = item.Notes,
 					AudioUrl = item.AudioUrl,
-					CreatedAt = Now
+					CreatedAt = UtcNow
 				});
 			}
 
@@ -311,7 +311,7 @@ namespace ToeicGenius.Services.Implementations
 				TotalCards = set.TotalCards,
 				UserId = set.UserId,
 				CreatorName = set.User?.FullName ?? set.User?.Email ?? "Unknown",
-				CreatedAt = set.CreatedAt,
+				CreatedAt = DateTimeHelper.ToVietnamTime(set.CreatedAt),
 				IsStudying = setIdsWithProgress.Contains(set.SetId)
 			});
 
@@ -402,9 +402,9 @@ namespace ToeicGenius.Services.Implementations
 					CorrectCount = dto.IsKnown ? 1 : 0,
 					IncorrectCount = dto.IsKnown ? 0 : 1,
 					Status = dto.IsKnown ? "learned" : "learning",
-					LastReviewedAt = Now,
+					LastReviewedAt = UtcNow,
 					NextReviewAt = CalculateNextReviewDate(1, dto.IsKnown),
-					CreatedAt = Now
+					CreatedAt = UtcNow
 				};
 
 				await _uow.FlashcardProgresses.AddAsync(progress);
@@ -418,13 +418,13 @@ namespace ToeicGenius.Services.Implementations
 				else
 					progress.IncorrectCount++;
 
-				progress.LastReviewedAt = Now;
+				progress.LastReviewedAt = UtcNow;
 				progress.NextReviewAt = CalculateNextReviewDate(progress.ReviewCount, dto.IsKnown);
 
 				// Update status: Đã học = learned, Chưa học = learning
 				progress.Status = dto.IsKnown ? "learned" : "learning";
 
-				progress.UpdatedAt = Now;
+				progress.UpdatedAt = UtcNow;
 				await _uow.FlashcardProgresses.UpdateAsync(progress);
 			}
 
@@ -487,13 +487,13 @@ namespace ToeicGenius.Services.Implementations
 			if (!wasCorrect)
 			{
 				// Nếu sai, review lại sớm hơn (1 giờ)
-				return Now.AddHours(1);
+				return UtcNow.AddHours(1);
 			}
 
 			// Nếu đúng, tăng khoảng cách review theo Spaced Repetition
 			var intervals = new[] { 1, 3, 7, 14, 30, 60, 120 }; // days
 			var dayIndex = Math.Min(reviewCount - 1, intervals.Length - 1);
-			return Now.AddDays(intervals[dayIndex]);
+			return UtcNow.AddDays(intervals[dayIndex]);
 		}
 
 		#endregion
@@ -511,8 +511,8 @@ namespace ToeicGenius.Services.Implementations
 				IsPublic = set.IsPublic,
 				UserId = set.UserId,
 				TotalCards = set.TotalCards,
-				CreatedAt = set.CreatedAt,
-				UpdatedAt = set.UpdatedAt
+				CreatedAt = DateTimeHelper.ToVietnamTime(set.CreatedAt),
+				UpdatedAt = set.UpdatedAt.HasValue ? DateTimeHelper.ToVietnamTime(set.UpdatedAt.Value) : null
 			};
 		}
 
@@ -540,8 +540,8 @@ namespace ToeicGenius.Services.Implementations
 				Examples = examples,
 				Notes = card.Notes,
 				AudioUrl = card.AudioUrl,
-				CreatedAt = card.CreatedAt,
-				UpdatedAt = card.UpdatedAt
+				CreatedAt = DateTimeHelper.ToVietnamTime(card.CreatedAt),
+				UpdatedAt = card.UpdatedAt.HasValue ? DateTimeHelper.ToVietnamTime(card.UpdatedAt.Value) : null
 			};
 		}
 

@@ -198,7 +198,7 @@ namespace ToeicGenius.BackgroundServices
 				testResult.Status = TestResultStatus.Graded;
 				testResult.Duration = duration;
 				testResult.TotalScore = 0;
-				testResult.UpdatedAt = Now;
+				testResult.UpdatedAt = UtcNow;
 				await uow.TestResults.UpdateAsync(testResult);
 				await uow.SaveChangesAsync();
 			}

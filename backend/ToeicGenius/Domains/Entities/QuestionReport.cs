@@ -64,7 +64,7 @@ namespace ToeicGenius.Domains.Entities
 		public string? ReviewerNotes { get; set; }
 
 		// Timestamps
-		public DateTime CreatedAt { get; set; } = Now;
+		public DateTime CreatedAt { get; set; } = UtcNow;
 		public DateTime? ReviewedAt { get; set; }
 	}
 }

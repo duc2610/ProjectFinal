@@ -80,7 +80,7 @@ namespace ToeicGenius.Repositories.Implementations
 
         public async Task<AIFeedback> UpdateAsync(AIFeedback feedback)
         {
-            feedback.UpdatedAt = Now;
+            feedback.UpdatedAt = UtcNow;
             _context.AIFeedbacks.Update(feedback);
             await _context.SaveChangesAsync();
             return feedback;

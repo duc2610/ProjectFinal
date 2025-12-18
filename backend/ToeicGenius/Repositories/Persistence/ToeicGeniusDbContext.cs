@@ -45,6 +45,10 @@ namespace ToeicGenius.Repositories.Persistence
 			var providerName = Database.ProviderName ?? string.Empty;
 			var isSqlServer = providerName.Contains("SqlServer", StringComparison.OrdinalIgnoreCase);
 
+			// Seed time cố định (UTC) để:
+			// - Tránh lỗi PostgreSQL 'timestamp with time zone' khi DateTimeKind.Unspecified
+			// - Tránh mỗi lần tạo migration lại sinh timestamp khác nhau
+			var seedCreatedAtUtc = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
 			// Many-to-many User <-> Role
 			modelBuilder.Entity<User>()
@@ -302,23 +306,23 @@ namespace ToeicGenius.Repositories.Persistence
 			// Question Group
 			// ----------------------------
 			modelBuilder.Entity<QuestionGroup>().HasData(
-				new QuestionGroup { QuestionGroupId = 1, PartId = 3, PassageContent = "Passage for Part 3 - Short Conversation" },
-				new QuestionGroup { QuestionGroupId = 2, PartId = 4, PassageContent = "Passage for Part 4 - Short Talk" },
-				new QuestionGroup { QuestionGroupId = 3, PartId = 6, PassageContent = "Passage for Part 6 - Text Completion" },
-				new QuestionGroup { QuestionGroupId = 4, PartId = 7, PassageContent = "Passage for Part 7 - Reading Comprehension" }
+				new QuestionGroup { QuestionGroupId = 1, PartId = 3, PassageContent = "Passage for Part 3 - Short Conversation", CreatedAt = seedCreatedAtUtc },
+				new QuestionGroup { QuestionGroupId = 2, PartId = 4, PassageContent = "Passage for Part 4 - Short Talk", CreatedAt = seedCreatedAtUtc },
+				new QuestionGroup { QuestionGroupId = 3, PartId = 6, PassageContent = "Passage for Part 6 - Text Completion", CreatedAt = seedCreatedAtUtc },
+				new QuestionGroup { QuestionGroupId = 4, PartId = 7, PassageContent = "Passage for Part 7 - Reading Comprehension", CreatedAt = seedCreatedAtUtc }
 			);
 
 			// ----------------------------
 			// Single Questions (not in group)
 			// ----------------------------
 			modelBuilder.Entity<Question>().HasData(
-				new Question { QuestionId = 1, QuestionTypeId = 1, QuestionGroupId = null, PartId = 1, Content = "What is the capital of France?" },
-				new Question { QuestionId = 2, QuestionTypeId = 1, QuestionGroupId = null, PartId = 2, Content = "Where does he live?" },
-				new Question { QuestionId = 3, QuestionTypeId = 2, QuestionGroupId = null, PartId = 2, Content = "What time does she start work?" },
-				new Question { QuestionId = 4, QuestionTypeId = 2, QuestionGroupId = null, PartId = 1, Content = "Which color do you like?" },
-				new Question { QuestionId = 5, QuestionTypeId = 1, QuestionGroupId = null, PartId = 5, Content = "Select the correct sentence." },
-				new Question { QuestionId = 6, QuestionTypeId = 1, QuestionGroupId = null, PartId = 11, Content = "Describe your favorite city." },
-				new Question { QuestionId = 7, QuestionTypeId = 1, QuestionGroupId = null, PartId = 9, Content = "Write a short essay about your hometown." }
+				new Question { QuestionId = 1, QuestionTypeId = 1, QuestionGroupId = null, PartId = 1, Content = "What is the capital of France?", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 2, QuestionTypeId = 1, QuestionGroupId = null, PartId = 2, Content = "Where does he live?", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 3, QuestionTypeId = 2, QuestionGroupId = null, PartId = 2, Content = "What time does she start work?", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 4, QuestionTypeId = 2, QuestionGroupId = null, PartId = 1, Content = "Which color do you like?", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 5, QuestionTypeId = 1, QuestionGroupId = null, PartId = 5, Content = "Select the correct sentence.", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 6, QuestionTypeId = 1, QuestionGroupId = null, PartId = 11, Content = "Describe your favorite city.", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 7, QuestionTypeId = 1, QuestionGroupId = null, PartId = 9, Content = "Write a short essay about your hometown.", CreatedAt = seedCreatedAtUtc }
 			);
 
 			// ----------------------------
@@ -326,24 +330,24 @@ namespace ToeicGenius.Repositories.Persistence
 			// ----------------------------
 			modelBuilder.Entity<Question>().HasData(
 				// Group 1 (Part 3)
-				new Question { QuestionId = 11, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q1" },
-				new Question { QuestionId = 12, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q2" },
-				new Question { QuestionId = 13, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q3" },
+				new Question { QuestionId = 11, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q1", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 12, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q2", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 13, QuestionTypeId = 1, QuestionGroupId = 1, PartId = 3, Content = "Group 1 - Q3", CreatedAt = seedCreatedAtUtc },
 
 				// Group 2 (Part 4)
-				new Question { QuestionId = 14, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q1" },
-				new Question { QuestionId = 15, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q2" },
-				new Question { QuestionId = 16, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q3" },
+				new Question { QuestionId = 14, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q1", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 15, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q2", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 16, QuestionTypeId = 2, QuestionGroupId = 2, PartId = 4, Content = "Group 2 - Q3", CreatedAt = seedCreatedAtUtc },
 
 				// Group 3 (Part 6)
-				new Question { QuestionId = 17, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q1" },
-				new Question { QuestionId = 18, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q2" },
-				new Question { QuestionId = 19, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q3" },
+				new Question { QuestionId = 17, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q1", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 18, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q2", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 19, QuestionTypeId = 1, QuestionGroupId = 3, PartId = 6, Content = "Group 3 - Q3", CreatedAt = seedCreatedAtUtc },
 
 				// Group 4 (Part 7)
-				new Question { QuestionId = 20, QuestionTypeId = 2, QuestionGroupId = 4, PartId = 7, Content = "Group 4 - Q1" },
-				new Question { QuestionId = 21, QuestionTypeId = 2, QuestionGroupId = 4, PartId = 7, Content = "Group 4 - Q2" },
-				new Question { QuestionId = 22, QuestionTypeId = 2, QuestionGroupId = 4, PartId = 7, Content = "Group 4 - Q3" }
+				new Question { QuestionId = 20, QuestionTypeId = 2, QuestionGroupId = 4, PartId = 7, Content = "Group 4 - Q1", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 21, QuestionTypeId = 2, QuestionGroupId = 4, PartId = 7, Content = "Group 4 - Q2", CreatedAt = seedCreatedAtUtc },
+				new Question { QuestionId = 22, QuestionTypeId = 2, QuestionGroupId = 4, PartId = 7, Content = "Group 4 - Q3", CreatedAt = seedCreatedAtUtc }
 			);
 
 			// ----------------------------
@@ -351,44 +355,41 @@ namespace ToeicGenius.Repositories.Persistence
 			// ----------------------------
 			modelBuilder.Entity<Option>().HasData(
 				// QuestionId = 1 → 4 options
-				new Option { OptionId = 1, QuestionId = 1, Content = "Paris", IsCorrect = true, Label = "A" },
-				new Option { OptionId = 2, QuestionId = 1, Content = "London", IsCorrect = false, Label = "B" },
-				new Option { OptionId = 3, QuestionId = 1, Content = "Berlin", IsCorrect = false, Label = "C" },
-				new Option { OptionId = 4, QuestionId = 1, Content = "Madrid", IsCorrect = false, Label = "D" },
+				new Option { OptionId = 1, QuestionId = 1, Content = "Paris", IsCorrect = true, Label = "A", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 2, QuestionId = 1, Content = "London", IsCorrect = false, Label = "B", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 3, QuestionId = 1, Content = "Berlin", IsCorrect = false, Label = "C", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 4, QuestionId = 1, Content = "Madrid", IsCorrect = false, Label = "D", CreatedAt = seedCreatedAtUtc },
 
 				// QuestionId = 2 → PartId = 2 → 3 options only
-				new Option { OptionId = 5, QuestionId = 2, Content = "At home", IsCorrect = true, Label = "A" },
-				new Option { OptionId = 6, QuestionId = 2, Content = "At work", IsCorrect = false, Label = "B" },
-				new Option { OptionId = 7, QuestionId = 2, Content = "At school", IsCorrect = false, Label = "C" },
+				new Option { OptionId = 5, QuestionId = 2, Content = "At home", IsCorrect = true, Label = "A", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 6, QuestionId = 2, Content = "At work", IsCorrect = false, Label = "B", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 7, QuestionId = 2, Content = "At school", IsCorrect = false, Label = "C", CreatedAt = seedCreatedAtUtc },
 
 				// QuestionId = 3 → PartId = 2 → 3 options only
-				new Option { OptionId = 8, QuestionId = 3, Content = "8 AM", IsCorrect = true, Label = "A" },
-				new Option { OptionId = 9, QuestionId = 3, Content = "9 AM", IsCorrect = false, Label = "B" },
-				new Option { OptionId = 10, QuestionId = 3, Content = "10 AM", IsCorrect = false, Label = "C" },
+				new Option { OptionId = 8, QuestionId = 3, Content = "8 AM", IsCorrect = true, Label = "A", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 9, QuestionId = 3, Content = "9 AM", IsCorrect = false, Label = "B", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 10, QuestionId = 3, Content = "10 AM", IsCorrect = false, Label = "C", CreatedAt = seedCreatedAtUtc },
 
 				// QuestionId = 4 → 4 options
-				new Option { OptionId = 11, QuestionId = 4, Content = "Red", IsCorrect = true, Label = "A" },
-				new Option { OptionId = 12, QuestionId = 4, Content = "Green", IsCorrect = false, Label = "B" },
-				new Option { OptionId = 13, QuestionId = 4, Content = "Blue", IsCorrect = false, Label = "C" },
-				new Option { OptionId = 14, QuestionId = 4, Content = "Yellow", IsCorrect = false, Label = "D" },
+				new Option { OptionId = 11, QuestionId = 4, Content = "Red", IsCorrect = true, Label = "A", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 12, QuestionId = 4, Content = "Green", IsCorrect = false, Label = "B", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 13, QuestionId = 4, Content = "Blue", IsCorrect = false, Label = "C", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 14, QuestionId = 4, Content = "Yellow", IsCorrect = false, Label = "D", CreatedAt = seedCreatedAtUtc },
 
 				// QuestionId = 5 → 4 options
-				new Option { OptionId = 15, QuestionId = 5, Content = "She goes to school.", IsCorrect = true, Label = "A" },
-				new Option { OptionId = 16, QuestionId = 5, Content = "She go to school.", IsCorrect = false, Label = "B" },
-				new Option { OptionId = 17, QuestionId = 5, Content = "She going to school.", IsCorrect = false, Label = "C" },
-				new Option { OptionId = 18, QuestionId = 5, Content = "She gone to school.", IsCorrect = false, Label = "D" },
+				new Option { OptionId = 15, QuestionId = 5, Content = "She goes to school.", IsCorrect = true, Label = "A", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 16, QuestionId = 5, Content = "She go to school.", IsCorrect = false, Label = "B", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 17, QuestionId = 5, Content = "She going to school.", IsCorrect = false, Label = "C", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 18, QuestionId = 5, Content = "She gone to school.", IsCorrect = false, Label = "D", CreatedAt = seedCreatedAtUtc },
 
 				// Group question examples (all 4 options)
-				new Option { OptionId = 19, QuestionId = 11, Content = "Option A", IsCorrect = true, Label = "A" },
-				new Option { OptionId = 20, QuestionId = 11, Content = "Option B", IsCorrect = false, Label = "B" },
-				new Option { OptionId = 21, QuestionId = 11, Content = "Option C", IsCorrect = false, Label = "C" },
-				new Option { OptionId = 22, QuestionId = 11, Content = "Option D", IsCorrect = false, Label = "D" }
+				new Option { OptionId = 19, QuestionId = 11, Content = "Option A", IsCorrect = true, Label = "A", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 20, QuestionId = 11, Content = "Option B", IsCorrect = false, Label = "B", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 21, QuestionId = 11, Content = "Option C", IsCorrect = false, Label = "C", CreatedAt = seedCreatedAtUtc },
+				new Option { OptionId = 22, QuestionId = 11, Content = "Option D", IsCorrect = false, Label = "D", CreatedAt = seedCreatedAtUtc }
 			);
 
 			// Seed default account
-			// Dùng một thời điểm UTC cố định để tránh lỗi 'timestamp with time zone' trên PostgreSQL
-			var seedCreatedAtUtc = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
 			var adminConfig = _configuration.GetSection("DefaultAccounts:Admin");
 			var creatorConfig = _configuration.GetSection("DefaultAccounts:TestCreator");
 			var examineeConfig = _configuration.GetSection("DefaultAccounts:Examinee");
@@ -405,7 +406,7 @@ namespace ToeicGenius.Repositories.Persistence
 					FullName = adminConfig["FullName"]!,
 					PasswordHash = SecurityHelper.HashPassword(adminConfig["Password"]!),
 					Status = UserStatus.Active,
-						CreatedAt = seedCreatedAtUtc,
+					CreatedAt = seedCreatedAtUtc,
 					IsRoot = true
 				},
 				new User
@@ -415,7 +416,7 @@ namespace ToeicGenius.Repositories.Persistence
 					FullName = creatorConfig["FullName"]!,
 					PasswordHash = SecurityHelper.HashPassword(creatorConfig["Password"]!),
 					Status = UserStatus.Active,
-						CreatedAt = seedCreatedAtUtc
+					CreatedAt = seedCreatedAtUtc
 				},
 				new User
 				{
@@ -424,7 +425,7 @@ namespace ToeicGenius.Repositories.Persistence
 					FullName = examineeConfig["FullName"]!,
 					PasswordHash = SecurityHelper.HashPassword(examineeConfig["Password"]!),
 					Status = UserStatus.Active,
-						CreatedAt = seedCreatedAtUtc
+					CreatedAt = seedCreatedAtUtc
 				}
 			);
 			// Seed bảng trung gian ẩn danh (UserRoles)

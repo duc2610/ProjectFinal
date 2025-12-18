@@ -242,7 +242,7 @@ namespace ToeicGenius.Services.Implementations
 				currentQuestion.QuestionTypeId = dto.QuestionTypeId;
 				currentQuestion.Content = dto.Content;
 				currentQuestion.Explanation = dto.Solution;
-				currentQuestion.UpdatedAt = Now;
+				currentQuestion.UpdatedAt = UtcNow;
 
 				// Chỉ thay khi có file mới
 				if (!string.IsNullOrEmpty(newAudioUrl)) currentQuestion.AudioUrl = newAudioUrl;
@@ -259,7 +259,7 @@ namespace ToeicGenius.Services.Implementations
 						foreach (var opt in currentQuestion.Options)
 						{
 							opt.Status = CommonStatus.Inactive;
-							opt.UpdatedAt = Now;
+							opt.UpdatedAt = UtcNow;
 						}
 					}
 					else
@@ -290,7 +290,7 @@ namespace ToeicGenius.Services.Implementations
 						foreach (var old in currentQuestion.Options.Where(o => !keepIds.Contains(o.OptionId)))
 						{
 							old.Status = CommonStatus.Inactive;
-							old.UpdatedAt = Now;
+							old.UpdatedAt = UtcNow;
 						}
 
 						// upsert: update nếu có Id (>0 và tồn tại), còn lại thêm mới
@@ -308,7 +308,7 @@ namespace ToeicGenius.Services.Implementations
 								opt.Content = content;
 								opt.IsCorrect = d.IsCorrect;
 								opt.Status = CommonStatus.Active;
-								opt.UpdatedAt = Now;
+								opt.UpdatedAt = UtcNow;
 							}
 							else
 							{
@@ -319,7 +319,7 @@ namespace ToeicGenius.Services.Implementations
 									Content = content,
 									IsCorrect = d.IsCorrect,
 									Status = CommonStatus.Active,
-									CreatedAt = Now,
+									CreatedAt = UtcNow,
 									// QuestionId sẽ được EF set qua navigation 'Question'
 									Question = currentQuestion
 								});
@@ -379,12 +379,12 @@ namespace ToeicGenius.Services.Implementations
 
 					// Cập nhật trạng thái
 					question.Status = targetStatus;
-					question.UpdatedAt = Now;
+					question.UpdatedAt = UtcNow;
 
 					foreach (var option in question.Options)
 					{
 						option.Status = targetStatus;
-						option.UpdatedAt = Now;
+						option.UpdatedAt = UtcNow;
 					}
 				}
 				else
@@ -403,17 +403,17 @@ namespace ToeicGenius.Services.Implementations
 						return Result<string>.Failure("Bạn không có quyền thực hiện thao tác này.");
 
 					group.Status = targetStatus;
-					group.UpdatedAt = Now;
+					group.UpdatedAt = UtcNow;
 
 					foreach (var question in group.Questions)
 					{
 						question.Status = targetStatus;
-						question.UpdatedAt = Now;
+						question.UpdatedAt = UtcNow;
 
 						foreach (var option in question.Options)
 						{
 							option.Status = targetStatus;
-							option.UpdatedAt = Now;
+							option.UpdatedAt = UtcNow;
 						}
 					}
 				}
@@ -453,6 +453,11 @@ namespace ToeicGenius.Services.Implementations
 			try
 			{
 				var result = await _uow.Questions.FilterSingleAsync(partId, questionTypeId, keyWord, skill, sortOrder, page, pageSize, status, creatorId);
+				// Convert UTC → Vietnam time cho tất cả items
+				foreach (var item in result.DataPaginated)
+				{
+					item.CreatedAt = DateTimeHelper.ToVietnamTime(item.CreatedAt);
+				}
 				return Result<PaginationResponse<QuestionListItemDto>>.Success(result);
 			}
 			catch (Exception ex)

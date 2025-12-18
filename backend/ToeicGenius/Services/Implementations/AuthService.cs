@@ -55,7 +55,7 @@ namespace ToeicGenius.Services.Implementations
 			if (string.IsNullOrEmpty(user.PasswordHash))
 			{
 				user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(changePasswordRequest.NewPassword);
-				user.UpdatedAt = Now;
+				user.UpdatedAt = UtcNow;
 				await _unitOfWork.Users.UpdateAsync(user);
 				await _unitOfWork.SaveChangesAsync();
 				return "";
@@ -69,7 +69,7 @@ namespace ToeicGenius.Services.Implementations
 				return "Mật khẩu mới không được trùng với mật khẩu cũ!";
 			}
 			user.PasswordHash = SecurityHelper.HashPassword(changePasswordRequest.NewPassword);
-			user.UpdatedAt = Now;
+			user.UpdatedAt = UtcNow;
 			await _unitOfWork.Users.UpdateAsync(user);
 			await _unitOfWork.SaveChangesAsync();
 			return "";
@@ -86,7 +86,7 @@ namespace ToeicGenius.Services.Implementations
 					return "Mật khẩu mới không được trùng với mật khẩu cũ!";
 				}
 				user.PasswordHash = SecurityHelper.HashPassword(resetPasswordConfirmDto.NewPassword);
-				user.UpdatedAt = Now;
+				user.UpdatedAt = UtcNow;
 				await _unitOfWork.Users.UpdateAsync(user);
 				await _unitOfWork.SaveChangesAsync();
 				return "";
@@ -133,7 +133,7 @@ namespace ToeicGenius.Services.Implementations
 				Fullname = user.FullName,
 				Email = user.Email,
 				UserId = user.Id,
-				ExpireAt = Now.AddMinutes(30)
+				ExpireAt = DateTimeHelper.ToVietnamTime(UtcNow.AddMinutes(30))
 			};
 
 			return Result<LoginResponseDto>.Success(response);
@@ -162,7 +162,7 @@ namespace ToeicGenius.Services.Implementations
 					FullName = payload.Name ?? payload.Email,
 					GoogleId = payload.Subject,
 					Status = UserStatus.Active,
-					CreatedAt = Now
+					CreatedAt = UtcNow
 				};
 
 				var defaultRole = await _unitOfWork.Roles.GetByIdAsync((int)UserRole.Examinee);
@@ -178,7 +178,7 @@ namespace ToeicGenius.Services.Implementations
 				if (string.IsNullOrEmpty(user.GoogleId))
 					user.GoogleId = payload.Subject;
 
-				user.UpdatedAt = Now;
+				user.UpdatedAt = UtcNow;
 				await _unitOfWork.Users.UpdateAsync(user);
 				await _unitOfWork.SaveChangesAsync();
 			}
@@ -199,7 +199,7 @@ namespace ToeicGenius.Services.Implementations
 				Email = user.Email,
 				Token = accessToken,
 				RefreshToken = refreshToken.Token,
-				ExpireAt = Now.AddMinutes(30)
+				ExpireAt = DateTimeHelper.ToVietnamTime(UtcNow.AddMinutes(30))
 			};
 		}
 
@@ -235,7 +235,7 @@ namespace ToeicGenius.Services.Implementations
 					Email = registerDto.Email,
 					FullName = registerDto.FullName,
 					PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
-					CreatedAt = Now,
+					CreatedAt = UtcNow,
 					Status = UserStatus.Active,
 				};
 
@@ -287,7 +287,7 @@ namespace ToeicGenius.Services.Implementations
 				if (user == null) return ErrorMessages.UserNotFound;
 
 				user.PasswordHash = SecurityHelper.HashPassword(newPassword);
-				user.UpdatedAt = Now;
+				user.UpdatedAt = UtcNow;
 				await _unitOfWork.Users.UpdateAsync(user);
 				await _unitOfWork.SaveChangesAsync();
 				return "";
@@ -305,10 +305,10 @@ namespace ToeicGenius.Services.Implementations
 				return Result<RefreshTokenResponseDto>.Failure("Refresh token không hợp lệ");
 
 			var existingToken = user.RefreshTokens.FirstOrDefault(rt => rt.Token == refreshToken);
-			if (existingToken == null || existingToken.ExpiresAt <= Now || existingToken.RevokeAt != null)
+			if (existingToken == null || existingToken.ExpiresAt <= UtcNow || existingToken.RevokeAt != null)
 				return Result<RefreshTokenResponseDto>.Failure("Refresh token đã hết hạn hoặc bị thu hồi");
 
-			existingToken.RevokeAt = Now;
+			existingToken.RevokeAt = UtcNow;
 			existingToken.RevokeByIp = ipAddress;
 
 			var newAccessToken = _jwtService.GenerateAccessToken(user);
@@ -341,7 +341,7 @@ namespace ToeicGenius.Services.Implementations
 			if (existingToken.RevokeAt != null)
 				return Result<string>.Failure("Refresh token đã bị hủy trước đó");
 
-			existingToken.RevokeAt = Now;
+			existingToken.RevokeAt = UtcNow;
 			existingToken.RevokeByIp = ipAddress;
 
 			await _unitOfWork.Users.UpdateAsync(user);
@@ -359,8 +359,8 @@ namespace ToeicGenius.Services.Implementations
 				Email = email,
 				OtpCodeHash = hashed,
 				Type = type,
-				CreatedAt = Now,
-				ExpiresAt = Now.AddMinutes(10)
+				CreatedAt = UtcNow,
+				ExpiresAt = UtcNow.AddMinutes(10)
 			};
 			await _unitOfWork.UserOtps.AddAsync(entity);
 			await _unitOfWork.SaveChangesAsync();
@@ -379,7 +379,7 @@ namespace ToeicGenius.Services.Implementations
 			var record = await _unitOfWork.UserOtps.GetOtpByEmailAsync(email, type);
 			if (record != null)
 			{
-				record.UsedAt = Now;
+				record.UsedAt = UtcNow;
 				await _unitOfWork.UserOtps.UpdateAsync(record);
 				await _unitOfWork.SaveChangesAsync();
 			}

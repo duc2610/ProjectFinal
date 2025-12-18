@@ -19,7 +19,7 @@ namespace ToeicGenius.Domains.Entities
 		public string? AudioUrl { get; set; }
 		[Required]
 		public int Duration { get; set; }
-		public DateTime CreatedAt { get; set; } = Now;
+		public DateTime CreatedAt { get; set; } = UtcNow;
 		public DateTime? UpdatedAt { get; set; }
 		public TestCreationStatus CreationStatus { get; set; } = TestCreationStatus.Draft;
 		public TestVisibilityStatus VisibilityStatus { get; set; } = TestVisibilityStatus.Hidden;

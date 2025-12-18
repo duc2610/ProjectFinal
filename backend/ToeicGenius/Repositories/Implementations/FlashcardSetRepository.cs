@@ -70,7 +70,7 @@ namespace ToeicGenius.Repositories.Implementations
             {
                 set.TotalCards = await _context.Flashcards
                     .CountAsync(f => f.SetId == setId);
-                set.UpdatedAt = Now;
+                set.UpdatedAt = UtcNow;
             }
         }
 

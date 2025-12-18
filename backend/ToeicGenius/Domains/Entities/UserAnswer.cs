@@ -31,7 +31,7 @@ namespace ToeicGenius.Domains.Entities
 		// Chấm điểm (nếu có)
 		public bool? IsCorrect { get; set; }
 
-		public DateTime CreatedAt { get; set; } = Now;
+		public DateTime CreatedAt { get; set; } = UtcNow;
 		public DateTime? UpdatedAt { get; set; }
 
 		public virtual ICollection<AIFeedback> AIFeedbacks { get; set; } = new List<AIFeedback>();

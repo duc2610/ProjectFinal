@@ -13,7 +13,7 @@ namespace ToeicGenius.Repositories.Implementations
 
 		public async Task<QuestionReport> CreateReportAsync(QuestionReport report)
 		{
-			report.CreatedAt = Now;
+			report.CreatedAt = UtcNow;
 			await _context.QuestionReports.AddAsync(report);
 			await _context.SaveChangesAsync();
 			return report;
