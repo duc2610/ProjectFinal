@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Text.Json;
 using ToeicGenius.Domains.DTOs.Common;
 using ToeicGenius.Domains.DTOs.Requests.Auth;
 using ToeicGenius.Domains.DTOs.Responses.Auth;
@@ -203,22 +204,25 @@ namespace ToeicGenius.Services.Implementations
 			};
 		}
 
-		public async Task<string> SendRegistrationOtpAsync(RegisterRequestDto registerRequestDto)
+	public async Task<string> SendRegistrationOtpAsync(RegisterRequestDto registerRequestDto)
+	{
+		try
 		{
-			try
-			{
-				var existingUser = await _unitOfWork.Users.GetByEmailAsync(registerRequestDto.Email);
-				if (existingUser != null) return ErrorMessages.EmailAlreadyExists;
+			var existingUser = await _unitOfWork.Users.GetByEmailAsync(registerRequestDto.Email);
+			if (existingUser != null) return ErrorMessages.EmailAlreadyExists;
 
-				var otpCode = await GenerateAndStoreOtpAsync(registerRequestDto.Email, (int)OtpType.Registration);
-				await SendOtpByEmailAsync(registerRequestDto.Email, otpCode, "OTP Đăng ký");
-				return "";
-			}
-			catch
-			{
-				return ErrorMessages.OperationFailed;
-			}
+			var otpCode = await GenerateAndStoreOtpAsync(registerRequestDto.Email, (int)OtpType.Registration);
+			await SendOtpByEmailAsync(registerRequestDto.Email, otpCode, "OTP Đăng ký");
+			return "";
 		}
+		catch (Exception ex)
+		{
+			// Log exception để debug
+			Console.WriteLine($"SendRegistrationOtpAsync error: {ex.Message}");
+			Console.WriteLine($"Stack trace: {ex.StackTrace}");
+			return $"Gửi OTP thất bại: {ex.Message}";
+		}
+	}
 
 		public async Task<string> VerifyRegistrationOtpAsync(RegisterVerifyDto registerDto)
 		{
