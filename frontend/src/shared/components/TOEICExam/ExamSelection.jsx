@@ -52,6 +52,8 @@ const buildQuestions = (parts = []) => {
         group.questionSnapshots?.forEach((qs, idx) => {
           questions.push({
             testQuestionId: tq.testQuestionId,
+            // questionId: ID của sub-question trong group (dùng cho report SubQuestionId)
+            questionId: qs.questionId,
             subQuestionIndex: idx,
             partId: part.partId,
             partName: part.partName,
@@ -71,6 +73,8 @@ const buildQuestions = (parts = []) => {
         const qs = tq.questionSnapshotDto;
         questions.push({
           testQuestionId: tq.testQuestionId,
+          // Với câu đơn, vẫn lưu questionId phòng khi backend có dùng (không bắt buộc cho report)
+          questionId: qs.questionId,
           subQuestionIndex: 0,
           partId: part.partId,
           partName: part.partName,

@@ -105,6 +105,30 @@ export default function ExamScreen() {
     });
   }, [questions]);
 
+  // Map hỗ trợ lấy SubQuestionId (questionId của sub-question trong group) từ raw parts
+  const subQuestionIdMap = useMemo(() => {
+    const map = {};
+    try {
+      const parts = rawTestData.parts || [];
+      parts.forEach((part) => {
+        part?.testQuestions?.forEach((tq) => {
+          if (tq.isGroup && tq.questionGroupSnapshotDto) {
+            const group = tq.questionGroupSnapshotDto;
+            group.questionSnapshots?.forEach((qs, idx) => {
+              if (qs && typeof qs.questionId === "number") {
+                const key = `${tq.testQuestionId}_${idx}`;
+                map[key] = qs.questionId;
+              }
+            });
+          }
+        });
+      });
+    } catch (e) {
+      console.error("Error building subQuestionIdMap:", e);
+    }
+    return map;
+  }, [rawTestData.parts]);
+
   // Tính toán lại part number để liên tục giữa Writing và Speaking
   const questionsWithAdjustedPartNames = useMemo(() => {
     // Kiểm tra xem có cả Writing và Speaking không
@@ -294,11 +318,14 @@ export default function ExamScreen() {
         const response = await getMyQuestionReports(1, 1000); // Load nhiều để lấy hết
         const reportsData = response?.data || [];
         
-        // Tạo Set các testQuestionId đã report
+        // Tạo Set các key đã report: "testQuestionId_subQuestionId" (subQuestionId = 0 cho câu đơn)
         const reportedIds = new Set();
         reportsData.forEach(report => {
           if (report.testQuestionId) {
-            reportedIds.add(report.testQuestionId);
+            const isGroup = !!report.isQuestionGroup;
+            const subId = isGroup ? (report.subQuestionId ?? 0) : 0;
+            const key = `${report.testQuestionId}_${subId}`;
+            reportedIds.add(key);
           }
         });
         
@@ -313,13 +340,19 @@ export default function ExamScreen() {
   }, []);
 
   // Function để check xem câu hỏi đã report chưa
-  const isQuestionReported = (testQuestionId) => {
-    return reportedQuestionIds.has(testQuestionId);
+  const isQuestionReported = (testQuestionId, subQuestionId = null, isGroup = false) => {
+    if (!testQuestionId) return false;
+    const subId = isGroup ? (subQuestionId ?? 0) : 0;
+    const key = `${testQuestionId}_${subId}`;
+    return reportedQuestionIds.has(key);
   };
 
   // Callback khi report thành công
-  const handleReportSuccess = (testQuestionId) => {
-    setReportedQuestionIds(prev => new Set([...prev, testQuestionId]));
+  const handleReportSuccess = (testQuestionId, subQuestionId = null, isGroup = false) => {
+    if (!testQuestionId) return;
+    const subId = isGroup ? (subQuestionId ?? 0) : 0;
+    const key = `${testQuestionId}_${subId}`;
+    setReportedQuestionIds(prev => new Set([...prev, key]));
   };
 
   useEffect(() => {
@@ -1201,7 +1234,34 @@ export default function ExamScreen() {
               globalAudioUrl={rawTestData.globalAudioUrl}
               testType={rawTestData.testType || "Simulator"}
               testResultId={rawTestData.testResultId}
-              isReported={questions[currentIndex] ? isQuestionReported(questions[currentIndex].testQuestionId) : false}
+        // Truyền thêm subQuestionId để report câu group
+        subQuestionId={(() => {
+          const q = questionsWithAdjustedPartNames[currentIndex];
+          if (!q) return null;
+          const subIndex =
+            q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
+              ? q.subQuestionIndex
+              : 0;
+          if (subIndex === 0) return null; // câu đơn
+          const key = `${q.testQuestionId}_${subIndex}`;
+          return subQuestionIdMap[key] ?? q.questionId ?? null;
+        })()}
+        isReported={(() => {
+          const q = questionsWithAdjustedPartNames[currentIndex];
+          if (!q) return false;
+          const subIndex =
+            q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
+              ? q.subQuestionIndex
+              : 0;
+          // câu group: check theo (testQuestionId, subQuestionId)
+          if (subIndex !== 0) {
+            const key = `${q.testQuestionId}_${subIndex}`;
+            const subId = subQuestionIdMap[key] ?? q.questionId ?? null;
+            return isQuestionReported(q.testQuestionId, subId, true);
+          }
+          // câu đơn: check theo testQuestionId
+          return isQuestionReported(q.testQuestionId, null, false);
+        })()}
               onReportSuccess={handleReportSuccess}
             />
           </div>

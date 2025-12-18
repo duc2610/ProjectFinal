@@ -15,17 +15,24 @@ export async function getMyQuestionReports(page = 1, pageSize = 20) {
 
 /**
  * Báo cáo một câu hỏi (phía Examinee)
- * @param {number} testQuestionId - ID của test question
+ * @param {number} testQuestionId - ID của test question (cha, áp dụng cho cả câu đơn và group)
  * @param {string} reportType - Loại báo cáo: "IncorrectAnswer", "Typo", "AudioIssue", "ImageIssue", "Unclear", "Other"
  * @param {string} description - Mô tả chi tiết
+ * @param {number|null|undefined} subQuestionId - ID của sub-question trong group (questionId trong snapshot); chỉ bắt buộc với câu group
  * @returns {Promise} Response từ API
  */
-export async function reportQuestion(testQuestionId, reportType, description) {
+export async function reportQuestion(testQuestionId, reportType, description, subQuestionId) {
   const payload = {
     testQuestionId,
     reportType,
     description,
   };
+
+  // Backend yêu cầu SubQuestionId cho question group; gửi kèm khi có
+  if (subQuestionId !== undefined && subQuestionId !== null) {
+    payload.subQuestionId = subQuestionId;
+  }
+
   const res = await api.post("/api/question-reports", payload);
   return res?.data?.data ?? res?.data ?? res;
 }
