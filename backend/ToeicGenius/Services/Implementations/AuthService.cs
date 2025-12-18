@@ -204,25 +204,25 @@ namespace ToeicGenius.Services.Implementations
 			};
 		}
 
-	public async Task<string> SendRegistrationOtpAsync(RegisterRequestDto registerRequestDto)
-	{
-		try
+		public async Task<string> SendRegistrationOtpAsync(RegisterRequestDto registerRequestDto)
 		{
-			var existingUser = await _unitOfWork.Users.GetByEmailAsync(registerRequestDto.Email);
-			if (existingUser != null) return ErrorMessages.EmailAlreadyExists;
+			try
+			{
+				var existingUser = await _unitOfWork.Users.GetByEmailAsync(registerRequestDto.Email);
+				if (existingUser != null) return ErrorMessages.EmailAlreadyExists;
 
-			var otpCode = await GenerateAndStoreOtpAsync(registerRequestDto.Email, (int)OtpType.Registration);
-			await SendOtpByEmailAsync(registerRequestDto.Email, otpCode, "OTP Đăng ký");
-			return "";
-		}
+				var otpCode = await GenerateAndStoreOtpAsync(registerRequestDto.Email, (int)OtpType.Registration);
+				await SendOtpByEmailAsync(registerRequestDto.Email, otpCode, "OTP Đăng ký");
+				return "";
+			}
 		catch (Exception ex)
-		{
+			{
 			// Log exception để debug
 			Console.WriteLine($"SendRegistrationOtpAsync error: {ex.Message}");
 			Console.WriteLine($"Stack trace: {ex.StackTrace}");
 			return $"Gửi OTP thất bại: {ex.Message}";
+			}
 		}
-	}
 
 		public async Task<string> VerifyRegistrationOtpAsync(RegisterVerifyDto registerDto)
 		{
