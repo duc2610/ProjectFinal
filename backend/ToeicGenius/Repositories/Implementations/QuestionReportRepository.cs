@@ -105,10 +105,13 @@ namespace ToeicGenius.Repositories.Implementations
 
 		public async Task<bool> HasUserReportedQuestionAsync(int testQuestionId, Guid userId, int? subQuestionId = null)
 		{
+			// Chỉ chặn khi user đã có report ĐANG CHỜ XỬ LÝ (Pending) cho cùng TestQuestion + SubQuestion
+			// Sau khi report đó được Creator/Admin xử lý (Resolved/Rejected), Examinee có thể report lại nếu vẫn thấy sai
 			return await _context.QuestionReports
 				.AnyAsync(r => r.TestQuestionId == testQuestionId
 					&& r.ReportedBy == userId
-					&& r.SubQuestionId == subQuestionId);
+					&& r.SubQuestionId == subQuestionId
+					&& r.Status == ReportStatus.Pending);
 		}
 
 		public async Task<int> GetPendingReportsCountAsync(Guid? testCreatorId = null)
