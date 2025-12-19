@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Tag, Row, Col, Empty, Spin, Space, Typography, Divider, message, Select, Pagination } from "antd";
+import { Card, Button, Tag, Row, Col, Empty, Spin, Space, Typography, Divider, message, Select, Pagination, notification } from "antd";
 import { 
     PlayCircleOutlined, 
     ClockCircleOutlined, 
@@ -19,7 +19,7 @@ const { Option } = Select;
 export default function TestList() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { user } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const pageSize = useResponsivePageSize(); // 6 (mobile) hoặc 12 (desktop)
     const [loading, setLoading] = useState(true);
     const [tests, setTests] = useState([]);
@@ -150,6 +150,16 @@ export default function TestList() {
     }, [filterSkill, allTests]);
 
     const handleStartTest = (test) => {
+        // Kiểm tra authentication trước khi navigate
+        if (!isAuthenticated) {
+            notification.warning({
+                message: "Yêu cầu đăng nhập",
+                description: "Vui lòng đăng nhập để sử dụng chức năng này.",
+                placement: "topRight",
+                duration: 4,
+            });
+            return;
+        }
         navigate(`/toeic-exam?testId=${test.id}`, { state: { from: location.pathname, testMeta: test } });
     };
 

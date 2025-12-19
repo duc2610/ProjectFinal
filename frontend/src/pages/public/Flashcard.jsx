@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Card, Row, Col, Tag, Space, Empty, message, Spin, Modal } from "antd";
+import { Button, Card, Row, Col, Tag, Space, Empty, message, Spin, Modal, notification } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { getUserFlashcardSets, getPublicFlashcardSets, deleteFlashcardSet } from "@services/flashcardService";
@@ -187,7 +187,12 @@ export default function Flashcard() {
                 size="large"
                 onClick={() => {
                   if (!isAuthenticated) {
-                    message.warning("Vui lòng đăng nhập để tạo flashcard");
+                    notification.warning({
+                      message: "Yêu cầu đăng nhập",
+                      description: "Vui lòng đăng nhập để tạo flashcard",
+                      placement: "topRight",
+                      duration: 4,
+                    });
                     return;
                   }
                   setCreateModalOpen(true);

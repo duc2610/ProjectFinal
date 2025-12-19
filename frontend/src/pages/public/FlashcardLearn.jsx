@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Progress, message, Spin, Empty, Modal, List, Card } from "antd";
+import { Button, Progress, message, Spin, Empty, Modal, List, Card, notification } from "antd";
 import {
   RotateLeftOutlined,
   CheckOutlined,
@@ -162,7 +162,12 @@ export default function FlashcardLearn() {
 
     // Nếu chưa đăng nhập, chỉ cập nhật local state
     if (!isAuthenticated) {
-      message.warning("Vui lòng đăng nhập để lưu tiến độ học tập");
+      notification.warning({
+        message: "Yêu cầu đăng nhập",
+        description: "Vui lòng đăng nhập để lưu tiến độ học tập",
+        placement: "topRight",
+        duration: 4,
+      });
       // Vẫn cho phép xem flashcard nhưng không lưu trạng thái
       return;
     }
@@ -280,7 +285,12 @@ export default function FlashcardLearn() {
 
     // Nếu chưa đăng nhập, chỉ cập nhật local state
     if (!isAuthenticated) {
-      message.warning("Vui lòng đăng nhập để lưu tiến độ học tập");
+      notification.warning({
+        message: "Yêu cầu đăng nhập",
+        description: "Vui lòng đăng nhập để lưu tiến độ học tập",
+        placement: "topRight",
+        duration: 4,
+      });
       // Vẫn cho phép xem flashcard nhưng không lưu trạng thái
       return;
     }
@@ -348,7 +358,12 @@ export default function FlashcardLearn() {
   const handleLearnAgain = async () => {
     // Nếu chưa đăng nhập, không cho reset
     if (!isAuthenticated) {
-      message.warning("Vui lòng đăng nhập để sử dụng chức năng này");
+      notification.warning({
+        message: "Yêu cầu đăng nhập",
+        description: "Vui lòng đăng nhập để sử dụng chức năng này",
+        placement: "topRight",
+        duration: 4,
+      });
       return;
     }
 
