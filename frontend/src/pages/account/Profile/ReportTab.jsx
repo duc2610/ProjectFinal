@@ -59,7 +59,13 @@ export function ReportTab() {
       
       // Map dữ liệu để hiển thị đúng
       let mappedReports = reportsData.map((report) => {
-        const snapshot = report.questionSnapshot || {};
+        // Ưu tiên dùng reportedSubQuestion cho question groups, sau đó mới tới questionSnapshot (single)
+        const snapshot =
+          report.reportedSubQuestion ||
+          report.questionSnapshot ||
+          {};
+
+        // Nội dung câu hỏi: ưu tiên content của snapshot, sau đó tới questionContent backend đã tính sẵn
         const questionContent = snapshot.content || report.questionContent || null;
         const partLabel = resolvePartLabel(
           snapshot.partId || report.partId,

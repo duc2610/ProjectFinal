@@ -171,15 +171,30 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
             ellipsis: true,
         },
         {
-            title: "Trạng thái",
-            key: "status",
-            width: 120,
+            title: "Trạng thái tạo bài",
+            key: "creationStatus",
+            width: 140,
             align: "center",
             render: (_, record) => {
-                const status = deriveVersionStatus(record);
+                const creation = normalizeCreationStatusValue(record.creationStatus ?? record.CreationStatus);
+                const creationLabelMap = {
+                    Draft: "Bản nháp",
+                    InProgress: "Đang tiến hành",
+                    Completed: "Hoàn thành",
+                };
+                const creationColorMap = {
+                    Draft: "warning",
+                    InProgress: "processing",
+                    Completed: "success",
+                };
+
+                if (!creation) {
+                    return <Tag color="default">Không xác định</Tag>;
+                }
+
                 return (
-                    <Tag color={statusColorMap[status] || "default"}>
-                        {statusLabelMap[status] || status}
+                    <Tag color={creationColorMap[creation] || "default"}>
+                        {creationLabelMap[creation] || creation}
                     </Tag>
                 );
             }

@@ -45,22 +45,6 @@ export function PublicOnlyRoute() {
   return <Outlet />;
 }
 
-// Helper function để kiểm tra xem path có phù hợp với role không
-function isPathAllowedForRole(path, roles) {
-  if (!path || !Array.isArray(roles)) return false;
-  
-  if (path.startsWith("/admin")) {
-    return roles.includes(ROLES.Admin);
-  }
-  if (path.startsWith("/test-creator")) {
-    return roles.includes(ROLES.TestCreator);
-  }
-  if (path.startsWith("/toeic-exam") || path.startsWith("/result") || path.startsWith("/exam")) {
-    return roles.includes(ROLES.Examinee);
-  }
-  return true; // Các path khác (home, about, etc.) đều được phép
-}
-
 // Biến để track warning đã hiển thị (tránh hiển thị nhiều lần)
 let warningShownForPath = null;
 // Biến để track xem có đang trong quá trình redirect tự động sau login không
@@ -124,24 +108,18 @@ export function RoleRoute({ allow }) {
   const allowed = hasRole(user, allow);
   
   if (!allowed) {
-    // Kiểm tra xem path hiện tại có phù hợp với role của user không
-    const isPathAllowed = isPathAllowedForRole(currentPath, roles);
-    
     // Hiển thị warning khi:
-    // 1. Không phải auto redirect
-    // 2. Path không phù hợp với role (user đang cố truy cập trang không thuộc role của họ)
-    // 3. Chưa hiển thị warning cho path này
-    // Lưu ý: Nếu path phù hợp với role nhưng route yêu cầu role khác (nested route),
-    // thì vẫn nên hiển thị warning vì user không có quyền truy cập route cụ thể đó
-    const shouldShowWarning = !isAutoRedirecting && !isPathAllowed && warningShownForPath !== currentPath;
+    // - Không phải auto redirect sau login
+    // - Chưa hiển thị warning cho path này (tránh spam do re-render/StrictMode)
+    // Lưu ý: Không phụ thuộc "path có hợp role hay không" vì có các route dạng /reports/*
+    // vẫn cần chặn theo role (ví dụ: /reports/question chỉ TestCreator được vào).
+    const shouldShowWarning =
+      !isAutoRedirecting && warningShownForPath !== currentPath;
     
     if (shouldShowWarning) {
       warningShownForPath = currentPath;
       message.warning("Bạn không có quyền truy cập trang này.");
     }
-    
-    // Đánh dấu đang trong quá trình auto redirect
-    isAutoRedirecting = true;
     
     // Luôn redirect về trang phù hợp với role khi không có quyền
     // Điều này đảm bảo user không bao giờ thấy màn hình trắng

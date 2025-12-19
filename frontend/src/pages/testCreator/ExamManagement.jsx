@@ -252,48 +252,49 @@ export default function ExamManagement() {
                     });
                 }
                 
-                // Filter: chỉ giữ lại version mới nhất của mỗi test (group by parentTestId hoặc id)
-                // Logic: Group theo root test ID (nếu có parentTestId thì dùng parentTestId, không thì dùng id)
-                const latestVersions = allExams
-                    .reduce((acc, exam) => {
-                        // Xác định root test ID
-                        // - Test gốc: parentTestId = null/undefined → rootId = id
-                        // - Version mới: có parentTestId → rootId = parentTestId
-                        const rootId = exam.parentTestId ?? exam.id;
-                        
-                        const existing = acc.get(rootId);
-                        const currentVersion = Number(exam.version) || 0;
-                        
-                        // So sánh version: nếu chưa có hoặc version hiện tại lớn hơn thì cập nhật
-                        if (!existing) {
+                // Helper: chuẩn hóa các field từ backend (camelCase / PascalCase)
+                const getExamId = (exam) => exam.id ?? exam.Id ?? exam.testId ?? exam.TestId ?? 0;
+                const getParentId = (exam) => exam.parentTestId ?? exam.ParentTestId ?? null;
+                const getVersion = (exam) => Number(exam.version ?? exam.Version) || 0;
+                const getCreatedAt = (exam) => exam.createdAt || exam.CreatedAt || exam.created_at || null;
+
+                // Filter: chỉ giữ lại version mới nhất của mỗi test (group by parentId hoặc id gốc)
+                const latestVersions = allExams.reduce((acc, exam) => {
+                    // Xác định root test ID
+                    // - Test gốc: ParentTestId = null/undefined → rootId = TestId
+                    // - Version mới: có ParentTestId → rootId = ParentTestId
+                    const rootId = getParentId(exam) ?? getExamId(exam);
+
+                    const existing = acc.get(rootId);
+                    const currentVersion = getVersion(exam);
+
+                    if (!existing) {
+                        acc.set(rootId, exam);
+                    } else {
+                        const existingVersion = getVersion(existing);
+                        if (currentVersion > existingVersion) {
                             acc.set(rootId, exam);
-                        } else {
-                            const existingVersion = Number(existing.version) || 0;
-                            if (currentVersion > existingVersion) {
-                                acc.set(rootId, exam);
-                            }
                         }
-                        return acc;
-                    }, new Map())
-                    .values();
-                
+                    }
+                    return acc;
+                }, new Map()).values();
+
                 const filtered = Array.from(latestVersions);
-                
+
                 // Sắp xếp theo thời gian tạo giảm dần (test mới nhất lên đầu)
                 // Ưu tiên createdAt, nếu không có thì dùng id (id lớn hơn = mới hơn)
                 filtered.sort((a, b) => {
-                    const dateA = a.createdAt || a.CreatedAt;
-                    const dateB = b.createdAt || b.CreatedAt;
-                    
+                    const dateA = getCreatedAt(a);
+                    const dateB = getCreatedAt(b);
+
                     if (dateA && dateB) {
                         return new Date(dateB) - new Date(dateA);
                     }
                     if (dateA) return -1;
                     if (dateB) return 1;
-                    
-                    // Nếu không có createdAt, sắp xếp theo id (id lớn hơn = mới hơn)
-                    const idA = a.id ?? a.Id ?? a.testId ?? a.TestId ?? 0;
-                    const idB = b.id ?? b.Id ?? b.testId ?? b.TestId ?? 0;
+
+                    const idA = getExamId(a);
+                    const idB = getExamId(b);
                     return idB - idA;
                 });
                 

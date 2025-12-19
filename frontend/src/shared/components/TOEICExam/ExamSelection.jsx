@@ -6,6 +6,7 @@ import { startTest } from "../../../services/testExamService";
 import { getTestById } from "../../../services/testsService";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { translateErrorMessage } from "@shared/utils/translateError";
+import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text } = Typography;
 
@@ -52,6 +53,8 @@ const buildQuestions = (parts = []) => {
         group.questionSnapshots?.forEach((qs, idx) => {
           questions.push({
             testQuestionId: tq.testQuestionId,
+            // questionId: ID của sub-question trong group (dùng cho report SubQuestionId)
+            questionId: qs.questionId,
             subQuestionIndex: idx,
             partId: part.partId,
             partName: part.partName,
@@ -71,6 +74,8 @@ const buildQuestions = (parts = []) => {
         const qs = tq.questionSnapshotDto;
         questions.push({
           testQuestionId: tq.testQuestionId,
+          // Với câu đơn, vẫn lưu questionId phòng khi backend có dùng (không bắt buộc cho report)
+          questionId: qs.questionId,
           subQuestionIndex: 0,
           partId: part.partId,
           partName: part.partName,
@@ -94,6 +99,7 @@ const buildQuestions = (parts = []) => {
 export default function ExamSelection() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const testIdParam = searchParams.get("testId");
 
@@ -243,6 +249,8 @@ export default function ExamSelection() {
       
       const payload = {
         ...data,
+        ownerUserId: user?.id || user?.userId || user?.Id || null,
+        ownerEmail: user?.email || user?.Email || null,
         testId,
         testResultId: data.testResultId,
         testType: normalizeTestType(data.testType || testInfo?.testType),

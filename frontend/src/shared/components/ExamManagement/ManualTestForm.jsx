@@ -118,9 +118,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 setCurrentTestId(newId);
             }
             message.success(responseText || "Đã tạo phiên bản mới.");
-            if (onSuccess) {
-                onSuccess();
-            }
             return newId;
         } finally {
             if (hide) hide();
@@ -935,7 +932,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             const errorMessage = getErrorMessage(error);
             const normalizedError = (errorMessage || "").toLowerCase();
 
-            if (normalizedError.includes("cannot edit a published test")) {
+            const isPublishedEditError =
+                normalizedError.includes("cannot edit a published test") ||
+                normalizedError.includes("không thể chỉnh sửa bài kiểm tra đã xuất bản");
+
+            if (isPublishedEditError) {
                 const shouldClone = await confirmCloneVersion();
                 if (!shouldClone) {
                     message.info("Đã hủy thao tác tạo phiên bản mới.");
@@ -950,6 +951,13 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                             })();
                             message.success(`Đã tạo phiên bản mới (ID ${newId}) và lưu ${friendlyPartName} thành công!`);
                             setShowValidation(false);
+                            // Reload danh sách bài thi và tự đóng modal sau khi clone & lưu part thành công
+                            if (typeof onSuccess === "function") {
+                                onSuccess();
+                            }
+                            if (typeof onClose === "function") {
+                                onClose();
+                            }
                         } else {
                             message.success("Đã tạo phiên bản mới. Vui lòng mở lại bài thi để tiếp tục chỉnh sửa.");
                         }

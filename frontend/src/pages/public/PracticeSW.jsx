@@ -12,12 +12,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { getPracticeTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_LABELS } from "@services/testsService";
 import { startTest } from "@services/testExamService";
 import styles from "@shared/styles/PracticeSW.module.css";
+import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text, Paragraph } = Typography;
 
 export default function PracticeSW() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [speakingTests, setSpeakingTests] = useState([]);
     const [writingTests, setWritingTests] = useState([]);
@@ -244,6 +246,8 @@ export default function PracticeSW() {
 
             const payload = {
                 ...data,
+                ownerUserId: user?.id || user?.userId || user?.Id || null,
+                ownerEmail: user?.email || user?.Email || null,
                 testId: testIdNum,
                 testResultId: testResultId,
                 originalTestResultId: testResultId,

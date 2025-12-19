@@ -31,6 +31,7 @@ import { getTestResultDetail, startTest } from "../../../services/testExamServic
 import { translateErrorMessage } from "@shared/utils/translateError";
 import { reportQuestion as reportQuestionAPI, getTestResultReports, getMyQuestionReports } from "../../../services/questionReportService";
 import styles from "../../styles/Result.module.css";
+import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text } = Typography;
 
@@ -255,6 +256,7 @@ const buildQuestions = (parts = []) => {
 export default function ResultScreen() {
   const { state } = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { testResultId: stateTestResultId, testMeta: stateTestMeta, autoSubmit } = state || {};
 
 
@@ -280,7 +282,7 @@ export default function ResultScreen() {
   const [retakeTestInfo, setRetakeTestInfo] = useState(null);
   const [practiceCountdown, setPracticeCountdown] = useState(true);
   const [reports, setReports] = useState([]); // Danh sách reports của test result
-  const [reportedQuestionIds, setReportedQuestionIds] = useState(new Set()); // Set các testQuestionId đã report
+  const [reportedQuestionIds, setReportedQuestionIds] = useState(new Set()); // Set các key "testQuestionId_subQuestionId"
   const [reportType, setReportType] = useState("IncorrectAnswer");
   const [reportDescription, setReportDescription] = useState("");
   const [reporting, setReporting] = useState(false);
@@ -446,6 +448,8 @@ export default function ResultScreen() {
       // Tạo payload cho bài thi mới
       const payload = {
         ...data,
+        ownerUserId: user?.id || user?.userId || user?.Id || null,
+        ownerEmail: user?.email || user?.Email || null,
         testId: testIdNum, // ID của bài test (giữ nguyên)
         testResultId: data.testResultId, // ID của bài thi mới (từ API trả về)
         testType: normalizeTestType(data.testType || retakeTestInfo?.testType || result?.testType),
@@ -594,15 +598,21 @@ export default function ResultScreen() {
 
 
   // Kiểm tra xem câu hỏi đã được report chưa
-  const isQuestionReported = (testQuestionId) => {
-    return reportedQuestionIds.has(testQuestionId);
+  const isQuestionReported = (testQuestionId, subQuestionId = null, isGroup = false) => {
+    if (!testQuestionId) return false;
+    const subId = isGroup ? (subQuestionId ?? 0) : 0;
+    const key = `${testQuestionId}_${subId}`;
+    return reportedQuestionIds.has(key);
   };
 
   // Callback khi report thành công
-  const handleReportSuccess = (testQuestionId) => {
-    setReportedQuestionIds(prev => new Set([...prev, testQuestionId]));
-    // Cập nhật reports array
-    setReports(prev => [...prev, { testQuestionId, status: "Pending" }]);
+  const handleReportSuccess = (testQuestionId, subQuestionId = null, isGroup = false) => {
+    if (!testQuestionId) return;
+    const subId = isGroup ? (subQuestionId ?? 0) : 0;
+    const key = `${testQuestionId}_${subId}`;
+    setReportedQuestionIds(prev => new Set([...prev, key]));
+    // Cập nhật reports array (giữ thông tin SubQuestionId để dùng lại nếu cần)
+    setReports(prev => [...prev, { testQuestionId, subQuestionId: isGroup ? subId : null, isQuestionGroup: isGroup, status: "Pending" }]);
   };
 
   // === XỬ LÝ CÂU HỎI TỪ API DETAIL ===
@@ -643,6 +653,8 @@ export default function ResultScreen() {
           const row = {
             key: tq.testQuestionId,
             testQuestionId: tq.testQuestionId, // Thêm testQuestionId để dùng cho report
+            // Lưu questionId để dùng làm SubQuestionId (câu đơn không bắt buộc nhưng không hại)
+            questionId: qs.questionId,
             index: mappedOrder ?? currentGlobalIndex, // Dùng globalIndex đã tính cho TẤT CẢ câu hỏi
             partId: qs.partId || part.partId,
             partTitle,
@@ -690,6 +702,8 @@ export default function ResultScreen() {
               key: `${tq.testQuestionId}_${idx}`,
               testQuestionId: tq.testQuestionId, // Thêm testQuestionId để dùng cho report
               subQuestionIndex: idx, // Lưu subQuestionIndex cho group questions
+              // questionId (ID sub-question trong group) dùng để gửi SubQuestionId lên backend
+              questionId: qs.questionId,
               index: mappedOrder ?? currentGlobalIndex, // Dùng globalIndex đã tính cho TẤT CẢ câu hỏi
               partId: qs.partId || part.partId,
               partTitle,
@@ -775,13 +789,16 @@ export default function ResultScreen() {
       
       setReports(relevantReports);
       
-      // Tạo Set các testQuestionId đã report để check nhanh hơn
+      // Tạo Set các key đã report để check nhanh hơn: "testQuestionId_subQuestionId"
       // Merge với state hiện tại để không mất dữ liệu đã cập nhật
       setReportedQuestionIds(prev => {
         const newSet = new Set(prev); // Giữ lại các ID đã có
         relevantReports.forEach(report => {
           if (report.testQuestionId) {
-            newSet.add(report.testQuestionId);
+            const isGroup = !!report.isQuestionGroup;
+            const subId = isGroup ? (report.subQuestionId ?? 0) : 0;
+            const key = `${report.testQuestionId}_${subId}`;
+            newSet.add(key);
           }
         });
         return newSet;
@@ -1350,7 +1367,7 @@ export default function ResultScreen() {
             Xem
           </Button>
           {/* Nút Báo cáo - luôn hiển thị, nếu đã báo cáo thì hiển thị trạng thái */}
-          {isQuestionReported(row.testQuestionId) ? (
+          {isQuestionReported(row.testQuestionId, row.questionId, row.subQuestionIndex !== undefined) ? (
             <Tooltip title="Đã báo cáo câu hỏi này">
               <FlagOutlined style={{ color: "#52c41a", fontSize: "16px", marginTop: "4px" }} />
             </Tooltip>
@@ -1364,7 +1381,7 @@ export default function ResultScreen() {
                   return;
                 }
                 // Kiểm tra xem câu hỏi đã được báo cáo chưa
-                if (isQuestionReported(row.testQuestionId)) {
+                if (isQuestionReported(row.testQuestionId, row.questionId, row.subQuestionIndex !== undefined)) {
                   message.info("Câu hỏi này đã được báo cáo rồi");
                   return;
                 }
@@ -1372,6 +1389,8 @@ export default function ResultScreen() {
                 const formattedQuestion = formatQuestionText(rawQuestion);
                 setReportQuestion({
                   testQuestionId: row.testQuestionId,
+                  // Với câu group, questionId chính là ID sub-question → map sang SubQuestionId ở backend
+                  subQuestionId: row.questionId,
                   question: formattedQuestion,
                   content: formattedQuestion,
                   index: row.index,
@@ -2552,7 +2571,7 @@ export default function ResultScreen() {
                               </div>
                             </div>
                             <div>
-                              {isQuestionReported(item.testQuestionId) ? (
+                              {isQuestionReported(item.testQuestionId, null, false) ? (
                                 <Tag color="success" icon={<FlagOutlined />}>
                                   Đã báo cáo
                                 </Tag>
@@ -2570,6 +2589,7 @@ export default function ResultScreen() {
                                 );
                                 setReportQuestion({
                                   testQuestionId: item.testQuestionId,
+                  // S&W hiện tại không phải group, không cần SubQuestionId
                                   question: formattedQuestion,
                                   content: formattedQuestion,
                                   index: item.index,
@@ -2645,7 +2665,13 @@ export default function ResultScreen() {
           try {
             setReporting(true);
             const reportedTestQuestionId = reportQuestion.testQuestionId;
-            await reportQuestionAPI(reportQuestion.testQuestionId, reportType, reportDescription);
+            // Gửi thêm subQuestionId (questionId trong group) nếu có
+            await reportQuestionAPI(
+              reportQuestion.testQuestionId,
+              reportType,
+              reportDescription,
+              reportQuestion.subQuestionId
+            );
             message.success("Đã gửi báo cáo thành công");
             
             // Cập nhật state ngay lập tức TRƯỚC KHI đóng modal
@@ -2953,7 +2979,11 @@ export default function ResultScreen() {
               borderTop: "1px solid #e2e8f0",
               textAlign: "center"
             }}>
-              {isQuestionReported(selectedQuestionDetail.testQuestionId) ? (
+              {isQuestionReported(
+                selectedQuestionDetail.testQuestionId,
+                selectedQuestionDetail.questionId,
+                selectedQuestionDetail.subQuestionIndex !== undefined
+              ) ? (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, color: "#52c41a" }}>
                   <FlagOutlined />
                   <Text type="success" strong>Đã báo cáo câu hỏi này</Text>
@@ -2963,12 +2993,18 @@ export default function ResultScreen() {
                   icon={<FlagOutlined />}
                   onClick={() => {
                     // Kiểm tra xem câu hỏi đã được báo cáo chưa
-                    if (isQuestionReported(selectedQuestionDetail.testQuestionId)) {
+                    if (isQuestionReported(
+                      selectedQuestionDetail.testQuestionId,
+                      selectedQuestionDetail.questionId,
+                      selectedQuestionDetail.subQuestionIndex !== undefined
+                    )) {
                       message.info("Câu hỏi này đã được báo cáo rồi");
                       return;
                     }
                     setReportQuestion({
                       testQuestionId: selectedQuestionDetail.testQuestionId,
+                      // Nếu là câu trong group, questionId sẽ là ID sub-question để backend map SubQuestionId
+                      subQuestionId: selectedQuestionDetail.questionId,
                       question: selectedQuestionDetail.question,
                       content: selectedQuestionDetail.question,
                     });
@@ -3347,7 +3383,7 @@ export default function ResultScreen() {
                   textAlign: "center",
                 }}
               >
-                {isQuestionReported(selectedSwFeedback.testQuestionId) ? (
+                {isQuestionReported(selectedSwFeedback.testQuestionId, null, false) ? (
                   <Tag color="success" icon={<FlagOutlined />}>
                     Câu hỏi này đã được báo cáo
                   </Tag>

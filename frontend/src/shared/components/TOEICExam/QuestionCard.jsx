@@ -137,6 +137,7 @@ export default function QuestionCard({
   isIncorrect = undefined, // Prop để xác định câu hỏi làm sai (undefined = trong quá trình làm bài, true = làm sai ở result, false = làm đúng ở result)
   isReported = false, // Prop để xác định câu hỏi đã được report
   onReportSuccess, // Callback khi report thành công
+  subQuestionId: propSubQuestionId, // ID sub-question trong group (dùng cho SubQuestionId khi report)
 }) {
   const audioRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -594,11 +595,19 @@ export default function QuestionCard({
 
     try {
       setReporting(true);
-      await reportQuestion(question.testQuestionId, reportType, reportDescription);
+      // Với câu group, ưu tiên dùng subQuestionId truyền từ ExamScreen; fallback sang question.questionId nếu có
+      const isGroupQuestion =
+        question?.type === "group" ||
+        (question?.subQuestionIndex !== undefined && question?.subQuestionIndex !== null);
+      const subQuestionId = isGroupQuestion
+        ? (propSubQuestionId ?? question.questionId ?? null)
+        : null;
+
+      await reportQuestion(question.testQuestionId, reportType, reportDescription, subQuestionId);
       message.success("Đã gửi báo cáo thành công");
       handleCloseReportModal();
       if (onReportSuccess) {
-        onReportSuccess(question.testQuestionId);
+        onReportSuccess(question.testQuestionId, subQuestionId, isGroupQuestion);
       }
     } catch (error) {
       console.error("Error reporting question:", error);
