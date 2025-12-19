@@ -28,16 +28,13 @@ namespace ToeicGenius.Services.Implementations
 			var msg = MailHelper.CreateSingleEmail(from, to, subject, null, body);
 
 			var response = await client.SendEmailAsync(msg);
-				_configuration["MailSettings:Password"]
+
 			if (!response.IsSuccessStatusCode)
 			{
 				// Logic xử lý khi lỗi (log error)
 				var error = await response.Body.ReadAsStringAsync();
 				throw new Exception($"SendGrid Error: {error}");
 			}
-			smtpClient.EnableSsl = true;
-
-			await smtpClient.SendMailAsync(message);
 		}
 	}
 }
