@@ -986,12 +986,12 @@ export default function ExamManagement() {
                     : "";
                 return (
                     <Tooltip title={tooltipTitle}>
-                        <Switch
-                            checked={isPublished}
-                            checkedChildren="Hiện"
-                            unCheckedChildren="Ẩn"
-                            loading={switchLoadingId === examId}
-                            disabled={!isCompleted}
+                    <Switch
+                        checked={isPublished}
+                        checkedChildren="Hiện"
+                        unCheckedChildren="Ẩn"
+                        loading={switchLoadingId === examId}
+                        disabled={!isCompleted}
                             onChange={(checked) => {
                                 if (!isCompleted) return;
                                 const actionLabel = checked ? "hiển thị (Published)" : "ẩn (Hidden)";
@@ -1003,7 +1003,7 @@ export default function ExamManagement() {
                                     onOk: () => handleVisibilityToggle(rec, checked),
                                 });
                             }}
-                        />
+                    />
                     </Tooltip>
                 );
             },

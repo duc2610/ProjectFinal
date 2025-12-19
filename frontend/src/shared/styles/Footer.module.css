@@ -234,7 +234,7 @@
   }
 
   .bottomSection {
-    flex-direction: column;
+    flex-direction: column-reverse; /* Đưa copyright xuống cuối cùng */
     align-items: flex-start;
     gap: 12px;
   }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Tag, Row, Col, Empty, Spin, Space, Typography, Divider, message, Select } from "antd";
+import { Card, Button, Tag, Row, Col, Empty, Spin, Space, Typography, Divider, message, Select, Pagination } from "antd";
 import { 
     PlayCircleOutlined, 
     ClockCircleOutlined, 
@@ -11,6 +11,7 @@ import { getSimulatorTests, TEST_SKILL, TEST_TYPE, TEST_TYPE_LABELS, TEST_SKILL_
 import { startTest } from "@services/testExamService";
 import styles from "@shared/styles/PracticeLR.module.css";
 import { useAuth } from "@shared/hooks/useAuth";
+import { useResponsivePageSize } from "@shared/hooks/useResponsivePageSize";
 
 const { Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -19,10 +20,12 @@ export default function TestList() {
     const navigate = useNavigate();
     const location = useLocation();
     const { user } = useAuth();
+    const pageSize = useResponsivePageSize(); // 6 (mobile) hoặc 12 (desktop)
     const [loading, setLoading] = useState(true);
     const [tests, setTests] = useState([]);
     const [filterSkill, setFilterSkill] = useState("all");
     const [allTests, setAllTests] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         fetchTests();
@@ -87,6 +90,7 @@ export default function TestList() {
     const applyFilter = (testsList, skill) => {
         if (skill === "all") {
             setTests(testsList);
+            setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
             return;
         }
         
@@ -97,6 +101,7 @@ export default function TestList() {
         
         if (skillValue === null) {
             setTests(testsList);
+            setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
             return;
         }
         
@@ -128,6 +133,7 @@ export default function TestList() {
             return false;
         });
         setTests(filtered);
+        setCurrentPage(1); // Reset về trang 1 khi filter thay đổi
     };
 
     const handleFilterChange = (skill) => {
@@ -367,11 +373,11 @@ export default function TestList() {
                     </p>
                 </div>
 
-                <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'flex-end' }}>
+                <div className={styles.filterBar}>
                     <Select
                         value={filterSkill}
                         onChange={handleFilterChange}
-                        style={{ width: 200 }}
+                        className={styles.filterSelect}
                         placeholder="Lọc theo kỹ năng"
                     >
                         <Option value="all">Tất cả</Option>
@@ -395,87 +401,108 @@ export default function TestList() {
                         />
                     </Card>
                 ) : (
-                    <Row gutter={[16, 16]}>
-                        {tests.map((test) => (
-                            <Col xs={24} sm={12} lg={6} key={test.id}>
-                                <Card
-                                    hoverable
-                                    className={styles.testCard}
-                                    bodyStyle={{ 
-                                        padding: "24px",
-                                        flex: 1,
-                                        display: "flex",
-                                        flexDirection: "column"
-                                    }}
-                                    actions={[
-                                        test.resultProgress?.status === "InProgress" ? (
-                                            <Button
-                                                type="default"
-                                                size="middle"
-                                                onClick={() => handleContinueTest(test)}
-                                                className={styles.testStartButton}
-                                            >
-                                                <Space>
-                                                    <PlayCircleOutlined />
-                                                    <span>Chưa hoàn thành</span>
-                                                </Space>
-                                            </Button>
-                                        ) : (
-                                            <Button
-                                                type="primary"
-                                                size="middle"
-                                                onClick={() => handleStartTest(test)}
-                                                className={styles.testStartButton}
-                                            >
-                                                <Space>
-                                                    <PlayCircleOutlined />
-                                                    <span>Bắt đầu làm bài</span>
-                                                </Space>
-                                            </Button>
-                                        )
-                                    ]}
-                                >
-                                    <div className={styles.testTagsContainer}>
-                                        <Tag 
-                                            color={getSkillColor(test.testSkill)}
-                                            className={styles.testTag}
+                    <>
+                        <Row gutter={[16, 16]}>
+                            {(() => {
+                                const startIndex = (currentPage - 1) * pageSize;
+                                const endIndex = startIndex + pageSize;
+                                const visibleTests = tests.slice(startIndex, endIndex);
+                                
+                                return visibleTests.map((test) => (
+                                    <Col xs={24} sm={12} lg={6} key={test.id}>
+                                        <Card
+                                            hoverable
+                                            className={styles.testCard}
+                                            bodyStyle={{ 
+                                                padding: "24px",
+                                                flex: 1,
+                                                display: "flex",
+                                                flexDirection: "column"
+                                            }}
+                                            actions={[
+                                                test.resultProgress?.status === "InProgress" ? (
+                                                    <Button
+                                                        type="default"
+                                                        size="middle"
+                                                        onClick={() => handleContinueTest(test)}
+                                                        className={styles.testStartButton}
+                                                    >
+                                                        <Space>
+                                                            <PlayCircleOutlined />
+                                                            <span>Chưa hoàn thành</span>
+                                                        </Space>
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        type="primary"
+                                                        size="middle"
+                                                        onClick={() => handleStartTest(test)}
+                                                        className={styles.testStartButton}
+                                                    >
+                                                        <Space>
+                                                            <PlayCircleOutlined />
+                                                            <span>Bắt đầu làm bài</span>
+                                                        </Space>
+                                                    </Button>
+                                                )
+                                            ]}
                                         >
-                                            {getSkillLabel(test.testSkill)}
-                                        </Tag>
-                                        <Tag 
-                                            color="cyan"
-                                            className={styles.testTag}
-                                        >
-                                            {test.testType}
-                                        </Tag>
-                                    </div>
+                                            <div className={styles.testTagsContainer}>
+                                                <Tag 
+                                                    color={getSkillColor(test.testSkill)}
+                                                    className={styles.testTag}
+                                                >
+                                                    {getSkillLabel(test.testSkill)}
+                                                </Tag>
+                                                <Tag 
+                                                    color="cyan"
+                                                    className={styles.testTag}
+                                                >
+                                                    {test.testType}
+                                                </Tag>
+                                            </div>
 
-                                    <h3 className={styles.testTitle}>
-                                        {test.title}
-                                    </h3>
+                                            <h3 className={styles.testTitle}>
+                                                {test.title}
+                                            </h3>
 
-                                    <p className={styles.testDescription}>
-                                        {test.description}
-                                    </p>
+                                            <p className={styles.testDescription}>
+                                                {test.description}
+                                            </p>
 
-                                    <div className={styles.testFooter}>
-                                        <Space>
-                                            <ClockCircleOutlined className={`${styles.testFooterIcon} ${styles.testFooterIconClock}`} />
-                                            <span className={styles.testFooterIcon}>
-                                                {test.duration} phút
-                                            </span>
-                                        </Space>
-                                        <Space>
-                                            <FileTextOutlined className={`${styles.testFooterIcon} ${styles.testFooterIconFile}`} />
-                                            <span className={styles.testFooterIcon}>
-                                                {test.questionQuantity} câu
-                                            </span>
-                                        </Space>
-                                    </div>
-                                </Card>
-                            </Col>
-                        ))}
-                    </Row>
+                                            <div className={styles.testFooter}>
+                                                <Space>
+                                                    <ClockCircleOutlined className={`${styles.testFooterIcon} ${styles.testFooterIconClock}`} />
+                                                    <span className={styles.testFooterIcon}>
+                                                        {test.duration} phút
+                                                    </span>
+                                                </Space>
+                                                <Space>
+                                                    <FileTextOutlined className={`${styles.testFooterIcon} ${styles.testFooterIconFile}`} />
+                                                    <span className={styles.testFooterIcon}>
+                                                        {test.questionQuantity} câu
+                                                    </span>
+                                                </Space>
+                                            </div>
+                                        </Card>
+                                    </Col>
+                                ));
+                            })()}
+                        </Row>
+                        
+                        {/* Phân trang */}
+                        {tests.length > pageSize && (
+                            <div style={{ marginTop: 24, textAlign: "center" }}>
+                                <Pagination
+                                    current={currentPage}
+                                    pageSize={pageSize}
+                                    total={tests.length}
+                                    onChange={setCurrentPage}
+                                    showSizeChanger={false}
+                                />
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

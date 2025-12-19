@@ -629,37 +629,116 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .quizlet-container {
+    padding: 16px 12px;
+  }
+
+  .quizlet-title {
+    font-size: 22px;
+  }
+
+  .quizlet-subtitle {
+    font-size: 14px;
+  }
+
+  .quizlet-all-buttons {
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .quizlet-mode-btn,
+  .quizlet-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
   .quizlet-main-card,
   .quizlet-learn-card {
-    width: calc(100% - 32px);
+    width: calc(100% - 48px);
     max-width: 500px;
     height: 350px;
   }
 
   .quizlet-card-word {
-    font-size: 36px;
+    font-size: 32px;
   }
 
-  .quizlet-card-wrapper {
-    gap: 12px;
+  .quizlet-card-content {
+    padding: 24px 16px;
   }
 
-  .quizlet-nav-button {
-    width: 40px;
-    height: 40px;
+  .quizlet-card-meta {
     font-size: 16px;
   }
 
-  .quizlet-mode-buttons {
-    flex-direction: column;
+  .quizlet-card-section-title {
+    font-size: 14px;
   }
 
-  .quizlet-mode-btn {
+  .quizlet-card-examples {
+    font-size: 14px;
+  }
+
+  .quizlet-card-notes-text {
+    font-size: 13px;
+  }
+
+  .quizlet-card-hint {
+    font-size: 14px;
+  }
+
+  .quizlet-card-wrapper {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .quizlet-nav-button {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .quizlet-card-actions {
+    margin-top: 16px;
+  }
+
+  .quizlet-card-action-btn {
     width: 100%;
+    max-width: 200px;
+  }
+
+  .quizlet-vocab-section {
+    padding: 16px;
+  }
+
+  .quizlet-vocab-title {
+    font-size: 18px;
+  }
+
+  .quizlet-vocab-item {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .quizlet-vocab-term {
+    font-size: 16px;
+  }
+
+  .quizlet-vocab-definition {
+    font-size: 14px;
+  }
+
+  .quizlet-vocab-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 8px;
   }
 
   .quizlet-learn-stats {
-    gap: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
   }
 
   .quizlet-stat-value {
@@ -670,6 +749,63 @@
     flex-direction: column;
     gap: 16px;
     align-items: center;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .quizlet-container {
+    padding: 12px 8px;
+  }
+
+  .quizlet-title {
+    font-size: 20px;
+  }
+
+  .quizlet-main-card,
+  .quizlet-learn-card {
+    width: calc(100% - 32px);
+    height: 300px;
+  }
+
+  .quizlet-card-word {
+    font-size: 28px;
+  }
+
+  .quizlet-card-content {
+    padding: 20px 12px;
+  }
+
+  .quizlet-card-meta {
+    font-size: 14px;
+  }
+
+  .quizlet-card-wrapper {
+    gap: 4px;
+  }
+
+  .quizlet-nav-button {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .quizlet-vocab-item {
+    padding: 12px;
+  }
+
+  .quizlet-vocab-number {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .quizlet-vocab-term {
+    font-size: 15px;
+  }
+
+  .quizlet-vocab-definition {
+    font-size: 13px;
   }
 }
 
