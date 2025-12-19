@@ -29,7 +29,6 @@ namespace ToeicGenius.Domains.Entities
 
 		// New format: Version history - JSON array of all question versions
 		// Format: QuestionVersionHistory (contains list of versions)
-		[Column(TypeName = "nvarchar(max)")]
 		public string? SnapshotVersions { get; set; }
 
 		// Current version number (for quick access, used with SnapshotVersions)

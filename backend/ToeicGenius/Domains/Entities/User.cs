@@ -23,7 +23,7 @@ namespace ToeicGenius.Domains.Entities
 
 		public UserStatus Status { get; set; } = UserStatus.Active;
 
-		public DateTime CreatedAt { get; set; } = Now;
+		public DateTime CreatedAt { get; set; } = UtcNow;
 		public DateTime? UpdatedAt { get; set; }
 
 		public bool IsRoot { get; set; } = false;

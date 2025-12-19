@@ -26,7 +26,7 @@ namespace ToeicGenius.Domains.Entities
 		public int SkipCount { get; set; }
 		public bool IsSelectTime { get; set; } = true;
 		public TestType TestType { get; set; }
-		public DateTime CreatedAt { get; set; } = Now;
+		public DateTime CreatedAt { get; set; } = UtcNow;
 		public DateTime? UpdatedAt { get; set; }
 		public ICollection<UserAnswer> UserAnswers { get; set; } = new List<UserAnswer>();
 		public ICollection<UserTestSkillScore> SkillScores { get; set; } = new List<UserTestSkillScore>();

@@ -10,10 +10,12 @@ namespace ToeicGenius.Services.Implementations
 	public class EmailService : IEmailService
 	{
 		private readonly IConfiguration _configuration;
+		private readonly ILogger<EmailService> _logger;
 
-		public EmailService(IConfiguration configuration)
+		public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
 		{
 			_configuration = configuration;
+			_logger = logger;
 		}
 		
 		public async Task SendMailAsync(string toEmail, string subject, string body)
@@ -26,13 +28,16 @@ namespace ToeicGenius.Services.Implementations
 			var msg = MailHelper.CreateSingleEmail(from, to, subject, null, body);
 
 			var response = await client.SendEmailAsync(msg);
-
+				_configuration["MailSettings:Password"]
 			if (!response.IsSuccessStatusCode)
 			{
 				// Logic xử lý khi lỗi (log error)
 				var error = await response.Body.ReadAsStringAsync();
 				throw new Exception($"SendGrid Error: {error}");
 			}
+			smtpClient.EnableSsl = true;
+
+			await smtpClient.SendMailAsync(message);
 		}
 	}
 }

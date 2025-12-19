@@ -26,7 +26,7 @@ namespace ToeicGenius.Domains.Entities
         public DateTime? LastReviewedAt { get; set; }
         public DateTime? NextReviewAt { get; set; }
 
-        public DateTime CreatedAt { get; set; } = Now;
+        public DateTime CreatedAt { get; set; } = UtcNow;
         public DateTime? UpdatedAt { get; set; }
     }
 }

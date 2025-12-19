@@ -250,7 +250,17 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
                             loading={actionLoadingId === testId}
                             checkedChildren="Hiện"
                             unCheckedChildren="Ẩn"
-                            onChange={(checked) => handleToggleVisibility(record, checked)}
+                            onChange={(checked) => {
+                                if (!canToggle) return;
+                                const actionLabel = checked ? "hiển thị version này" : "ẩn version này";
+                                Modal.confirm({
+                                    title: "Xác nhận thay đổi trạng thái version",
+                                    content: `Bạn có chắc chắn muốn ${actionLabel}?`,
+                                    okText: "Xác nhận",
+                                    cancelText: "Hủy",
+                                    onOk: () => handleToggleVisibility(record, checked),
+                                });
+                            }}
                         />
                     </Tooltip>
                 );

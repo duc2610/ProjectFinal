@@ -11,7 +11,7 @@ import {
   Col,
   notification,
 } from "antd";
-import { ArrowRightOutlined } from "@ant-design/icons";
+import { ArrowRightOutlined, HomeOutlined } from "@ant-design/icons";
 import logo from "@assets/images/logo.png";
 import { useNavigate } from "react-router-dom";
 import { register as registerService } from "@services/authService";
@@ -21,6 +21,7 @@ const { Title, Text, Link } = Typography;
 export default function Register() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const [loading, setLoading] = React.useState(false);
 
   const collapseSpaces = (s) => {
     if (typeof s !== "string") return s;
@@ -61,6 +62,7 @@ export default function Register() {
 
     const payload = { fullName, email, password };
 
+    setLoading(true);
     try {
       await registerService(payload);
       notification.success({
@@ -86,6 +88,8 @@ export default function Register() {
       const rawMsg = err?.response?.data?.message || "Gửi OTP thất bại";
       const msg = translateError(rawMsg);
       form.setFields([{ name: "email", errors: [msg] }]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,7 +105,12 @@ export default function Register() {
         padding: 16,
       }}
     >
-      <img src={logo} alt="Logo" style={{ height: 90, margin: 16 }} />
+      <img 
+        src={logo} 
+        alt="Logo" 
+        style={{ height: 90, margin: 16, cursor: "pointer" }}
+        onClick={() => navigate("/login")}
+      />
       <Card
         style={{
           width: 750,
@@ -346,6 +355,8 @@ export default function Register() {
               width: "100%",
             }}
             icon={<ArrowRightOutlined />}
+            loading={loading}
+            iconPosition="end"
           >
             Đăng ký
           </Button>
@@ -359,6 +370,16 @@ export default function Register() {
               Quên mật khẩu?{" "}
               <Link href="/forgot-password">Đặt lại tại đây</Link>
             </Text>
+          </div>
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <Button
+              type="default"
+              icon={<HomeOutlined />}
+              onClick={() => navigate("/")}
+              style={{ borderRadius: 8 }}
+            >
+              Về trang chủ
+            </Button>
           </div>
         </Form>
       </Card>

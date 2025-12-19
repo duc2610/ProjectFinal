@@ -4,8 +4,10 @@
   height: 72px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   border-bottom: 1px solid #e8eaed;
-  position: sticky;
-  top: 0;
+  position: sticky !important;
+  top: 0 !important;
+  left: 0;
+  right: 0;
   z-index: 1000;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
@@ -75,6 +77,100 @@
   align-items: center;
   gap: 8px;
   overflow: hidden;
+  max-width: 100%;
+}
+
+.mobileMenuButton {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 18px;
+  color: #1e293b;
+  transition: all 0.2s ease;
+}
+
+.mobileMenuButton:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.mobileMenuDrawer :global(.ant-drawer-body) {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 12px;
+}
+
+.mobileNav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobileNavItem {
+  padding: 10px 0;
+  font-size: 14px;
+  color: #475569;
+  text-decoration: none;
+}
+
+.mobileNavItemActive {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.mobileAuthSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mobileAuthButtonPrimary,
+.mobileAuthButtonSecondary {
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mobileAuthButtonPrimary {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: #ffffff;
+}
+
+.mobileAuthButtonPrimary:hover {
+  filter: brightness(1.05);
+}
+
+.mobileAuthButtonSecondary {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  color: #1e293b;
+}
+
+.mobileAuthButtonSecondary:hover {
+  background: #f1f5f9;
+}
+
+.mobileUserInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mobileUserName {
+  color: #0f172a;
+  font-weight: 500;
 }
 
 .link {
@@ -311,7 +407,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 992px) {
   .header {
     padding: 0 16px;
     height: 64px;
@@ -326,7 +422,7 @@
   }
   
   .navRight {
-    gap: 4px;
+    display: none;
   }
   
   .link {
@@ -341,6 +437,10 @@
   .actions {
     gap: 8px;
     padding-left: 12px;
+  }
+
+  .mobileMenuButton {
+    display: inline-flex;
   }
   
   .inner {

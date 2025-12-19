@@ -149,6 +149,17 @@
     text-align: center;
 }
 
+/* Filter bar */
+.filterBar {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.filterSelect {
+    width: 220px;
+}
+
 /* Tests Grid */
 .loadingContainer {
     text-align: center;
@@ -361,6 +372,27 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+    .container {
+        padding: 24px 12px;
+    }
+
+    .headerTitle {
+        font-size: 32px;
+    }
+
+    .headerDescription {
+        font-size: 16px;
+    }
+
+    .filterBar {
+        justify-content: center;
+    }
+
+    .filterSelect {
+        width: 100%;
+        max-width: 260px;
+    }
+
     .totalInfoNumber {
         font-size: 36px !important;
     }

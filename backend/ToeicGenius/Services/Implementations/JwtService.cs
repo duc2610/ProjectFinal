@@ -40,7 +40,7 @@ namespace ToeicGenius.Services.Implementations
 				issuer: _configuration["Jwt:Issuer"],
 				audience: _configuration["Jwt:Audience"],
 				claims: claims,
-				expires: DateTime.Now.AddMinutes(double.Parse(_configuration["Jwt:ExpireMinutes"])),
+				expires: UtcNow.AddMinutes(double.Parse(_configuration["Jwt:ExpireMinutes"])),
 				signingCredentials: credentials
 				);
 
@@ -56,9 +56,9 @@ namespace ToeicGenius.Services.Implementations
 			return new RefreshToken
 			{
 				Token = Convert.ToBase64String(randomBytes),
-				ExpiresAt = Now.AddDays(7),
+				ExpiresAt = UtcNow.AddDays(7),
 				CreatedByIp = ipAddress,
-				CreatedAt = Now,
+				CreatedAt = UtcNow,
 			};
 		}
 

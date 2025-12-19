@@ -1,8 +1,10 @@
-import { Layout, Avatar, Space, Typography } from "antd";
+import { useState } from "react";
+import { Layout, Avatar, Space, Typography, Drawer } from "antd";
 import {
   UserOutlined,
   LogoutOutlined,
   DownOutlined,
+  MenuOutlined,
 } from "@ant-design/icons";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import logo from "@assets/images/logo.png";
@@ -25,6 +27,7 @@ export default function Header() {
   const fullName =
     user?.fullName || user?.FullName || user?.email || "User";
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     signOut();
@@ -104,6 +107,16 @@ export default function Header() {
         </Link>
 
         <div className={styles.right}>
+          {/* Nút menu mobile */}
+          <button
+            type="button"
+            className={styles.mobileMenuButton}
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Mở menu điều hướng"
+          >
+            <MenuOutlined />
+          </button>
+
           <nav className={styles.navRight}>
             {nav.map((item) => (
               <NavLink
@@ -154,6 +167,98 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      {/* Menu mobile dạng Drawer */}
+      <Drawer
+        placement="left"
+        closable
+        onClose={() => setMobileMenuOpen(false)}
+        open={mobileMenuOpen}
+        className={styles.mobileMenuDrawer}
+        width={260}
+        title="Menu"
+      >
+        <nav className={styles.mobileNav}>
+          {nav.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                isActive
+                  ? `${styles.mobileNavItem} ${styles.mobileNavItemActive}`
+                  : styles.mobileNavItem
+              }
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className={styles.mobileAuthSection}>
+          {!isAuthenticated ? (
+            <>
+              <button
+                type="button"
+                className={styles.mobileAuthButtonPrimary}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate("/login");
+                }}
+              >
+                Đăng nhập
+              </button>
+              <button
+                type="button"
+                className={styles.mobileAuthButtonSecondary}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  navigate("/register");
+                }}
+              >
+                Đăng ký
+              </button>
+            </>
+          ) : (
+            <>
+              <div className={styles.mobileUserInfo}>
+                <Avatar
+                  size={40}
+                  style={{
+                    background:
+                      "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                    border: "2px solid #e2e8f0",
+                    fontWeight: 600,
+                  }}
+                >
+                  {fullName?.charAt(0).toUpperCase()}
+                </Avatar>
+                <Text className={styles.mobileUserName}>{fullName}</Text>
+              </div>
+              <button
+                type="button"
+                className={styles.mobileAuthButtonPrimary}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleProfileClick();
+                }}
+              >
+                Hồ sơ
+              </button>
+              <button
+                type="button"
+                className={styles.mobileAuthButtonSecondary}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  handleLogout();
+                }}
+              >
+                Đăng xuất
+              </button>
+            </>
+          )}
+        </div>
+      </Drawer>
     </AntHeader>
   );
 }

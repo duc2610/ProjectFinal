@@ -14,6 +14,7 @@ import {
   Alert,
   Select,
   Tooltip,
+  Grid,
 } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -34,6 +35,7 @@ import styles from "../../styles/Result.module.css";
 import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 // Helper functions từ ExamSelection
 const normalizeTestType = (value) => {
@@ -257,6 +259,8 @@ export default function ResultScreen() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const screens = useBreakpoint();
+  const isMobile = !screens.md; // < 768px
   const { testResultId: stateTestResultId, testMeta: stateTestMeta, autoSubmit } = state || {};
 
 
@@ -352,6 +356,23 @@ export default function ResultScreen() {
     const path = resolveBackPath() || "/test-list";
     navigate(path, { replace: true });
   };
+
+  // Xử lý browser back button - khi bấm back từ result, về trang list test tương ứng
+  useEffect(() => {
+    const handlePopState = (e) => {
+      // Khi bấm back từ result page, navigate về trang list test tương ứng
+      const currentPath = window.location.pathname;
+      if (currentPath === "/result") {
+        const path = resolveBackPath() || "/test-list";
+        navigate(path, { replace: true });
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [navigate, resolveBackPath]);
 
   // Hàm xử lý làm lại bài thi - hiển thị modal confirm
   const handleRetakeTest = () => {
@@ -547,6 +568,7 @@ export default function ResultScreen() {
     },
     [detailData]
   );
+
 
   // === XỬ LÝ DỮ LIỆU TỪ SUBMIT ===
   useEffect(() => {
@@ -1282,7 +1304,11 @@ export default function ResultScreen() {
 
   useEffect(() => {
     setLrPagination((prev) => ({ ...prev, current: 1 }));
-  }, [selectedSection]);
+    // Trên màn hình nhỏ, luôn hiển thị phần tổng quan
+    if (isMobile && selectedSection !== "overall") {
+      setSelectedSection("overall");
+    }
+  }, [selectedSection, isMobile]);
 
   // === TABLE COLUMNS CHO L&R ===
   const columns = [
@@ -2354,7 +2380,8 @@ export default function ResultScreen() {
   // === CÓ TRẢ LỜI → HIỂN THỊ KẾT QUẢ ===
   return (
     <div className={styles.resultPage}>
-      {/* SIDEBAR */}
+      {/* SIDEBAR - Ẩn trên màn hình nhỏ */}
+      {!isMobile && (
       <div className={styles.sidebar}>
         <Title level={4}>Các phần thi</Title>
         {sections.map((s) => (
@@ -2416,6 +2443,7 @@ export default function ResultScreen() {
           </Text>
         </div>
       </div>
+      )}
 
       {/* MAIN CONTENT */}
       <div className={styles.mainContent}>
@@ -2433,6 +2461,7 @@ export default function ResultScreen() {
               Kết quả bài thi TOEIC
             </Title>
           </div>
+          {!isMobile && (
           <Button
             ghost
             style={{ borderColor: "#fff", color: "#fff" }}
@@ -2440,20 +2469,55 @@ export default function ResultScreen() {
           >
             Làm lại bài thi
           </Button>
+          )}
         </div>
 
         <div className={styles.content}>
-          <Title level={4} style={{ color: "#003a8c" }}>
-            {selectedSection === "overall"
-              ? "Kết quả tổng quan"
-              : sections.find((s) => s.key === selectedSection)?.title}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isMobile ? 16 : 0, flexWrap: "wrap", gap: 12 }}>
+            <Title level={4} style={{ color: "#003a8c", margin: 0 }}>
+              Kết quả tổng quan
           </Title>
+            {isMobile && (
+              <Button
+                type="primary"
+                onClick={handleRetakeTest}
+                style={{ borderRadius: 6 }}
+              >
+                Làm lại bài thi
+              </Button>
+            )}
+          </div>
+
+          {/* Thông báo trên màn hình nhỏ */}
+          {isMobile && (
+            <Alert
+              type="info"
+              showIcon
+              message="Xem chi tiết bài thi"
+              description={
+                <div>
+                  <Text>
+                    Trên màn hình nhỏ, chỉ hiển thị thông tin tổng quan. Để xem chi tiết các phần thi khác (Nghe, Đọc, Viết, Nói), vui lòng vào{" "}
+                    <Button
+                      type="link"
+                      onClick={() => navigate("/profile?tab=test-history")}
+                      style={{ padding: 0, height: "auto", fontWeight: 600 }}
+                    >
+                      Lịch sử làm bài
+                    </Button>{" "}
+                    trong trang cá nhân của bạn.
+                  </Text>
+                </div>
+              }
+              style={{ marginBottom: 24 }}
+            />
+          )}
 
           <Card className={styles.scoreCard}>
             <div className={styles.scoreDisplay}>{renderScoreDisplay()}</div>
 
-            {/* BẢNG CÂU HỎI L&R */}
-            {(selectedSection === "listening" || selectedSection === "reading") && (
+            {/* BẢNG CÂU HỎI L&R - Ẩn trên màn hình nhỏ */}
+            {!isMobile && (selectedSection === "listening" || selectedSection === "reading") && (
               <Table
                 dataSource={
                   selectedSection === "listening"
@@ -2479,8 +2543,8 @@ export default function ResultScreen() {
               />
             )}
 
-            {/* DANH SÁCH CÂU HỎI WRITING/SPEAKING - DÙNG CARD */}
-            {(selectedSection === "writing" || selectedSection === "speaking") && (
+            {/* DANH SÁCH CÂU HỎI WRITING/SPEAKING - DÙNG CARD - Ẩn trên màn hình nhỏ */}
+            {!isMobile && (selectedSection === "writing" || selectedSection === "speaking") && (
               <div style={{ marginTop: 20 }}>
                 {(selectedSection === "writing"
                   ? swFeedbacks.writing

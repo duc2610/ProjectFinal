@@ -25,7 +25,7 @@ namespace ToeicGenius.Domains.Entities
         public string? AudioUrl { get; set; }
 		public string? ImageUrl { get; set; }
 		public string? Explanation { get; set; }
-		public DateTime CreatedAt { get; set; } = Now;
+		public DateTime CreatedAt { get; set; } = UtcNow;
 		public DateTime? UpdatedAt { get; set; }
 		public CommonStatus Status { get; set; } = CommonStatus.Active;
 

@@ -377,9 +377,18 @@ const AccountManagement = () => {
         }
 
         return (
-          <Switch
+        <Switch
             checked={record.isActive}
-            onChange={() => handleToggleStatus(record.id, record.isActive)}
+            onChange={() => {
+              const actionLabel = record.isActive ? "chuyển tài khoản này sang trạng thái Bị ban" : "mở khóa tài khoản này";
+              Modal.confirm({
+                title: "Xác nhận thay đổi trạng thái tài khoản",
+                content: `Bạn có chắc chắn muốn ${actionLabel}?`,
+                okText: "Xác nhận",
+                cancelText: "Hủy",
+                onOk: () => handleToggleStatus(record.id, record.isActive),
+              });
+            }}
             disabled={loading[record.isActive ? "active" : "banned"]}
           />
         );

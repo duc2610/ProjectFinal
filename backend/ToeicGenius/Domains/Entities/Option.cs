@@ -17,7 +17,7 @@ namespace ToeicGenius.Domains.Entities
 		public string? Content { get; set; }
 		public bool IsCorrect { get; set; }
 		public CommonStatus Status { get; set; } = CommonStatus.Active;
-		public DateTime CreatedAt { get; set; } = Now;
+		public DateTime CreatedAt { get; set; } = UtcNow;
 		public DateTime? UpdatedAt { get; set; }
 	}
 }

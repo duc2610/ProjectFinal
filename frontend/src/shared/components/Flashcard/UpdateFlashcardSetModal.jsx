@@ -65,7 +65,15 @@ export default function UpdateFlashcardSetModal({ open, onClose, onSuccess, setI
     <Modal
       title="Chỉnh sửa flashcard set"
       open={open}
-      onOk={handleSubmit}
+      onOk={() => {
+        Modal.confirm({
+          title: "Xác nhận cập nhật flashcard set",
+          content: "Bạn có chắc chắn muốn lưu các thay đổi cho flashcard set này?",
+          okText: "Cập nhật",
+          cancelText: "Hủy",
+          onOk: () => handleSubmit(),
+        });
+      }}
       onCancel={handleCancel}
       confirmLoading={loading}
       okText="Cập nhật"

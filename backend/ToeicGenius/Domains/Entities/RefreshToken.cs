@@ -16,7 +16,7 @@ namespace ToeicGenius.Domains.Entities
 		public string Token { get; set; } = string.Empty;
 
 		public DateTime ExpiresAt { get; set; }
-		public DateTime CreatedAt { get; set; } = Now;
+		public DateTime CreatedAt { get; set; } = UtcNow;
 
 		[MaxLength(50)]
 		public string? CreatedByIp { get; set; }

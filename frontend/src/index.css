@@ -22,3 +22,28 @@ body {
 .app {
   padding: 16px;
 }
+
+/* Điều chỉnh vị trí notification để không che header */
+/* Header có height 72px và sticky, set top 100px để có khoảng cách an toàn */
+.ant-notification {
+  top: 100px !important;
+  z-index: 999 !important; /* Thấp hơn header (1000) nhưng vẫn hiển thị trên content */
+}
+
+/* Điều chỉnh cho các placement khác nhau */
+.ant-notification-topRight {
+  top: 100px !important;
+  right: 24px !important;
+  z-index: 999 !important;
+}
+
+.ant-notification-topLeft {
+  top: 100px !important;
+  left: 24px !important;
+  z-index: 999 !important;
+}
+
+.ant-notification-top {
+  top: 100px !important;
+  z-index: 999 !important;
+}

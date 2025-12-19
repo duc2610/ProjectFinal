@@ -31,7 +31,7 @@ namespace ToeicGenius.Domains.Entities
 
 		public string? AudioUrl { get; set; }
 
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
 		public ICollection<FlashcardProgress> Progresses { get; set; } = new List<FlashcardProgress>();

@@ -33,7 +33,17 @@ const clearToeicSession = () => {
   if (typeof window === "undefined") return;
   try {
     sessionStorage.removeItem(TOEIC_TEST_DATA_KEY);
-    sessionStorage.removeItem(TOEIC_RESULT_META_KEY);
+    // KHÔNG xóa TOEIC_RESULT_META_KEY vì cần dùng để chặn quay lại ExamScreen
+    // sessionStorage.removeItem(TOEIC_RESULT_META_KEY);
+  } catch (e) {
+    // ignore
+  }
+};
+
+const clearTestDataOnly = () => {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(TOEIC_TEST_DATA_KEY);
   } catch (e) {
     // ignore
   }
@@ -49,7 +59,10 @@ export default function ExamScreen() {
   const { user, loading: authLoading, isAuthenticated } = useAuth();
   const currentUserId = useMemo(() => user?.id || user?.userId || user?.Id || null, [user]);
   const rawTestData = safeReadSessionJson(TOEIC_TEST_DATA_KEY, {});
+  // Reset hasRedirectedRef mỗi lần component mount để guard luôn chạy
   const hasRedirectedRef = useRef(false);
+  // Track lần cuối cùng guard đã redirect để tránh redirect liên tục
+  const lastRedirectTimeRef = useRef(0);
   const [questions] = useState(rawTestData.questions || []);
   // Lần đầu vào: dùng answers từ sessionStorage (đã được load từ ExamSelection/Profile)
   // Khi reload: sẽ load lại từ API startTest
@@ -118,8 +131,75 @@ export default function ExamScreen() {
     return hasIds && hasQuestions;
   }, [rawTestData?.testId, rawTestData?.testResultId, questions]);
 
-  // Guard: prevent opening ExamScreen without a valid started test or with a different account
+  // Helper function để xác định trang list test tương ứng dựa trên testMeta
+  const resolveListTestPath = useCallback((testMeta) => {
+    if (!testMeta) return "/test-list";
+    
+    const testType = testMeta.testType;
+    const testSkill = testMeta.testSkill;
+    
+    // Kiểm tra xem có phải Practice không
+    const isPractice = testType === "Practice" || testType === 2 || 
+                       (typeof testType === "string" && testType.toLowerCase().includes("practice"));
+    
+    if (isPractice) {
+      // Kiểm tra skill để xác định trang tương ứng
+      if (testSkill === "Speaking" || testSkill === "Writing" || testSkill === "S&W" || 
+          testSkill === 1 || testSkill === 2 || testSkill === 4) {
+        return "/practice-sw";
+      }
+      if (testSkill === "Listening & Reading" || testSkill === "L&R" || 
+          testSkill === 3) {
+        return "/practice-lr";
+      }
+    }
+    
+    return "/test-list";
+  }, []);
+
+  // Guard 1: Kiểm tra resultMeta TRƯỚC TIÊN, LUÔN LUÔN chạy (không phụ thuộc vào hasRedirectedRef)
+  // Điều này đảm bảo mỗi lần vào ExamScreen đều kiểm tra xem bài thi đã được nộp chưa
+  // Khi phát hiện bài thi đã được nộp, redirect về trang list test tương ứng (không qua result)
   useEffect(() => {
+    try {
+      const resultMeta = JSON.parse(sessionStorage.getItem("toeic_resultMeta") || "null");
+      if (resultMeta && resultMeta.testResultId) {
+        // Kiểm tra xem testResultId trong resultMeta có khớp với testResultId hiện tại không
+        // Nếu khớp nghĩa là bài thi này đã được nộp, redirect về trang list test tương ứng NGAY LẬP TỨC
+        if (resultMeta.testResultId === rawTestData?.testResultId) {
+          // Chỉ redirect nếu chưa redirect trong 100ms gần đây để tránh redirect liên tục
+          const now = Date.now();
+          if (now - lastRedirectTimeRef.current > 100) {
+            lastRedirectTimeRef.current = now;
+            // Đánh dấu đã redirect để tránh chạy lại các logic khác
+            hasRedirectedRef.current = true;
+            // Đánh dấu đã load để không gọi startTest
+            hasLoadedFromBackendRef.current = true;
+            message.warning({
+              content: "Bài thi này đã được nộp. Bạn không thể quay lại màn làm bài.",
+              key: "exam_guard",
+              duration: 3,
+            });
+            // Chỉ clear testData, giữ lại resultMeta để tiếp tục chặn
+            clearTestDataOnly();
+            // Xác định trang list test tương ứng dựa trên testMeta
+            const listTestPath = resolveListTestPath(resultMeta);
+            // Thay thế entry ExamScreen trong history bằng trang list test TRƯỚC KHI navigate
+            // Điều này đảm bảo ExamScreen không được thêm vào history
+            window.history.replaceState(null, "", listTestPath);
+            // Sau đó navigate để React Router cập nhật state
+            navigate(listTestPath, { replace: true });
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore error
+    }
+  }, [rawTestData?.testResultId, navigate, resolveListTestPath]); // Thêm resolveListTestPath vào dependencies
+
+  // Guard 2: Các kiểm tra khác (chỉ chạy nếu chưa redirect)
+  useEffect(() => {
+    // Các kiểm tra khác chỉ chạy nếu chưa redirect
     if (hasRedirectedRef.current) return;
 
     if (!isExamSessionValid) {
@@ -295,6 +375,30 @@ export default function ExamScreen() {
     const loadAnswersFromBackend = async () => {
       // Chỉ load một lần khi component mount
       if (hasLoadedFromBackendRef.current) return;
+      
+      // KIỂM TRA TRƯỚC: Nếu bài thi đã được nộp (có resultMeta), KHÔNG gọi startTest
+      // Kiểm tra này phải chạy TRƯỚC khi gọi startTest để tránh tạo test mới
+      try {
+        const resultMeta = JSON.parse(sessionStorage.getItem("toeic_resultMeta") || "null");
+        if (resultMeta && resultMeta.testResultId) {
+          // Nếu testResultId trong resultMeta khớp với testResultId hiện tại → bài đã nộp
+          if (resultMeta.testResultId === rawTestData?.testResultId) {
+            hasLoadedFromBackendRef.current = true;
+            // Không gọi startTest, để guard xử lý redirect
+            // Đảm bảo không tạo test mới
+            console.log("Bài thi đã được nộp, không load answers từ backend");
+            return;
+          }
+        }
+      } catch (e) {
+        // Ignore error
+      }
+      
+      // Kiểm tra nếu guard đã redirect (hasRedirectedRef)
+      if (hasRedirectedRef.current) {
+        hasLoadedFromBackendRef.current = true;
+        return;
+      }
       
       const testId = rawTestData.testId;
       const testResultId = rawTestData.testResultId;
@@ -1033,8 +1137,10 @@ export default function ExamScreen() {
 
       setTimeout(() => {
         setShowSubmitModal(false);
+        // Dùng replace: true để thay thế history entry của ExamScreen, không cho phép back về
         navigate("/result", {
           state: { testResultId: finalTestResultId, testMeta: resultMeta, autoSubmit: auto },
+          replace: true,
         });
       }, 900);
     } catch (error) {
@@ -1237,7 +1343,15 @@ export default function ExamScreen() {
               Lưu
             </Button>
             <Button 
-              onClick={() => handleSubmit(false)}
+              onClick={() => {
+                Modal.confirm({
+                  title: "Xác nhận nộp bài",
+                  content: "Bạn có chắc chắn muốn nộp bài? Sau khi nộp bạn sẽ không thể tiếp tục làm bài này.",
+                  okText: "Nộp bài",
+                  cancelText: "Hủy",
+                  onOk: () => handleSubmit(false),
+                });
+              }}
               disabled={isSubmitting}
               loading={isSubmitting}
           className={`${styles.actionBtn} ${styles.submitBtn} ${btnClassExtra}`}

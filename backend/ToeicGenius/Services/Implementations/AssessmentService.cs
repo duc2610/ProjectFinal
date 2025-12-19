@@ -251,7 +251,7 @@ namespace ToeicGenius.Services.Implementations
                         Transcription = aiResponse.Transcription ?? string.Empty,
                         CorrectedText = aiResponse.CorrectedText ?? string.Empty,
                         AudioDuration = aiResponse.AudioDuration,
-                        CreatedAt = aiResponse.CreatedAt
+                        CreatedAt = ToVietnamTime(aiResponse.CreatedAt)
                     };
 
                     perPartResponses.Add(mapped);
@@ -357,7 +357,7 @@ namespace ToeicGenius.Services.Implementations
 
             testResult.SkillScores = skillScores;
             testResult.Duration = request.Duration;
-            testResult.UpdatedAt = Now;
+            testResult.UpdatedAt = UtcNow;
             testResult.Status = TestResultStatus.Graded;
 
             // Calculate TotalScore
@@ -522,7 +522,7 @@ namespace ToeicGenius.Services.Implementations
                 PythonApiResponse = jsonResponse,
                 AudioFileUrl = audioUrl,
                 ImageFileUrl = taskType == "describe_picture" ? singleSnapshot?.ImageUrl : null,
-                CreatedAt = Now
+                CreatedAt = UtcNow
             };
 
             await _feedbackRepository.CreateAsync(feedback);
@@ -588,7 +588,7 @@ namespace ToeicGenius.Services.Implementations
                     CorrectedText = pythonResponse.DetailedAnalysis?.CorrectedText,
                     PythonApiResponse = jsonResponse,
                     ImageFileUrl = snapshot.ImageUrl,
-                    CreatedAt = Now
+                CreatedAt = UtcNow
                 };
 
                 await _feedbackRepository.CreateAsync(feedback);
@@ -660,7 +660,7 @@ namespace ToeicGenius.Services.Implementations
                     RecommendationsJson = JsonSerializer.Serialize(pythonResponse.Recommendations, _jsonOptions),
                     CorrectedText = pythonResponse.DetailedAnalysis?.CorrectedText,
                     PythonApiResponse = jsonResponse,
-                    CreatedAt = Now
+                    CreatedAt = UtcNow
                 };
 
                 await _feedbackRepository.CreateAsync(feedback);
@@ -732,7 +732,7 @@ namespace ToeicGenius.Services.Implementations
                     RecommendationsJson = JsonSerializer.Serialize(pythonResponse.Recommendations, _jsonOptions),
                     CorrectedText = pythonResponse.DetailedAnalysis?.CorrectedText,
                     PythonApiResponse = jsonResponse,
-                    CreatedAt = Now
+                    CreatedAt = UtcNow
                 };
 
                 await _feedbackRepository.CreateAsync(feedback);
@@ -836,7 +836,7 @@ namespace ToeicGenius.Services.Implementations
                     PythonApiResponse = jsonResponse,
                     AudioFileUrl = audioUrl,
                     ImageFileUrl = taskType == "describe_picture" ? snapshot.ImageUrl : null,
-                    CreatedAt = Now
+                    CreatedAt = UtcNow
                 };
 
                 await _feedbackRepository.CreateAsync(feedback);
@@ -964,7 +964,7 @@ namespace ToeicGenius.Services.Implementations
                 TestResultId = testResult.TestResultId,
                 TestQuestionId = testQuestionId,
                 AnswerText = answerText,
-                CreatedAt = Now
+                CreatedAt = UtcNow
             };
 
             await _uow.UserAnswers.AddAsync(userAnswer);
@@ -1024,7 +1024,7 @@ namespace ToeicGenius.Services.Implementations
                 TestResultId = testResult.TestResultId,
                 TestQuestionId = testQuestionId,
                 AnswerAudioUrl = audioUrl,
-                CreatedAt = Now
+                CreatedAt = UtcNow
             };
 
             await _uow.UserAnswers.AddAsync(userAnswer);
@@ -1075,7 +1075,7 @@ namespace ToeicGenius.Services.Implementations
                 CorrectedText = feedback.CorrectedText ?? string.Empty,
                 AudioDuration = (double?)feedback.AudioDuration,
                 PythonApiResponse = feedback.PythonApiResponse,
-                CreatedAt = feedback.CreatedAt
+                CreatedAt = ToVietnamTime(feedback.CreatedAt)
             };
         }
 
