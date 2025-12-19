@@ -82,8 +82,8 @@ export default function Flashcard() {
 
   const handleDeleteSet = (setId, title) => {
     Modal.confirm({
-      title: "Xác nhận xóa",
-      content: `Bạn có chắc chắn muốn xóa flashcard "${title}"? Hành động này không thể hoàn tác.`,
+      title: "Xác nhận xóa bộ flashcard",
+      content: `Bạn có chắc chắn muốn xóa bộ flashcard "${title}"? Hành động này không thể hoàn tác.`,
       okText: "Xóa",
       okType: "danger",
       cancelText: "Hủy",

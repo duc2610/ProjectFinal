@@ -1237,7 +1237,15 @@ export default function ExamScreen() {
               Lưu
             </Button>
             <Button 
-              onClick={() => handleSubmit(false)}
+              onClick={() => {
+                Modal.confirm({
+                  title: "Xác nhận nộp bài",
+                  content: "Bạn có chắc chắn muốn nộp bài? Sau khi nộp bạn sẽ không thể tiếp tục làm bài này.",
+                  okText: "Nộp bài",
+                  cancelText: "Hủy",
+                  onOk: () => handleSubmit(false),
+                });
+              }}
               disabled={isSubmitting}
               loading={isSubmitting}
           className={`${styles.actionBtn} ${styles.submitBtn} ${btnClassExtra}`}

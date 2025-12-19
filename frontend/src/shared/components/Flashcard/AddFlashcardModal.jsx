@@ -413,7 +413,17 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
                   type="text"
                   danger
                   icon={<DeleteOutlined />}
-                  onClick={() => handleRemoveBulkCard(index)}
+                  onClick={() => {
+                    Modal.confirm({
+                      title: "Xác nhận xóa thẻ khỏi danh sách tạo mới",
+                      content:
+                        "Bạn có chắc chắn muốn xóa thẻ này khỏi danh sách? Thao tác này chỉ ảnh hưởng tới form hiện tại và không thể hoàn tác.",
+                      okText: "Xóa",
+                      okType: "danger",
+                      cancelText: "Hủy",
+                      onOk: () => handleRemoveBulkCard(index),
+                    });
+                  }}
                   disabled={bulkCards.length === 1}
                 >
                   Xóa

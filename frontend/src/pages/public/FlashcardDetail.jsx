@@ -154,21 +154,28 @@ export default function FlashcardDetail() {
 
   const handleDeleteCard = async (cardId, e) => {
     e.stopPropagation();
-    try {
-      await deleteFlashcard(cardId);
-      message.success("Xóa thẻ thành công");
-      // Reload cards
-      const cardsData = await getFlashcardsBySetId(setId);
-      setFlashcards(Array.isArray(cardsData) ? cardsData : []);
-      // Reset to first card if current card was deleted
-      if (currentCardIndex >= flashcards.length - 1) {
-        setCurrentCardIndex(Math.max(0, flashcards.length - 2));
-      }
-    } catch (error) {
-      console.error("Error deleting flashcard:", error);
-      const errorMsg = error?.response?.data?.message || "Không thể xóa thẻ";
-      message.error(errorMsg);
-    }
+    Modal.confirm({
+      title: "Xác nhận xóa thẻ",
+      content: "Bạn có chắc chắn muốn xóa thẻ này? Hành động này không thể hoàn tác.",
+      okText: "Xóa",
+      okType: "danger",
+      cancelText: "Hủy",
+      onOk: async () => {
+        try {
+          await deleteFlashcard(cardId);
+          message.success("Xóa thẻ thành công");
+          const cardsData = await getFlashcardsBySetId(setId);
+          setFlashcards(Array.isArray(cardsData) ? cardsData : []);
+          if (currentCardIndex >= flashcards.length - 1) {
+            setCurrentCardIndex(Math.max(0, flashcards.length - 2));
+          }
+        } catch (error) {
+          console.error("Error deleting flashcard:", error);
+          const errorMsg = error?.response?.data?.message || "Không thể xóa thẻ";
+          message.error(errorMsg);
+        }
+      },
+    });
   };
 
   const handlePlayAudio = (e, text, lang = 'en-US') => {

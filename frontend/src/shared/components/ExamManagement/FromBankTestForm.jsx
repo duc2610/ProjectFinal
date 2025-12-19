@@ -1164,7 +1164,16 @@ function QuestionSelector({
                                     danger 
                                     size="small"
                                     icon={<DeleteOutlined />} 
-                                    onClick={() => handleRemoveSingle(qid)}
+                                    onClick={() => {
+                                        Modal.confirm({
+                                            title: "Xác nhận xóa câu hỏi khỏi đề",
+                                            content: "Bạn có chắc chắn muốn xóa câu hỏi đơn này khỏi đề? Câu hỏi trong ngân hàng vẫn được giữ lại.",
+                                            okText: "Xóa khỏi đề",
+                                            okType: "danger",
+                                            cancelText: "Hủy",
+                                            onOk: () => handleRemoveSingle(qid),
+                                        });
+                                    }}
                                 >
                                     Xóa
                                 </Button>
