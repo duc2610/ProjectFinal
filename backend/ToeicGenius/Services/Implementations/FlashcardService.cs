@@ -359,8 +359,9 @@ namespace ToeicGenius.Services.Implementations
 					ReviewCount = progress?.ReviewCount ?? 0,
 					CorrectCount = progress?.CorrectCount ?? 0,
 					IncorrectCount = progress?.IncorrectCount ?? 0,
-					LastReviewedAt = progress?.LastReviewedAt,
-					NextReviewAt = progress?.NextReviewAt
+					// Convert timestamps to Vietnam time for display consistency
+					LastReviewedAt = progress?.LastReviewedAt.HasValue == true ? ToVietnamTime(progress.LastReviewedAt.Value) : null,
+					NextReviewAt = progress?.NextReviewAt.HasValue == true ? ToVietnamTime(progress.NextReviewAt.Value) : null
 				});
 			}
 
