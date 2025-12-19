@@ -273,6 +273,43 @@
   }
 }
 
+.mobilePaginationTotal {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  line-height: 1.5 !important;
+  white-space: normal !important;
+}
+
+.mobilePaginationTotal > div {
+  display: block !important;
+  line-height: 1.5 !important;
+}
+
+/* Đảm bảo phần showTotal trong Pagination hiển thị 2 hàng */
+:global(.ant-pagination-total-text) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  line-height: 1.5 !important;
+  white-space: normal !important;
+}
+
+:global(.ant-pagination-total-text) > * {
+  display: block !important;
+  line-height: 1.5 !important;
+}
+
+:global(.ant-pagination-total-text) > div {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+:global(.ant-pagination-total-text) > div > span {
+  display: block !important;
+}
+
 @media (min-width: 1200px) {
   .wrap {
     padding: 40px 48px;

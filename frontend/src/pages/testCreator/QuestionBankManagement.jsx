@@ -23,7 +23,8 @@ import {
   SearchOutlined, 
   EditOutlined, 
   DeleteOutlined, 
-  UndoOutlined 
+  UndoOutlined,
+  WarningOutlined
 } from "@ant-design/icons";
 
 import SingleQuestionModal from "@shared/components/QuestionBank/SingleQuestionModal.jsx";
@@ -745,7 +746,7 @@ export default function QuanLyNganHangCauHoi() {
                     // Các part khác nhưng không có content (có thể là lỗi)
                     return (
                       <span style={{ color: "#ff4d4f", fontStyle: "italic", fontSize: 12 }}>
-                        ⚠️ Chưa có nội dung
+                        <WarningOutlined style={{ marginRight: 4 }} /> Chưa có nội dung
                       </span>
                     );
                   }

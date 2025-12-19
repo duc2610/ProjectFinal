@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Layout, Button, Modal, Typography, message, Spin, Alert } from "antd";
-import { MenuOutlined, LoadingOutlined } from "@ant-design/icons";
+import { MenuOutlined, LoadingOutlined, WarningOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import QuestionNavigator from "./QuestionNavigator";
 import QuestionCard from "./QuestionCard";
@@ -1504,7 +1504,7 @@ export default function ExamScreen() {
         open={showOfflineModal}
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ fontSize: 20 }}>⚠️</span>
+            <WarningOutlined style={{ fontSize: 20, color: "#faad14" }} />
             <span>Mất kết nối mạng</span>
           </div>
         }
@@ -1559,7 +1559,7 @@ export default function ExamScreen() {
                 <br />
                 <br />
                 <Text type="warning" style={{ fontSize: 13 }}>
-                  ⚠️ Lưu ý: Các câu trả lời sau thời điểm mất mạng sẽ không được lưu tự động. Vui lòng kết nối lại mạng để đảm bảo tiến độ được lưu đầy đủ.
+                  <WarningOutlined style={{ marginRight: 4 }} /> Lưu ý: Các câu trả lời sau thời điểm mất mạng sẽ không được lưu tự động. Vui lòng kết nối lại mạng để đảm bảo tiến độ được lưu đầy đủ.
                 </Text>
               </>
             )}

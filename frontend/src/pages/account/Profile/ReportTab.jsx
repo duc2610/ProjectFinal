@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
-import { Table, Tag, Space, Empty, message, Button, Row, Col, Modal, Grid, Card } from "antd";
+import React, { useState, useEffect, useMemo } from "react";
+import { Table, Tag, Space, Empty, message, Button, Row, Col, Modal, Grid, Card, Pagination, Input, Select, DatePicker } from "antd";
+import { SearchOutlined, FilterOutlined, ClearOutlined } from "@ant-design/icons";
 import styles from "@shared/styles/Profile.module.css";
 import { getMyQuestionReports } from "@services/questionReportService";
+import dayjs from "dayjs";
 
 export function ReportTab() {
   const [reports, setReports] = useState([]);
@@ -12,11 +14,74 @@ export function ReportTab() {
     pageSize: 20,
     total: 0,
   });
+  const [mobilePagination, setMobilePagination] = useState({
+    current: 1,
+    pageSize: 10,
+  });
   const [detailReport, setDetailReport] = useState(null);
   const [detailVisible, setDetailVisible] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [filterStatus, setFilterStatus] = useState(null);
+  const [filterReportType, setFilterReportType] = useState(null);
+  const [filterDateRange, setFilterDateRange] = useState(null);
   const screens = Grid.useBreakpoint();
   // Màn hình dưới xl (bao gồm tablet ngang) dùng layout "màn nhỏ"
   const isMobile = !screens.xl;
+
+  // Lọc dữ liệu theo search và filter
+  const filteredReports = useMemo(() => {
+    let filtered = [...reports];
+
+    // Tìm kiếm theo text
+    if (searchText.trim()) {
+      const searchLower = searchText.toLowerCase();
+      filtered = filtered.filter((report) => {
+        const testName = (report.testName || "").toLowerCase();
+        const questionContent = (report.questionContent || "").toLowerCase();
+        const description = (report.description || "").toLowerCase();
+        const partName = (report.partName || "").toLowerCase();
+        return (
+          testName.includes(searchLower) ||
+          questionContent.includes(searchLower) ||
+          description.includes(searchLower) ||
+          partName.includes(searchLower)
+        );
+      });
+    }
+
+    // Lọc theo trạng thái
+    if (filterStatus) {
+      filtered = filtered.filter((report) => {
+        const status = (report.status || "").toLowerCase();
+        return status === filterStatus.toLowerCase();
+      });
+    }
+
+    // Lọc theo loại báo cáo
+    if (filterReportType) {
+      filtered = filtered.filter((report) => report.reportType === filterReportType);
+    }
+
+    // Lọc theo khoảng thời gian
+    if (filterDateRange && filterDateRange.length === 2) {
+      filtered = filtered.filter((report) => {
+        if (!report.createdAt) return false;
+        const reportDate = dayjs(report.createdAt);
+        const startDate = filterDateRange[0].startOf("day");
+        const endDate = filterDateRange[1].endOf("day");
+        return reportDate.isAfter(startDate) && reportDate.isBefore(endDate) || reportDate.isSame(startDate) || reportDate.isSame(endDate);
+      });
+    }
+
+    return filtered;
+  }, [reports, searchText, filterStatus, filterReportType, filterDateRange]);
+
+  // Tính toán dữ liệu hiển thị cho mobile
+  const mobileReports = useMemo(() => {
+    const start = (mobilePagination.current - 1) * mobilePagination.pageSize;
+    const end = start + mobilePagination.pageSize;
+    return filteredReports.slice(start, end);
+  }, [filteredReports, mobilePagination.current, mobilePagination.pageSize]);
 
   useEffect(() => {
     fetchReports();
@@ -134,6 +199,16 @@ export function ReportTab() {
   const handleTableChange = (newPagination) => {
     fetchReports(newPagination.current, newPagination.pageSize);
   };
+
+  const handleResetFilters = () => {
+    setSearchText("");
+    setFilterStatus(null);
+    setFilterReportType(null);
+    setFilterDateRange(null);
+    setMobilePagination({ current: 1, pageSize: 10 });
+  };
+
+  const hasActiveFilters = searchText || filterStatus || filterReportType || filterDateRange;
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -397,9 +472,99 @@ export function ReportTab() {
   return (
     <div className={styles.tabPane}>
       <h2 className={styles.title}>Lịch sử báo cáo</h2>
+      
+      {/* Search and Filter Section */}
+      <Card
+        size="small"
+        style={{ marginBottom: 16, background: "#fafafa" }}
+        bodyStyle={{ padding: 12 }}
+      >
+        <Row gutter={[12, 12]}>
+          <Col xs={24} sm={24} md={8} lg={6}>
+            <Input
+              placeholder="Tìm kiếm theo bài thi, câu hỏi..."
+              prefix={<SearchOutlined />}
+              value={searchText}
+              onChange={(e) => {
+                setSearchText(e.target.value);
+                setMobilePagination({ current: 1, pageSize: 10 });
+              }}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} sm={12} md={6} lg={4}>
+            <Select
+              placeholder="Lọc theo trạng thái"
+              style={{ width: "100%" }}
+              value={filterStatus}
+              onChange={(value) => {
+                setFilterStatus(value);
+                setMobilePagination({ current: 1, pageSize: 10 });
+              }}
+              allowClear
+            >
+              <Select.Option value="Pending">Chờ xử lý</Select.Option>
+              <Select.Option value="Processing">Đang xử lý</Select.Option>
+              <Select.Option value="Resolved">Đã xử lý</Select.Option>
+              <Select.Option value="Rejected">Từ chối</Select.Option>
+              <Select.Option value="Reviewing">Đang xem xét</Select.Option>
+              <Select.Option value="Approved">Đã duyệt</Select.Option>
+              <Select.Option value="Closed">Đã đóng</Select.Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={6} lg={4}>
+            <Select
+              placeholder="Lọc theo loại báo cáo"
+              style={{ width: "100%" }}
+              value={filterReportType}
+              onChange={(value) => {
+                setFilterReportType(value);
+                setMobilePagination({ current: 1, pageSize: 10 });
+              }}
+              allowClear
+            >
+              <Select.Option value="IncorrectAnswer">Đáp án sai</Select.Option>
+              <Select.Option value="Typo">Lỗi chính tả</Select.Option>
+              <Select.Option value="AudioIssue">Vấn đề về âm thanh</Select.Option>
+              <Select.Option value="ImageIssue">Vấn đề về hình ảnh</Select.Option>
+              <Select.Option value="Unclear">Câu hỏi không rõ ràng</Select.Option>
+              <Select.Option value="Other">Khác</Select.Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={6} lg={6}>
+            <DatePicker.RangePicker
+              style={{ width: "100%" }}
+              value={filterDateRange}
+              onChange={(dates) => {
+                setFilterDateRange(dates);
+                setMobilePagination({ current: 1, pageSize: 10 });
+              }}
+              format="DD/MM/YYYY"
+              placeholder={["Từ ngày", "Đến ngày"]}
+            />
+          </Col>
+          {hasActiveFilters && (
+            <Col xs={24} sm={12} md={4} lg={4}>
+              <Button
+                icon={<ClearOutlined />}
+                onClick={handleResetFilters}
+                style={{ width: "100%" }}
+              >
+                Xóa bộ lọc
+              </Button>
+            </Col>
+          )}
+        </Row>
+        {hasActiveFilters && (
+          <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
+            Đang hiển thị {filteredReports.length} / {reports.length} báo cáo
+          </div>
+        )}
+      </Card>
+
       <Row gutter={24} justify="center">
         <Col xs={24} sm={24} md={24} lg={24} xl={24}>
-          {reports.length === 0 && !loading ? (
+          {filteredReports.length === 0 && !loading ? (
             <Empty
               description="Chưa có báo cáo nào"
               style={{ marginTop: 40 }}
@@ -407,8 +572,9 @@ export function ReportTab() {
           ) : (
             <>
               {isMobile ? (
-                <Space direction="vertical" size={16} style={{ width: "100%" }}>
-                  {reports.map((report, index) => (
+                <>
+                  <Space direction="vertical" size={16} style={{ width: "100%" }}>
+                    {mobileReports.map((report, index) => (
                     <Card
                       key={report.reportId || `report-${index}`}
                       size="small"
@@ -427,14 +593,68 @@ export function ReportTab() {
                         </div>
                         <div style={{ fontSize: 12, color: "#6b7280" }}>
                           Loại báo cáo:{" "}
-                          {report.reportType || "—"}
+                          {(() => {
+                            const typeMap = {
+                              "IncorrectAnswer": "Đáp án sai",
+                              "Typo": "Lỗi chính tả",
+                              "AudioIssue": "Vấn đề về âm thanh",
+                              "ImageIssue": "Vấn đề về hình ảnh",
+                              "Unclear": "Câu hỏi không rõ ràng",
+                              "Other": "Khác",
+                            };
+                            return typeMap[report.reportType] || report.reportType || "—";
+                          })()}
                         </div>
                         <div style={{ fontSize: 12, color: "#6b7280" }}>
                           Ngày tạo: {formatDate(report.createdAt)}
                         </div>
                         <div>
-                          <Tag>
-                            {report.status || "—"}
+                          <Tag
+                            color={(() => {
+                              const statusColorMap = {
+                                "Pending": "warning",
+                                "Processing": "processing",
+                                "Resolved": "success",
+                                "Rejected": "error",
+                                "Reviewing": "processing",
+                                "Approved": "success",
+                                "Closed": "default",
+                              };
+                              const lowerStatus = (report.status || "").toLowerCase();
+                              const fallbackColorMap = {
+                                "pending": "warning",
+                                "processing": "processing",
+                                "resolved": "success",
+                                "rejected": "error",
+                                "reviewing": "processing",
+                                "approved": "success",
+                                "closed": "default",
+                              };
+                              return statusColorMap[report.status] || fallbackColorMap[lowerStatus] || "default";
+                            })()}
+                          >
+                            {(() => {
+                              const statusMap = {
+                                "Pending": "Chờ xử lý",
+                                "Processing": "Đang xử lý",
+                                "Resolved": "Đã xử lý",
+                                "Rejected": "Từ chối",
+                                "Reviewing": "Đang xem xét",
+                                "Approved": "Đã duyệt",
+                                "Closed": "Đã đóng",
+                              };
+                              const lowerStatus = (report.status || "").toLowerCase();
+                              const fallbackTranslations = {
+                                "pending": "Chờ xử lý",
+                                "processing": "Đang xử lý",
+                                "resolved": "Đã xử lý",
+                                "rejected": "Từ chối",
+                                "reviewing": "Đang xem xét",
+                                "approved": "Đã duyệt",
+                                "closed": "Đã đóng",
+                              };
+                              return statusMap[report.status] || fallbackTranslations[lowerStatus] || report.status || "—";
+                            })()}
                           </Tag>
                         </div>
                         <Button
@@ -449,29 +669,44 @@ export function ReportTab() {
                         </Button>
                       </Space>
                     </Card>
-                  ))}
-                </Space>
+                    ))}
+                  </Space>
+                  {filteredReports.length > 0 && (
+                    <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
+                      <Pagination
+                        current={mobilePagination.current}
+                        pageSize={mobilePagination.pageSize}
+                        total={filteredReports.length}
+                        onChange={(page) => {
+                          setMobilePagination((prev) => ({ ...prev, current: page }));
+                        }}
+                        showSizeChanger={false}
+                        showTotal={(total) => `Tổng ${total} báo cáo`}
+                      />
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className={styles.tableWrapper}>
-                  <Table
-                    columns={columns}
-                    dataSource={reports}
-                    rowKey={(record, index) => record.reportId || record.key || `report-${index}`}
-                    loading={loading}
-                    showHeader={false}
-                    pagination={{
-                      current: pagination.current,
-                      pageSize: pagination.pageSize,
-                      total: pagination.total,
-                      showSizeChanger: true,
-                      showTotal: (total) => `Tổng ${total} báo cáo`,
-                      pageSizeOptions: ["10", "20", "50"],
-                    }}
-                    onChange={handleTableChange}
+            <Table
+              columns={columns}
+              dataSource={filteredReports}
+              rowKey={(record, index) => record.reportId || record.key || `report-${index}`}
+              loading={loading}
+              showHeader={false}
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: filteredReports.length,
+                showSizeChanger: true,
+                showTotal: (total) => `Tổng ${total} báo cáo`,
+                pageSizeOptions: ["10", "20", "50"],
+              }}
+              onChange={handleTableChange}
                     scroll={{ x: 900 }}
-                    size="middle"
-                    bordered
-                  />
+              size="middle"
+              bordered
+            />
                 </div>
               )}
             </>
@@ -521,7 +756,53 @@ export function ReportTab() {
             </div>
             <div>
               <strong>Trạng thái:</strong>{" "}
-              <Tag>{detailReport.status || "—"}</Tag>
+              <Tag
+                color={(() => {
+                  const statusColorMap = {
+                    "Pending": "warning",
+                    "Processing": "processing",
+                    "Resolved": "success",
+                    "Rejected": "error",
+                    "Reviewing": "processing",
+                    "Approved": "success",
+                    "Closed": "default",
+                  };
+                  const lowerStatus = (detailReport.status || "").toLowerCase();
+                  const fallbackColorMap = {
+                    "pending": "warning",
+                    "processing": "processing",
+                    "resolved": "success",
+                    "rejected": "error",
+                    "reviewing": "processing",
+                    "approved": "success",
+                    "closed": "default",
+                  };
+                  return statusColorMap[detailReport.status] || fallbackColorMap[lowerStatus] || "default";
+                })()}
+              >
+                {(() => {
+                  const statusMap = {
+                    "Pending": "Chờ xử lý",
+                    "Processing": "Đang xử lý",
+                    "Resolved": "Đã xử lý",
+                    "Rejected": "Từ chối",
+                    "Reviewing": "Đang xem xét",
+                    "Approved": "Đã duyệt",
+                    "Closed": "Đã đóng",
+                  };
+                  const lowerStatus = (detailReport.status || "").toLowerCase();
+                  const fallbackTranslations = {
+                    "pending": "Chờ xử lý",
+                    "processing": "Đang xử lý",
+                    "resolved": "Đã xử lý",
+                    "rejected": "Từ chối",
+                    "reviewing": "Đang xem xét",
+                    "approved": "Đã duyệt",
+                    "closed": "Đã đóng",
+                  };
+                  return statusMap[detailReport.status] || fallbackTranslations[lowerStatus] || detailReport.status || "—";
+                })()}
+              </Tag>
             </div>
             <div>
               <strong>Ngày tạo:</strong> {formatDate(detailReport.createdAt)}

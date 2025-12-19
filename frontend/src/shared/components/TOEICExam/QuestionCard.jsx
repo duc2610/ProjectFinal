@@ -389,7 +389,7 @@ export default function QuestionCard({
         URL.revokeObjectURL(previousUrl);
       }
     };
-  }, [question.testQuestionId, answers, isSpeakingPart, globalAudioUrl, isListeningPart, hasGlobalAudio, isPractice, isSimulator, questionAudioUrl]);
+  }, [question.testQuestionId, question.subQuestionIndex, answers, isSpeakingPart, globalAudioUrl, isListeningPart, hasGlobalAudio, isPractice, isSimulator, questionAudioUrl]);
 
   // Reset highlight khi chuyển câu hỏi
   useEffect(() => {
@@ -719,9 +719,9 @@ export default function QuestionCard({
       }}
       bodyStyle={{ padding: "32px" }}
     >
-      <div className={styles.questionHeader}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Title level={4} style={{ margin: 0, color: "#2d3748", fontSize: "24px" }}>
+      <div className={styles.questionHeader} style={{ flexWrap: "nowrap", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          <Title level={4} style={{ margin: 0, color: "#2d3748", fontSize: "24px", whiteSpace: "nowrap" }}>
             Câu {question.globalIndex}
           </Title>
           {/* Nút Report - gọn gàng, chỉ icon với tooltip, ở sau text "Câu..." */}
@@ -731,7 +731,8 @@ export default function QuestionCard({
                 style={{ 
                   color: "#52c41a", 
                   fontSize: "18px", 
-                  cursor: "default" 
+                  cursor: "default",
+                  flexShrink: 0
                 }} 
               />
             ) : (
@@ -745,13 +746,14 @@ export default function QuestionCard({
                   height: "auto",
                   minWidth: "auto",
                   color: "#666",
-                  fontSize: "18px"
+                  fontSize: "18px",
+                  flexShrink: 0
                 }}
               />
             )}
           </Tooltip>
         </div>
-        <div className={styles.partBadge}>
+        <div className={styles.partBadge} style={{ minWidth: 0, maxWidth: "100%", flexShrink: 1 }}>
           {question.partName}
           {question.partDescription && ` - ${question.partDescription}`}
         </div>

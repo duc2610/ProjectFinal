@@ -5,7 +5,6 @@ import {
   Row,
   Col,
   Statistic,
-  Tag,
   Space,
   Avatar,
   List,
@@ -229,7 +228,7 @@ export default function AdminDashboard() {
   return (
     <div style={{ padding: "24px" }} className="animate-fade-in">
       <Title level={2} style={{ marginBottom: 24 }} className="animate-fade-in-down">
-        Bảng điều khiển 
+        Bảng thống kê 
       </Title>
 
       {/* Statistics Cards */}
@@ -387,12 +386,7 @@ export default function AdminDashboard() {
                         />
                       }
                       title={
-                        <Space>
                           <Text strong>{item.action}</Text>
-                          <Tag color={getStatusColor(item.status)}>
-                            {translateStatus(item.status)}
-                          </Tag>
-                        </Space>
                       }
                       description={
                         <div>

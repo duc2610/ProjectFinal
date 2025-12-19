@@ -27,6 +27,13 @@ import {
   CustomerServiceOutlined,
   LoadingOutlined,
   FlagOutlined,
+  BulbOutlined,
+  WarningOutlined,
+  InfoCircleOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  StopOutlined,
+  CommentOutlined,
 } from "@ant-design/icons";
 import { getTestResultDetail, startTest } from "../../../services/testExamService";
 import { translateErrorMessage } from "@shared/utils/translateError";
@@ -1558,7 +1565,7 @@ export default function ResultScreen() {
           </div>
           <div className={styles.content} style={{ textAlign: "center", padding: 60 }}>
             <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🚫</div>
+              <StopOutlined style={{ fontSize: 48, marginBottom: 16, color: "#ff4d4f" }} />
               <Title level={2} style={{ color: "#ff4d4f", marginBottom: 16 }}>
                 Lỗi kết nối API chấm bài
               </Title>
@@ -1641,7 +1648,7 @@ export default function ResultScreen() {
             
             <div style={{ marginTop: 24, padding: 16, backgroundColor: "#f6f6f6", borderRadius: 8 }}>
               <Text type="secondary" style={{ fontSize: 13 }}>
-                💡 <strong>Lưu ý:</strong> Nếu bạn vừa nộp bài, hãy đợi 5-10 phút để hệ thống AI xử lý kết quả. 
+                <BulbOutlined style={{ marginRight: 4 }} /> <strong>Lưu ý:</strong> Nếu bạn vừa nộp bài, hãy đợi 5-10 phút để hệ thống AI xử lý kết quả. 
                 Đối với bài Writing/Speaking, thời gian chấm có thể lâu hơn.
               </Text>
             </div>
@@ -1685,7 +1692,7 @@ export default function ResultScreen() {
           </div>
           <div className={styles.content} style={{ textAlign: "center", padding: 60 }}>
             <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+              <WarningOutlined style={{ fontSize: 48, marginBottom: 16, color: "#ff4d4f" }} />
               <Title level={2} style={{ color: "#ff4d4f", marginBottom: 16 }}>
                 Lỗi hệ thống chấm bài
               </Title>
@@ -1749,7 +1756,7 @@ export default function ResultScreen() {
             </div>
             <div style={{ marginTop: 24, padding: 16, backgroundColor: "#f6f6f6", borderRadius: 8 }}>
               <Text type="secondary" style={{ fontSize: 13 }}>
-                💡 <strong>Lưu ý:</strong> Nếu vấn đề vẫn tiếp diễn sau 10-15 phút, có thể hệ thống AI đang bảo trì. 
+                <BulbOutlined style={{ marginRight: 4 }} /> <strong>Lưu ý:</strong> Nếu vấn đề vẫn tiếp diễn sau 10-15 phút, có thể hệ thống AI đang bảo trì. 
                 Vui lòng liên hệ bộ phận hỗ trợ kỹ thuật để được trợ giúp nhanh nhất.
               </Text>
             </div>
@@ -1787,7 +1794,7 @@ export default function ResultScreen() {
           textAlign: "center",
         }}
       >
-        <div style={{ fontSize: 48, marginBottom: 12 }}>ℹ️</div>
+        <InfoCircleOutlined style={{ fontSize: 48, marginBottom: 12, color: "#0958d9" }} />
         <Title level={3} style={{ marginBottom: 8, color: "#0958d9" }}>
           Chế độ Practice (Listening & Reading)
         </Title>
@@ -3367,7 +3374,10 @@ export default function ResultScreen() {
             {selectedSwFeedback.detailedAnalysis?.matched_points &&
               selectedSwFeedback.detailedAnalysis.matched_points.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
-                  <Title level={5}>✅ Các điểm đã đạt được:</Title>
+                  <Title level={5}>
+                    <CheckCircleOutlined style={{ color: "#52c41a", marginRight: 8 }} />
+                    Các điểm đã đạt được:
+                  </Title>
                   <div style={{ maxHeight: 200, overflowY: "auto" }}>
                     <ul style={{ margin: 0, paddingLeft: 20 }}>
                       {selectedSwFeedback.detailedAnalysis.matched_points.map((point, idx) => (
@@ -3384,7 +3394,10 @@ export default function ResultScreen() {
             {selectedSwFeedback.detailedAnalysis?.missing_points &&
               selectedSwFeedback.detailedAnalysis.missing_points.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
-                  <Title level={5}>❌ Các điểm còn thiếu:</Title>
+                  <Title level={5}>
+                    <CloseCircleOutlined style={{ color: "#f5222d", marginRight: 8 }} />
+                    Các điểm còn thiếu:
+                  </Title>
                   <div style={{ maxHeight: 200, overflowY: "auto" }}>
                     <ul style={{ margin: 0, paddingLeft: 20 }}>
                       {selectedSwFeedback.detailedAnalysis.missing_points.map((point, idx) => (
@@ -3401,7 +3414,10 @@ export default function ResultScreen() {
             {selectedSwFeedback.detailedAnalysis?.opinion_support_issues &&
               selectedSwFeedback.detailedAnalysis.opinion_support_issues.length > 0 && (
                 <div style={{ marginBottom: 16 }}>
-                  <Title level={5}>💭 Vấn đề hỗ trợ ý kiến:</Title>
+                  <Title level={5}>
+                    <CommentOutlined style={{ marginRight: 8 }} />
+                    Vấn đề hỗ trợ ý kiến:
+                  </Title>
                   <div style={{ maxHeight: 200, overflowY: "auto" }}>
                     {selectedSwFeedback.detailedAnalysis.opinion_support_issues.map((issue, idx) => (
                       <div
@@ -3424,7 +3440,10 @@ export default function ResultScreen() {
             {/* Mô tả hình ảnh (cho writing_sentence) */}
             {selectedSwFeedback.detailedAnalysis?.image_description && (
               <div style={{ marginBottom: 16 }}>
-                <Title level={5}>🖼️ Mô tả hình ảnh:</Title>
+                <Title level={5}>
+                  <BulbOutlined style={{ marginRight: 8 }} />
+                  Gợi ý từ AI:
+                </Title>
                 <div
                   style={{
                     padding: 12,
@@ -3568,7 +3587,7 @@ export default function ResultScreen() {
                   Hệ thống sẽ tự động lưu tiến độ làm bài của bạn mỗi 5 phút. Bạn cũng có thể nhấn nút <strong>"Lưu"</strong> trên thanh công cụ để lưu thủ công bất cứ lúc nào.
                 </div>
                 <div style={{ fontSize: 12, color: "#666" }}>
-                  💡 Lưu ý: Nếu mất kết nối mạng, hệ thống sẽ lưu tạm thời các câu trả lời của bạn. Khi kết nối lại, tiến độ sẽ được lưu tự động.
+                  <BulbOutlined style={{ marginRight: 4 }} /> Lưu ý: Nếu mất kết nối mạng, hệ thống sẽ lưu tạm thời các câu trả lời của bạn. Khi kết nối lại, tiến độ sẽ được lưu tự động.
                 </div>
               </div>
             }

@@ -133,7 +133,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     message.success(responseText || "Đã tạo phiên bản mới.");
                 }
             } else {
-                message.success(responseText || "Đã tạo phiên bản mới.");
+            message.success(responseText || "Đã tạo phiên bản mới.");
             }
             return newId;
         } finally {
@@ -1361,8 +1361,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                         const shouldClone = await confirmCloneVersion();
                         if (!shouldClone) {
                             message.info("Đã hủy thao tác cập nhật.");
-                            return;
-                        }
+                return;
+            }
                         // Build payload với dữ liệu đầy đủ (merge từ backend và partsData hiện tại)
                         const updatePayload = buildFullTestPayload(mergedPartsData);
                         const newId = await clonePublishedTestToDraft(updatePayload);
@@ -1715,8 +1715,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     <Button onClick={onClose}>Hủy</Button>
                     {/* Chỉ hiển thị nút "Cập nhật" khi có thay đổi và đang edit */}
                     {currentTestId && hasChanges && (
-                        <Button
-                            type="primary"
+                    <Button
+                        type="primary"
                             onClick={() => {
                                 Modal.confirm({
                                     title: "Xác nhận cập nhật bài thi",
@@ -1726,11 +1726,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                     onOk: () => handleSubmit(),
                                 });
                             }}
-                            loading={loading}
-                            style={{ marginLeft: 8 }}
-                        >
+                        loading={loading}
+                        style={{ marginLeft: 8 }}
+                    >
                             Cập nhật
-                        </Button>
+                    </Button>
                     )}
                     {/* Luôn hiển thị nút "Tạo bài thi" khi không có currentTestId */}
                     {!currentTestId && (

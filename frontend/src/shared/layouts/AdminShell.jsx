@@ -108,7 +108,7 @@ export default function AdminShell() {
       {
         key: "/admin/dashboard",
         icon: <AppstoreOutlined />,
-        label: "Bảng điều khiển",
+        label: "Bảng thống kê",
       },
       {
         key: "/admin/account-management",
@@ -121,7 +121,7 @@ export default function AdminShell() {
       {
         key: "/test-creator/dashboard",
         icon: <AppstoreOutlined />,
-        label: "Bảng điều khiển",
+        label: "Bảng thống kê",
       },
       {
         key: "/test-creator/question-bank",

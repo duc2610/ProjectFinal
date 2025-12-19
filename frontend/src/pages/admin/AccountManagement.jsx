@@ -44,7 +44,7 @@ const { Option } = Select;
 const { TabPane } = Tabs;
 
 const AccountManagement = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [form] = Form.useForm();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingAccount, setEditingAccount] = useState(null);
@@ -227,11 +227,19 @@ const AccountManagement = () => {
         ? editingAccount.email 
         : (values.email || "").trim().toLowerCase();
 
+      // Kiểm tra xem có phải đang chỉnh sửa chính tài khoản đang đăng nhập không
+      const isEditingCurrentUser = editingAccount && 
+        (editingAccount.id === user?.id || editingAccount.id === user?.userId);
+
       const payload = {
         fullName: fullName,
         email: email,
-        roles: [values.role],
       };
+
+      // Chỉ thêm roles nếu không phải đang chỉnh sửa chính tài khoản đang đăng nhập
+      if (!isEditingCurrentUser) {
+        payload.roles = [values.role];
+      }
 
       if (!editingAccount) {
         payload.password = (values.password || "").trim();
@@ -367,6 +375,7 @@ const AccountManagement = () => {
       key: "status",
       render: (_, record) => {
         const isAdmin = record.role === "Admin";
+        const isActive = record.isActive;
 
         if (isAdmin) {
           return (
@@ -376,20 +385,23 @@ const AccountManagement = () => {
           );
         }
 
+        // Chỉ hiển thị Switch cho user thường
         return (
-        <Switch
-            checked={record.isActive}
+          <Switch
+            checked={isActive}
+            checkedChildren="Hoạt động"
+            unCheckedChildren="Bị ban"
             onChange={() => {
-              const actionLabel = record.isActive ? "chuyển tài khoản này sang trạng thái Bị ban" : "mở khóa tài khoản này";
+              const actionLabel = isActive ? "chuyển tài khoản này sang trạng thái Bị ban" : "mở khóa tài khoản này";
               Modal.confirm({
                 title: "Xác nhận thay đổi trạng thái tài khoản",
                 content: `Bạn có chắc chắn muốn ${actionLabel}?`,
                 okText: "Xác nhận",
                 cancelText: "Hủy",
-                onOk: () => handleToggleStatus(record.id, record.isActive),
+                onOk: () => handleToggleStatus(record.id, isActive),
               });
             }}
-            disabled={loading[record.isActive ? "active" : "banned"]}
+            disabled={loading[isActive ? "active" : "banned"]}
           />
         );
       },
@@ -405,7 +417,7 @@ const AccountManagement = () => {
         if (!dateB) return -1;
         return dateA.isAfter(dateB) ? -1 : 1;
       },
-      render: (text) => (text ? format(parseISO(text), "dd/MM/yyyy HH:mm") : "-"),
+      render: (text) => (text ? format(parseISO(text), "HH:mm dd/MM/yyyy") : "-"),
     },
     {
       title: "Hành động",
@@ -493,7 +505,7 @@ const AccountManagement = () => {
                 total: activePagination.total,
                 showSizeChanger: true,
                 showQuickJumper: true,
-                showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} tài khoản`,
+                showTotal: (total) => `Tổng ${total} tài khoản`,
                 onChange: (page, size) =>
                   setActiveQuery(prev => ({ ...prev, page, pageSize: size })),
                 onShowSizeChange: (_, size) =>
@@ -546,7 +558,7 @@ const AccountManagement = () => {
                 total: bannedPagination.total,
                 showSizeChanger: true,
                 showQuickJumper: true,
-                showTotal: (total, range) => `${range[0]}-${range[1]} của ${total} tài khoản`,
+                showTotal: (total) => `Tổng ${total} tài khoản`,
                 onChange: (page, size) =>
                   setBannedQuery(prev => ({ ...prev, page, pageSize: size })),
                 onShowSizeChange: (_, size) =>
@@ -775,10 +787,25 @@ const AccountManagement = () => {
               name="role"
               label="Quyền"
               validateTrigger={['onBlur', 'onChange']}
-              rules={[{ required: true, message: "Vui lòng chọn role!" }]}
+              rules={[
+                {
+                  required: !(editingAccount && (editingAccount.id === user?.id || editingAccount.id === user?.userId)),
+                  message: "Vui lòng chọn role!"
+                }
+              ]}
+              extra={
+                editingAccount && 
+                (editingAccount.id === user?.id || editingAccount.id === user?.userId) 
+                  ? "Bạn không thể thay đổi quyền của chính tài khoản đang đăng nhập" 
+                  : null
+              }
             >
               <Select 
                 placeholder="Chọn role"
+                disabled={
+                  editingAccount && 
+                  (editingAccount.id === user?.id || editingAccount.id === user?.userId)
+                }
                 onFocus={() => {
                   // Validate các trường trước đó khi focus vào trường này
                   const fieldsToValidate = editingAccount 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert, Button, Drawer, Divider } from "antd";
-import { SearchOutlined, InfoCircleOutlined, EyeOutlined } from "@ant-design/icons";
+import { SearchOutlined, InfoCircleOutlined, EyeOutlined, WarningOutlined } from "@ant-design/icons";
 import { buildQuestionListParams } from "@services/questionsService";
 import { getQuestionGroups, getQuestionGroupById } from "@services/questionGroupService";
 import { loadPartsBySkill, TEST_SKILL } from "@shared/constants/toeicStructure";
@@ -356,7 +356,7 @@ export default function QuestionGroupSelectorModal({
                     return (
                         <Space>
                             <span style={{ color: "#ff4d4f", fontStyle: "italic", fontSize: 12 }}>
-                                ⚠️ Chưa có đoạn văn
+                                <WarningOutlined style={{ marginRight: 4 }} /> Chưa có đoạn văn
                             </span>
                             {record.imageUrl && (
                                 <Tooltip title="Có hình ảnh">

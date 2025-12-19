@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Table, Tag, Space, Empty, message, Spin, Card, Progress, Divider, Collapse, Typography, Button, Modal, Row, Col, Grid } from "antd";
-import { PlayCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, WarningOutlined, InfoCircleOutlined, EditOutlined, SoundOutlined, FileTextOutlined, BulbOutlined } from "@ant-design/icons";
+import { Table, Tag, Space, Empty, message, Spin, Card, Progress, Divider, Collapse, Typography, Button, Modal, Row, Col, Grid, Pagination, Input, Select, DatePicker } from "antd";
+import { PlayCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, WarningOutlined, InfoCircleOutlined, EditOutlined, SoundOutlined, FileTextOutlined, BulbOutlined, SearchOutlined, ClearOutlined } from "@ant-design/icons";
 
 const { Panel } = Collapse;
 const { Text, Title } = Typography;
@@ -9,6 +9,7 @@ import styles from "@shared/styles/Profile.module.css";
 import { getTestHistory } from "@services/testsService";
 import { startTest, getTestResultDetail } from "@services/testExamService";
 import { useAuth } from "@shared/hooks/useAuth";
+import dayjs from "dayjs";
 
 const EMPTY_LR_MESSAGE =
   "Không có câu trả lời cho phần này. Có thể bạn chưa làm hoặc dữ liệu chưa được ghi nhận.";
@@ -35,6 +36,10 @@ export function TestHistoryTab() {
     pageSize: 10,
     total: 0,
   });
+  const [mobilePagination, setMobilePagination] = useState({
+    current: 1,
+    pageSize: 10,
+  });
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailMode, setDetailMode] = useState(null); // LR hoặc SW
@@ -43,6 +48,11 @@ export function TestHistoryTab() {
   const [detailSummary, setDetailSummary] = useState({});
   const [selectedHistory, setSelectedHistory] = useState(null);
   const [detailData, setDetailData] = useState(null); // Lưu toàn bộ detailData từ API
+  const [searchText, setSearchText] = useState("");
+  const [filterTestType, setFilterTestType] = useState(null);
+  const [filterTestSkill, setFilterTestSkill] = useState(null);
+  const [filterStatus, setFilterStatus] = useState(null);
+  const [filterDateRange, setFilterDateRange] = useState(null);
   const navigate = useNavigate();
   const screens = Grid.useBreakpoint();
   // Màn hình dưới xl (bao gồm tablet ngang) dùng layout "màn nhỏ"
@@ -97,6 +107,87 @@ export function TestHistoryTab() {
     });
   };
 
+  // Helper function để normalize testType
+  const normalizeTestType = (value) => {
+    if (typeof value === "string") {
+      const lower = value.toLowerCase();
+      if (lower.includes("practice") || lower.includes("luyện")) return "Practice";
+      return "Simulator";
+    }
+    if (value === 2) return "Practice";
+    return "Simulator";
+  };
+
+  // Lọc dữ liệu theo search và filter
+  const filteredHistory = useMemo(() => {
+    let filtered = [...history];
+
+    // Tìm kiếm theo text
+    if (searchText.trim()) {
+      const searchLower = searchText.toLowerCase();
+      filtered = filtered.filter((item) => {
+        const title = (item.title || "").toLowerCase();
+        return title.includes(searchLower);
+      });
+    }
+
+    // Lọc theo loại bài thi
+    if (filterTestType !== null && filterTestType !== undefined) {
+      filtered = filtered.filter((item) => {
+        const normalizedType = normalizeTestType(item.testType);
+        const normalizedFilterType = normalizeTestType(filterTestType);
+        return normalizedType === normalizedFilterType;
+      });
+    }
+
+    // Lọc theo kỹ năng
+    if (filterTestSkill !== null && filterTestSkill !== undefined) {
+      filtered = filtered.filter((item) => {
+        const skillGroup = getSkillGroupFromValue(item.testSkill);
+        const filterSkillGroup = getSkillGroupFromValue(filterTestSkill);
+        return skillGroup === filterSkillGroup;
+      });
+    }
+
+    // Lọc theo trạng thái
+    if (filterStatus !== null && filterStatus !== undefined) {
+      filtered = filtered.filter((item) => {
+        const status = item.testStatus;
+        if (filterStatus === "InProgress") {
+          return status === "InProgress" || status === "inProgress" || status === 0 || status === "0";
+        }
+        if (filterStatus === "Graded") {
+          return status === "Graded" || status === "graded" || status === 2 || status === "2";
+        }
+        return false;
+      });
+    }
+
+    // Lọc theo khoảng thời gian
+    if (filterDateRange && filterDateRange.length === 2) {
+      filtered = filtered.filter((item) => {
+        if (!item.createdAt) return false;
+        const itemDate = dayjs(item.createdAt);
+        const startDate = filterDateRange[0].startOf("day");
+        const endDate = filterDateRange[1].endOf("day");
+        return itemDate.isAfter(startDate) && itemDate.isBefore(endDate) || itemDate.isSame(startDate) || itemDate.isSame(endDate);
+      });
+    }
+
+    return filtered;
+  }, [history, searchText, filterTestType, filterTestSkill, filterStatus, filterDateRange]);
+
+  const handleResetFilters = () => {
+    setSearchText("");
+    setFilterTestType(null);
+    setFilterTestSkill(null);
+    setFilterStatus(null);
+    setFilterDateRange(null);
+    setMobilePagination({ current: 1, pageSize: 10 });
+  };
+
+  const hasActiveFilters = searchText || filterTestType !== null || filterTestSkill !== null || filterStatus !== null || filterDateRange;
+
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -113,15 +204,17 @@ export function TestHistoryTab() {
     // Xử lý cả số và string
     if (typeof skill === "string") {
       const upper = skill.toUpperCase();
-      if (upper === "LR" || upper === "LISTENING & READING") return "Listening & Reading";
-      if (upper === "SW" || upper === "S&W") return "Speaking & Writing";
+      if (upper === "LR" || upper === "LISTENING & READING") return "Nghe & Đọc";
+      if (upper === "SW" || upper === "S&W") return "Nói & Viết";
+      if (upper === "SPEAKING") return "Nói";
+      if (upper === "WRITING") return "Viết";
       return skill;
     }
     const skillMap = {
-      1: "Speaking",
-      2: "Writing",
-      3: "Listening & Reading",
-      4: "Speaking & Writing",
+      1: "Nói",
+      2: "Viết",
+      3: "Nghe & Đọc",
+      4: "Nói & Viết",
     };
     return skillMap[skill] || skill;
   };
@@ -149,13 +242,13 @@ export function TestHistoryTab() {
     // Xử lý cả số và string
     if (typeof type === "string") {
       const lower = type.toLowerCase();
-      if (lower.includes("practice") || lower.includes("luyện")) return "Practice";
-      if (lower.includes("simulator")) return "Simulator";
+      if (lower.includes("practice") || lower.includes("luyện")) return "Luyện tập";
+      if (lower.includes("simulator")) return "Thi mô phỏng";
       return type;
     }
     const typeMap = {
-      1: "Simulator",
-      2: "Practice",
+      1: "Thi mô phỏng",
+      2: "Luyện tập",
     };
     return typeMap[type] || type;
   };
@@ -629,32 +722,32 @@ export function TestHistoryTab() {
     setDetailData(null);
   };
 
-const lrDetailColumns = [
-  {
-    title: "Câu",
-    dataIndex: "order",
-    width: 70,
-    align: "center",
-    render: (value, row) => (
-      <div style={{ textAlign: "center" }}>
-        <strong style={{ fontSize: 16 }}>{value}</strong>
-        <div style={{ marginTop: 4 }}>
-          {row.isCorrect === true && (
-            <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 18 }} />
-          )}
-          {row.isCorrect === false && (
-            <CloseCircleOutlined style={{ color: "#f5222d", fontSize: 18 }} />
-          )}
+  const lrDetailColumns = [
+    {
+      title: "Câu",
+      dataIndex: "order",
+      width: 70,
+      align: "center",
+      render: (value, row) => (
+        <div style={{ textAlign: "center" }}>
+          <strong style={{ fontSize: 16 }}>{value}</strong>
+          <div style={{ marginTop: 4 }}>
+            {row.isCorrect === true && (
+              <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 18 }} />
+            )}
+            {row.isCorrect === false && (
+              <CloseCircleOutlined style={{ color: "#f5222d", fontSize: 18 }} />
+            )}
+          </div>
         </div>
-      </div>
-    ),
-  },
-  {
-    title: "Nội dung",
-    dataIndex: "question",
-    render: (_, row) => (
+      ),
+    },
+    {
+      title: "Nội dung",
+      dataIndex: "question",
+      render: (_, row) => (
       <div className={styles.lrDetailRow}>
-        {/* Khối đề bài bên trái */}
+          {/* Khối đề bài bên trái */}
         <div className={styles.lrDetailLeft}>
             {row.passage && (
               <div
@@ -700,9 +793,9 @@ const lrDetailColumns = [
                 </audio>
               </div>
             )}
-        </div>
+          </div>
 
-        {/* Khối đáp án & giải thích bên phải */}
+          {/* Khối đáp án & giải thích bên phải */}
         <div className={styles.lrDetailRight}>
             {row.options?.length > 0 && (
               <div style={{ marginTop: 0 }}>
@@ -765,11 +858,11 @@ const lrDetailColumns = [
                 </div>
               </div>
             )}
+          </div>
         </div>
-      </div>
-    ),
-  },
-];
+      ),
+    },
+  ];
 
   const renderLRDetailByParts = () => {
     if (!lrDetail.questions || lrDetail.questions.length === 0) {
@@ -1182,7 +1275,7 @@ const lrDetailColumns = [
         {analysis.image_description && (
           <Card 
             size="small" 
-            title={<><InfoCircleOutlined /> Mô tả hình ảnh (AI phân tích)</>}
+            title={<><InfoCircleOutlined /> Gợi ý từ AI</>}
             style={{ borderRadius: 8, background: "#e6f7ff", borderColor: "#91d5ff" }}
           >
             <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
@@ -1478,17 +1571,6 @@ const lrDetailColumns = [
     };
   }, [detailData, lrDetail, detailMode]);
 
-  // Helper function để normalize testType
-  const normalizeTestType = (value) => {
-    if (typeof value === "string") {
-      const lower = value.toLowerCase();
-      if (lower.includes("practice") || lower.includes("luyện")) return "Practice";
-      return "Simulator";
-    }
-    if (value === 2) return "Practice";
-    return "Simulator";
-  };
-
   // Kiểm tra xem có phải Practice LR không
   const isPracticeLrMode = useMemo(() => {
     const normalizedTestType = normalizeTestType(detailSummary.testType);
@@ -1518,7 +1600,7 @@ const lrDetailColumns = [
           marginBottom: 24,
         }}
       >
-        <div style={{ fontSize: 48, marginBottom: 12 }}>ℹ️</div>
+        <InfoCircleOutlined style={{ fontSize: 48, marginBottom: 12, color: "#0958d9" }} />
         <Title level={3} style={{ marginBottom: 8, color: "#0958d9" }}>
           Chế độ Practice (Listening & Reading)
         </Title>
@@ -1856,7 +1938,7 @@ const lrDetailColumns = [
                 <Col span={12}>
                   <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
                     <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
-                      <SoundOutlined /> Listening
+                      <SoundOutlined /> Nghe
                     </div>
                     <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
                       {detailSummary.listeningScore}
@@ -1871,7 +1953,7 @@ const lrDetailColumns = [
                 <Col span={12}>
                   <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
                     <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
-                      <FileTextOutlined /> Reading
+                      <FileTextOutlined /> Đọc
                     </div>
                     <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
                       {detailSummary.readingScore}
@@ -1889,7 +1971,7 @@ const lrDetailColumns = [
                   <Col span={12}>
                     <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
                       <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
-                        <EditOutlined /> Writing
+                        <EditOutlined /> Viết
                       </div>
                       <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
                         {detailSummary.writingScore}
@@ -1908,7 +1990,7 @@ const lrDetailColumns = [
                   <Col span={12}>
                     <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
                       <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
-                        <SoundOutlined /> Speaking
+                        <SoundOutlined /> Nói
                       </div>
                       <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
                         {detailSummary.speakingScore}
@@ -1925,7 +2007,7 @@ const lrDetailColumns = [
                   <Col span={12}>
                     <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
                       <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
-                        <CheckCircleOutlined /> Listening - số câu đúng
+                        <CheckCircleOutlined /> Nghe - số câu đúng
                       </div>
                       <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
                         {practiceLrStats.listening.correct}
@@ -1940,7 +2022,7 @@ const lrDetailColumns = [
                   <Col span={12}>
                     <div style={{ background: "rgba(255,255,255,0.15)", borderRadius: 8, padding: "10px 14px" }}>
                       <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginBottom: 2 }}>
-                        <CheckCircleOutlined /> Reading - số câu đúng
+                        <CheckCircleOutlined /> Đọc - số câu đúng
                       </div>
                       <div style={{ color: "#fff", fontSize: 22, fontWeight: 600 }}>
                         {practiceLrStats.reading.correct}
@@ -2085,10 +2167,17 @@ const lrDetailColumns = [
   };
 
   // Kiểm tra xem có bài nào đang làm không
-  const hasInProgressTest = history.some(record => {
+  const hasInProgressTest = filteredHistory.some(record => {
     const status = record.testStatus;
     return status === "InProgress" || status === "inProgress" || status === 0 || status === "0";
   });
+
+  // Tính toán dữ liệu hiển thị cho mobile
+  const mobileHistory = useMemo(() => {
+    const start = (mobilePagination.current - 1) * mobilePagination.pageSize;
+    const end = start + mobilePagination.pageSize;
+    return filteredHistory.slice(start, end);
+  }, [filteredHistory, mobilePagination.current, mobilePagination.pageSize]);
 
   const cellCardStyle = {
     width: "100%",
@@ -2314,16 +2403,115 @@ const lrDetailColumns = [
     <>
     <div className={styles.tabPane}>
       <h2 className={styles.title}>Lịch sử luyện thi</h2>
+      
+      {/* Search and Filter Section */}
+      <Card
+        size="small"
+        style={{ marginBottom: 16, background: "#fafafa" }}
+        bodyStyle={{ padding: 12 }}
+      >
+        <Row gutter={[12, 12]}>
+          <Col xs={24} sm={24} md={8} lg={6}>
+            <Input
+              placeholder="Tìm kiếm theo tiêu đề bài thi..."
+              prefix={<SearchOutlined />}
+              value={searchText}
+              onChange={(e) => {
+                setSearchText(e.target.value);
+                setMobilePagination({ current: 1, pageSize: 10 });
+              }}
+              allowClear
+            />
+          </Col>
+          <Col xs={24} sm={12} md={5} lg={4}>
+            <Select
+              placeholder="Lọc theo loại"
+              style={{ width: "100%" }}
+              value={filterTestType}
+              onChange={(value) => {
+                setFilterTestType(value);
+                setMobilePagination({ current: 1, pageSize: 10 });
+              }}
+              allowClear
+            >
+              <Select.Option value={1}>Thi mô phỏng</Select.Option>
+              <Select.Option value={2}>Luyện tập</Select.Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={5} lg={4}>
+            <Select
+              placeholder="Lọc theo kỹ năng"
+              style={{ width: "100%" }}
+              value={filterTestSkill}
+              onChange={(value) => {
+                setFilterTestSkill(value);
+                setMobilePagination({ current: 1, pageSize: 10 });
+              }}
+              allowClear
+            >
+              <Select.Option value={3}>Nghe & Đọc</Select.Option>
+              <Select.Option value={4}>Nói & Viết</Select.Option>
+              <Select.Option value={1}>Nói</Select.Option>
+              <Select.Option value={2}>Viết</Select.Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={5} lg={4}>
+            <Select
+              placeholder="Lọc theo trạng thái"
+              style={{ width: "100%" }}
+              value={filterStatus}
+              onChange={(value) => {
+                setFilterStatus(value);
+                setMobilePagination({ current: 1, pageSize: 10 });
+              }}
+              allowClear
+            >
+              <Select.Option value="InProgress">Đang làm</Select.Option>
+              <Select.Option value="Graded">Đã hoàn thành</Select.Option>
+            </Select>
+          </Col>
+          <Col xs={24} sm={12} md={6} lg={6}>
+            <DatePicker.RangePicker
+              style={{ width: "100%" }}
+              value={filterDateRange}
+              onChange={(dates) => {
+                setFilterDateRange(dates);
+                setMobilePagination({ current: 1, pageSize: 10 });
+              }}
+              format="DD/MM/YYYY"
+              placeholder={["Từ ngày", "Đến ngày"]}
+            />
+          </Col>
+          {hasActiveFilters && (
+            <Col xs={24} sm={12} md={4} lg={4}>
+              <Button
+                icon={<ClearOutlined />}
+                onClick={handleResetFilters}
+                style={{ width: "100%" }}
+              >
+                Xóa bộ lọc
+              </Button>
+            </Col>
+          )}
+        </Row>
+        {hasActiveFilters && (
+          <div style={{ marginTop: 8, fontSize: 12, color: "#666" }}>
+            Đang hiển thị {filteredHistory.length} / {history.length} bài thi
+          </div>
+        )}
+      </Card>
+
       <Row gutter={24} justify="center">
         <Col xs={24} sm={24} md={24} lg={24} xl={24}>
-          {history.length === 0 && !loading ? (
+          {filteredHistory.length === 0 && !loading ? (
             <Empty
               description="Chưa có lịch sử thi nào"
               style={{ marginTop: 40 }}
             />
           ) : isMobile ? (
-            <Space direction="vertical" size={16} style={{ width: "100%" }}>
-              {history.map((record, index) => {
+            <>
+              <Space direction="vertical" size={16} style={{ width: "100%" }}>
+                {mobileHistory.map((record, index) => {
                 const skillGroup = getSkillGroupFromValue(record.testSkill);
                 const normalizedTestType = normalizeTestType(record.testType);
                 const isPracticeLR =
@@ -2401,28 +2589,43 @@ const lrDetailColumns = [
                   </Card>
                 );
               })}
-            </Space>
+              </Space>
+              {filteredHistory.length > 0 && (
+                <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}>
+                  <Pagination
+                    current={mobilePagination.current}
+                    pageSize={mobilePagination.pageSize}
+                    total={filteredHistory.length}
+                    onChange={(page) => {
+                      setMobilePagination((prev) => ({ ...prev, current: page }));
+                    }}
+                    showSizeChanger={false}
+                    showTotal={(total) => `Tổng ${total} bài thi`}
+                  />
+                </div>
+              )}
+            </>
           ) : (
             <div className={styles.tableWrapper}>
-              <Table
-                columns={columns}
-                dataSource={history}
-                rowKey={(record, index) => `${record.testId}-${record.createdAt}-${index}`}
-                loading={loading}
-                showHeader={false}
-                pagination={{
-                  current: pagination.current,
-                  pageSize: pagination.pageSize,
-                  total: pagination.total,
-                  showSizeChanger: true,
-                  showTotal: (total) => `Tổng ${total} bài thi`,
-                  pageSizeOptions: ["10", "20", "50"],
-                }}
-                onChange={handleTableChange}
-                size="middle"
-                bordered
+            <Table
+              columns={columns}
+              dataSource={filteredHistory}
+              rowKey={(record, index) => `${record.testId}-${record.createdAt}-${index}`}
+              loading={loading}
+              showHeader={false}
+              pagination={{
+                current: pagination.current,
+                pageSize: pagination.pageSize,
+                total: filteredHistory.length,
+                showSizeChanger: true,
+                showTotal: (total) => `Tổng ${total} bài thi`,
+                pageSizeOptions: ["10", "20", "50"],
+              }}
+              onChange={handleTableChange}
+              size="middle"
+              bordered
                 scroll={{ x: 900 }}
-              />
+            />
             </div>
           )}
         </Col>

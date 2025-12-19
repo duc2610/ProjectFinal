@@ -49,9 +49,14 @@ export default function QuestionNavigator({ questions, currentIndex, answers, go
               if (q.globalIndex <= 6 || q.globalIndex === 13 || q.globalIndex === 14 || q.globalIndex === 34 || q.globalIndex === 40) {
               }
 
+              // Tạo key cho React element, phải khớp với answerKey logic
+              const elementKey = subIndex !== 0
+                ? `${testQuestionIdStr}_${subIndex}`
+                : testQuestionIdStr;
+
               return (
                 <button
-                  key={q.testQuestionId + (q.subQuestionIndex !== undefined ? `_${q.subQuestionIndex}` : '')}
+                  key={elementKey}
                   onClick={() => goToQuestionByIndex(idx)}
                   className={`${styles.numBtn} ${isActive ? styles.activeNum : ""} ${isAnswered ? styles.answeredNum : ""}`}
                   style={{

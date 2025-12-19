@@ -142,13 +142,13 @@ export default function TestCreatorDashboard() {
       valueStyle: { color: "#1890ff" },
     },
     {
-      title: "Bài thi đã xuất bản",
+      title: "Bài thi đã công khai",
       value: stats.publishedTests,
       prefix: <CheckCircleOutlined />,
       valueStyle: { color: "#52c41a" },
     },
     {
-      title: "Bài thi nháp",
+      title: "Bài thi chưa công khai",
       value: stats.draftTests,
       prefix: <ClockCircleOutlined />,
       valueStyle: { color: "#fa8c16" },
@@ -227,7 +227,7 @@ export default function TestCreatorDashboard() {
   return (
     <div style={{ padding: "24px" }} className="animate-fade-in">
       <Title level={2} style={{ marginBottom: 24 }} className="animate-fade-in-down">
-        Bảng điều khiển 
+        Bảng thống kê 
       </Title>
 
       {/* Statistics Cards */}
@@ -383,12 +383,7 @@ export default function TestCreatorDashboard() {
                         />
                       }
                       title={
-                        <Space>
-                          <Text strong>{item.action}</Text>
-                          <Tag color={getStatusColor(item.status)}>
-                            {translateStatus(item.status)}
-                          </Tag>
-                        </Space>
+                        <Text strong>{item.action}</Text>
                       }
                       description={
                         <div>
