@@ -17,7 +17,7 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 		public TestSkill TestSkill { get; set; } = TestSkill.LR; // Skill: L&R, Writing, Speaking, L&R
 		public string Title { get; set; }
 		public int Duration { get; set; }
-		public DateTime CreatedAt { get; set; } = Now;
+		public DateTime CreatedAt { get; set; }
 		public int TotalQuestion { get; set; }
 		public int TotalScore { get; set; }
 		public int CorrectQuestion { get; set; }

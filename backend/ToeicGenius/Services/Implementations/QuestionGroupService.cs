@@ -250,7 +250,7 @@ namespace ToeicGenius.Services.Implementations
 				// Update question 
 				currentQuestionGroup.PartId = dto.PartId;
 				currentQuestionGroup.PassageContent = dto.PassageContent;
-				currentQuestionGroup.UpdatedAt = Now;
+				currentQuestionGroup.UpdatedAt = UtcNow;
 
 				// Chỉ thay khi có file mới
 				if (!string.IsNullOrEmpty(newAudioUrl)) currentQuestionGroup.AudioUrl = newAudioUrl;
@@ -265,7 +265,7 @@ namespace ToeicGenius.Services.Implementations
 						q.Content = qDto.Content;
 						q.Explanation = qDto.Solution;
 						q.QuestionTypeId = qDto.QuestionTypeId;
-						q.UpdatedAt = Now;
+						q.UpdatedAt = UtcNow;
 
 						// Speaking & Writing ko cần option
 						if (isSpeakingOrWriting)
@@ -285,7 +285,7 @@ namespace ToeicGenius.Services.Implementations
 						foreach (var old in q.Options.Where(o => !keepIds.Contains(o.OptionId)))
 						{
 							old.Status = CommonStatus.Inactive;
-							old.UpdatedAt = Now;
+							old.UpdatedAt = UtcNow;
 						}
 
 						// Upsert
@@ -297,7 +297,7 @@ namespace ToeicGenius.Services.Implementations
 								opt.Content = oDto.Content;
 								opt.IsCorrect = oDto.IsCorrect;
 								opt.Status = CommonStatus.Active;
-								opt.UpdatedAt = Now;
+								opt.UpdatedAt = UtcNow;
 							}
 							else
 							{
@@ -307,7 +307,7 @@ namespace ToeicGenius.Services.Implementations
 									Content = oDto.Content,
 									IsCorrect = oDto.IsCorrect,
 									Status = CommonStatus.Active,
-									CreatedAt = Now
+									CreatedAt = UtcNow
 								});
 							}
 						}
@@ -333,7 +333,7 @@ namespace ToeicGenius.Services.Implementations
 							Content = qDto.Content,
 							Explanation = qDto.Solution,
 							Status = CommonStatus.Active,
-							CreatedAt = Now
+							CreatedAt = UtcNow
 						};
 
 						// SPEAKING/WRITING: không thêm option
@@ -345,7 +345,7 @@ namespace ToeicGenius.Services.Implementations
 								Content = o.Content,
 								IsCorrect = o.IsCorrect,
 								Status = CommonStatus.Active,
-								CreatedAt = Now
+								CreatedAt = UtcNow
 							}).ToList();
 
 							var newQuestionOptions = newQ.Options

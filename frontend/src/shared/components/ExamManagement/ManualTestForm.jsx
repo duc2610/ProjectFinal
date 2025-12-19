@@ -1080,7 +1080,17 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             title={readOnly ? "Xem Bài Thi Mô Phỏng" : (currentTestId ? "Chỉnh Sửa Bài Thi Mô Phỏng" : "Tạo Bài Thi Mô Phỏng")}
             open={open}
             onCancel={onClose}
-            onOk={readOnly ? undefined : handleSubmit}
+            onOk={readOnly ? undefined : () => {
+                Modal.confirm({
+                    title: currentTestId ? "Xác nhận cập nhật bài thi" : "Xác nhận tạo bài thi",
+                    content: currentTestId
+                        ? "Bạn có chắc chắn muốn cập nhật thông tin bài thi mô phỏng này?"
+                        : "Bạn có chắc chắn muốn tạo bài thi mô phỏng với thông tin hiện tại?",
+                    okText: currentTestId ? "Cập nhật" : "Tạo bài thi",
+                    cancelText: "Hủy",
+                    onOk: () => handleSubmit(),
+                });
+            }}
             width={1400}
             confirmLoading={loading}
             okText={currentTestId ? "Đã tạo" : "Tạo bài thi"}
@@ -1090,7 +1100,17 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     <Button onClick={onClose}>Hủy</Button>
                     <Button
                         type="primary"
-                        onClick={handleSubmit}
+                        onClick={() => {
+                            Modal.confirm({
+                                title: currentTestId ? "Xác nhận cập nhật bài thi" : "Xác nhận tạo bài thi",
+                                content: currentTestId
+                                    ? "Bạn có chắc chắn muốn cập nhật thông tin bài thi mô phỏng này?"
+                                    : "Bạn có chắc chắn muốn tạo bài thi mô phỏng với thông tin hiện tại?",
+                                okText: currentTestId ? "Cập nhật" : "Tạo bài thi",
+                                cancelText: "Hủy",
+                                onOk: () => handleSubmit(),
+                            });
+                        }}
                         loading={loading}
                         style={{ marginLeft: 8 }}
                     >
@@ -1235,7 +1255,16 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                             type="primary"
                                             icon={<DeleteOutlined />}
                                             size="small"
-                                            onClick={() => setAudioUrl(null)}
+                                            onClick={() => {
+                                                Modal.confirm({
+                                                    title: "Xác nhận xóa audio",
+                                                    content: "Bạn có chắc chắn muốn xóa file audio này khỏi câu hỏi?",
+                                                    okText: "Xóa audio",
+                                                    okType: "danger",
+                                                    cancelText: "Hủy",
+                                                    onOk: () => setAudioUrl(null),
+                                                });
+                                            }}
                                             style={{
                                                 marginTop: 8,
                                             }}
@@ -1328,7 +1357,14 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                                             <DeleteOutlined
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    deleteQuestion(part.partId, qIdx);
+                                                                    Modal.confirm({
+                                                                        title: "Xác nhận xóa câu hỏi",
+                                                                        content: `Bạn có chắc chắn muốn xóa ${questionLabel} khỏi đề?`,
+                                                                        okText: "Xóa câu hỏi",
+                                                                        okType: "danger",
+                                                                        cancelText: "Hủy",
+                                                                        onOk: () => deleteQuestion(part.partId, qIdx),
+                                                                    });
                                                                 }}
                                                             />
                                                         )}

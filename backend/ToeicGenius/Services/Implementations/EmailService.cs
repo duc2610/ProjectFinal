@@ -1,40 +1,40 @@
 ﻿using System.Net.Mail;
 using System.Net;
 using ToeicGenius.Services.Interfaces;
+using Castle.Core.Logging;
+using SendGrid.Helpers.Mail;
+using SendGrid;
 
 namespace ToeicGenius.Services.Implementations
 {
 	public class EmailService : IEmailService
 	{
 		private readonly IConfiguration _configuration;
+		private readonly ILogger<EmailService> _logger;
 
-		public EmailService(IConfiguration configuration)
+		public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
 		{
 			_configuration = configuration;
+			_logger = logger;
 		}
+		
 		public async Task SendMailAsync(string toEmail, string subject, string body)
 		{
-			MailMessage message = new MailMessage()
+			var apiKey = _configuration["SendGrid:ApiKey"];
+			var client = new SendGridClient(apiKey);
+
+			var from = new EmailAddress(_configuration["SendGrid:FromEmail"], _configuration["SendGrid:FromName"]);
+			var to = new EmailAddress(toEmail);
+			var msg = MailHelper.CreateSingleEmail(from, to, subject, null, body);
+
+			var response = await client.SendEmailAsync(msg);
+
+			if (!response.IsSuccessStatusCode)
 			{
-				From = new MailAddress(_configuration["MailSettings:From"] ?? ""),
-				Subject = subject,
-				Body = body,
-				IsBodyHtml = true,
-				SubjectEncoding = System.Text.Encoding.UTF8,
-				BodyEncoding = System.Text.Encoding.UTF8,
-			};
-			message.To.Add(toEmail);
-
-			using var smtpClient = new SmtpClient();
-			smtpClient.Host = _configuration["MailSettings:Host"] ?? "";
-			smtpClient.Port = int.Parse(_configuration["MailSettings:Port"] ?? "587");
-			smtpClient.Credentials = new NetworkCredential(
-				_configuration["MailSettings:UserName"],
-				_configuration["MailSettings:Password"]
-			);
-			smtpClient.EnableSsl = true;
-
-			await smtpClient.SendMailAsync(message);
+				// Logic xử lý khi lỗi (log error)
+				var error = await response.Body.ReadAsStringAsync();
+				throw new Exception($"SendGrid Error: {error}");
+			}
 		}
 	}
 }

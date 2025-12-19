@@ -96,5 +96,6 @@
 		public const string CannotEditPublishedTest = "Không thể chỉnh sửa bài kiểm tra đã xuất bản. Vui lòng sao chép để tạo phiên bản mới.";
 		public const string UnauthorizedAccess = "Truy cập không được phép.";
 		public const string InvalidTestOrQuestions = "Bài kiểm tra hoặc câu hỏi không hợp lệ.";
+		public const string DuplicateTestName = "Tên bài thi đã tồn tại. Vui lòng chọn tên khác.";
 	}
 }

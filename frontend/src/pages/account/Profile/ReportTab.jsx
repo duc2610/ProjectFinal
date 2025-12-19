@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Table, Tag, Space, Empty, message, Button, Row, Col } from "antd";
+import { Table, Tag, Space, Empty, message, Button, Row, Col, Modal, Grid, Card } from "antd";
 import styles from "@shared/styles/Profile.module.css";
 import { getMyQuestionReports } from "@services/questionReportService";
 
@@ -12,6 +12,11 @@ export function ReportTab() {
     pageSize: 20,
     total: 0,
   });
+  const [detailReport, setDetailReport] = useState(null);
+  const [detailVisible, setDetailVisible] = useState(false);
+  const screens = Grid.useBreakpoint();
+  // Màn hình dưới xl (bao gồm tablet ngang) dùng layout "màn nhỏ"
+  const isMobile = !screens.xl;
 
   useEffect(() => {
     fetchReports();
@@ -400,28 +405,155 @@ export function ReportTab() {
               style={{ marginTop: 40 }}
             />
           ) : (
-            <Table
-              columns={columns}
-              dataSource={reports}
-              rowKey={(record, index) => record.reportId || record.key || `report-${index}`}
-              loading={loading}
-              showHeader={false}
-              pagination={{
-                current: pagination.current,
-                pageSize: pagination.pageSize,
-                total: pagination.total,
-                showSizeChanger: true,
-                showTotal: (total) => `Tổng ${total} báo cáo`,
-                pageSizeOptions: ["10", "20", "50"],
-              }}
-              onChange={handleTableChange}
-              scroll={{ x: 1000 }}
-              size="middle"
-              bordered
-            />
+            <>
+              {isMobile ? (
+                <Space direction="vertical" size={16} style={{ width: "100%" }}>
+                  {reports.map((report, index) => (
+                    <Card
+                      key={report.reportId || `report-${index}`}
+                      size="small"
+                      className={styles.statsCard}
+                    >
+                      <Space
+                        direction="vertical"
+                        size={6}
+                        style={{ width: "100%" }}
+                      >
+                        <div style={{ fontWeight: 600 }}>
+                          {report.testName || "Bài thi không xác định"}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>
+                          Phần: {report.partName || "—"}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>
+                          Loại báo cáo:{" "}
+                          {report.reportType || "—"}
+                        </div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>
+                          Ngày tạo: {formatDate(report.createdAt)}
+                        </div>
+                        <div>
+                          <Tag>
+                            {report.status || "—"}
+                          </Tag>
+                        </div>
+                        <Button
+                          size="small"
+                          type="primary"
+                          onClick={() => {
+                            setDetailReport(report);
+                            setDetailVisible(true);
+                          }}
+                        >
+                          Xem chi tiết
+                        </Button>
+                      </Space>
+                    </Card>
+                  ))}
+                </Space>
+              ) : (
+                <div className={styles.tableWrapper}>
+                  <Table
+                    columns={columns}
+                    dataSource={reports}
+                    rowKey={(record, index) => record.reportId || record.key || `report-${index}`}
+                    loading={loading}
+                    showHeader={false}
+                    pagination={{
+                      current: pagination.current,
+                      pageSize: pagination.pageSize,
+                      total: pagination.total,
+                      showSizeChanger: true,
+                      showTotal: (total) => `Tổng ${total} báo cáo`,
+                      pageSizeOptions: ["10", "20", "50"],
+                    }}
+                    onChange={handleTableChange}
+                    scroll={{ x: 900 }}
+                    size="middle"
+                    bordered
+                  />
+                </div>
+              )}
+            </>
           )}
         </Col>
       </Row>
+
+      <Modal
+        title="Chi tiết báo cáo"
+        open={detailVisible}
+        onCancel={() => setDetailVisible(false)}
+        footer={null}
+        destroyOnClose
+      >
+        {detailReport && (
+          <Space direction="vertical" size={8} style={{ width: "100%" }}>
+            <div>
+              <strong>Bài thi:</strong> {detailReport.testName || "—"}
+            </div>
+            <div>
+              <strong>Phần:</strong> {detailReport.partName || "—"}
+            </div>
+            <div>
+              <strong>Câu hỏi:</strong>
+              <div
+                style={{
+                  marginTop: 4,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              >
+                {detailReport.questionContent ||
+                  "Câu hỏi không có nội dung văn bản, chỉ hình ảnh/âm thanh."}
+              </div>
+            </div>
+            <div>
+              <strong>Nội dung báo cáo:</strong>
+              <div
+                style={{
+                  marginTop: 4,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              >
+                {detailReport.description || "—"}
+              </div>
+            </div>
+            <div>
+              <strong>Trạng thái:</strong>{" "}
+              <Tag>{detailReport.status || "—"}</Tag>
+            </div>
+            <div>
+              <strong>Ngày tạo:</strong> {formatDate(detailReport.createdAt)}
+            </div>
+            {detailReport.reviewedAt && (
+              <div>
+                <strong>Thời gian xử lý:</strong>{" "}
+                {formatDate(detailReport.reviewedAt)}
+              </div>
+            )}
+            {detailReport.reviewerName && (
+              <div>
+                <strong>Người xử lý:</strong> {detailReport.reviewerName}
+              </div>
+            )}
+            {detailReport.reviewerNotes && (
+              <div>
+                <strong>Nội dung xử lý:</strong>
+                <div
+                  style={{
+                    marginTop: 4,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {detailReport.reviewerNotes}
+                </div>
+              </div>
+            )}
+          </Space>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -68,7 +68,7 @@ namespace ToeicGenius.Repositories.Implementations
                     Duration = 0,
                     TotalScore = 0,
                     TestType = Domains.Enums.TestType.Practice,
-                    CreatedAt = Now
+                    CreatedAt = UtcNow
                 };
 
                 await _context.TestResults.AddAsync(newTest);
@@ -107,7 +107,7 @@ namespace ToeicGenius.Repositories.Implementations
 
                 userTest.Status = TestResultStatus.Graded;
                 userTest.TotalScore = totalScore;
-                userTest.UpdatedAt = Now;
+                userTest.UpdatedAt = UtcNow;
 
                 await _context.SaveChangesAsync();
 

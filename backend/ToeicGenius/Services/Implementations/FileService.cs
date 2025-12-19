@@ -157,7 +157,7 @@ namespace ToeicGenius.Services.Implementations
 					{
 						BucketName = _bucketName,
 						Key = key,
-						Expires = Now.AddMinutes(30)
+						Expires = UtcNow.AddMinutes(30)
 					})
 					: $"https://{_cloudFrontDomain}/{key}";
 

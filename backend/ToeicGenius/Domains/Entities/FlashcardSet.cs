@@ -23,7 +23,7 @@ namespace ToeicGenius.Domains.Entities
         public Guid UserId { get; set; }
         public User User { get; set; } = null!;
 
-        public DateTime CreatedAt { get; set; } = Now;
+        public DateTime CreatedAt { get; set; } = UtcNow;
         public DateTime? UpdatedAt { get; set; }
 
         public int TotalCards { get; set; } = 0; 

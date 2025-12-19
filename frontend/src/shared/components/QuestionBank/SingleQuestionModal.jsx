@@ -842,8 +842,17 @@ export default function SingleQuestionModal({
                         icon={<DeleteOutlined />}
                         size="small"
                         onClick={() => {
-                          form.setFieldsValue({ audio: [] });
-                          setAudioSrc(null);
+                          Modal.confirm({
+                            title: "Xác nhận xóa audio",
+                            content: "Bạn có chắc chắn muốn xóa file audio của câu hỏi này?",
+                            okText: "Xóa audio",
+                            okType: "danger",
+                            cancelText: "Hủy",
+                            onOk: () => {
+                              form.setFieldsValue({ audio: [] });
+                              setAudioSrc(null);
+                            },
+                          });
                         }}
                         style={{
                           marginTop: 8,
@@ -937,8 +946,17 @@ export default function SingleQuestionModal({
                         icon={<DeleteOutlined />}
                         size="small"
                         onClick={() => {
-                          form.setFieldsValue({ image: [] });
-                          setImageSrc(null);
+                          Modal.confirm({
+                            title: "Xác nhận xóa ảnh",
+                            content: "Bạn có chắc chắn muốn xóa ảnh minh họa của câu hỏi này?",
+                            okText: "Xóa ảnh",
+                            okType: "danger",
+                            cancelText: "Hủy",
+                            onOk: () => {
+                              form.setFieldsValue({ image: [] });
+                              setImageSrc(null);
+                            },
+                          });
                         }}
                         style={{
                           marginTop: 8,
@@ -1126,7 +1144,16 @@ export default function SingleQuestionModal({
                         danger
                         type="text"
                         icon={<DeleteOutlined />}
-                        onClick={() => remove(restField.name)}
+                        onClick={() => {
+                          Modal.confirm({
+                            title: "Xác nhận xóa đáp án",
+                            content: "Bạn có chắc chắn muốn xóa đáp án này khỏi câu hỏi?",
+                            okText: "Xóa đáp án",
+                            okType: "danger",
+                            cancelText: "Hủy",
+                            onOk: () => remove(restField.name),
+                          });
+                        }}
                         disabled={
                           requiredOptionsCount
                             ? fields.length <= requiredOptionsCount

@@ -837,8 +837,17 @@ export default function QuestionGroupModal({
                           icon={<DeleteOutlined />}
                           size="small"
                           onClick={() => {
-                            form.setFieldsValue({ audio: [] });
-                            setAudioSrc(null);
+                            Modal.confirm({
+                              title: "Xác nhận xóa audio nhóm câu hỏi",
+                              content: "Bạn có chắc chắn muốn xóa file audio của nhóm câu hỏi này?",
+                              okText: "Xóa audio",
+                              okType: "danger",
+                              cancelText: "Hủy",
+                              onOk: () => {
+                                form.setFieldsValue({ audio: [] });
+                                setAudioSrc(null);
+                              },
+                            });
                           }}
                           style={{
                             marginTop: 8,
@@ -911,8 +920,17 @@ export default function QuestionGroupModal({
                           icon={<DeleteOutlined />}
                           size="small"
                           onClick={() => {
-                            form.setFieldsValue({ image: [] });
-                            setImageSrc(null);
+                            Modal.confirm({
+                              title: "Xác nhận xóa ảnh nhóm câu hỏi",
+                              content: "Bạn có chắc chắn muốn xóa ảnh minh họa của nhóm câu hỏi này?",
+                              okText: "Xóa ảnh",
+                              okType: "danger",
+                              cancelText: "Hủy",
+                              onOk: () => {
+                                form.setFieldsValue({ image: [] });
+                                setImageSrc(null);
+                              },
+                            });
                           }}
                           style={{
                             marginTop: 8,

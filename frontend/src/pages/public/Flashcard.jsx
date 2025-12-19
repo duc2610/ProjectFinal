@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Card, Row, Col, Tag, Space, Empty, message, Spin, Modal } from "antd";
+import { Button, Card, Row, Col, Tag, Space, Empty, message, Spin, Modal, notification } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { getUserFlashcardSets, getPublicFlashcardSets, deleteFlashcardSet } from "@services/flashcardService";
@@ -61,10 +61,15 @@ export default function Flashcard() {
     try {
       const date = new Date(dateString);
       const now = new Date();
-      const diffTime = Math.abs(now - date);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays === 0) return "Hôm nay";
+      const diffMs = now.getTime() - date.getTime();
+      if (diffMs < 0) return "Trong tương lai";
+
+      const diffMinutes = diffMs / (1000 * 60);
+      const diffHours = diffMinutes / 60;
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMinutes < 1) return "Vừa xong";
+      if (diffHours < 24) return "Hôm nay";
       if (diffDays === 1) return "Hôm qua";
       if (diffDays < 7) return `${diffDays} ngày trước`;
       if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
@@ -77,8 +82,8 @@ export default function Flashcard() {
 
   const handleDeleteSet = (setId, title) => {
     Modal.confirm({
-      title: "Xác nhận xóa",
-      content: `Bạn có chắc chắn muốn xóa flashcard "${title}"? Hành động này không thể hoàn tác.`,
+      title: "Xác nhận xóa bộ flashcard",
+      content: `Bạn có chắc chắn muốn xóa bộ flashcard "${title}"? Hành động này không thể hoàn tác.`,
       okText: "Xóa",
       okType: "danger",
       cancelText: "Hủy",
@@ -182,7 +187,12 @@ export default function Flashcard() {
                 size="large"
                 onClick={() => {
                   if (!isAuthenticated) {
-                    message.warning("Vui lòng đăng nhập để tạo flashcard");
+                    notification.warning({
+                      message: "Yêu cầu đăng nhập",
+                      description: "Vui lòng đăng nhập để tạo flashcard",
+                      placement: "topRight",
+                      duration: 4,
+                    });
                     return;
                   }
                   setCreateModalOpen(true);

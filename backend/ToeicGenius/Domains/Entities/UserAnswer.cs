@@ -17,11 +17,9 @@ namespace ToeicGenius.Domains.Entities
         public int TestQuestionId { get; set; }
         public TestQuestion TestQuestion { get; set; } = null!;
 
-		[Column(TypeName = "nvarchar(max)")]
 		public string? AnswerText { get; set; }
 		public string? AnswerAudioUrl { get; set; }
 
-		[Column(TypeName = "nvarchar(5)")]
 		public string? ChosenOptionLabel { get; set; }
 		public int? SubQuestionIndex { get; set; }
 
@@ -31,7 +29,7 @@ namespace ToeicGenius.Domains.Entities
 		// Chấm điểm (nếu có)
 		public bool? IsCorrect { get; set; }
 
-		public DateTime CreatedAt { get; set; } = Now;
+		public DateTime CreatedAt { get; set; } = UtcNow;
 		public DateTime? UpdatedAt { get; set; }
 
 		public virtual ICollection<AIFeedback> AIFeedbacks { get; set; } = new List<AIFeedback>();

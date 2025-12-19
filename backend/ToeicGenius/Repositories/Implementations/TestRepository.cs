@@ -7,6 +7,7 @@ using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Repositories.Persistence;
 using ToeicGenius.Shared.Constants;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Repositories.Implementations
 {
@@ -202,9 +203,16 @@ namespace ToeicGenius.Repositories.Implementations
 			foreach (var test in oldVersions)
 			{
 				test.VisibilityStatus = TestVisibilityStatus.Hidden;
-				test.UpdatedAt = DateTime.UtcNow;
+				test.UpdatedAt = UtcNow;
 			}
 			return true;
+		}
+
+		public async Task<bool> ExistsByNameAsync(string title, int? rootId)
+		{
+			return await _context.Tests.AnyAsync(t =>
+				t.Title.ToLower() == title.ToLower() &&
+				(t.ParentTestId ?? t.TestId) != rootId);
 		}
 	}
 }

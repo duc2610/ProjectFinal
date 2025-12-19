@@ -3,6 +3,7 @@ using ToeicGenius.Domains.DTOs.Responses.TestCreatorDashboard;
 using ToeicGenius.Domains.Enums;
 using ToeicGenius.Repositories.Interfaces;
 using ToeicGenius.Services.Interfaces;
+using static ToeicGenius.Shared.Helpers.DateTimeHelper;
 
 namespace ToeicGenius.Services.Implementations;
 
@@ -17,7 +18,7 @@ public class TestCreatorDashboardService : ITestCreatorDashboardService
 
     public async Task<TestCreatorDashboardStatisticsResponseDto> GetDashboardStatisticsAsync(Guid creatorId)
     {
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         var startOfCurrentPeriod = now.AddDays(-30);
         var startOfPreviousPeriod = startOfCurrentPeriod.AddDays(-30);
 
@@ -79,7 +80,7 @@ public class TestCreatorDashboardService : ITestCreatorDashboardService
 
     public async Task<List<TestPerformanceByDayResponseDto>> GetTestPerformanceByDayAsync(Guid creatorId, int days = 7)
     {
-        var now = DateTime.UtcNow;
+        var now = UtcNow;
         var startDate = now.AddDays(-days);
 
         // Get creator's tests
@@ -343,7 +344,9 @@ public class TestCreatorDashboardService : ITestCreatorDashboardService
 
     private string GetTimeAgo(DateTime dateTime)
     {
-        var timeSpan = DateTime.UtcNow - dateTime;
+        // Ensure dateTime is treated as UTC for comparison
+        var utcDateTime = dateTime.Kind == DateTimeKind.Utc ? dateTime : DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+        var timeSpan = UtcNow - utcDateTime;
 
         if (timeSpan.TotalMinutes < 1)
             return "vừa xong";

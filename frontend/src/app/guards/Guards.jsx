@@ -1,7 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@shared/hooks/useAuth";
 import Splash from "@shared/components/Splash";
-import { message } from "antd";
+import { message, notification } from "antd";
 import { hasRole, ROLES } from "@shared/utils/acl";
 import { hasCookie } from "@shared/utils/cookie";
 import { useRef, useEffect } from "react";
@@ -14,15 +14,23 @@ export function PrivateRoute() {
 
   if (!isAuthenticated) {
     if (hasCookie("tg_access_token")) {
-      message.warning("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
+      notification.warning({
+        message: "Phiên đăng nhập đã hết hạn",
+        description: "Vui lòng đăng nhập lại.",
+        placement: "topRight",
+        duration: 4,
+      });
+    } else {
+      // Hiển thị thông báo yêu cầu đăng nhập thay vì redirect về login
+      notification.warning({
+        message: "Yêu cầu đăng nhập",
+        description: "Vui lòng đăng nhập để sử dụng chức năng này.",
+        placement: "topRight",
+        duration: 4,
+      });
     }
-    return (
-      <Navigate
-        to="/login"
-        replace
-        state={{ returnTo: location.pathname + location.search }}
-      />
-    );
+    // Redirect về home thay vì login
+    return <Navigate to="/" replace />;
   }
   return <Outlet />;
 }
@@ -89,13 +97,15 @@ export function RoleRoute({ allow }) {
   if (loading) return <Splash />;
 
   if (!isAuthenticated) {
-    return (
-      <Navigate
-        to="/login"
-        replace
-        state={{ returnTo: location.pathname + location.search }}
-      />
-    );
+    // Hiển thị thông báo yêu cầu đăng nhập thay vì redirect về login
+    notification.warning({
+      message: "Yêu cầu đăng nhập",
+      description: "Vui lòng đăng nhập để sử dụng chức năng này.",
+      placement: "topRight",
+      duration: 4,
+    });
+    // Redirect về home thay vì login
+    return <Navigate to="/" replace />;
   }
 
   // Kiểm tra quyền chỉ khi user đã được load xong

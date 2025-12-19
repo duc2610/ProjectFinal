@@ -8,7 +8,7 @@ import {
   Divider,
   notification,
 } from "antd";
-import { GoogleOutlined, ArrowRightOutlined } from "@ant-design/icons";
+import { GoogleOutlined, ArrowRightOutlined, HomeOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 const { Title, Text, Link } = Typography;
 import { useAuth } from "@shared/hooks/useAuth";
@@ -62,6 +62,7 @@ export default function Login() {
           message: "Đăng nhập thành công",
           description: `Xin chào ${res.user?.fullName}`,
           duration: 5,
+          placement: "topRight",
         });
         redirectAfterLogin(res.user);
       } else {
@@ -107,14 +108,19 @@ export default function Login() {
       form.setFieldsValue({ password: "" });
     }
   };
+  const [googleLoading, setGoogleLoading] = React.useState(false);
+  
   const googleLogin = useGoogleLogin({
     onSuccess: async (response) => {
+      setGoogleLoading(true);
       try {
         const res = await signInWithGoogle(response.code);
         if (res.ok) {
           notification.success({
             message: "Đăng nhập thành công",
             description: `Xin chào ${res.user?.fullName}`,
+            duration: 5,
+            placement: "topRight",
           });
           redirectAfterLogin(res.user);
         } else {
@@ -128,13 +134,21 @@ export default function Login() {
           message: "Đăng nhập Google thất bại",
           description: err?.message || "Có lỗi xảy ra, vui lòng thử lại",
         });
+      } finally {
+        setGoogleLoading(false);
       }
     },
     flow: "auth-code",
   });
   return (
     <div className={styles.authContainer}>
-      <img src={logo} alt="Logo" className={styles.authLogo} />
+      <img 
+        src={logo} 
+        alt="Logo" 
+        className={styles.authLogo}
+        onClick={() => navigate("/login")}
+        style={{ cursor: "pointer" }}
+      />
       <Card
         className={styles.authCard}
         bodyStyle={{ padding: 0 }}
@@ -215,6 +229,7 @@ export default function Login() {
               icon={<ArrowRightOutlined />}
               loading={loading}
               iconPosition="end"
+              disabled={googleLoading}
             >
               Đăng nhập
             </Button>
@@ -229,6 +244,8 @@ export default function Login() {
               icon={<GoogleOutlined />}
               className={styles.googleButton}
               onClick={() => googleLogin()}
+              loading={googleLoading}
+              disabled={loading || googleLoading}
             >
               Tiếp tục với Google
             </Button>
@@ -265,6 +282,16 @@ export default function Login() {
                 </a>
                 .
               </Text>
+            </div>
+            <div style={{ textAlign: "center", marginTop: 16 }}>
+              <Button
+                type="default"
+                icon={<HomeOutlined />}
+                onClick={() => navigate("/")}
+                style={{ borderRadius: 8 }}
+              >
+                Về trang chủ
+              </Button>
             </div>
           </Form>
         </div>

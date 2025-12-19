@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Card, Typography, Radio, Button, Image, Progress, Input, message, Modal, Select, Tooltip, Radio as AntRadio } from "antd";
+import { Card, Typography, Radio, Button, Image, Progress, Input, message, Modal, Select, Tooltip, Radio as AntRadio, notification } from "antd";
 import { AudioOutlined, StopOutlined, PlayCircleOutlined, FlagOutlined } from "@ant-design/icons";
 import styles from "../../styles/Exam.module.css";
 import { uploadFile } from "../../../services/filesService";
@@ -929,7 +929,12 @@ export default function QuestionCard({
                 onClick={async () => {
                   if (!pendingSelection.text) return;
                   if (!isAuthenticated) {
-                    message.warning("Vui lòng đăng nhập để lưu flashcard.");
+                    notification.warning({
+                      message: "Yêu cầu đăng nhập",
+                      description: "Vui lòng đăng nhập để lưu flashcard.",
+                      placement: "topRight",
+                      duration: 4,
+                    });
                     return;
                   }
                   try {

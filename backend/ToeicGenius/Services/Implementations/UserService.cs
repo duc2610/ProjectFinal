@@ -78,7 +78,7 @@ namespace ToeicGenius.Services.Implementations
 					Id = userId,
 					Email = user.Email,
 					FullName = user.FullName,
-					CreatedAt = user.CreatedAt,
+					CreatedAt = ToVietnamTime(user.CreatedAt),
 					Status = user.Status,
 					IsRoot = user.IsRoot,
 					Roles = roles.Select(x => x.RoleName).ToList(),
@@ -97,6 +97,11 @@ namespace ToeicGenius.Services.Implementations
 			try
 			{
 				var result = await _uow.Users.GetUsersAsync(request);
+				// Convert UTC → Vietnam time cho tất cả items
+				foreach (var item in result.DataPaginated)
+				{
+					item.CreatedAt = ToVietnamTime(item.CreatedAt);
+				}
 				return Result<PaginationResponse<UserResponseDto>>.Success(result);
 			}
 			catch (Exception ex)
@@ -138,7 +143,7 @@ namespace ToeicGenius.Services.Implementations
 				FullName = dto.FullName,
 				PasswordHash = SecurityHelper.HashPassword(plainPassword),
 				Status = UserStatus.Active,
-				CreatedAt = Now
+				CreatedAt = UtcNow
 			};
 
 			await _uow.Users.AddAsync(user);
@@ -164,7 +169,7 @@ namespace ToeicGenius.Services.Implementations
 				Email = user.Email,
 				FullName = user.FullName,
 				Status = user.Status,
-				CreatedAt = user.CreatedAt,
+				CreatedAt = ToVietnamTime(user.CreatedAt),
 				Roles = roles.Select(r => r.RoleName).ToList()
 			};
 
@@ -179,7 +184,7 @@ namespace ToeicGenius.Services.Implementations
 
 			// Cập nhật thông tin cơ bản
 			user.FullName = dto.FullName;
-			user.UpdatedAt = Now;
+			user.UpdatedAt = UtcNow;
 
 			// Cập nhật mật khẩu nếu có
 			if (!string.IsNullOrWhiteSpace(dto.Password))
@@ -232,7 +237,7 @@ namespace ToeicGenius.Services.Implementations
 				Email = user.Email,
 				FullName = user.FullName,
 				Status = user.Status,
-				CreatedAt = user.CreatedAt,
+				CreatedAt = ToVietnamTime(user.CreatedAt),
 				Roles = updatedRoles.Select(r => r.RoleName).ToList()
 			};
 			// GỬI EMAIL SAU KHI CẬP NHẬT

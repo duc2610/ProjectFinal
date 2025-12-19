@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Table, Tag, Space, Empty, message, Spin, Card, Progress, Divider, Collapse, Typography, Button, Modal, Row, Col } from "antd";
+import { Table, Tag, Space, Empty, message, Spin, Card, Progress, Divider, Collapse, Typography, Button, Modal, Row, Col, Grid } from "antd";
 import { PlayCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, WarningOutlined, InfoCircleOutlined, EditOutlined, SoundOutlined, FileTextOutlined, BulbOutlined } from "@ant-design/icons";
 
 const { Panel } = Collapse;
@@ -44,6 +44,10 @@ export function TestHistoryTab() {
   const [selectedHistory, setSelectedHistory] = useState(null);
   const [detailData, setDetailData] = useState(null); // Lưu toàn bộ detailData từ API
   const navigate = useNavigate();
+  const screens = Grid.useBreakpoint();
+  // Màn hình dưới xl (bao gồm tablet ngang) dùng layout "màn nhỏ"
+  const isMobile = !screens.xl;
+  const isSmallDetail = !screens.md;
   const { user } = useAuth();
 
   useEffect(() => {
@@ -625,40 +629,33 @@ export function TestHistoryTab() {
     setDetailData(null);
   };
 
-  const lrDetailColumns = [
-    {
-      title: "Câu",
-      dataIndex: "order",
-      width: 70,
-      align: "center",
-      render: (value, row) => (
-        <div style={{ textAlign: "center" }}>
-          <strong style={{ fontSize: 16 }}>{value}</strong>
-          <div style={{ marginTop: 4 }}>
-            {row.isCorrect === true && (
-              <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 18 }} />
-            )}
-            {row.isCorrect === false && (
-              <CloseCircleOutlined style={{ color: "#f5222d", fontSize: 18 }} />
-            )}
-          </div>
+const lrDetailColumns = [
+  {
+    title: "Câu",
+    dataIndex: "order",
+    width: 70,
+    align: "center",
+    render: (value, row) => (
+      <div style={{ textAlign: "center" }}>
+        <strong style={{ fontSize: 16 }}>{value}</strong>
+        <div style={{ marginTop: 4 }}>
+          {row.isCorrect === true && (
+            <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 18 }} />
+          )}
+          {row.isCorrect === false && (
+            <CloseCircleOutlined style={{ color: "#f5222d", fontSize: 18 }} />
+          )}
         </div>
-      ),
-    },
-    {
-      title: "Nội dung",
-      dataIndex: "question",
-      render: (_, row) => (
-        <div
-          style={{
-            display: "flex",
-            gap: 24,
-            alignItems: "flex-start",
-            width: "100%",
-          }}
-        >
-          {/* Khối đề bài bên trái */}
-          <div style={{ flex: "1 1 55%", minWidth: 0 }}>
+      </div>
+    ),
+  },
+  {
+    title: "Nội dung",
+    dataIndex: "question",
+    render: (_, row) => (
+      <div className={styles.lrDetailRow}>
+        {/* Khối đề bài bên trái */}
+        <div className={styles.lrDetailLeft}>
             {row.passage && (
               <div
                 style={{
@@ -703,10 +700,10 @@ export function TestHistoryTab() {
                 </audio>
               </div>
             )}
-          </div>
+        </div>
 
-          {/* Khối đáp án & giải thích bên phải */}
-          <div style={{ flex: "1 1 45%", minWidth: 0 }}>
+        {/* Khối đáp án & giải thích bên phải */}
+        <div className={styles.lrDetailRight}>
             {row.options?.length > 0 && (
               <div style={{ marginTop: 0 }}>
                 {row.options.map((opt) => {
@@ -768,11 +765,11 @@ export function TestHistoryTab() {
                 </div>
               </div>
             )}
-          </div>
         </div>
-      ),
-    },
-  ];
+      </div>
+    ),
+  },
+];
 
   const renderLRDetailByParts = () => {
     if (!lrDetail.questions || lrDetail.questions.length === 0) {
@@ -823,11 +820,34 @@ export function TestHistoryTab() {
               </span>
             </div>
             <Table
-              columns={lrDetailColumns}
+              columns={isSmallDetail ? [
+                {
+                  title: "Câu / Nội dung",
+                  key: "combined",
+                  render: (_value, row) => (
+                    <div>
+                      {/* Phần số câu + icon đúng/sai */}
+                      <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                        <strong style={{ fontSize: 16, marginRight: 8 }}>
+                          Câu {row.order}
+                        </strong>
+                        {row.isCorrect === true && (
+                          <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 18 }} />
+                        )}
+                        {row.isCorrect === false && (
+                          <CloseCircleOutlined style={{ color: "#f5222d", fontSize: 18 }} />
+                        )}
+                      </div>
+                      {/* Tái sử dụng renderer cột Nội dung hiện tại để hiển thị toàn bộ chi tiết */}
+                      {lrDetailColumns[1].render(null, row)}
+                    </div>
+                  ),
+                },
+              ] : lrDetailColumns}
               dataSource={part.questions}
               rowKey="key"
               pagination={false}
-              scroll={{ x: 900 }}
+              scroll={isSmallDetail ? undefined : { x: 900 }}
               style={{
                 border: "1px solid #d9d9d9",
                 borderTop: "none",
@@ -2301,25 +2321,109 @@ export function TestHistoryTab() {
               description="Chưa có lịch sử thi nào"
               style={{ marginTop: 40 }}
             />
+          ) : isMobile ? (
+            <Space direction="vertical" size={16} style={{ width: "100%" }}>
+              {history.map((record, index) => {
+                const skillGroup = getSkillGroupFromValue(record.testSkill);
+                const normalizedTestType = normalizeTestType(record.testType);
+                const isPracticeLR =
+                  normalizedTestType === "Practice" && skillGroup === "lr";
+
+                const totalScore =
+                  record.totalScore !== undefined && record.totalScore !== null
+                    ? Number(record.totalScore)
+                    : 0;
+
+                const correctCount = record.correctQuestion ?? 0;
+                const totalCount = record.totalQuestion ?? 0;
+                const accuracy =
+                  totalCount > 0
+                    ? Math.round((correctCount / totalCount) * 100)
+                    : 0;
+
+                const isInProgress =
+                  record.testStatus === "InProgress" ||
+                  record.testStatus === "inProgress" ||
+                  record.testStatus === 0 ||
+                  record.testStatus === "0";
+
+                return (
+                  <Card
+                    key={`${record.testId}-${record.createdAt}-${index}`}
+                    size="small"
+                    className={styles.statsCard}
+                  >
+                    <Space
+                      direction="vertical"
+                      size={6}
+                      style={{ width: "100%" }}
+                    >
+                      <div style={{ fontWeight: 600 }}>{record.title}</div>
+                      <Space size={4} wrap>
+                        <Tag color={getTestTypeColor(record.testType)}>
+                          {getTestTypeLabel(record.testType)}
+                        </Tag>
+                        <Tag color={getSkillColor(record.testSkill)}>
+                          {getSkillLabel(record.testSkill)}
+                        </Tag>
+                        <Tag color={getStatusColor(record.testStatus)}>
+                          {getStatusLabel(record.testStatus)}
+                        </Tag>
+                      </Space>
+                      <div style={{ fontSize: 12, color: "#6b7280" }}>
+                        Ngày làm: {formatDate(record.createdAt)}
+                      </div>
+                      <div style={{ fontSize: 12, color: "#6b7280" }}>
+                        {isPracticeLR
+                          ? `${correctCount}/${totalCount} câu đúng${totalCount > 0 ? ` - ${accuracy}%` : ""}`
+                          : `${totalScore} điểm`}
+                      </div>
+                      <Space style={{ marginTop: 8 }}>
+                        <Button
+                          size="small"
+                          type="primary"
+                          onClick={() => handleViewDetail(record)}
+                          disabled={!record.testResultId}
+                        >
+                          Xem chi tiết
+                        </Button>
+                        {isInProgress && (
+                          <Button
+                            size="small"
+                            icon={<PlayCircleOutlined />}
+                            onClick={() => handleContinueTest(record)}
+                          >
+                            Tiếp tục
+                          </Button>
+                        )}
+                      </Space>
+                    </Space>
+                  </Card>
+                );
+              })}
+            </Space>
           ) : (
-            <Table
-              columns={columns}
-              dataSource={history}
-              rowKey={(record, index) => `${record.testId}-${record.createdAt}-${index}`}
-              loading={loading}
-              showHeader={false}
-              pagination={{
-                current: pagination.current,
-                pageSize: pagination.pageSize,
-                total: pagination.total,
-                showSizeChanger: true,
-                showTotal: (total) => `Tổng ${total} bài thi`,
-                pageSizeOptions: ["10", "20", "50"],
-              }}
-              onChange={handleTableChange}
-              size="middle"
-              bordered
-            />
+            <div className={styles.tableWrapper}>
+              <Table
+                columns={columns}
+                dataSource={history}
+                rowKey={(record, index) => `${record.testId}-${record.createdAt}-${index}`}
+                loading={loading}
+                showHeader={false}
+                pagination={{
+                  current: pagination.current,
+                  pageSize: pagination.pageSize,
+                  total: pagination.total,
+                  showSizeChanger: true,
+                  showTotal: (total) => `Tổng ${total} bài thi`,
+                  pageSizeOptions: ["10", "20", "50"],
+                }}
+                onChange={handleTableChange}
+                size="middle"
+                bordered
+                scroll={{ x: 900 }}
+              />
+            </div>
           )}
         </Col>
       </Row>

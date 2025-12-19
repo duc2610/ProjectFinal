@@ -9,6 +9,11 @@ namespace ToeicGenius.Shared.Helpers
 			?? TimeZoneInfo.CreateCustomTimeZone("Vietnam Time", TimeSpan.FromHours(7), "Vietnam Time", "Vietnam Time");
 
 		/// <summary>
+		/// Lấy thời gian hiện tại theo UTC (phù hợp để lưu DB dạng timestamp with time zone của PostgreSQL)
+		/// </summary>
+		public static DateTime UtcNow => DateTime.UtcNow;
+
+		/// <summary>
 		/// Lấy thời gian hiện tại theo múi giờ Việt Nam (UTC+7)
 		/// </summary>
 		public static DateTime Now => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, VietnamTimeZone);
@@ -36,6 +41,17 @@ namespace ToeicGenius.Shared.Helpers
 
 			// Nếu đã là Local, convert sang UTC rồi sang Vietnam time
 			return TimeZoneInfo.ConvertTimeFromUtc(utcDateTime.ToUniversalTime(), VietnamTimeZone);
+		}
+
+		/// <summary>
+		/// Chuyển đổi DateTime? UTC sang múi giờ Việt Nam (nullable)
+		/// </summary>
+		public static DateTime? ToVietnamTime(DateTime? utcDateTime)
+		{
+			if (!utcDateTime.HasValue)
+				return null;
+			
+			return ToVietnamTime(utcDateTime.Value);
 		}
 
 		/// <summary>
