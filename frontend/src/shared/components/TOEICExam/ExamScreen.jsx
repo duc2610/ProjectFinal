@@ -507,17 +507,32 @@ export default function ExamScreen() {
           return status !== "resolved" && status !== "rejected";
         });
         
-        // Tạo Set các key đã report: "testQuestionId_subQuestionId" (subQuestionId = 0 cho câu đơn)
+        // Tạo Set các key đã report: "testQuestionId_subQuestionId" 
+        // Backend luôn trả về subQuestionId (có thể là questionId) cho cả câu đơn và câu nhóm
+        // Với nhóm câu: subQuestionId là questionId của sub-question
+        // Với câu đơn: subQuestionId cũng có thể là questionId (không phải 0)
         const reportedIds = new Set();
         activeReports.forEach(report => {
           if (report.testQuestionId) {
-            const isGroup = !!report.isQuestionGroup;
-            const subId = isGroup ? (report.subQuestionId ?? 0) : 0;
-            const key = `${report.testQuestionId}_${subId}`;
-            reportedIds.add(key);
+            // Backend luôn trả về subQuestionId, dùng trực tiếp (không phân biệt câu đơn/nhóm)
+            if (report.subQuestionId !== null && report.subQuestionId !== undefined) {
+              const key = `${report.testQuestionId}_${report.subQuestionId}`;
+              reportedIds.add(key);
+              if (process.env.NODE_ENV === 'development') {
+                const isGroup = !!report.isQuestionGroup;
+                console.log(`[ExamScreen] Added report key: ${key} (testQuestionId: ${report.testQuestionId}, subQuestionId: ${report.subQuestionId}, isGroup: ${isGroup}, status: ${report.status})`);
+              }
+            } else {
+              if (process.env.NODE_ENV === 'development') {
+                console.warn(`[ExamScreen] Skipping report without subQuestionId: testQuestionId=${report.testQuestionId}, isQuestionGroup=${report.isQuestionGroup}`);
+              }
+            }
           }
         });
         
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[ExamScreen] Loaded ${reportedIds.size} reported question keys from ${activeReports.length} active reports`);
+        }
         setReportedQuestionIds(reportedIds);
       } catch (error) {
         console.error("Error loading reports:", error);
@@ -529,36 +544,41 @@ export default function ExamScreen() {
   }, []);
 
   // Function để check xem câu hỏi đã report chưa
-  // Với nhóm câu: subQuestionId phải là questionId của sub-question (không phải subQuestionIndex)
-  // Backend lưu subQuestionId = questionId của sub-question trong group
+  // Backend luôn trả về subQuestionId (có thể là questionId) cho cả câu đơn và câu nhóm
+  // Với nhóm câu: subQuestionId là questionId của sub-question
+  // Với câu đơn: subQuestionId cũng có thể là questionId (không phải 0)
   const isQuestionReported = (testQuestionId, subQuestionId = null, isGroup = false) => {
     if (!testQuestionId) return false;
-    // Với nhóm câu: nếu không có subQuestionId (questionId), không thể check → return false
-    // Với câu đơn: subQuestionId = null, dùng 0
-    const subId = isGroup 
-      ? (subQuestionId && subQuestionId !== null ? subQuestionId : null)
-      : 0;
-    // Nếu là nhóm câu nhưng không có questionId, không thể check
-    if (isGroup && subId === null) return false;
-    const key = `${testQuestionId}_${subId}`;
-    return reportedQuestionIds.has(key);
+    // Backend luôn trả về subQuestionId, dùng trực tiếp nếu có
+    // Nếu không có subQuestionId, không thể check (cả câu đơn và nhóm)
+    if (subQuestionId === null || subQuestionId === undefined) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[ExamScreen] Cannot check question without subQuestionId: testQuestionId=${testQuestionId}, isGroup=${isGroup}`);
+      }
+      return false;
+    }
+    const key = `${testQuestionId}_${subQuestionId}`;
+    const isReported = reportedQuestionIds.has(key);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[ExamScreen] Check report: key=${key}, isReported=${isReported}, testQuestionId=${testQuestionId}, subQuestionId=${subQuestionId}, isGroup=${isGroup}`);
+    }
+    return isReported;
   };
 
   // Callback khi report thành công
-  // Với nhóm câu: subQuestionId phải là questionId của sub-question (không phải subQuestionIndex)
+  // Backend luôn trả về subQuestionId (có thể là questionId) cho cả câu đơn và câu nhóm
   const handleReportSuccess = async (testQuestionId, subQuestionId = null, isGroup = false) => {
     if (!testQuestionId) return;
-    // Với nhóm câu: subQuestionId phải là questionId (không được null)
-    // Với câu đơn: subQuestionId = null, dùng 0
-    const subId = isGroup 
-      ? (subQuestionId && subQuestionId !== null ? subQuestionId : null)
-      : 0;
-    // Nếu là nhóm câu nhưng không có questionId, không thể tạo key
-    if (isGroup && subId === null) {
-      console.warn("Cannot create report key for group question without questionId");
+    // Backend luôn trả về subQuestionId, dùng trực tiếp nếu có
+    // Nếu không có subQuestionId, không thể tạo key (cả câu đơn và nhóm)
+    if (subQuestionId === null || subQuestionId === undefined) {
+      console.warn(`Cannot create report key without subQuestionId: testQuestionId=${testQuestionId}, isGroup=${isGroup}`);
       return;
     }
-    const key = `${testQuestionId}_${subId}`;
+    const key = `${testQuestionId}_${subQuestionId}`;
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[ExamScreen] handleReportSuccess: Adding key=${key}, testQuestionId=${testQuestionId}, subQuestionId=${subQuestionId}, isGroup=${isGroup}`);
+    }
     // Cập nhật state ngay lập tức để UI phản hồi nhanh
     setReportedQuestionIds(prev => new Set([...prev, key]));
     
@@ -574,16 +594,29 @@ export default function ExamScreen() {
       });
       
       // Cập nhật lại Set với dữ liệu mới từ API
+      // Backend luôn trả về subQuestionId (có thể là questionId) cho cả câu đơn và câu nhóm
       const reportedIds = new Set();
       activeReports.forEach(report => {
         if (report.testQuestionId) {
-          const isGroupReport = !!report.isQuestionGroup;
-          const subIdReport = isGroupReport ? (report.subQuestionId ?? 0) : 0;
-          const keyReport = `${report.testQuestionId}_${subIdReport}`;
-          reportedIds.add(keyReport);
+          // Backend luôn trả về subQuestionId, dùng trực tiếp (không phân biệt câu đơn/nhóm)
+          if (report.subQuestionId !== null && report.subQuestionId !== undefined) {
+            const keyReport = `${report.testQuestionId}_${report.subQuestionId}`;
+            reportedIds.add(keyReport);
+            if (process.env.NODE_ENV === 'development') {
+              const isGroupReport = !!report.isQuestionGroup;
+              console.log(`[ExamScreen] Reloaded report key: ${keyReport} (testQuestionId: ${report.testQuestionId}, subQuestionId: ${report.subQuestionId}, isGroup: ${isGroupReport}, status: ${report.status})`);
+            }
+          } else {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn(`[ExamScreen] Skipping report reload without subQuestionId: testQuestionId=${report.testQuestionId}`);
+            }
+          }
         }
       });
       
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[ExamScreen] Reloaded ${reportedIds.size} reported question keys after report success`);
+      }
       setReportedQuestionIds(reportedIds);
     } catch (error) {
       console.error("Error reloading reports after report success:", error);
@@ -1518,18 +1551,27 @@ export default function ExamScreen() {
         isReported={(() => {
           const q = questionsWithAdjustedPartNames[currentIndex];
           if (!q) return false;
-          const subIndex =
-            q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
+          // Xác định nhóm câu: kiểm tra type === "group" hoặc có subQuestionIndex (không quan tâm giá trị)
+          const isGroup = q.type === "group" || 
+                         (q.subQuestionIndex !== undefined && q.subQuestionIndex !== null);
+          
+          // Lấy subQuestionId (questionId) để check
+          // Với nhóm câu: lấy từ map hoặc questionId
+          // Với câu đơn: lấy questionId trực tiếp
+          let subId = null;
+          if (isGroup) {
+            // câu group: lấy subQuestionId từ map hoặc questionId
+            const subIndex = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
               ? q.subQuestionIndex
               : 0;
-          // câu group: check theo (testQuestionId, subQuestionId)
-          if (subIndex !== 0) {
             const key = `${q.testQuestionId}_${subIndex}`;
-            const subId = subQuestionIdMap[key] ?? q.questionId ?? null;
-            return isQuestionReported(q.testQuestionId, subId, true);
+            subId = subQuestionIdMap[key] ?? q.questionId ?? null;
+          } else {
+            // câu đơn: lấy questionId trực tiếp
+            subId = q.questionId ?? null;
           }
-          // câu đơn: check theo testQuestionId
-          return isQuestionReported(q.testQuestionId, null, false);
+          
+          return isQuestionReported(q.testQuestionId, subId, isGroup);
         })()}
               onReportSuccess={handleReportSuccess}
             />

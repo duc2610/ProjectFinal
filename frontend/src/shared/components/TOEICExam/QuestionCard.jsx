@@ -595,13 +595,23 @@ export default function QuestionCard({
 
     try {
       setReporting(true);
-      // Với câu group, ưu tiên dùng subQuestionId truyền từ ExamScreen; fallback sang question.questionId nếu có
+      // Xác định nhóm câu
       const isGroupQuestion =
         question?.type === "group" ||
         (question?.subQuestionIndex !== undefined && question?.subQuestionIndex !== null);
+      
+      // Backend luôn cần subQuestionId (có thể là questionId) cho cả câu đơn và câu nhóm
+      // Với nhóm câu: ưu tiên dùng subQuestionId truyền từ ExamScreen; fallback sang question.questionId
+      // Với câu đơn: dùng question.questionId
       const subQuestionId = isGroupQuestion
         ? (propSubQuestionId ?? question.questionId ?? null)
-        : null;
+        : (question.questionId ?? null);
+
+      if (subQuestionId === null) {
+        message.error("Không thể báo cáo câu hỏi thiếu ID.");
+        setReporting(false);
+        return;
+      }
 
       await reportQuestion(question.testQuestionId, reportType, reportDescription, subQuestionId);
       message.success("Đã gửi báo cáo thành công");
