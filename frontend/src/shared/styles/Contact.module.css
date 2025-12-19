@@ -1,0 +1,272 @@
+.container {
+  min-height: calc(100vh - 200px);
+  padding: 24px 0;
+}
+
+.heroSection {
+  margin-bottom: 32px;
+}
+
+.heroCard {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.heroCard :global(.ant-card-body) {
+  padding: 48px 32px;
+}
+
+.heroContent {
+  text-align: center;
+  color: white;
+}
+
+.heroIcon {
+  font-size: 64px;
+  color: white;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.heroTitle {
+  color: white !important;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 16px !important;
+}
+
+.heroDescription {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 18px;
+  line-height: 1.8;
+  margin: 0;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.contactInfoRow {
+  margin-bottom: 32px;
+}
+
+.contactInfoCard {
+  text-align: center;
+  height: 100%;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.contactInfoCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.contactInfoIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.contactInfoTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px !important;
+  color: #262626;
+}
+
+.contactInfoContent {
+  display: block;
+  font-size: 16px;
+  color: #262626;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.contactInfoDescription {
+  display: block;
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+.mainContentRow {
+  margin-top: 32px;
+}
+
+.card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  height: 100%;
+}
+
+.section {
+  padding: 8px;
+}
+
+.sectionTitle {
+  color: #1890ff;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px !important;
+}
+
+.sectionDescription {
+  font-size: 16px;
+  color: #8c8c8c;
+  margin-bottom: 24px;
+}
+
+.contactForm {
+  margin-top: 24px;
+}
+
+.contactForm :global(.ant-form-item-label > label) {
+  font-weight: 500;
+  color: #262626;
+}
+
+.submitButton {
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.infoTitle {
+  color: #1890ff;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 0 !important;
+}
+
+.infoItem {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  align-items: flex-start;
+}
+
+.infoItem:last-child {
+  margin-bottom: 0;
+}
+
+.infoIcon {
+  font-size: 24px;
+  color: #1890ff;
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+.infoContent {
+  flex: 1;
+}
+
+.infoLabel {
+  display: block;
+  font-size: 14px;
+  color: #8c8c8c;
+  margin-bottom: 4px;
+}
+
+.infoValue {
+  display: block;
+  font-size: 16px;
+  color: #262626;
+  line-height: 1.6;
+}
+
+.responseTime {
+  margin-top: 16px;
+}
+
+.responseTimeTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px !important;
+  color: #262626;
+}
+
+.responseTimeList {
+  margin: 0;
+  padding-left: 24px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #595959;
+}
+
+.responseTimeList li {
+  margin-bottom: 8px;
+}
+
+.helpList {
+  margin: 0;
+  padding-left: 24px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #262626;
+}
+
+.helpList li {
+  margin-bottom: 12px;
+}
+
+.helpList li::marker {
+  color: #1890ff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .heroCard :global(.ant-card-body) {
+    padding: 32px 24px;
+  }
+
+  .heroIcon {
+    font-size: 48px;
+  }
+
+  .heroTitle {
+    font-size: 28px !important;
+  }
+
+  .heroDescription {
+    font-size: 16px;
+  }
+
+  .contactInfoIcon {
+    font-size: 40px;
+  }
+
+  .contactInfoTitle {
+    font-size: 16px !important;
+  }
+
+  .contactInfoContent {
+    font-size: 14px;
+  }
+
+  .sectionTitle {
+    font-size: 20px !important;
+  }
+
+  .infoTitle {
+    font-size: 18px !important;
+  }
+
+  .infoIcon {
+    font-size: 20px;
+  }
+
+  .infoValue {
+    font-size: 14px;
+  }
+
+  .submitButton {
+    height: 44px;
+    font-size: 14px;
+  }
+}
+

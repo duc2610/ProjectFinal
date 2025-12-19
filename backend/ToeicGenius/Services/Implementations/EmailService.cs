@@ -1,6 +1,9 @@
 ﻿using System.Net.Mail;
 using System.Net;
 using ToeicGenius.Services.Interfaces;
+using Castle.Core.Logging;
+using SendGrid.Helpers.Mail;
+using SendGrid;
 
 namespace ToeicGenius.Services.Implementations
 {
@@ -14,46 +17,23 @@ namespace ToeicGenius.Services.Implementations
 			_configuration = configuration;
 			_logger = logger;
 		}
+		
 		public async Task SendMailAsync(string toEmail, string subject, string body)
 		{
-			try
+			var apiKey = _configuration["SendGrid:ApiKey"];
+			var client = new SendGridClient(apiKey);
+
+			var from = new EmailAddress(_configuration["SendGrid:FromEmail"], _configuration["SendGrid:FromName"]);
+			var to = new EmailAddress(toEmail);
+			var msg = MailHelper.CreateSingleEmail(from, to, subject, null, body);
+
+			var response = await client.SendEmailAsync(msg);
+
+			if (!response.IsSuccessStatusCode)
 			{
-				var fromEmail = _configuration["MailSettings:From"] ?? "";
-				var host = _configuration["MailSettings:Host"] ?? "";
-				var port = int.Parse(_configuration["MailSettings:Port"] ?? "587");
-				var userName = _configuration["MailSettings:UserName"] ?? "";
-				var password = _configuration["MailSettings:Password"] ?? "";
-
-				if (string.IsNullOrEmpty(fromEmail) || string.IsNullOrEmpty(host) || string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(password))
-				{
-					_logger.LogError("MailSettings configuration is missing or incomplete");
-					throw new Exception("MailSettings configuration is missing or incomplete");
-				}
-
-				MailMessage message = new MailMessage()
-				{
-					From = new MailAddress(fromEmail),
-					Subject = subject,
-					Body = body,
-					IsBodyHtml = true,
-					SubjectEncoding = System.Text.Encoding.UTF8,
-					BodyEncoding = System.Text.Encoding.UTF8,
-				};
-				message.To.Add(toEmail);
-
-				using var smtpClient = new SmtpClient();
-				smtpClient.Host = host;
-				smtpClient.Port = port;
-				smtpClient.Credentials = new NetworkCredential(userName, password);
-				smtpClient.EnableSsl = true;
-
-				await smtpClient.SendMailAsync(message);
-				_logger.LogInformation($"Email sent successfully to {toEmail}");
-			}
-			catch (Exception ex)
-			{
-				_logger.LogError(ex, $"Failed to send email to {toEmail}: {ex.Message}");
-				throw;
+				// Logic xử lý khi lỗi (log error)
+				var error = await response.Body.ReadAsStringAsync();
+				throw new Exception($"SendGrid Error: {error}");
 			}
 		}
 	}

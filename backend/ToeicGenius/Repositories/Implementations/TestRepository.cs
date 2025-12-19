@@ -207,6 +207,13 @@ namespace ToeicGenius.Repositories.Implementations
 			}
 			return true;
 		}
+
+		public async Task<bool> ExistsByNameAsync(string title, int? rootId)
+		{
+			return await _context.Tests.AnyAsync(t =>
+				t.Title.ToLower() == title.ToLower() &&
+				(t.ParentTestId ?? t.TestId) != rootId);
+		}
 	}
 }
 

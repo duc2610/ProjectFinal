@@ -1,0 +1,266 @@
+.container {
+  min-height: calc(100vh - 200px);
+  padding: 24px 0;
+}
+
+.heroSection {
+  margin-bottom: 32px;
+}
+
+.heroCard {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.heroCard :global(.ant-card-body) {
+  padding: 48px 32px;
+}
+
+.heroContent {
+  text-align: center;
+  color: white;
+}
+
+.heroIcon {
+  font-size: 64px;
+  color: white;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.heroTitle {
+  color: white !important;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 16px !important;
+}
+
+.heroDescription {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 18px;
+  line-height: 1.8;
+  margin: 0 auto 24px;
+  max-width: 800px;
+}
+
+.searchContainer {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.searchInput {
+  width: 100%;
+}
+
+.searchInput :global(.ant-input) {
+  border-radius: 8px;
+}
+
+.searchInput :global(.ant-input-search-button) {
+  border-radius: 0 8px 8px 0;
+}
+
+.card {
+  max-width: 1200px;
+  margin: 0 auto 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.categoryIcon {
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.categoryTitle {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 !important;
+}
+
+.faqCollapse {
+  margin-top: 16px;
+}
+
+.faqCollapse :global(.ant-collapse-item) {
+  margin-bottom: 16px;
+  border-radius: 8px;
+  border: 1px solid #d9d9d9;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.faqCollapse :global(.ant-collapse-item:hover) {
+  border-color: #1890ff;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.1);
+}
+
+.faqCollapse :global(.ant-collapse-header) {
+  font-size: 16px;
+  font-weight: 500;
+  color: #262626;
+  padding: 16px 24px !important;
+}
+
+.faqCollapse :global(.ant-collapse-content-box) {
+  padding: 16px 24px !important;
+  background: #fafafa;
+}
+
+.list {
+  margin: 16px 0;
+  padding-left: 24px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #262626;
+}
+
+.list li {
+  margin-bottom: 8px;
+}
+
+.list li strong {
+  color: #1890ff;
+}
+
+.orderedList {
+  margin: 16px 0;
+  padding-left: 24px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #262626;
+}
+
+.orderedList li {
+  margin-bottom: 12px;
+}
+
+.noResults {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.noResultsIcon {
+  font-size: 64px;
+  color: #d9d9d9;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.noResultsTitle {
+  color: #8c8c8c;
+  margin-bottom: 16px !important;
+}
+
+.noResultsText {
+  color: #595959;
+  font-size: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.ctaSection {
+  text-align: center;
+  padding: 24px;
+}
+
+.ctaTitle {
+  color: #1890ff;
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 16px !important;
+}
+
+.ctaText {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #262626;
+  margin-bottom: 24px;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ctaContact {
+  padding: 16px 24px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.ctaContactText {
+  font-size: 16px;
+  color: #1890ff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .heroCard :global(.ant-card-body) {
+    padding: 32px 24px;
+  }
+
+  .heroIcon {
+    font-size: 48px;
+  }
+
+  .heroTitle {
+    font-size: 28px !important;
+  }
+
+  .heroDescription {
+    font-size: 16px;
+  }
+
+  .categoryHeader {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .categoryIcon {
+    font-size: 28px;
+  }
+
+  .categoryTitle {
+    font-size: 20px !important;
+  }
+
+  .faqCollapse :global(.ant-collapse-header) {
+    font-size: 14px;
+    padding: 12px 16px !important;
+  }
+
+  .faqCollapse :global(.ant-collapse-content-box) {
+    padding: 12px 16px !important;
+  }
+
+  .ctaTitle {
+    font-size: 24px !important;
+  }
+
+  .ctaContact {
+    padding: 12px 16px;
+  }
+
+  .ctaContactText {
+    font-size: 14px;
+  }
+}
+

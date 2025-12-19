@@ -1,0 +1,50 @@
+.legalModal :global(.ant-modal-content) {
+  padding: 0;
+}
+
+.legalModal :global(.ant-modal-header) {
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.legalModal :global(.ant-modal-body) {
+  padding: 0;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.modalHeader {
+  text-align: center;
+}
+
+.modalTitle {
+  margin-bottom: 8px !important;
+  color: #1890ff;
+  font-weight: 600;
+}
+
+.modalLastUpdated {
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+.modalContent {
+  padding: 24px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .legalModal :global(.ant-modal) {
+    width: 95% !important;
+    max-width: 95% !important;
+  }
+
+  .legalModal :global(.ant-modal-body) {
+    max-height: 75vh;
+  }
+
+  .modalContent {
+    padding: 16px;
+  }
+}
+
