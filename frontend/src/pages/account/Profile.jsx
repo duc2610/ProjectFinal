@@ -16,21 +16,21 @@ export default function Profile() {
 
   const tabItems = useMemo(
     () => [
-      {
-        key: "personal",
-        label: "Thông tin cá nhân",
-        children: <PersonalTab user={user} />,
-      },
-      {
-        key: "history",
-        label: "Lịch sử thi",
-        children: <TestHistoryTab />,
-      },
-      {
-        key: "report",
-        label: "Lịch sử báo cáo",
-        children: <ReportTab />,
-      },
+            {
+              key: "personal",
+              label: "Thông tin cá nhân",
+              children: <PersonalTab user={user} />,
+            },
+            {
+              key: "history",
+              label: "Lịch sử thi",
+              children: <TestHistoryTab />,
+            },
+            {
+              key: "report",
+              label: "Lịch sử báo cáo",
+              children: <ReportTab />,
+            },
     ],
     [user]
   );

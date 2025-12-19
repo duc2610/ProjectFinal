@@ -357,6 +357,23 @@ export default function ResultScreen() {
     navigate(path, { replace: true });
   };
 
+  // Xử lý browser back button - khi bấm back từ result, về trang list test tương ứng
+  useEffect(() => {
+    const handlePopState = (e) => {
+      // Khi bấm back từ result page, navigate về trang list test tương ứng
+      const currentPath = window.location.pathname;
+      if (currentPath === "/result") {
+        const path = resolveBackPath() || "/test-list";
+        navigate(path, { replace: true });
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+    };
+  }, [navigate, resolveBackPath]);
+
   // Hàm xử lý làm lại bài thi - hiển thị modal confirm
   const handleRetakeTest = () => {
     // Ưu tiên lấy từ result (API ResultDetail) trước
@@ -552,26 +569,6 @@ export default function ResultScreen() {
     [detailData]
   );
 
-  // === CHẶN BACK VỀ MÀN LÀM BÀI ===
-  useEffect(() => {
-    // Thay thế history entry hiện tại để không có entry ExamScreen trong history
-    window.history.replaceState(null, "", window.location.href);
-    
-    // Push một state mới để khi back sẽ không về ExamScreen
-    window.history.pushState(null, "", window.location.href);
-    
-    const handlePopState = (e) => {
-      // Chặn back về ExamScreen - điều hướng về trang list test thay thế
-      const path = resolveBackPath() || "/test-list";
-      navigate(path, { replace: true });
-    };
-    
-    window.addEventListener("popstate", handlePopState);
-    
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [navigate, resolveBackPath]);
 
   // === XỬ LÝ DỮ LIỆU TỪ SUBMIT ===
   useEffect(() => {
@@ -2385,7 +2382,7 @@ export default function ResultScreen() {
     <div className={styles.resultPage}>
       {/* SIDEBAR - Ẩn trên màn hình nhỏ */}
       {!isMobile && (
-        <div className={styles.sidebar}>
+      <div className={styles.sidebar}>
         <Title level={4}>Các phần thi</Title>
         {sections.map((s) => (
           <Card
@@ -2465,13 +2462,13 @@ export default function ResultScreen() {
             </Title>
           </div>
           {!isMobile && (
-            <Button
-              ghost
-              style={{ borderColor: "#fff", color: "#fff" }}
-              onClick={handleRetakeTest}
-            >
-              Làm lại bài thi
-            </Button>
+          <Button
+            ghost
+            style={{ borderColor: "#fff", color: "#fff" }}
+            onClick={handleRetakeTest}
+          >
+            Làm lại bài thi
+          </Button>
           )}
         </div>
 
@@ -2479,7 +2476,7 @@ export default function ResultScreen() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: isMobile ? 16 : 0, flexWrap: "wrap", gap: 12 }}>
             <Title level={4} style={{ color: "#003a8c", margin: 0 }}>
               Kết quả tổng quan
-            </Title>
+          </Title>
             {isMobile && (
               <Button
                 type="primary"
