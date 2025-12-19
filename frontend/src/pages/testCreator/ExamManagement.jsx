@@ -981,25 +981,30 @@ export default function ExamManagement() {
                 const examId = rec.id ?? rec.Id ?? rec.testId ?? rec.TestId;
                 // Chỉ disable nếu test chưa completed (chưa thể publish)
                 // Nếu đã completed thì có thể toggle giữa Published và Hidden
+                const tooltipTitle = !isCompleted
+                    ? "Bạn chỉ có thể thay đổi trạng thái hiển thị khi trạng thái tạo bài là Hoàn thành."
+                    : "";
                 return (
-                    <Switch
-                        checked={isPublished}
-                        checkedChildren="Hiện"
-                        unCheckedChildren="Ẩn"
-                        loading={switchLoadingId === examId}
-                        disabled={!isCompleted}
-                        onChange={(checked) => {
-                            if (!isCompleted) return;
-                            const actionLabel = checked ? "hiển thị (Published)" : "ẩn (Hidden)";
-                            Modal.confirm({
-                                title: "Xác nhận thay đổi trạng thái hiển thị",
-                                content: `Bạn có chắc chắn muốn ${actionLabel} bài thi này?`,
-                                okText: "Xác nhận",
-                                cancelText: "Hủy",
-                                onOk: () => handleVisibilityToggle(rec, checked),
-                            });
-                        }}
-                    />
+                    <Tooltip title={tooltipTitle}>
+                        <Switch
+                            checked={isPublished}
+                            checkedChildren="Hiện"
+                            unCheckedChildren="Ẩn"
+                            loading={switchLoadingId === examId}
+                            disabled={!isCompleted}
+                            onChange={(checked) => {
+                                if (!isCompleted) return;
+                                const actionLabel = checked ? "hiển thị (Published)" : "ẩn (Hidden)";
+                                Modal.confirm({
+                                    title: "Xác nhận thay đổi trạng thái hiển thị",
+                                    content: `Bạn có chắc chắn muốn ${actionLabel} bài thi này?`,
+                                    okText: "Xác nhận",
+                                    cancelText: "Hủy",
+                                    onOk: () => handleVisibilityToggle(rec, checked),
+                                });
+                            }}
+                        />
+                    </Tooltip>
                 );
             },
         },
