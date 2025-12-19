@@ -110,8 +110,8 @@ export function AuthProvider({ children }) {
     } catch (e) {
       // ignore
     }
-    // Navigate về login sau khi đăng xuất
-    navigate("/login", { replace: true });
+    // Navigate về home sau khi đăng xuất
+    navigate("/", { replace: true });
   };
 
   const value = useMemo(
