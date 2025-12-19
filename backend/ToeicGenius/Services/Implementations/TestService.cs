@@ -751,7 +751,7 @@ namespace ToeicGenius.Services.Implementations
 				await _uow.Tests.HideAllPreviousVersionAsync(rootId, test.TestId);
 			}
 			test.VisibilityStatus = request.VisibilityStatus;
-			test.UpdatedAt = DateTime.Now;
+			test.UpdatedAt = UtcNow;
 			await _uow.SaveChangesAsync();
 
 			return Result<string>.Success(string.Format(SuccessMessages.TestStatusChanged, test.TestId, test.VisibilityStatus));
