@@ -50,6 +50,9 @@ namespace ToeicGenius.Services.Implementations
 					return Result<string>.Failure(ErrorMessages.NoQuestionsToSaveForThisTest);
 				}
 
+				if (await _uow.Tests.ExistsByNameAsync(dto.Title, null))
+					return Result<string>.Failure(ErrorMessages.DuplicateTestName);
+
 				var test = new Test
 				{
 					Title = dto.Title,
@@ -178,6 +181,9 @@ namespace ToeicGenius.Services.Implementations
 				{
 					return Result<string>.Failure(ErrorMessages.NoQuestionRange);
 				}
+
+				if (await _uow.Tests.ExistsByNameAsync(dto.Title, null))
+					return Result<string>.Failure(ErrorMessages.DuplicateTestName);
 
 				// Validate all PartIds match TestSkill
 				foreach (var range in dto.QuestionRanges)
@@ -319,6 +325,9 @@ namespace ToeicGenius.Services.Implementations
 				if (dto.TestSkill == TestSkill.LR && string.IsNullOrEmpty(dto.AudioUrl))
 					return Result<string>.Failure("L&R test requires an audio file.");
 
+				if (await _uow.Tests.ExistsByNameAsync(dto.Title, null))
+					return Result<string>.Failure(ErrorMessages.DuplicateTestName);
+
 				int duration = GetTestDuration(dto.TestSkill);
 				int quantity = GetQuantityQuestion(dto);
 
@@ -412,6 +421,9 @@ namespace ToeicGenius.Services.Implementations
 		{
 			try
 			{
+				if (await _uow.Tests.ExistsByNameAsync(dto.Title, null))
+					return Result<string>.Failure(ErrorMessages.DuplicateTestName);
+
 				var test = new Test
 				{
 					Title = dto.Title,
@@ -774,6 +786,10 @@ namespace ToeicGenius.Services.Implementations
 			if (!isAdmin && existing.CreatedById != userId)
 				return Result<string>.Failure(ErrorMessages.NoPermissionToActionTest);
 
+			int? rootId = existing.ParentTestId ?? existing.TestId;
+			if (await _uow.Tests.ExistsByNameAsync(dto.Title, rootId))
+				return Result<string>.Failure(ErrorMessages.DuplicateTestName);
+
 			var isPublished = existing.VisibilityStatus == TestVisibilityStatus.Published;
 			Test targetTest;
 
@@ -893,6 +909,11 @@ namespace ToeicGenius.Services.Implementations
 				var existing = await _uow.Tests.GetByIdAsync(testId);
 				if (existing == null)
 					return Result<string>.Failure(ErrorMessages.ExamNotFound);
+
+				int? rootId = existing.ParentTestId ?? existing.TestId;
+				if (await _uow.Tests.ExistsByNameAsync(dto.Title, rootId))
+					return Result<string>.Failure(ErrorMessages.DuplicateTestName);
+
 				int totalQuestion = GetQuantityQuestion(dto);
 				// N?u test dang PUBLISHED -> t?o b?n clone
 				Test targetTest;

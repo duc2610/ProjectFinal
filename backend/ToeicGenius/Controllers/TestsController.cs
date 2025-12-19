@@ -54,12 +54,12 @@ namespace ToeicGenius.Controllers
 		[Authorize(Roles = "TestCreator")]
 		public async Task<IActionResult> CreateTestPracticeRandom([FromBody] CreateTestFromBankRandomDto request)
 		{
-            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-            {
-                return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
-            }
-            var result = await _testService.CreateFromBankRandomAsync(userId, request);
+			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+			{
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
+			}
+			var result = await _testService.CreateFromBankRandomAsync(userId, request);
 			if (!result.IsSuccess)
 			{
 				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!));
@@ -299,7 +299,7 @@ namespace ToeicGenius.Controllers
 			}
 
 			var result = await _testService.UpdateManualTestAsync(id, dto, userId, isAdmin: false);
-			return result.IsSuccess ? Ok(result) : BadRequest(result);
+			return result.IsSuccess ? Ok(ApiResponse<string>.SuccessResponse(result.Data)) : BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
 		}
 
 		// Update from-bank test - TestCreator can only update their own tests
@@ -314,7 +314,11 @@ namespace ToeicGenius.Controllers
 			}
 
 			var result = await _testService.UpdateTestFromBankAsync(id, dto, userId, isAdmin: false);
-			return result.IsSuccess ? Ok(result) : BadRequest(result);
+			if (!result.IsSuccess)
+			{
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage));
+			}
+			return Ok(ApiResponse<string>.SuccessResponse(result.Data));
 		}
 
 		// Hide test - TestCreator can only hide their own tests
