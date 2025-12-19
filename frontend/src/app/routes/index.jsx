@@ -9,6 +9,12 @@ import { LoadingOutlined } from "@ant-design/icons";
 
 const Home = lazy(() => import("@pages/public/Home.jsx"));
 const About = lazy(() => import("@pages/public/About.jsx"));
+const Support = lazy(() => import("@pages/public/Support.jsx"));
+const FAQ = lazy(() => import("@pages/public/FAQ.jsx"));
+const Contact = lazy(() => import("@pages/public/Contact.jsx"));
+const TermsOfService = lazy(() => import("@pages/public/TermsOfService.jsx"));
+const PrivacyPolicy = lazy(() => import("@pages/public/PrivacyPolicy.jsx"));
+const Rules = lazy(() => import("@pages/public/Rules.jsx"));
 const PracticeLR = lazy(() => import("@pages/public/PracticeLR.jsx"));
 const PracticeSW = lazy(() => import("@pages/public/PracticeSW.jsx"));
 const TestList = lazy(() => import("@pages/public/TestList.jsx"));
@@ -81,6 +87,12 @@ export default function RoutesRoot() {
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/rules" element={<Rules />} />
           <Route path="/practice-lr" element={<PracticeLR />} />
           <Route path="/practice-sw" element={<PracticeSW />} />
           <Route path="/test-list" element={<TestList />} />

@@ -1,0 +1,289 @@
+.container {
+  min-height: calc(100vh - 200px);
+  padding: 24px 0;
+}
+
+.heroSection {
+  margin-bottom: 32px;
+}
+
+.heroCard {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.heroCard :global(.ant-card-body) {
+  padding: 48px 32px;
+}
+
+.heroContent {
+  text-align: center;
+  color: white;
+}
+
+.heroIcon {
+  font-size: 64px;
+  color: white;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.heroTitle {
+  color: white !important;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 16px !important;
+}
+
+.heroDescription {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 18px;
+  line-height: 1.8;
+  margin: 0;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.card {
+  max-width: 1200px;
+  margin: 0 auto 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.section {
+  padding: 8px;
+}
+
+.sectionTitle {
+  color: #1890ff;
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 16px !important;
+  text-align: center;
+}
+
+.sectionDescription {
+  text-align: center;
+  font-size: 16px;
+  color: #8c8c8c;
+  margin-bottom: 24px;
+}
+
+.sectionContent {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #262626;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.contactRow {
+  margin-top: 24px;
+}
+
+.contactCard {
+  text-align: center;
+  padding: 32px 24px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.contactCard:hover {
+  background: #e6f7ff;
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+}
+
+.contactIcon {
+  font-size: 48px;
+  color: #1890ff;
+  margin-bottom: 16px;
+  display: block;
+}
+
+.contactTitle {
+  color: #1890ff;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px !important;
+}
+
+.contactText {
+  display: block;
+  font-size: 16px;
+  color: #262626;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.contactNote {
+  display: block;
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+.faqCollapse {
+  margin-top: 24px;
+}
+
+.faqCollapse :global(.ant-collapse-item) {
+  margin-bottom: 16px;
+  border-radius: 8px;
+  border: 1px solid #d9d9d9;
+  overflow: hidden;
+}
+
+.faqCollapse :global(.ant-collapse-header) {
+  font-size: 16px;
+  font-weight: 500;
+  color: #262626;
+  padding: 16px 24px !important;
+}
+
+.faqCollapse :global(.ant-collapse-content-box) {
+  padding: 16px 24px !important;
+}
+
+.list {
+  margin: 16px 0;
+  padding-left: 24px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #262626;
+}
+
+.list li {
+  margin-bottom: 8px;
+}
+
+.list li strong {
+  color: #1890ff;
+}
+
+.orderedList {
+  margin: 16px 0;
+  padding-left: 24px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #262626;
+}
+
+.orderedList li {
+  margin-bottom: 12px;
+}
+
+.helpAlert {
+  height: 100%;
+}
+
+.helpAlert :global(.ant-alert-message) {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.helpAlert :global(.ant-alert-description) {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.supportActions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  margin-top: 24px;
+}
+
+.supportAction {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 500px;
+  transition: all 0.3s ease;
+}
+
+.supportAction:hover {
+  background: #e6f7ff;
+  transform: translateX(4px);
+}
+
+.actionIcon {
+  font-size: 24px;
+  color: #1890ff;
+}
+
+.actionText {
+  font-size: 16px;
+  color: #262626;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .heroCard :global(.ant-card-body) {
+    padding: 32px 24px;
+  }
+
+  .heroIcon {
+    font-size: 48px;
+  }
+
+  .heroTitle {
+    font-size: 28px !important;
+  }
+
+  .heroDescription {
+    font-size: 16px;
+  }
+
+  .sectionTitle {
+    font-size: 24px !important;
+  }
+
+  .contactCard {
+    padding: 24px 20px;
+  }
+
+  .contactIcon {
+    font-size: 40px;
+  }
+
+  .contactTitle {
+    font-size: 18px !important;
+  }
+
+  .faqCollapse :global(.ant-collapse-header) {
+    font-size: 14px;
+    padding: 12px 16px !important;
+  }
+
+  .faqCollapse :global(.ant-collapse-content-box) {
+    padding: 12px 16px !important;
+  }
+
+  .supportAction {
+    padding: 12px 16px;
+  }
+
+  .actionIcon {
+    font-size: 20px;
+  }
+
+  .actionText {
+    font-size: 14px;
+  }
+}
+

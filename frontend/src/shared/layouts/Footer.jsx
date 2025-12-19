@@ -107,7 +107,11 @@ export default function Footer() {
             <ul className={styles.linkList}>
               {footerLinks.support.map((link) => (
                 <li key={link.to}>
-                  <Link to={link.to} className={styles.footerLink}>
+                  <Link
+                    to={link.to}
+                    className={styles.footerLink}
+                    onClick={() => window.scrollTo(0, 0)}
+                  >
                     {link.label}
                   </Link>
                 </li>
@@ -151,7 +155,11 @@ export default function Footer() {
           <div className={styles.legalLinks}>
             {footerLinks.legal.map((link, index) => (
               <React.Fragment key={link.to}>
-                <Link to={link.to} className={styles.legalLink}>
+                <Link
+                  to={link.to}
+                  className={styles.legalLink}
+                  onClick={() => window.scrollTo(0, 0)}
+                >
                   {link.label}
                 </Link>
                 {index < footerLinks.legal.length - 1 && (

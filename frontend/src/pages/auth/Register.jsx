@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Card,
   Form,
@@ -15,12 +15,15 @@ import { ArrowRightOutlined } from "@ant-design/icons";
 import logo from "@assets/images/logo.png";
 import { useNavigate } from "react-router-dom";
 import { register as registerService } from "@services/authService";
+import LegalModal from "@shared/components/LegalModal";
 
 const { Title, Text, Link } = Typography;
 
 export default function Register() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalModalType, setLegalModalType] = useState("terms");
 
   const collapseSpaces = (s) => {
     if (typeof s !== "string") return s;
@@ -323,11 +326,25 @@ export default function Register() {
           >
             <Checkbox>
               Tôi đồng ý với{" "}
-              <a href="/terms" target="_blank" rel="noreferrer">
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setLegalModalType("terms");
+                  setLegalModalOpen(true);
+                }}
+              >
                 Điều khoản dịch vụ
               </a>{" "}
               và{" "}
-              <a href="/privacy" target="_blank" rel="noreferrer">
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setLegalModalType("privacy");
+                  setLegalModalOpen(true);
+                }}
+              >
                 Chính sách bảo mật
               </a>
               .
@@ -362,6 +379,11 @@ export default function Register() {
           </div>
         </Form>
       </Card>
+      <LegalModal
+        open={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        type={legalModalType}
+      />
     </div>
   );
 }

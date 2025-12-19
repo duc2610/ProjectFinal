@@ -1,0 +1,221 @@
+.container {
+  min-height: calc(100vh - 200px);
+  padding: 24px 0;
+}
+
+.heroSection {
+  margin-bottom: 32px;
+}
+
+.heroCard {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.heroCard :global(.ant-card-body) {
+  padding: 48px 32px;
+}
+
+.heroContent {
+  text-align: center;
+  color: white;
+}
+
+.heroTitle {
+  color: white !important;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 16px !important;
+}
+
+.heroDescription {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 18px;
+  line-height: 1.8;
+  margin: 0;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.card {
+  max-width: 1200px;
+  margin: 0 auto 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.section {
+  padding: 8px;
+}
+
+.sectionTitle {
+  color: #1890ff;
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 24px !important;
+  text-align: center;
+}
+
+.sectionContent {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #262626;
+  margin-bottom: 16px;
+}
+
+.featureList {
+  margin: 16px 0;
+  padding-left: 24px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #262626;
+}
+
+.featureList li {
+  margin-bottom: 12px;
+}
+
+.featuresGrid {
+  margin-top: 32px;
+}
+
+.featureCard {
+  text-align: center;
+  padding: 24px;
+  height: 100%;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background: #fafafa;
+}
+
+.featureCard:hover {
+  background: #f0f0f0;
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.featureIcon {
+  font-size: 48px;
+  color: #1890ff;
+  margin-bottom: 16px;
+  display: inline-block;
+}
+
+.featureTitle {
+  color: #1890ff;
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 12px !important;
+}
+
+.featureDescription {
+  color: #595959;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.statisticsRow {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.statistic {
+  padding: 16px;
+}
+
+.statistic :global(.ant-statistic-title) {
+  font-size: 16px;
+  color: #8c8c8c;
+  margin-bottom: 8px;
+}
+
+.statistic :global(.ant-statistic-content) {
+  font-size: 32px;
+  color: #1890ff;
+  font-weight: 600;
+}
+
+.statistic :global(.ant-statistic-content-prefix) {
+  margin-right: 8px;
+  color: #1890ff;
+}
+
+.whyCard {
+  padding: 24px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  height: 100%;
+  border-left: 4px solid #1890ff;
+  transition: all 0.3s ease;
+}
+
+.whyCard:hover {
+  background: #e6f7ff;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+}
+
+.whyTitle {
+  color: #1890ff;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 12px !important;
+}
+
+.ctaDescription {
+  font-size: 16px;
+  line-height: 1.8;
+  color: #262626;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.ctaDescription strong {
+  color: #1890ff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .heroCard :global(.ant-card-body) {
+    padding: 32px 24px;
+  }
+
+  .heroTitle {
+    font-size: 28px !important;
+  }
+
+  .heroDescription {
+    font-size: 16px;
+  }
+
+  .sectionTitle {
+    font-size: 24px !important;
+  }
+
+  .featureCard {
+    padding: 20px;
+  }
+
+  .featureIcon {
+    font-size: 40px;
+  }
+
+  .featureTitle {
+    font-size: 18px !important;
+  }
+
+  .statistic :global(.ant-statistic-content) {
+    font-size: 24px;
+  }
+
+  .whyCard {
+    padding: 20px;
+  }
+}
+
