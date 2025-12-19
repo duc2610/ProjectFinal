@@ -36,6 +36,9 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
     const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
     const [detailMode, setDetailMode] = useState(null); // "single" | "group"
     const [detailId, setDetailId] = useState(null);
+    const [initialSingleQuestions, setInitialSingleQuestions] = useState([]);
+    const [initialGroupQuestions, setInitialGroupQuestions] = useState([]);
+    const [initialFormValues, setInitialFormValues] = useState(null);
 
     const toSkillId = (val) => {
         if (val == null) return undefined;
@@ -223,6 +226,15 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                 setSelectedSingleQuestions(singleIds);
                 setSelectedGroupQuestions(groupIds);
                 
+                // Lưu dữ liệu ban đầu để so sánh thay đổi sau này
+                setInitialSingleQuestions([...singleIds]);
+                setInitialGroupQuestions([...groupIds]);
+                const formValues = form.getFieldsValue();
+                setInitialFormValues({
+                    title: formValues.title || "",
+                    description: formValues.description || "",
+                    duration: formValues.duration || 0,
+                });
 
                 if (singleIds.length > 0) {
                     loadQuestionDetails(singleIds);
@@ -243,6 +255,9 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
             loadForEdit(editingId);
         } else {
             setSelectedSkill(null);
+            setInitialSingleQuestions([]);
+            setInitialGroupQuestions([]);
+            setInitialFormValues(null);
         }
     }, [open, editingId]);
 
@@ -348,8 +363,30 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                 groupQuestionIds: selectedGroupQuestions,
             };
 
-            // Nếu đang sửa 1 bài đã publish, hỏi confirm trước khi clone version mới
+            // Nếu đang sửa 1 bài đã publish, kiểm tra thay đổi trước khi hỏi confirm
             if (editingId && isEditingPublished) {
+                // Kiểm tra xem có thay đổi gì không
+                const currentFormValues = {
+                    title: values.title || "",
+                    description: values.description || "",
+                    duration: values.duration || 0,
+                };
+                
+                const formChanged = initialFormValues ? 
+                    JSON.stringify(currentFormValues) !== JSON.stringify(initialFormValues) : false;
+                
+                const singleQuestionsChanged = JSON.stringify([...selectedSingleQuestions].sort()) !== 
+                    JSON.stringify([...initialSingleQuestions].sort());
+                const groupQuestionsChanged = JSON.stringify([...selectedGroupQuestions].sort()) !== 
+                    JSON.stringify([...initialGroupQuestions].sort());
+                
+                const hasAnyChanges = formChanged || singleQuestionsChanged || groupQuestionsChanged;
+                
+                if (!hasAnyChanges) {
+                    message.info("Không có thay đổi nào để cập nhật.");
+                    return;
+                }
+                
                 const confirmed = await new Promise((resolve) => {
                     Modal.confirm({
                         title: "Tạo phiên bản mới để chỉnh sửa?",

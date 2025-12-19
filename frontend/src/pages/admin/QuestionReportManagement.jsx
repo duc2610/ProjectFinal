@@ -215,7 +215,7 @@ export default function QuestionReportManagement() {
         });
       }
       
-      // Filter theo tìm kiếm (nội dung câu hỏi, bài test, người báo cáo, ID)
+      // Filter theo tìm kiếm (nội dung câu hỏi, bài thi, người báo cáo, ID)
       if (merged.searchText && merged.searchText.trim()) {
         const beforeFilter = itemsArray.length;
         const searchLower = merged.searchText.toLowerCase().trim();
@@ -244,7 +244,7 @@ export default function QuestionReportManagement() {
             return true;
           }
           
-          // Tìm theo tên bài test
+          // Tìm theo tên bài thi
           const testName = safeText(item.testName || "", "").toLowerCase();
           if (testName.includes(searchLower)) {
             return true;
@@ -445,9 +445,9 @@ export default function QuestionReportManagement() {
     if (!isQuestionGroup && !editableQuestion) return;
 
     Modal.confirm({
-      title: "Cập nhật nhanh câu hỏi theo snapshot?",
+      title: "Cập nhật nhanh câu hỏi theo dữ liệu?",
       content:
-        "Thao tác này sẽ ghi đè nội dung câu hỏi, đáp án và giải thích của TestQuestion bằng dữ liệu snapshot hiện tại. Bạn vẫn có thể chỉnh sửa chi tiết trong trang Quản lý Test sau này.",
+        "Thao tác này sẽ ghi đè nội dung câu hỏi, đáp án và giải thích của câu hỏi trong bài thi bằng dữ liệu hiện tại. Bạn vẫn có thể chỉnh sửa chi tiết trong trang Quản lý bài thi sau này.",
       okText: "Cập nhật ngay",
       cancelText: "Hủy",
       okButtonProps: { danger: false, type: "primary" },
@@ -491,7 +491,7 @@ export default function QuestionReportManagement() {
             payload
           );
           message.success(
-            "Đã cập nhật câu hỏi trong bài test theo dữ liệu snapshot."
+            "Đã cập nhật câu hỏi trong bài thi theo dữ liệu."
           );
         } catch (error) {
           message.error("Không thể cập nhật câu hỏi từ báo cáo.");
@@ -574,7 +574,7 @@ export default function QuestionReportManagement() {
               </div>
               <div>
                 <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 4 }}>
-                  Bài test:
+                  Bài thi:
                 </Text>
                 <Space size={4}>
                   <Text strong style={{ fontSize: 13 }}>{testName}</Text>
@@ -748,12 +748,18 @@ export default function QuestionReportManagement() {
     const showImageControls = imageRule.show;
 
     return (
-      <Card
-        size="small"
-        title="Snapshot câu hỏi tại thời điểm báo cáo"
-        extra={
-          !isReadOnly && (
-            <Space>
+      <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        {/* Card tiêu đề */}
+        <Card size="small">
+          <Title level={5} style={{ margin: 0 }}>
+            Dữ liệu câu hỏi tại thời điểm báo cáo
+          </Title>
+        </Card>
+
+        {/* Card nút chức năng */}
+        {!isReadOnly && (
+          <Card size="small">
+            <Space wrap>
               {showAudioControls && (
                 <Upload
                   accept="audio/*"
@@ -798,7 +804,7 @@ export default function QuestionReportManagement() {
                   </Button>
                 </Upload>
               )}
-              <Tooltip title="Cập nhật nhanh câu hỏi trong bài test theo snapshot hiện tại">
+              <Tooltip title="Cập nhật nhanh câu hỏi trong bài thi theo dữ liệu hiện tại">
                 <Button
                   size="small"
                   icon={<SettingOutlined />}
@@ -809,9 +815,11 @@ export default function QuestionReportManagement() {
                 </Button>
               </Tooltip>
             </Space>
-          )
-        }
-      >
+          </Card>
+        )}
+
+        {/* Card nội dung */}
+        <Card size="small">
         {/* Checkbox để update source question trong bank - chỉ hiển thị cho Practice test */}
         {!isReadOnly && isPracticeTest && (
           <div style={{ 
@@ -830,7 +838,7 @@ export default function QuestionReportManagement() {
             </Checkbox>
             <div style={{ marginTop: 8, marginLeft: 24 }}>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                Khi bật: Thay đổi sẽ được áp dụng cho cả câu hỏi trong bài test và câu hỏi gốc trong ngân hàng câu hỏi
+                Khi bật: Thay đổi sẽ được áp dụng cho cả câu hỏi trong bài thi và câu hỏi gốc trong ngân hàng câu hỏi
               </Text>
             </div>
           </div>
@@ -996,7 +1004,8 @@ export default function QuestionReportManagement() {
             </Space>
           </>
         )}
-      </Card>
+        </Card>
+      </Space>
     );
   };
 
@@ -1009,12 +1018,12 @@ export default function QuestionReportManagement() {
       selectedReport?.reportedSubQuestion?.questionId ??
       null;
     
-    // Lấy questions từ editableQuestionGroup nếu có, nếu không thì từ snapshot
+    // Lấy questions từ editableQuestionGroup nếu có, nếu không thì từ dữ liệu
     let questions = [];
     if (editableQuestionGroup && Array.isArray(editableQuestionGroup.questions)) {
       questions = editableQuestionGroup.questions;
     } else if (Array.isArray(groupSnapshot.questionSnapshots)) {
-      // Map từ snapshot sang format editable
+      // Map từ dữ liệu sang format editable
       questions = groupSnapshot.questionSnapshots.map((q) => ({
         questionId: q.questionId,
         content: q.content || "",
@@ -1051,12 +1060,18 @@ export default function QuestionReportManagement() {
     const showImageControls = imageRule.show;
 
     return (
-      <Card
-        size="small"
-        title="Snapshot nhóm câu hỏi tại thời điểm báo cáo"
-        extra={
-          !isReadOnly && (
-            <Space>
+      <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        {/* Card tiêu đề */}
+        <Card size="small">
+          <Title level={5} style={{ margin: 0 }}>
+            Dữ liệu nhóm câu hỏi tại thời điểm báo cáo
+          </Title>
+        </Card>
+
+        {/* Card nút chức năng */}
+        {!isReadOnly && (
+          <Card size="small">
+            <Space wrap>
               {showAudioControls && (
                 <Upload
                   accept="audio/*"
@@ -1101,7 +1116,7 @@ export default function QuestionReportManagement() {
                   </Button>
                 </Upload>
               )}
-              <Tooltip title="Cập nhật nhanh nhóm câu hỏi trong bài test theo snapshot hiện tại">
+              <Tooltip title="Cập nhật nhanh nhóm câu hỏi trong bài thi theo dữ liệu hiện tại">
                 <Button
                   size="small"
                   icon={<SettingOutlined />}
@@ -1112,9 +1127,11 @@ export default function QuestionReportManagement() {
                 </Button>
               </Tooltip>
             </Space>
-          )
-        }
-      >
+          </Card>
+        )}
+
+        {/* Card nội dung */}
+        <Card size="small">
         {/* Checkbox để update source question trong bank - chỉ hiển thị cho Practice test */}
         {!isReadOnly && isPracticeTest && (
           <div style={{ 
@@ -1133,7 +1150,7 @@ export default function QuestionReportManagement() {
             </Checkbox>
             <div style={{ marginTop: 8, marginLeft: 24 }}>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                Khi bật: Thay đổi sẽ được áp dụng cho cả nhóm câu hỏi trong bài test và nhóm câu hỏi gốc trong ngân hàng câu hỏi
+                Khi bật: Thay đổi sẽ được áp dụng cho cả nhóm câu hỏi trong bài thi và nhóm câu hỏi gốc trong ngân hàng câu hỏi
               </Text>
             </div>
           </div>
@@ -1425,7 +1442,8 @@ export default function QuestionReportManagement() {
             </Space>
           </>
         )}
-      </Card>
+        </Card>
+      </Space>
     );
   };
 
@@ -1459,7 +1477,7 @@ export default function QuestionReportManagement() {
               {/* Dòng 1: Tìm kiếm */}
               <div style={{ width: "100%" }}>
                 <Input.Search
-                  placeholder="Tìm kiếm theo ID, nội dung câu hỏi, bài test, người báo cáo..."
+                  placeholder="Tìm kiếm theo ID, nội dung câu hỏi, bài thi, người báo cáo..."
                   allowClear
                   enterButton={<SearchOutlined />}
                   size="large"
@@ -1621,10 +1639,10 @@ export default function QuestionReportManagement() {
                     <Descriptions.Item label="Report ID">
                       {selectedReport.reportId}
                     </Descriptions.Item>
-                    <Descriptions.Item label="TestQuestion ID">
+                    <Descriptions.Item label="ID câu hỏi trong bài thi">
                       {selectedReport.testQuestionId}
                     </Descriptions.Item>
-                    <Descriptions.Item label="Bài test">
+                    <Descriptions.Item label="Bài thi">
                       {selectedReport.testName} (ID: {selectedReport.testId})
                     </Descriptions.Item>
                     <Descriptions.Item label="Part">
@@ -1751,5 +1769,3 @@ export default function QuestionReportManagement() {
     </div>
   );
 }
-
-

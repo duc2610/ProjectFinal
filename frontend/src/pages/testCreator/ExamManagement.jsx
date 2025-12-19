@@ -178,7 +178,7 @@ export default function ExamManagement() {
     const fetchExams = async (page = 1, pageSize = 10, search = "", skill = "all", testType = "all", status = "all", creationStatus = "all", dateRangeFilter = null) => {
         setLoading(true);
         try {
-            // Fetch tất cả tests (không paginate) để đảm bảo có đủ tất cả versions để filter
+            // Fetch tất cả bài thi (không paginate) để đảm bảo có đủ tất cả versions để filter
             const params = {
                 page: 1,
                 pageSize: 10000, // Lấy tất cả để filter version mới nhất
@@ -258,10 +258,10 @@ export default function ExamManagement() {
                 const getVersion = (exam) => Number(exam.version ?? exam.Version) || 0;
                 const getCreatedAt = (exam) => exam.createdAt || exam.CreatedAt || exam.created_at || null;
 
-                // Filter: chỉ giữ lại version mới nhất của mỗi test (group by parentId hoặc id gốc)
+                // Filter: chỉ giữ lại version mới nhất của mỗi bài thi (group by parentId hoặc id gốc)
                 const latestVersions = allExams.reduce((acc, exam) => {
-                    // Xác định root test ID
-                    // - Test gốc: ParentTestId = null/undefined → rootId = TestId
+                    // Xác định root bài thi ID
+                    // - Bài thi gốc: ParentTestId = null/undefined → rootId = TestId
                     // - Version mới: có ParentTestId → rootId = ParentTestId
                     const rootId = getParentId(exam) ?? getExamId(exam);
 
@@ -281,7 +281,7 @@ export default function ExamManagement() {
 
                 const filtered = Array.from(latestVersions);
 
-                // Sắp xếp theo thời gian tạo giảm dần (test mới nhất lên đầu)
+                // Sắp xếp theo thời gian tạo giảm dần (bài thi mới nhất lên đầu)
                 // Ưu tiên createdAt, nếu không có thì dùng id (id lớn hơn = mới hơn)
                 filtered.sort((a, b) => {
                     const dateA = getCreatedAt(a);
@@ -457,7 +457,7 @@ export default function ExamManagement() {
             return;
         }
 
-        // Validate Audio file for L&R test
+        // Validate Audio file for L&R bài thi
         if (importTestType === "LR") {
             if (audioFileList.length === 0) {
                 message.warning("Vui lòng chọn file Audio để import");
@@ -495,7 +495,7 @@ export default function ExamManagement() {
                 setUploading(false);
             }
         } else {
-            // S&W test - no audio needed
+            // S&W bài thi - no audio needed
             try {
                 setUploading(true);
                 await importTestSWFromExcel(excelFile);
@@ -979,7 +979,7 @@ export default function ExamManagement() {
                 const visibility = normalizeVisibilityStatusValue(rec.visibilityStatus ?? rec.VisibilityStatus);
                 const isPublished = visibility === "Published";
                 const examId = rec.id ?? rec.Id ?? rec.testId ?? rec.TestId;
-                // Chỉ disable nếu test chưa completed (chưa thể publish)
+                // Chỉ disable nếu bài thi chưa completed (chưa thể publish)
                 // Nếu đã completed thì có thể toggle giữa Published và Hidden
                 const tooltipTitle = !isCompleted
                     ? "Bạn chỉ có thể thay đổi trạng thái hiển thị khi trạng thái tạo bài là Hoàn thành."
@@ -1317,7 +1317,7 @@ export default function ExamManagement() {
                                 value={importTestType}
                                 onChange={(value) => {
                                     setImportTestType(value);
-                                    // Reset files when changing test type
+                                    // Reset files when changing bài thi type
                                     setFileList([]);
                                     setAudioFileList([]);
                                 }}

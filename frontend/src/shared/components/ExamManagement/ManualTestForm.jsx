@@ -37,6 +37,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     const [initialFormValues, setInitialFormValues] = useState(null);
     const [initialAudioUrl, setInitialAudioUrl] = useState(null);
     const [initialSkill, setInitialSkill] = useState(null);
+    const [initialPartsData, setInitialPartsData] = useState(null);
     const [hasChanges, setHasChanges] = useState(false);
 
     const trimOrNull = (value) => {
@@ -111,7 +112,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         });
     };
 
-    const clonePublishedTestToDraft = async (customPayload = null) => {
+    const clonePublishedTestToDraft = async (customPayload = null, autoPublish = true, silent = false) => {
         if (!currentTestId) return null;
         setIsCloningVersion(true);
         const hide = message.loading("Đang tạo phiên bản mới...", 0);
@@ -123,17 +124,33 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             if (newId) {
                 setCurrentTestId(newId);
                 
-                // Tự động publish version mới để version mới ở trạng thái public
-                try {
-                    await publishTest(newId);
-                    message.success("Đã tạo phiên bản mới và tự động công khai.");
-                } catch (publishError) {
-                    console.error("Error auto-publishing new version:", publishError);
-                    // Nếu không publish được (có thể do test chưa hoàn thành), vẫn hiển thị thông báo tạo thành công
-                    message.success(responseText || "Đã tạo phiên bản mới.");
+                // Chỉ hiển thị thông báo nếu không phải silent mode
+                if (!silent) {
+                    // Chỉ tự động publish nếu autoPublish = true
+                    if (autoPublish) {
+                        try {
+                            await publishTest(newId);
+                            message.success("Đã tạo phiên bản mới và tự động công khai.");
+                        } catch (publishError) {
+                            console.error("Error auto-publishing new version:", publishError);
+                            // Nếu không publish được (có thể do test chưa hoàn thành), vẫn hiển thị thông báo tạo thành công
+                            // Không dùng responseText từ backend (có thể có lỗi encoding), dùng thông báo từ frontend
+                            message.success("Đã tạo phiên bản mới.");
+                        }
+                    } else {
+                        // Không hiển thị thông báo khi autoPublish = false (sẽ có thông báo chi tiết ở nơi gọi)
+                        // Chỉ log để debug
+                        if (process.env.NODE_ENV === 'development') {
+                            console.log("Clone thành công, không hiển thị thông báo (sẽ có thông báo chi tiết sau)");
+                        }
+                    }
                 }
             } else {
-            message.success(responseText || "Đã tạo phiên bản mới.");
+                // Chỉ hiển thị thông báo nếu không phải silent mode
+                if (!silent) {
+                    // Không dùng responseText từ backend (có thể có lỗi encoding), dùng thông báo từ frontend
+                    message.success("Đã tạo phiên bản mới.");
+                }
             }
             return newId;
         } finally {
@@ -379,6 +396,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 });
 
                 setPartsData(newPartsData);
+                // Lưu initialPartsData để so sánh thay đổi sau này
+                setInitialPartsData(JSON.parse(JSON.stringify(newPartsData)));
                 if (loadedParts.length > 0) {
                     setActivePartTab(loadedParts[0].partId);
                 }
@@ -975,6 +994,76 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             }),
         };
 
+        // Kiểm tra xem test có đang published không và có thay đổi không TRƯỚC KHI gọi API
+        const normalizeVisibilityStatusValue = (value) => {
+            if (value === undefined || value === null) return undefined;
+            const str = String(value).toLowerCase();
+            if (str === "published" || str === "1" || str === "3" || str === "active") return "Published";
+            if (str === "hidden" || str === "hide" || str === "-1" || str === "0" || str === "inactive") {
+                return "Hidden";
+            }
+            return undefined;
+        };
+        
+        const isPublished = normalizeVisibilityStatusValue(currentVisibilityStatus) === "Published";
+        
+        // Nếu test đã published, kiểm tra thay đổi trước khi gọi API
+        if (isPublished && initialPartsData && initialPartsData[partId]) {
+            // Normalize initialPartData để so sánh với partPayload (cùng format)
+            const normalizePartForComparison = (partData) => {
+                return {
+                    groups: (partData.groups || []).map(g => ({
+                        passage: trimOrNull(g.passage),
+                        imageUrl: trimOrNull(g.imageUrl),
+                        // Bỏ qua audioUrl vì partPayload không có
+                        questions: (g.questions || []).map(q => {
+                            const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+                            const optionsPayload = isWritingOrSpeaking ? [] : (q.options || []).map(o => ({
+                                label: o.label,
+                                content: trimOrNull(o.content),
+                                isCorrect: o.isCorrect || false,
+                            }));
+                            
+                            return {
+                                content: trimOrNull(q.content),
+                                imageUrl: trimOrNull(q.imageUrl),
+                                options: optionsPayload,
+                                explanation: trimOrNull(q.explanation),
+                            };
+                        }),
+                    })),
+                    questions: (partData.questions || []).map(q => {
+                        const isWritingOrSpeaking = isWritingOrSpeakingPart(partId);
+                        const optionsPayload = isWritingOrSpeaking ? [] : (q.options || []).map(o => ({
+                            label: o.label,
+                            content: trimOrNull(o.content),
+                            isCorrect: o.isCorrect || false,
+                        }));
+                        
+                        return {
+                            content: trimOrNull(q.content),
+                            imageUrl: trimOrNull(q.imageUrl),
+                            options: optionsPayload,
+                            explanation: trimOrNull(q.explanation),
+                        };
+                    }),
+                };
+            };
+            
+            const normalizedInitialPart = normalizePartForComparison(initialPartsData[partId]);
+            
+            // So sánh partPayload (đã được normalize) với normalizedInitialPart
+            if (JSON.stringify(normalizedInitialPart) === JSON.stringify(partPayload)) {
+                const friendlyPartName = (() => {
+                    const partMeta = (parts || []).find(p => p.partId === partId);
+                    return partMeta?.name || `Part ${partId}`;
+                })();
+                message.info(`Không có thay đổi nào trong ${friendlyPartName} để lưu.`);
+                setShowValidation(false);
+                return;
+            }
+        }
+
         try {
             setSavingPartId(partId);
             await saveTestPart(testId, partId, partPayload);
@@ -1068,6 +1157,12 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     });
                     
                     setPartsData(updatedPartsData);
+                    // Cập nhật initialPartsData sau khi lưu thành công để lần sau so sánh chính xác
+                    if (initialPartsData) {
+                        const updatedInitialPartsData = { ...initialPartsData };
+                        updatedInitialPartsData[partIdKey] = JSON.parse(JSON.stringify(updatedPartsData[partIdKey]));
+                        setInitialPartsData(updatedInitialPartsData);
+                    }
                 }
             } catch (reloadError) {
                 console.error("Error reloading test data after save:", reloadError);
@@ -1099,9 +1194,22 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     message.info("Đã hủy thao tác tạo phiên bản mới.");
                 } else {
                     try {
-                        const newId = await clonePublishedTestToDraft();
+                        // Clone nhưng KHÔNG tự động publish (autoPublish = false)
+                        // Vì cần lưu part trước, sau đó mới publish
+                        // silent = true để không hiển thị thông báo ở đây (sẽ có thông báo chi tiết ở cuối)
+                        const newId = await clonePublishedTestToDraft(null, false, true);
                         if (newId) {
+                            // Lưu part trước khi publish
                             await saveTestPart(newId, partId, partPayload);
+                            
+                            // Sau khi lưu part thành công, mới publish
+                            try {
+                                await publishTest(newId);
+                                // Không hiển thị thông báo publish ở đây, sẽ hiển thị thông báo tổng hợp ở cuối
+                            } catch (publishError) {
+                                console.error("Error auto-publishing new version after saving part:", publishError);
+                                // Nếu không publish được, vẫn hiển thị thông báo lưu thành công
+                            }
                             
                             // Reload lại dữ liệu từ backend để hiển thị câu hỏi mới đã được lưu
                             try {
@@ -1193,6 +1301,12 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                     
                                     setPartsData(updatedPartsData);
                                     setCurrentTestId(newId); // Cập nhật currentTestId sau khi clone
+                                    // Cập nhật initialPartsData sau khi clone và lưu thành công
+                                    if (initialPartsData) {
+                                        const updatedInitialPartsData = { ...initialPartsData };
+                                        updatedInitialPartsData[partIdKey] = JSON.parse(JSON.stringify(updatedPartsData[partIdKey]));
+                                        setInitialPartsData(updatedInitialPartsData);
+                                    }
                                 }
                             } catch (reloadError) {
                                 console.error("Error reloading test data after clone and save:", reloadError);
@@ -1356,13 +1470,20 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     
                     const isPublished = normalizeVisibilityStatusValue(currentVisibilityStatus) === "Published";
                     
-                    // Nếu test đã publish, hỏi user trước khi cập nhật để tránh tự động ẩn version
+                    // Nếu test đã publish, kiểm tra thay đổi trước khi hỏi user
                     if (isPublished) {
+                        // Kiểm tra xem có thay đổi gì không
+                        const hasPartsChanges = initialPartsData ? JSON.stringify(mergedPartsData) !== JSON.stringify(initialPartsData) : true;
+                        if (!hasChanges && !hasPartsChanges) {
+                            message.info("Không có thay đổi nào để cập nhật.");
+                            return;
+                        }
+                        
                         const shouldClone = await confirmCloneVersion();
                         if (!shouldClone) {
                             message.info("Đã hủy thao tác cập nhật.");
-                return;
-            }
+                            return;
+                        }
                         // Build payload với dữ liệu đầy đủ (merge từ backend và partsData hiện tại)
                         const updatePayload = buildFullTestPayload(mergedPartsData);
                         const newId = await clonePublishedTestToDraft(updatePayload);
@@ -1482,6 +1603,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     
                     try {
                         await updateTestManual(currentTestId, updatePayload);
+                        // Hiển thị thông báo từ frontend với encoding đúng, không dùng response từ backend
+                        message.success(`Đã cập nhật bài thi thành công! (TestId=${currentTestId})`);
                     } catch (error) {
                         // Nếu có lỗi khác, xử lý như bình thường
                         const errorMessage = getErrorMessage(error);
@@ -2823,4 +2946,5 @@ function GroupEditor({ group, partId, groupIndex, skill, partLabel, onUpdate, on
         </Space>
     );
 }
+
 

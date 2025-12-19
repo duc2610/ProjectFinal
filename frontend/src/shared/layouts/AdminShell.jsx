@@ -131,7 +131,7 @@ export default function AdminShell() {
       {
         key: "/test-creator/exam-management",
         icon: <FileTextOutlined />,
-        label: "Quản lý Test",
+        label: "Quản lý bài thi",
       },
       {
         key: "/reports/question",
@@ -295,7 +295,7 @@ export default function AdminShell() {
                     display: "block",
                   }}
                 >
-                  {isAdmin ? "Administrator" : isCreator ? "Test Creator" : "User"}
+                  {isAdmin ? "Administrator" : isCreator ? "Người tạo bài thi" : "User"}
                 </Text>
               </div>
             </Space>
