@@ -61,10 +61,15 @@ export default function Flashcard() {
     try {
       const date = new Date(dateString);
       const now = new Date();
-      const diffTime = Math.abs(now - date);
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays === 0) return "Hôm nay";
+      const diffMs = now.getTime() - date.getTime();
+      if (diffMs < 0) return "Trong tương lai";
+
+      const diffMinutes = diffMs / (1000 * 60);
+      const diffHours = diffMinutes / 60;
+      const diffDays = Math.floor(diffHours / 24);
+
+      if (diffMinutes < 1) return "Vừa xong";
+      if (diffHours < 24) return "Hôm nay";
       if (diffDays === 1) return "Hôm qua";
       if (diffDays < 7) return `${diffDays} ngày trước`;
       if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
