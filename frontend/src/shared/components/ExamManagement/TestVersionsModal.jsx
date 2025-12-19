@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Modal, Table, Tag, message, Switch, Tooltip, Button } from "antd";
 import { getTestVersions, hideTest, publishTest } from "@services/testsService";
 
-export default function TestVersionsModal({ open, onClose, parentTestId, onSelectVersion }) {
+// onVisibilityChange: callback để thông báo ra ngoài khi trạng thái Ẩn/Hiện của một version thay đổi
+export default function TestVersionsModal({ open, onClose, parentTestId, onSelectVersion, onVisibilityChange }) {
     const [loading, setLoading] = useState(false);
     const [versions, setVersions] = useState([]);
     const [actionLoadingId, setActionLoadingId] = useState(null);
@@ -135,7 +136,12 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
                 await hideTest(testId);
                 message.success("Đã ẩn version.");
             }
+            // Reload danh sách version trong modal
             await loadVersions();
+            // Thông báo cho màn ngoài (ExamManagement) để reload danh sách đề thi
+            if (typeof onVisibilityChange === "function") {
+                onVisibilityChange();
+            }
         } catch (error) {
             console.error("Toggle visibility error:", error);
             const errorMessage = error?.response?.data?.message

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Collapse, Space, Tag, Row, Col, Statistic, Upload, Alert } from "antd";
 import { PlusOutlined, DeleteOutlined, CheckCircleOutlined, UploadOutlined, PictureOutlined } from "@ant-design/icons";
-import { createTestManual, getTestById, updateTestManual, createTestDraft, saveTestPart } from "@services/testsService";
+import { createTestManual, getTestById, updateTestManual, createTestDraft, saveTestPart, publishTest } from "@services/testsService";
 import { uploadFile } from "@services/filesService";
 import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL, PART_QUESTION_COUNT, validateTestStructure, requiresAudio, supportsQuestionGroups, createDefaultOptions, requiresImage } from "@shared/constants/toeicStructure";
 import { TEST_TYPE } from "@shared/constants/toeicStructure";
@@ -33,6 +33,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
     const [savingPartId, setSavingPartId] = useState(null);
     const [showValidation, setShowValidation] = useState(false); 
     const [isCloningVersion, setIsCloningVersion] = useState(false);
+    const [currentVisibilityStatus, setCurrentVisibilityStatus] = useState(null);
+    const [initialFormValues, setInitialFormValues] = useState(null);
+    const [initialAudioUrl, setInitialAudioUrl] = useState(null);
+    const [initialSkill, setInitialSkill] = useState(null);
+    const [hasChanges, setHasChanges] = useState(false);
 
     const trimOrNull = (value) => {
         if (value === undefined || value === null) return null;
@@ -41,10 +46,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         return trimmed.length > 0 ? trimmed : null;
     };
 
-    const buildFullTestPayload = () => {
+    const buildFullTestPayload = (customPartsData = null) => {
         const values = form.getFieldsValue();
+        const dataToUse = customPartsData !== null ? customPartsData : partsData;
         const partOrder = (parts || []).map(p => p.partId);
-        const fallbackOrder = Object.keys(partsData || {}).map(key => Number(key));
+        const fallbackOrder = Object.keys(dataToUse || {}).map(key => Number(key));
         const uniquePartIds = Array.from(new Set([...partOrder, ...fallbackOrder].filter(id => id != null)));
 
         const sanitizeQuestion = (q, partId) => {
@@ -63,7 +69,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         };
 
         const normalizedParts = uniquePartIds.map(partId => {
-            const data = partsData?.[partId] || { groups: [], questions: [] };
+            const data = dataToUse?.[partId] || { groups: [], questions: [] };
             return {
                 partId,
                 groups: (data.groups || []).map(group => ({
@@ -105,19 +111,30 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         });
     };
 
-    const clonePublishedTestToDraft = async () => {
+    const clonePublishedTestToDraft = async (customPayload = null) => {
         if (!currentTestId) return null;
         setIsCloningVersion(true);
         const hide = message.loading("Đang tạo phiên bản mới...", 0);
         try {
-            const payload = buildFullTestPayload();
+            const payload = customPayload || buildFullTestPayload();
             const result = await updateTestManual(currentTestId, payload);
             const responseText = typeof result === "string" ? result : result?.data || result?.message;
             const newId = extractTestIdFromMessage(responseText);
             if (newId) {
                 setCurrentTestId(newId);
+                
+                // Tự động publish version mới để version mới ở trạng thái public
+                try {
+                    await publishTest(newId);
+                    message.success("Đã tạo phiên bản mới và tự động công khai.");
+                } catch (publishError) {
+                    console.error("Error auto-publishing new version:", publishError);
+                    // Nếu không publish được (có thể do test chưa hoàn thành), vẫn hiển thị thông báo tạo thành công
+                    message.success(responseText || "Đã tạo phiên bản mới.");
+                }
+            } else {
+                message.success(responseText || "Đã tạo phiên bản mới.");
             }
-            message.success(responseText || "Đã tạo phiên bản mới.");
             return newId;
         } finally {
             if (hide) hide();
@@ -155,6 +172,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         setParts([]);
         setPartsData({});
         setAudioUrl(null);
+        setCurrentVisibilityStatus(null);
+        setInitialFormValues(null);
+        setInitialAudioUrl(null);
+        setInitialSkill(null);
+        setHasChanges(false);
         
         // Đảm bảo editingId là số hợp lệ
         let validEditingId = editingId;
@@ -191,6 +213,10 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 const titleVal = d.title ?? d.Title;
                 const descVal = d.description ?? d.Description;
                 const audioVal = d.audioUrl ?? d.AudioUrl;
+                
+                // Lưu visibilityStatus để kiểm tra sau này
+                const visibilityStatus = d.visibilityStatus ?? d.VisibilityStatus ?? d.status ?? d.Status;
+                setCurrentVisibilityStatus(visibilityStatus);
 
                 setSelectedSkill(skillVal);
                 setAudioUrl(audioVal);
@@ -199,6 +225,15 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     description: descVal,
                     skill: skillVal,
                 });
+                
+                // Lưu giá trị ban đầu để so sánh thay đổi
+                setInitialFormValues({
+                    title: titleVal || "",
+                    description: descVal || "",
+                });
+                setInitialAudioUrl(audioVal || null);
+                setInitialSkill(skillVal);
+                setHasChanges(false);
 
                 const loadedParts = await loadPartsBySkill(skillVal);
                 setParts(loadedParts);
@@ -356,8 +391,34 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             loadForEdit(editingId);
         } else {
             setSelectedSkill(null);
+            setInitialFormValues(null);
+            setInitialAudioUrl(null);
+            setInitialSkill(null);
+            setHasChanges(false);
         }
     }, [open, editingId]);
+
+    // Theo dõi thay đổi trong form để hiển thị nút "Cập nhật"
+    useEffect(() => {
+        if (!currentTestId || !initialFormValues) {
+            setHasChanges(false);
+            return;
+        }
+
+        const checkChanges = () => {
+            const currentValues = form.getFieldsValue();
+            const titleChanged = (currentValues.title || "").trim() !== (initialFormValues.title || "").trim();
+            const descChanged = (currentValues.description || "").trim() !== (initialFormValues.description || "").trim();
+            const skillChanged = selectedSkill !== initialSkill;
+            const audioChanged = (audioUrl || "").trim() !== (initialAudioUrl || "").trim();
+            
+            setHasChanges(titleChanged || descChanged || skillChanged || audioChanged);
+        };
+
+        // Kiểm tra khi form values thay đổi
+        const timer = setInterval(checkChanges, 300);
+        return () => clearInterval(timer);
+    }, [currentTestId, initialFormValues, initialAudioUrl, initialSkill, selectedSkill, audioUrl, form]);
 
     const handleSkillChange = async (skill) => {
         setSelectedSkill(skill);
@@ -917,6 +978,102 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         try {
             setSavingPartId(partId);
             await saveTestPart(testId, partId, partPayload);
+            
+            // Reload lại dữ liệu từ backend để hiển thị câu hỏi mới đã được lưu
+            try {
+                const detail = await getTestById(testId);
+                const d = detail?.data || detail || {};
+                const partsArr = d.parts || d.Parts || [];
+                const updatedPartsData = { ...partsData };
+                
+                // Tìm part tương ứng trong response và cập nhật lại dữ liệu
+                const updatedPart = partsArr.find(p => (p.partId || p.PartId) === partId);
+                if (updatedPart) {
+                    const partIdKey = updatedPart.partId || updatedPart.PartId;
+                    updatedPartsData[partIdKey] = { groups: [], questions: [] };
+                    
+                    const tqs = updatedPart.testQuestions || updatedPart.TestQuestions || [];
+                    tqs.forEach((tq) => {
+                        const isGroup = tq.isGroup ?? tq.IsGroup ?? tq.isQuestionGroup ?? tq.IsQuestionGroup ?? false;
+                        if (isGroup) {
+                            const gSnap = tq.questionGroupSnapshotDto || tq.QuestionGroupSnapshotDto;
+                            if (gSnap) {
+                                const questionSnapshots = gSnap.questionSnapshots || gSnap.QuestionSnapshots || [];
+                                const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
+                                
+                                updatedPartsData[partIdKey].groups.push({
+                                    passage: gSnap.passage || gSnap.Passage || "",
+                                    imageUrl: gSnap.imageUrl || gSnap.ImageUrl || "",
+                                    audioUrl: gSnap.audioUrl || gSnap.AudioUrl || "",
+                                    questions: questionSnapshots.map((q) => {
+                                        let normalizedOptions = [];
+                                        if (!isWritingOrSpeakingPart(partId)) {
+                                            const loadedOptions = (q.options || q.Options || []).map(o => ({
+                                                label: o.label || o.Label || "",
+                                                content: o.content || o.Content || "",
+                                                isCorrect: o.isCorrect || o.IsCorrect || false,
+                                            }));
+                                            const expectedCount = defaultOptions.length;
+                                            normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                            while (normalizedOptions.length < expectedCount) {
+                                                const labels = ['A', 'B', 'C', 'D'];
+                                                normalizedOptions.push({
+                                                    label: labels[normalizedOptions.length],
+                                                    content: "",
+                                                    isCorrect: false,
+                                                });
+                                            }
+                                        }
+                                        return {
+                                            content: q.content || q.Content || "",
+                                            imageUrl: q.imageUrl || q.ImageUrl || "",
+                                            audioUrl: q.audioUrl || q.AudioUrl || "",
+                                            explanation: q.explanation || q.Explanation || "",
+                                            options: normalizedOptions,
+                                        };
+                                    }),
+                                });
+                            }
+                        } else {
+                            const qSnap = tq.questionSnapshotDto || tq.QuestionSnapshotDto;
+                            if (qSnap) {
+                                const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
+                                let normalizedOptions = [];
+                                if (!isWritingOrSpeakingPart(partId)) {
+                                    const loadedOptions = (qSnap.options || qSnap.Options || []).map(o => ({
+                                        label: o.label || o.Label || "",
+                                        content: o.content || o.Content || "",
+                                        isCorrect: o.isCorrect || o.IsCorrect || false,
+                                    }));
+                                    const expectedCount = defaultOptions.length;
+                                    normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                    while (normalizedOptions.length < expectedCount) {
+                                        const labels = ['A', 'B', 'C', 'D'];
+                                        normalizedOptions.push({
+                                            label: labels[normalizedOptions.length],
+                                            content: "",
+                                            isCorrect: false,
+                                        });
+                                    }
+                                }
+                                updatedPartsData[partIdKey].questions.push({
+                                    content: qSnap.content || qSnap.Content || "",
+                                    imageUrl: qSnap.imageUrl || qSnap.ImageUrl || "",
+                                    audioUrl: qSnap.audioUrl || qSnap.AudioUrl || "",
+                                    explanation: qSnap.explanation || qSnap.Explanation || "",
+                                    options: normalizedOptions,
+                                });
+                            }
+                        }
+                    });
+                    
+                    setPartsData(updatedPartsData);
+                }
+            } catch (reloadError) {
+                console.error("Error reloading test data after save:", reloadError);
+                // Không hiển thị lỗi cho user vì lưu đã thành công, chỉ log để debug
+            }
+            
             // Tìm tên part thân thiện (ví dụ: W-Part 2, S-Part 5) để hiển thị trong toast
             const friendlyPartName = (() => {
                 const partMeta = (parts || []).find(p => p.partId === partId);
@@ -945,6 +1102,103 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                         const newId = await clonePublishedTestToDraft();
                         if (newId) {
                             await saveTestPart(newId, partId, partPayload);
+                            
+                            // Reload lại dữ liệu từ backend để hiển thị câu hỏi mới đã được lưu
+                            try {
+                                const detail = await getTestById(newId);
+                                const d = detail?.data || detail || {};
+                                const partsArr = d.parts || d.Parts || [];
+                                const updatedPartsData = { ...partsData };
+                                
+                                // Tìm part tương ứng trong response và cập nhật lại dữ liệu
+                                const updatedPart = partsArr.find(p => (p.partId || p.PartId) === partId);
+                                if (updatedPart) {
+                                    const partIdKey = updatedPart.partId || updatedPart.PartId;
+                                    updatedPartsData[partIdKey] = { groups: [], questions: [] };
+                                    
+                                    const tqs = updatedPart.testQuestions || updatedPart.TestQuestions || [];
+                                    tqs.forEach((tq) => {
+                                        const isGroup = tq.isGroup ?? tq.IsGroup ?? tq.isQuestionGroup ?? tq.IsQuestionGroup ?? false;
+                                        if (isGroup) {
+                                            const gSnap = tq.questionGroupSnapshotDto || tq.QuestionGroupSnapshotDto;
+                                            if (gSnap) {
+                                                const questionSnapshots = gSnap.questionSnapshots || gSnap.QuestionSnapshots || [];
+                                                const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
+                                                
+                                                updatedPartsData[partIdKey].groups.push({
+                                                    passage: gSnap.passage || gSnap.Passage || "",
+                                                    imageUrl: gSnap.imageUrl || gSnap.ImageUrl || "",
+                                                    audioUrl: gSnap.audioUrl || gSnap.AudioUrl || "",
+                                                    questions: questionSnapshots.map((q) => {
+                                                        let normalizedOptions = [];
+                                                        if (!isWritingOrSpeakingPart(partId)) {
+                                                            const loadedOptions = (q.options || q.Options || []).map(o => ({
+                                                                label: o.label || o.Label || "",
+                                                                content: o.content || o.Content || "",
+                                                                isCorrect: o.isCorrect || o.IsCorrect || false,
+                                                            }));
+                                                            const expectedCount = defaultOptions.length;
+                                                            normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                                            while (normalizedOptions.length < expectedCount) {
+                                                                const labels = ['A', 'B', 'C', 'D'];
+                                                                normalizedOptions.push({
+                                                                    label: labels[normalizedOptions.length],
+                                                                    content: "",
+                                                                    isCorrect: false,
+                                                                });
+                                                            }
+                                                        }
+                                                        return {
+                                                            content: q.content || q.Content || "",
+                                                            imageUrl: q.imageUrl || q.ImageUrl || "",
+                                                            audioUrl: q.audioUrl || q.AudioUrl || "",
+                                                            explanation: q.explanation || q.Explanation || "",
+                                                            options: normalizedOptions,
+                                                        };
+                                                    }),
+                                                });
+                                            }
+                                        } else {
+                                            const qSnap = tq.questionSnapshotDto || tq.QuestionSnapshotDto;
+                                            if (qSnap) {
+                                                const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
+                                                let normalizedOptions = [];
+                                                if (!isWritingOrSpeakingPart(partId)) {
+                                                    const loadedOptions = (qSnap.options || qSnap.Options || []).map(o => ({
+                                                        label: o.label || o.Label || "",
+                                                        content: o.content || o.Content || "",
+                                                        isCorrect: o.isCorrect || o.IsCorrect || false,
+                                                    }));
+                                                    const expectedCount = defaultOptions.length;
+                                                    normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                                    while (normalizedOptions.length < expectedCount) {
+                                                        const labels = ['A', 'B', 'C', 'D'];
+                                                        normalizedOptions.push({
+                                                            label: labels[normalizedOptions.length],
+                                                            content: "",
+                                                            isCorrect: false,
+                                                        });
+                                                    }
+                                                }
+                                                updatedPartsData[partIdKey].questions.push({
+                                                    content: qSnap.content || qSnap.Content || "",
+                                                    imageUrl: qSnap.imageUrl || qSnap.ImageUrl || "",
+                                                    audioUrl: qSnap.audioUrl || qSnap.AudioUrl || "",
+                                                    explanation: qSnap.explanation || qSnap.Explanation || "",
+                                                    options: normalizedOptions,
+                                                });
+                                            }
+                                        }
+                                    });
+                                    
+                                    setPartsData(updatedPartsData);
+                                    setCurrentTestId(newId); // Cập nhật currentTestId sau khi clone
+                                }
+                            } catch (reloadError) {
+                                console.error("Error reloading test data after clone and save:", reloadError);
+                                // Không hiển thị lỗi cho user vì lưu đã thành công, chỉ log để debug
+                            }
+                            
                             const friendlyPartName = (() => {
                                 const partMeta = (parts || []).find(p => p.partId === partId);
                                 return partMeta?.name || `Part ${partId}`;
@@ -987,14 +1241,385 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 message.warning("Vui lòng chọn kỹ năng!");
                 return;
             }
+
+            setLoading(true);
+
+            // Nếu đang edit (có currentTestId), cập nhật thông tin + toàn bộ parts
+            // Cần load lại dữ liệu từ backend để merge với partsData hiện tại, tránh mất dữ liệu đã lưu
             if (currentTestId) {
-                message.info("Bài thi đã được tạo. Bạn có thể thêm câu hỏi và lưu từng part.");
-                return;
+                try {
+                    // Load lại dữ liệu từ backend để có đầy đủ parts đã lưu
+                    const detail = await getTestById(currentTestId);
+                    const d = detail?.data || detail || {};
+                    const partsArr = d.parts || d.Parts || [];
+                    
+                    // Merge parts từ backend với partsData hiện tại (ưu tiên partsData vì có thể có thay đổi chưa lưu)
+                    const mergedPartsData = { ...partsData };
+                    
+                    // Load các parts từ backend vào mergedPartsData nếu chưa có trong partsData
+                    partsArr.forEach((p) => {
+                        const partId = p.partId || p.PartId;
+                        if (!partId) return;
+                        
+                        // Nếu part này chưa có trong partsData, load từ backend
+                        if (!mergedPartsData[partId] || 
+                            (mergedPartsData[partId].questions.length === 0 && mergedPartsData[partId].groups.length === 0)) {
+                            mergedPartsData[partId] = { groups: [], questions: [] };
+                            
+                            const tqs = p.testQuestions || p.TestQuestions || [];
+                            tqs.forEach((tq) => {
+                                const isGroup = tq.isGroup ?? tq.IsGroup ?? tq.isQuestionGroup ?? tq.IsQuestionGroup ?? false;
+                                if (isGroup) {
+                                    const gSnap = tq.questionGroupSnapshotDto || tq.QuestionGroupSnapshotDto;
+                                    if (gSnap) {
+                                        const questionSnapshots = gSnap.questionSnapshots || gSnap.QuestionSnapshots || [];
+                                        const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
+                                        
+                                        mergedPartsData[partId].groups.push({
+                                            passage: gSnap.passage || gSnap.Passage || "",
+                                            imageUrl: gSnap.imageUrl || gSnap.ImageUrl || "",
+                                            audioUrl: gSnap.audioUrl || gSnap.AudioUrl || "",
+                                            questions: questionSnapshots.map((q) => {
+                                                let normalizedOptions = [];
+                                                if (!isWritingOrSpeakingPart(partId)) {
+                                                    const loadedOptions = (q.options || q.Options || []).map(o => ({
+                                                        label: o.label || o.Label || "",
+                                                        content: o.content || o.Content || "",
+                                                        isCorrect: o.isCorrect || o.IsCorrect || false,
+                                                    }));
+                                                    const expectedCount = defaultOptions.length;
+                                                    normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                                    while (normalizedOptions.length < expectedCount) {
+                                                        const labels = ['A', 'B', 'C', 'D'];
+                                                        normalizedOptions.push({
+                                                            label: labels[normalizedOptions.length],
+                                                            content: "",
+                                                            isCorrect: false,
+                                                        });
+                                                    }
+                                                }
+                                                return {
+                                                    content: q.content || q.Content || "",
+                                                    imageUrl: q.imageUrl || q.ImageUrl || "",
+                                                    audioUrl: q.audioUrl || q.AudioUrl || "",
+                                                    explanation: q.explanation || q.Explanation || "",
+                                                    options: normalizedOptions,
+                                                };
+                                            }),
+                                        });
+                                    }
+                                } else {
+                                    const qSnap = tq.questionSnapshotDto || tq.QuestionSnapshotDto;
+                                    if (qSnap) {
+                                        const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
+                                        let normalizedOptions = [];
+                                        if (!isWritingOrSpeakingPart(partId)) {
+                                            const loadedOptions = (qSnap.options || qSnap.Options || []).map(o => ({
+                                                label: o.label || o.Label || "",
+                                                content: o.content || o.Content || "",
+                                                isCorrect: o.isCorrect || o.IsCorrect || false,
+                                            }));
+                                            const expectedCount = defaultOptions.length;
+                                            normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                            while (normalizedOptions.length < expectedCount) {
+                                                const labels = ['A', 'B', 'C', 'D'];
+                                                normalizedOptions.push({
+                                                    label: labels[normalizedOptions.length],
+                                                    content: "",
+                                                    isCorrect: false,
+                                                });
+                                            }
+                                        }
+                                        mergedPartsData[partId].questions.push({
+                                            content: qSnap.content || qSnap.Content || "",
+                                            imageUrl: qSnap.imageUrl || qSnap.ImageUrl || "",
+                                            audioUrl: qSnap.audioUrl || qSnap.AudioUrl || "",
+                                            explanation: qSnap.explanation || qSnap.Explanation || "",
+                                            options: normalizedOptions,
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    
+                    // Kiểm tra xem test có đang publish không trước khi cập nhật
+                    const normalizeVisibilityStatusValue = (value) => {
+                        if (value === undefined || value === null) return undefined;
+                        const str = String(value).toLowerCase();
+                        if (str === "published" || str === "1" || str === "3" || str === "active") return "Published";
+                        if (str === "hidden" || str === "hide" || str === "-1" || str === "0" || str === "inactive") {
+                            return "Hidden";
+                        }
+                        return undefined;
+                    };
+                    
+                    const isPublished = normalizeVisibilityStatusValue(currentVisibilityStatus) === "Published";
+                    
+                    // Nếu test đã publish, hỏi user trước khi cập nhật để tránh tự động ẩn version
+                    if (isPublished) {
+                        const shouldClone = await confirmCloneVersion();
+                        if (!shouldClone) {
+                            message.info("Đã hủy thao tác cập nhật.");
+                            return;
+                        }
+                        // Build payload với dữ liệu đầy đủ (merge từ backend và partsData hiện tại)
+                        const updatePayload = buildFullTestPayload(mergedPartsData);
+                        const newId = await clonePublishedTestToDraft(updatePayload);
+                        if (newId) {
+                            setCurrentTestId(newId);
+                            setCurrentVisibilityStatus(null); // Reset vì đã clone version mới (chưa publish)
+                            // Reload lại dữ liệu sau khi clone thành công
+                            try {
+                                const updatedDetail = await getTestById(newId);
+                                const updatedD = updatedDetail?.data || updatedDetail || {};
+                                const updatedPartsArr = updatedD.parts || updatedD.Parts || [];
+                                const reloadedPartsData = {};
+                                
+                                updatedPartsArr.forEach((p) => {
+                                    const partId = p.partId || p.PartId;
+                                    if (!partId) return;
+                                    reloadedPartsData[partId] = { groups: [], questions: [] };
+                                    
+                                    const tqs = p.testQuestions || p.TestQuestions || [];
+                                    tqs.forEach((tq) => {
+                                        const isGroup = tq.isGroup ?? tq.IsGroup ?? tq.isQuestionGroup ?? tq.IsQuestionGroup ?? false;
+                                        if (isGroup) {
+                                            const gSnap = tq.questionGroupSnapshotDto || tq.QuestionGroupSnapshotDto;
+                                            if (gSnap) {
+                                                const questionSnapshots = gSnap.questionSnapshots || gSnap.QuestionSnapshots || [];
+                                                const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
+                                                
+                                                reloadedPartsData[partId].groups.push({
+                                                    passage: gSnap.passage || gSnap.Passage || "",
+                                                    imageUrl: gSnap.imageUrl || gSnap.ImageUrl || "",
+                                                    audioUrl: gSnap.audioUrl || gSnap.AudioUrl || "",
+                                                    questions: questionSnapshots.map((q) => {
+                                                        let normalizedOptions = [];
+                                                        if (!isWritingOrSpeakingPart(partId)) {
+                                                            const loadedOptions = (q.options || q.Options || []).map(o => ({
+                                                                label: o.label || o.Label || "",
+                                                                content: o.content || o.Content || "",
+                                                                isCorrect: o.isCorrect || o.IsCorrect || false,
+                                                            }));
+                                                            const expectedCount = defaultOptions.length;
+                                                            normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                                            while (normalizedOptions.length < expectedCount) {
+                                                                const labels = ['A', 'B', 'C', 'D'];
+                                                                normalizedOptions.push({
+                                                                    label: labels[normalizedOptions.length],
+                                                                    content: "",
+                                                                    isCorrect: false,
+                                                                });
+                                                            }
+                                                        }
+                                                        return {
+                                                            content: q.content || q.Content || "",
+                                                            imageUrl: q.imageUrl || q.ImageUrl || "",
+                                                            audioUrl: q.audioUrl || q.AudioUrl || "",
+                                                            explanation: q.explanation || q.Explanation || "",
+                                                            options: normalizedOptions,
+                                                        };
+                                                    }),
+                                                });
+                                            }
+                                        } else {
+                                            const qSnap = tq.questionSnapshotDto || tq.QuestionSnapshotDto;
+                                            if (qSnap) {
+                                                const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
+                                                let normalizedOptions = [];
+                                                if (!isWritingOrSpeakingPart(partId)) {
+                                                    const loadedOptions = (qSnap.options || qSnap.Options || []).map(o => ({
+                                                        label: o.label || o.Label || "",
+                                                        content: o.content || o.Content || "",
+                                                        isCorrect: o.isCorrect || o.IsCorrect || false,
+                                                    }));
+                                                    const expectedCount = defaultOptions.length;
+                                                    normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                                    while (normalizedOptions.length < expectedCount) {
+                                                        const labels = ['A', 'B', 'C', 'D'];
+                                                        normalizedOptions.push({
+                                                            label: labels[normalizedOptions.length],
+                                                            content: "",
+                                                            isCorrect: false,
+                                                        });
+                                                    }
+                                                }
+                                                reloadedPartsData[partId].questions.push({
+                                                    content: qSnap.content || qSnap.Content || "",
+                                                    imageUrl: qSnap.imageUrl || qSnap.ImageUrl || "",
+                                                    audioUrl: qSnap.audioUrl || qSnap.AudioUrl || "",
+                                                    explanation: qSnap.explanation || qSnap.Explanation || "",
+                                                    options: normalizedOptions,
+                                                });
+                                            }
+                                        }
+                                    });
+                                });
+                                
+                                // Khởi tạo các parts còn lại nếu chưa có
+                                const loadedParts = await loadPartsBySkill(selectedSkill);
+                                loadedParts.forEach(p => {
+                                    if (!reloadedPartsData[p.partId]) {
+                                        reloadedPartsData[p.partId] = { groups: [], questions: [] };
+                                    }
+                                });
+                                
+                                setPartsData(reloadedPartsData);
+                            } catch (reloadError) {
+                                console.error("Error reloading test data after clone:", reloadError);
+                            }
+                        }
+                    message.success("Đã cập nhật bài thi thành công!");
+                    if (onSuccess) onSuccess();
+                    onClose(); // Đóng modal sau khi cập nhật thành công
+                    return;
+                    }
+                    
+                    // Nếu test chưa publish, cập nhật bình thường
+                    // Build payload với dữ liệu đầy đủ (merge từ backend và partsData hiện tại)
+                    const updatePayload = buildFullTestPayload(mergedPartsData);
+                    
+                    try {
+                        await updateTestManual(currentTestId, updatePayload);
+                    } catch (error) {
+                        // Nếu có lỗi khác, xử lý như bình thường
+                        const errorMessage = getErrorMessage(error);
+                        const normalizedError = (errorMessage || "").toLowerCase();
+                        const isPublishedEditError =
+                            normalizedError.includes("cannot edit a published test") ||
+                            normalizedError.includes("không thể chỉnh sửa bài kiểm tra đã xuất bản");
+
+                        if (isPublishedEditError) {
+                            const shouldClone = await confirmCloneVersion();
+                            if (!shouldClone) {
+                                message.info("Đã hủy thao tác cập nhật.");
+                                return;
+                            }
+                            const newId = await clonePublishedTestToDraft(updatePayload);
+                            if (newId) {
+                                setCurrentTestId(newId);
+                            }
+                        } else {
+                            message.error(`Lỗi khi cập nhật bài thi: ${errorMessage}`);
+                            throw error;
+                        }
+                    }
+
+                    // Reload lại dữ liệu sau khi cập nhật thành công
+                    try {
+                        const updatedDetail = await getTestById(currentTestId);
+                        const updatedD = updatedDetail?.data || updatedDetail || {};
+                        const updatedPartsArr = updatedD.parts || updatedD.Parts || [];
+                        const reloadedPartsData = {};
+
+                        updatedPartsArr.forEach((p) => {
+                            const partId = p.partId || p.PartId;
+                            if (!partId) return;
+                            reloadedPartsData[partId] = { groups: [], questions: [] };
+
+                            const tqs = p.testQuestions || p.TestQuestions || [];
+                            tqs.forEach((tq) => {
+                                const isGroup = tq.isGroup ?? tq.IsGroup ?? tq.isQuestionGroup ?? tq.IsQuestionGroup ?? false;
+                                if (isGroup) {
+                                    const gSnap = tq.questionGroupSnapshotDto || tq.QuestionGroupSnapshotDto;
+                                    if (gSnap) {
+                                        const questionSnapshots = gSnap.questionSnapshots || gSnap.QuestionSnapshots || [];
+                                        const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
+
+                                        reloadedPartsData[partId].groups.push({
+                                            passage: gSnap.passage || gSnap.Passage || "",
+                                            imageUrl: gSnap.imageUrl || gSnap.ImageUrl || "",
+                                            audioUrl: gSnap.audioUrl || gSnap.AudioUrl || "",
+                                            questions: questionSnapshots.map((q) => {
+                                                let normalizedOptions = [];
+                                                if (!isWritingOrSpeakingPart(partId)) {
+                                                    const loadedOptions = (q.options || q.Options || []).map(o => ({
+                                                        label: o.label || o.Label || "",
+                                                        content: o.content || o.Content || "",
+                                                        isCorrect: o.isCorrect || o.IsCorrect || false,
+                                                    }));
+                                                    const expectedCount = defaultOptions.length;
+                                                    normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                                    while (normalizedOptions.length < expectedCount) {
+                                                        const labels = ['A', 'B', 'C', 'D'];
+                                                        normalizedOptions.push({
+                                                            label: labels[normalizedOptions.length],
+                                                            content: "",
+                                                            isCorrect: false,
+                                                        });
+                                                    }
+                                                }
+                                                return {
+                                                    content: q.content || q.Content || "",
+                                                    imageUrl: q.imageUrl || q.ImageUrl || "",
+                                                    audioUrl: q.audioUrl || q.AudioUrl || "",
+                                                    explanation: q.explanation || q.Explanation || "",
+                                                    options: normalizedOptions,
+                                                };
+                                            }),
+                                        });
+                                    }
+                                } else {
+                                    const qSnap = tq.questionSnapshotDto || tq.QuestionSnapshotDto;
+                                    if (qSnap) {
+                                        const defaultOptions = isWritingOrSpeakingPart(partId) ? [] : createDefaultOptions(partId);
+                                        let normalizedOptions = [];
+                                        if (!isWritingOrSpeakingPart(partId)) {
+                                            const loadedOptions = (qSnap.options || qSnap.Options || []).map(o => ({
+                                                label: o.label || o.Label || "",
+                                                content: o.content || o.Content || "",
+                                                isCorrect: o.isCorrect || o.IsCorrect || false,
+                                            }));
+                                            const expectedCount = defaultOptions.length;
+                                            normalizedOptions = loadedOptions.slice(0, expectedCount);
+                                            while (normalizedOptions.length < expectedCount) {
+                                                const labels = ['A', 'B', 'C', 'D'];
+                                                normalizedOptions.push({
+                                                    label: labels[normalizedOptions.length],
+                                                    content: "",
+                                                    isCorrect: false,
+                                                });
+                                            }
+                                        }
+                                        reloadedPartsData[partId].questions.push({
+                                            content: qSnap.content || qSnap.Content || "",
+                                            imageUrl: qSnap.imageUrl || qSnap.ImageUrl || "",
+                                            audioUrl: qSnap.audioUrl || qSnap.AudioUrl || "",
+                                            explanation: qSnap.explanation || qSnap.Explanation || "",
+                                            options: normalizedOptions,
+                                        });
+                                    }
+                                }
+                            });
+                        });
+
+                        // Khởi tạo các parts còn lại nếu chưa có
+                        const loadedParts = await loadPartsBySkill(selectedSkill);
+                        loadedParts.forEach(p => {
+                            if (!reloadedPartsData[p.partId]) {
+                                reloadedPartsData[p.partId] = { groups: [], questions: [] };
+                            }
+                        });
+
+                        setPartsData(reloadedPartsData);
+                    } catch (reloadErr) {
+                        console.error("Error reloading test after update:", reloadErr);
+                    }
+
+                    message.success("Đã cập nhật thông tin bài thi thành công!");
+                    if (onSuccess) onSuccess();
+                    onClose(); // Đóng modal sau khi cập nhật thành công
+                    return;
+                } catch (error) {
+                    console.error("Error updating test:", error);
+                    const errorMessage = getErrorMessage(error);
+                    message.error(`Lỗi khi cập nhật bài thi: ${errorMessage}`);
+                    throw error;
+                }
             }
 
-            // Tạo draft test ngay
-            setLoading(true);
-            
+            // Tạo draft test mới
             const draftPayload = {
                 title: (values.title || "").trim(),
                 testSkill: selectedSkill,
@@ -1080,42 +1705,52 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
             title={readOnly ? "Xem Bài Thi Mô Phỏng" : (currentTestId ? "Chỉnh Sửa Bài Thi Mô Phỏng" : "Tạo Bài Thi Mô Phỏng")}
             open={open}
             onCancel={onClose}
-            onOk={readOnly ? undefined : () => {
-                Modal.confirm({
-                    title: currentTestId ? "Xác nhận cập nhật bài thi" : "Xác nhận tạo bài thi",
-                    content: currentTestId
-                        ? "Bạn có chắc chắn muốn cập nhật thông tin bài thi mô phỏng này?"
-                        : "Bạn có chắc chắn muốn tạo bài thi mô phỏng với thông tin hiện tại?",
-                    okText: currentTestId ? "Cập nhật" : "Tạo bài thi",
-                    cancelText: "Hủy",
-                    onOk: () => handleSubmit(),
-                });
-            }}
+            onOk={undefined}
             width={1400}
             confirmLoading={loading}
-            okText={currentTestId ? "Đã tạo" : "Tạo bài thi"}
-            cancelText="Hủy"
+            okText={undefined}
+            cancelText={undefined}
             footer={readOnly ? null : (
                 <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
                     <Button onClick={onClose}>Hủy</Button>
-                    <Button
-                        type="primary"
-                        onClick={() => {
-                            Modal.confirm({
-                                title: currentTestId ? "Xác nhận cập nhật bài thi" : "Xác nhận tạo bài thi",
-                                content: currentTestId
-                                    ? "Bạn có chắc chắn muốn cập nhật thông tin bài thi mô phỏng này?"
-                                    : "Bạn có chắc chắn muốn tạo bài thi mô phỏng với thông tin hiện tại?",
-                                okText: currentTestId ? "Cập nhật" : "Tạo bài thi",
-                                cancelText: "Hủy",
-                                onOk: () => handleSubmit(),
-                            });
-                        }}
-                        loading={loading}
-                        style={{ marginLeft: 8 }}
-                    >
-                        {currentTestId ? "Đã tạo" : "Tạo bài thi"}
-                    </Button>
+                    {/* Chỉ hiển thị nút "Cập nhật" khi có thay đổi và đang edit */}
+                    {currentTestId && hasChanges && (
+                        <Button
+                            type="primary"
+                            onClick={() => {
+                                Modal.confirm({
+                                    title: "Xác nhận cập nhật bài thi",
+                                    content: "Bạn có chắc chắn muốn cập nhật thông tin bài thi mô phỏng này?",
+                                    okText: "Cập nhật",
+                                    cancelText: "Hủy",
+                                    onOk: () => handleSubmit(),
+                                });
+                            }}
+                            loading={loading}
+                            style={{ marginLeft: 8 }}
+                        >
+                            Cập nhật
+                        </Button>
+                    )}
+                    {/* Luôn hiển thị nút "Tạo bài thi" khi không có currentTestId */}
+                    {!currentTestId && (
+                        <Button
+                            type="primary"
+                            onClick={() => {
+                                Modal.confirm({
+                                    title: "Xác nhận tạo bài thi",
+                                    content: "Bạn có chắc chắn muốn tạo bài thi mô phỏng với thông tin hiện tại?",
+                                    okText: "Tạo bài thi",
+                                    cancelText: "Hủy",
+                                    onOk: () => handleSubmit(),
+                                });
+                            }}
+                            loading={loading}
+                            style={{ marginLeft: 8 }}
+                        >
+                            Tạo bài thi
+                        </Button>
+                    )}
                 </div>
             )}
             style={{ top: 20 }}

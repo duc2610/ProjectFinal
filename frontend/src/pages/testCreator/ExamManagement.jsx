@@ -1239,6 +1239,8 @@ export default function ExamManagement() {
                 onClose={() => { setVersionsModalOpen(false); setSelectedParentTestId(null); }}
                 parentTestId={selectedParentTestId}
                 onSelectVersion={handleSelectVersion}
+                // Khi ẩn/hiển version trong modal, reload lại danh sách bài thi bên ngoài
+                onVisibilityChange={handleTestCreated}
             />
 
             {/* Modal Download Template */}
