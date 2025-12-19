@@ -988,7 +988,17 @@ export default function ExamManagement() {
                         unCheckedChildren="Ẩn"
                         loading={switchLoadingId === examId}
                         disabled={!isCompleted}
-                        onChange={(checked) => handleVisibilityToggle(rec, checked)}
+                        onChange={(checked) => {
+                            if (!isCompleted) return;
+                            const actionLabel = checked ? "hiển thị (Published)" : "ẩn (Hidden)";
+                            Modal.confirm({
+                                title: "Xác nhận thay đổi trạng thái hiển thị",
+                                content: `Bạn có chắc chắn muốn ${actionLabel} bài thi này?`,
+                                okText: "Xác nhận",
+                                cancelText: "Hủy",
+                                onOk: () => handleVisibilityToggle(rec, checked),
+                            });
+                        }}
                     />
                 );
             },
