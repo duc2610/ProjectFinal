@@ -66,7 +66,7 @@ namespace ToeicGenius.BackgroundServices
 
 				if (expiredTests == null || !expiredTests.Any())
 				{
-					_logger.LogDebug("No expired tests found at {Time}", Now);
+					_logger.LogDebug("No expired tests found at {Time}", UtcNow);
 					return;
 				}
 
@@ -83,7 +83,7 @@ namespace ToeicGenius.BackgroundServices
 							continue;
 						}
 
-						var elapsedTime = Now - testResult.CreatedAt;
+						var elapsedTime = UtcNow - testResult.CreatedAt;
 						var expectedDuration = TimeSpan.FromMinutes(test.Duration + 5); // 5 minutes grace period
 
 						if (elapsedTime > expectedDuration)

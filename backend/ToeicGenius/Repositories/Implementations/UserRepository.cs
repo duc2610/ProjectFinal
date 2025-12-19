@@ -29,7 +29,9 @@ namespace ToeicGenius.Repositories.Implementations
 		{
 			var now = Today;
 			var startOfMonth = new DateTime(now.Year, now.Month, 1);
-			return await _context.Users.CountAsync(u => u.CreatedAt >= startOfMonth);
+			// Convert Vietnam time to UTC for comparison with CreatedAt (UTC in DB)
+			var startOfMonthUtc = ToUtcTime(startOfMonth);
+			return await _context.Users.CountAsync(u => u.CreatedAt >= startOfMonthUtc);
 		}
 
 		// Count new user this week
@@ -38,7 +40,9 @@ namespace ToeicGenius.Repositories.Implementations
 			var now = Today;
 			var diff = (7 + (int)now.DayOfWeek - (int)DayOfWeek.Monday) % 7; // tuần bắt đầu từ Monday
 			var startOfWeek = now.AddDays(-diff);
-			return await _context.Users.CountAsync(u => u.CreatedAt >= startOfWeek);
+			// Convert Vietnam time to UTC for comparison with CreatedAt (UTC in DB)
+			var startOfWeekUtc = ToUtcTime(startOfWeek);
+			return await _context.Users.CountAsync(u => u.CreatedAt >= startOfWeekUtc);
 		}
 
 		public async Task<int> CountTotalUsersAsync()
@@ -90,15 +94,17 @@ namespace ToeicGenius.Repositories.Implementations
 				query = query.Where(u => u.Status == request.Status.Value);
 			}
 
-			// Filter by date
+			// Filter by date - convert to UTC before comparing with CreatedAt (which is UTC in DB)
 			if (request.FromDate.HasValue)
 			{
-				query = query.Where(u => u.CreatedAt >= request.FromDate.Value);
+				var fromDateUtc = ToUtcTime(request.FromDate.Value);
+				query = query.Where(u => u.CreatedAt >= fromDateUtc);
 			}
 
 			if (request.ToDate.HasValue)
 			{
-				query = query.Where(u => u.CreatedAt <= request.ToDate.Value);
+				var toDateUtc = ToUtcTime(request.ToDate.Value);
+				query = query.Where(u => u.CreatedAt <= toDateUtc);
 			}
 
 			// Sort

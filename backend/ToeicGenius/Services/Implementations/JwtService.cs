@@ -40,7 +40,7 @@ namespace ToeicGenius.Services.Implementations
 				issuer: _configuration["Jwt:Issuer"],
 				audience: _configuration["Jwt:Audience"],
 				claims: claims,
-				expires: DateTime.UtcNow.AddMinutes(double.Parse(_configuration["Jwt:ExpireMinutes"])),
+				expires: UtcNow.AddMinutes(double.Parse(_configuration["Jwt:ExpireMinutes"])),
 				signingCredentials: credentials
 				);
 

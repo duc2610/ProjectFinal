@@ -170,7 +170,7 @@ namespace ToeicGenius.Services.Implementations
 			report.Status = request.Status;
 			report.ReviewedBy = reviewerId;
 			report.ReviewerNotes = request.ReviewerNotes;
-			report.ReviewedAt = Now;
+			report.ReviewedAt = UtcNow;
 
 			await _uow.QuestionReports.UpdateReportAsync(report);
 

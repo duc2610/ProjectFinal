@@ -248,7 +248,11 @@ namespace ToeicGenius.Repositories.Implementations
 			.Where(r => r.UserId == examineeId && r.Test.TestType == TestType.Simulator);
 
 			if (fromDate.HasValue)
-				query = query.Where(r => r.CreatedAt >= fromDate.Value);
+			{
+				// Convert to UTC before comparing with CreatedAt (which is UTC in DB)
+				var fromDateUtc = ToUtcTime(fromDate.Value);
+				query = query.Where(r => r.CreatedAt >= fromDateUtc);
+			}
 
 			return await query.ToListAsync();
 		}
@@ -264,10 +268,10 @@ namespace ToeicGenius.Repositories.Implementations
 					.Where(tr => tr.Status == TestResultStatus.InProgress && tr.IsSelectTime == true)
 					.ToListAsync();
 
-				// Filter expired tests (CreatedAt + Duration + 5 minutes grace period < Now)
+				// Filter expired tests (CreatedAt + Duration + 5 minutes grace period < UtcNow)
 				var expiredTests = inProgressTests
 					.Where(tr => tr.Test != null &&
-								 Now - tr.CreatedAt > TimeSpan.FromMinutes(tr.Test.Duration + 5))
+								 UtcNow - tr.CreatedAt > TimeSpan.FromMinutes(tr.Test.Duration + 5))
 					.ToList();
 
 				return expiredTests;

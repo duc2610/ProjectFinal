@@ -1115,9 +1115,7 @@ namespace ToeicGenius.Services.Implementations
 				TestSkill = test.TestSkill,
 				AudioUrl = test.AudioUrl,
 				Duration = duration,
-				QuantityQuestion = test.TotalQuestion,
-				CreatedAt = ToVietnamTime(test.CreatedAt),
-				UpdatedAt = test.UpdatedAt.HasValue ? ToVietnamTime(test.UpdatedAt.Value) : null
+				QuantityQuestion = test.TotalQuestion
 			};
 
 			// Reuse active test session if available to avoid duplicates
@@ -1194,6 +1192,9 @@ namespace ToeicGenius.Services.Implementations
 			}
 
 			result.TestResultId = userTest.TestResultId;
+			// Set CreatedAt và UpdatedAt từ userTest (thời gian bắt đầu làm bài của user), không phải test.CreatedAt
+			result.CreatedAt = ToVietnamTime(userTest.CreatedAt);
+			result.UpdatedAt = userTest.UpdatedAt.HasValue ? ToVietnamTime(userTest.UpdatedAt.Value) : null;
 
 			// Load saved answers if user is resuming
 			var savedAnswers = await _uow.UserAnswers.GetByTestResultIdAsync(userTest.TestResultId);
