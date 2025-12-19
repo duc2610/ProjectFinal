@@ -500,9 +500,16 @@ export default function ExamScreen() {
         const response = await getMyQuestionReports(1, 1000); // Load nhiều để lấy hết
         const reportsData = response?.data || [];
         
+        // Chỉ lấy những reports có trạng thái khác "Resolved" (Đã xử lý) và "Rejected" (Từ chối)
+        // Vì backend cho phép báo cáo lại nếu đã được xử lý hoặc từ chối
+        const activeReports = reportsData.filter(report => {
+          const status = (report.status || "").toLowerCase();
+          return status !== "resolved" && status !== "rejected";
+        });
+        
         // Tạo Set các key đã report: "testQuestionId_subQuestionId" (subQuestionId = 0 cho câu đơn)
         const reportedIds = new Set();
-        reportsData.forEach(report => {
+        activeReports.forEach(report => {
           if (report.testQuestionId) {
             const isGroup = !!report.isQuestionGroup;
             const subId = isGroup ? (report.subQuestionId ?? 0) : 0;
@@ -522,19 +529,66 @@ export default function ExamScreen() {
   }, []);
 
   // Function để check xem câu hỏi đã report chưa
+  // Với nhóm câu: subQuestionId phải là questionId của sub-question (không phải subQuestionIndex)
+  // Backend lưu subQuestionId = questionId của sub-question trong group
   const isQuestionReported = (testQuestionId, subQuestionId = null, isGroup = false) => {
     if (!testQuestionId) return false;
-    const subId = isGroup ? (subQuestionId ?? 0) : 0;
+    // Với nhóm câu: nếu không có subQuestionId (questionId), không thể check → return false
+    // Với câu đơn: subQuestionId = null, dùng 0
+    const subId = isGroup 
+      ? (subQuestionId && subQuestionId !== null ? subQuestionId : null)
+      : 0;
+    // Nếu là nhóm câu nhưng không có questionId, không thể check
+    if (isGroup && subId === null) return false;
     const key = `${testQuestionId}_${subId}`;
     return reportedQuestionIds.has(key);
   };
 
   // Callback khi report thành công
-  const handleReportSuccess = (testQuestionId, subQuestionId = null, isGroup = false) => {
+  // Với nhóm câu: subQuestionId phải là questionId của sub-question (không phải subQuestionIndex)
+  const handleReportSuccess = async (testQuestionId, subQuestionId = null, isGroup = false) => {
     if (!testQuestionId) return;
-    const subId = isGroup ? (subQuestionId ?? 0) : 0;
+    // Với nhóm câu: subQuestionId phải là questionId (không được null)
+    // Với câu đơn: subQuestionId = null, dùng 0
+    const subId = isGroup 
+      ? (subQuestionId && subQuestionId !== null ? subQuestionId : null)
+      : 0;
+    // Nếu là nhóm câu nhưng không có questionId, không thể tạo key
+    if (isGroup && subId === null) {
+      console.warn("Cannot create report key for group question without questionId");
+      return;
+    }
     const key = `${testQuestionId}_${subId}`;
+    // Cập nhật state ngay lập tức để UI phản hồi nhanh
     setReportedQuestionIds(prev => new Set([...prev, key]));
+    
+    // Reload reports từ API để lấy status mới nhất
+    try {
+      const response = await getMyQuestionReports(1, 1000);
+      const reportsData = response?.data || [];
+      
+      // Chỉ lấy những reports có trạng thái khác "Resolved" (Đã xử lý) và "Rejected" (Từ chối)
+      const activeReports = reportsData.filter(report => {
+        const status = (report.status || "").toLowerCase();
+        return status !== "resolved" && status !== "rejected";
+      });
+      
+      // Cập nhật lại Set với dữ liệu mới từ API
+      const reportedIds = new Set();
+      activeReports.forEach(report => {
+        if (report.testQuestionId) {
+          const isGroupReport = !!report.isQuestionGroup;
+          const subIdReport = isGroupReport ? (report.subQuestionId ?? 0) : 0;
+          const keyReport = `${report.testQuestionId}_${subIdReport}`;
+          reportedIds.add(keyReport);
+        }
+      });
+      
+      setReportedQuestionIds(reportedIds);
+    } catch (error) {
+      console.error("Error reloading reports after report success:", error);
+      // Nếu lỗi, vẫn giữ key đã thêm vào để UI vẫn hiển thị đúng
+    }
   };
 
   useEffect(() => {

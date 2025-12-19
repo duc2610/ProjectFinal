@@ -627,21 +627,43 @@ export default function ResultScreen() {
 
 
   // Kiểm tra xem câu hỏi đã được report chưa
+  // Với nhóm câu: subQuestionId phải là questionId của sub-question (không phải subQuestionIndex)
+  // Backend lưu subQuestionId = questionId của sub-question trong group
   const isQuestionReported = (testQuestionId, subQuestionId = null, isGroup = false) => {
     if (!testQuestionId) return false;
-    const subId = isGroup ? (subQuestionId ?? 0) : 0;
+    // Với nhóm câu: nếu không có subQuestionId (questionId), không thể check → return false
+    // Với câu đơn: subQuestionId = null, dùng 0
+    const subId = isGroup 
+      ? (subQuestionId && subQuestionId !== null ? subQuestionId : null)
+      : 0;
+    // Nếu là nhóm câu nhưng không có questionId, không thể check
+    if (isGroup && subId === null) return false;
     const key = `${testQuestionId}_${subId}`;
     return reportedQuestionIds.has(key);
   };
 
   // Callback khi report thành công
-  const handleReportSuccess = (testQuestionId, subQuestionId = null, isGroup = false) => {
+  // Với nhóm câu: subQuestionId phải là questionId của sub-question (không phải subQuestionIndex)
+  const handleReportSuccess = async (testQuestionId, subQuestionId = null, isGroup = false) => {
     if (!testQuestionId) return;
-    const subId = isGroup ? (subQuestionId ?? 0) : 0;
+    // Với nhóm câu: subQuestionId phải là questionId (không được null)
+    // Với câu đơn: subQuestionId = null, dùng 0
+    const subId = isGroup 
+      ? (subQuestionId && subQuestionId !== null ? subQuestionId : null)
+      : 0;
+    // Nếu là nhóm câu nhưng không có questionId, không thể tạo key
+    if (isGroup && subId === null) {
+      console.warn("Cannot create report key for group question without questionId");
+      return;
+    }
     const key = `${testQuestionId}_${subId}`;
+    // Cập nhật state ngay lập tức để UI phản hồi nhanh
     setReportedQuestionIds(prev => new Set([...prev, key]));
-    // Cập nhật reports array (giữ thông tin SubQuestionId để dùng lại nếu cần)
+    // Cập nhật reports array tạm thời (giữ thông tin SubQuestionId để dùng lại nếu cần)
     setReports(prev => [...prev, { testQuestionId, subQuestionId: isGroup ? subId : null, isQuestionGroup: isGroup, status: "Pending" }]);
+    
+    // Reload reports từ API để lấy status mới nhất (sẽ được gọi từ modal sau khi báo cáo thành công)
+    // Logic reload đã có trong modal onOk handler
   };
 
   // === XỬ LÝ CÂU HỎI TỪ API DETAIL ===
@@ -812,9 +834,15 @@ export default function ResultScreen() {
       });
       
       // Filter chỉ lấy reports của các câu hỏi trong test result hiện tại
-      const relevantReports = allReports.filter(report => 
-        report.testQuestionId && currentTestQuestionIds.has(report.testQuestionId)
-      );
+      // Và chỉ lấy những reports có trạng thái khác "Resolved" (Đã xử lý) và "Rejected" (Từ chối)
+      // Vì backend cho phép báo cáo lại nếu đã được xử lý hoặc từ chối
+      const relevantReports = allReports.filter(report => {
+        if (!report.testQuestionId || !currentTestQuestionIds.has(report.testQuestionId)) {
+          return false;
+        }
+        const status = (report.status || "").toLowerCase();
+        return status !== "resolved" && status !== "rejected";
+      });
       
       setReports(relevantReports);
       
@@ -2745,8 +2773,12 @@ export default function ResultScreen() {
             );
             message.success("Đã gửi báo cáo thành công");
             
+            // Xác định xem có phải câu group không
+            const isGroup = !!reportQuestion.subQuestionId;
+            const subQuestionId = reportQuestion.subQuestionId || null;
+            
             // Cập nhật state ngay lập tức TRƯỚC KHI đóng modal
-            handleReportSuccess(reportedTestQuestionId);
+            await handleReportSuccess(reportedTestQuestionId, subQuestionId, isGroup);
             
             // Đóng modal và reset form
             setReportModalVisible(false);
@@ -2754,8 +2786,7 @@ export default function ResultScreen() {
             setReportDescription("");
             setReportType("IncorrectAnswer");
             
-            // Reload reports sau một chút để đảm bảo server đã xử lý xong
-            // Nhưng state đã được cập nhật rồi nên UI sẽ hiển thị ngay
+            // Reload reports sau một chút để đảm bảo server đã xử lý xong và lấy status mới nhất
             if (result?.testResultId) {
               setTimeout(async () => {
                 await loadReports(result.testResultId, swFeedbacks);
@@ -2769,7 +2800,9 @@ export default function ResultScreen() {
               message.warning("Câu hỏi này đã được báo cáo rồi");
               // Cập nhật state để hiển thị trạng thái "đã báo cáo"
               if (reportQuestion?.testQuestionId) {
-                handleReportSuccess(reportQuestion.testQuestionId);
+                const isGroup = !!reportQuestion.subQuestionId;
+                const subQuestionId = reportQuestion.subQuestionId || null;
+                await handleReportSuccess(reportQuestion.testQuestionId, subQuestionId, isGroup);
                 if (result?.testResultId) {
                   await loadReports(result.testResultId, swFeedbacks);
                 }
