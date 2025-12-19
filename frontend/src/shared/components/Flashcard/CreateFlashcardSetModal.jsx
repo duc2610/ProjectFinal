@@ -41,7 +41,15 @@ export default function CreateFlashcardSetModal({ open, onClose, onSuccess }) {
     <Modal
       title="Tạo flashcard set mới"
       open={open}
-      onOk={handleSubmit}
+      onOk={() => {
+        Modal.confirm({
+          title: "Xác nhận tạo flashcard set",
+          content: "Bạn có chắc chắn muốn tạo flashcard set mới với thông tin hiện tại?",
+          okText: "Tạo mới",
+          cancelText: "Hủy",
+          onOk: () => handleSubmit(),
+        });
+      }}
       onCancel={handleCancel}
       confirmLoading={loading}
       okText="Tạo mới"

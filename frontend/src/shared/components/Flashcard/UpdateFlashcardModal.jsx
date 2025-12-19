@@ -64,7 +64,15 @@ export default function UpdateFlashcardModal({ open, onClose, onSuccess, card })
     <Modal
       title="Chỉnh sửa thẻ flashcard"
       open={open}
-      onOk={handleSubmit}
+      onOk={() => {
+        Modal.confirm({
+          title: "Xác nhận cập nhật thẻ flashcard",
+          content: "Bạn có chắc chắn muốn lưu các thay đổi cho thẻ flashcard này?",
+          okText: "Cập nhật",
+          cancelText: "Hủy",
+          onOk: () => handleSubmit(),
+        });
+      }}
       onCancel={handleCancel}
       confirmLoading={loading}
       okText="Cập nhật"

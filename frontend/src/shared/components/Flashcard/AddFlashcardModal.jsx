@@ -195,9 +195,21 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
 
   const handleModalOk = () => {
     if (activeTab === "single") {
-      handleSubmit();
+      Modal.confirm({
+        title: "Xác nhận thêm thẻ flashcard",
+        content: "Bạn có chắc chắn muốn thêm thẻ flashcard này vào bộ hiện tại?",
+        okText: "Thêm thẻ",
+        cancelText: "Hủy",
+        onOk: () => handleSubmit(),
+      });
     } else {
-      handleBulkSubmit();
+      Modal.confirm({
+        title: "Xác nhận thêm nhiều thẻ flashcard",
+        content: "Bạn có chắc chắn muốn thêm tất cả các thẻ hợp lệ trong danh sách vào bộ hiện tại?",
+        okText: "Thêm các thẻ",
+        cancelText: "Hủy",
+        onOk: () => handleBulkSubmit(),
+      });
     }
   };
 
