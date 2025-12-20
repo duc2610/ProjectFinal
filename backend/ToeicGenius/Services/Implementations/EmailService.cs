@@ -1,6 +1,4 @@
-﻿using System.Net.Mail;
-using System.Net;
-using ToeicGenius.Services.Interfaces;
+﻿using ToeicGenius.Services.Interfaces;
 using Castle.Core.Logging;
 using SendGrid.Helpers.Mail;
 using SendGrid;
