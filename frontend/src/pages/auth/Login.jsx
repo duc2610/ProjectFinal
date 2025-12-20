@@ -235,7 +235,7 @@ export default function Login() {
             </Button>
 
             <Divider plain style={{ margin: "20px 0" }}>
-              HOẶC TIẾP TỤC VỚI
+              HOẶC
             </Divider>
 
             <Button

@@ -119,6 +119,7 @@ export default function ExamScreen() {
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [offlineAnswers, setOfflineAnswers] = useState(null);
   const [offlineTimestamp, setOfflineTimestamp] = useState(null);
+  const offlineAnswersRef = useRef(null);
   const [showSaveInfoAlert, setShowSaveInfoAlert] = useState(true);
   const [reportedQuestionIds, setReportedQuestionIds] = useState(new Set()); // Set các testQuestionId đã report
   const timerRef = useRef(null);
@@ -1331,38 +1332,107 @@ export default function ExamScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSelectTime, timeLeft, isExamSessionValid]);
 
-  // Phát hiện mất mạng/kết nối lại
+  // Sync offlineAnswers với ref
   useEffect(() => {
+    offlineAnswersRef.current = offlineAnswers;
+  }, [offlineAnswers]);
+
+  // Phát hiện mất mạng/kết nối lại - check liên tục
+  useEffect(() => {
+    if (!isExamSessionValid) return;
+
+    let networkCheckInterval = null;
+    let lastOnlineState = navigator.onLine;
+
+    // Hàm check mạng bằng cách kiểm tra navigator.onLine
+    const checkNetworkConnection = () => {
+      // Nếu đang submit, không check mạng
+      if (isSubmittingRef.current) return;
+
+      const currentOnlineState = navigator.onLine;
+
+      // Nếu trạng thái mạng thay đổi
+      if (currentOnlineState !== lastOnlineState) {
+        if (currentOnlineState) {
+          // Từ offline chuyển sang online
+          lastOnlineState = true;
+          setIsOnline(true);
+          setShowOfflineModal(false);
+          // Nếu có offlineAnswers, thử lưu lại
+          const savedOfflineAnswers = offlineAnswersRef.current;
+          if (savedOfflineAnswers) {
+            message.info("Đã kết nối lại mạng. Đang lưu lại tiến độ...");
+            // Cập nhật answers với offlineAnswers và thử lưu
+            setAnswers(savedOfflineAnswers);
+            setTimeout(() => {
+              handleSaveProgress(savedOfflineAnswers);
+            }, 1000);
+          }
+        } else {
+          // Từ online chuyển sang offline
+          lastOnlineState = false;
+          setIsOnline(false);
+          // Lưu answers hiện tại vào offlineAnswers
+          const currentAnswers = answersRef.current || {};
+          const answersToSave = { ...currentAnswers };
+          setOfflineAnswers(answersToSave);
+          offlineAnswersRef.current = answersToSave;
+          setOfflineTimestamp(new Date());
+          setShowOfflineModal(true);
+        }
+      }
+    };
+
+    // Event listeners cho online/offline events
     const handleOnline = () => {
+      lastOnlineState = true;
       setIsOnline(true);
       setShowOfflineModal(false);
       // Nếu có offlineAnswers, thử lưu lại
-      if (offlineAnswers) {
+      const savedOfflineAnswers = offlineAnswersRef.current;
+      if (savedOfflineAnswers) {
         message.info("Đã kết nối lại mạng. Đang lưu lại tiến độ...");
         // Cập nhật answers với offlineAnswers và thử lưu
-        setAnswers(offlineAnswers);
+        setAnswers(savedOfflineAnswers);
         setTimeout(() => {
-          handleSaveProgress();
+          handleSaveProgress(savedOfflineAnswers);
         }, 1000);
       }
     };
 
     const handleOffline = () => {
+      lastOnlineState = false;
       setIsOnline(false);
       // Lưu answers hiện tại vào offlineAnswers
-      setOfflineAnswers({ ...answers });
+      const currentAnswers = answersRef.current || {};
+      const answersToSave = { ...currentAnswers };
+      setOfflineAnswers(answersToSave);
+      offlineAnswersRef.current = answersToSave;
       setOfflineTimestamp(new Date());
       setShowOfflineModal(true);
     };
 
+    // Đăng ký event listeners
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+
+    // Check mạng định kỳ mỗi 3 giây để đảm bảo phát hiện mất mạng ngay lập tức
+    // (ngay cả khi event listeners không hoạt động)
+    networkCheckInterval = setInterval(() => {
+      checkNetworkConnection();
+    }, 3000);
+
+    // Check ngay lập tức khi mount
+    checkNetworkConnection();
 
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      if (networkCheckInterval) {
+        clearInterval(networkCheckInterval);
+      }
     };
-  }, [answers]);
+  }, [isExamSessionValid, handleSaveProgress]); // Chỉ phụ thuộc vào isExamSessionValid và handleSaveProgress
 
   // Auto-save tiến độ mỗi 5 phút (cho tất cả loại bài thi)
   useEffect(() => {
