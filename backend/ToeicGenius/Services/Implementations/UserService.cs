@@ -252,6 +252,40 @@ namespace ToeicGenius.Services.Implementations
 			return Result<UserResponseDto>.Success(response);
 		}
 
+		public async Task<Result<UserResponseDto>> UpdateNameAsync(Guid userId, string newFullName)
+		{
+			try
+			{
+				var user = await _uow.Users.GetUserAndRoleByUserIdAsync(userId);
+				if (user == null)
+					return Result<UserResponseDto>.Failure(ErrorMessages.UserNotFound);
+
+				user.FullName = newFullName;
+				user.UpdatedAt = UtcNow;
+
+				await _uow.Users.UpdateAsync(user);
+				await _uow.SaveChangesAsync();
+
+				var roles = await _uow.Roles.GetRolesByUserIdAsync(user.Id);
+
+				var response = new UserResponseDto
+				{
+					Id = user.Id,
+					Email = user.Email,
+					FullName = user.FullName,
+					Status = user.Status,
+					CreatedAt = ToVietnamTime(user.CreatedAt),
+					Roles = roles.Select(r => r.RoleName).ToList()
+				};
+
+				return Result<UserResponseDto>.Success(response);
+			}
+			catch (Exception ex)
+			{
+				return Result<UserResponseDto>.Failure(ErrorMessages.OperationFailed + ": " + ex.Message);
+			}
+		}
+
 
 
 		// Generate password

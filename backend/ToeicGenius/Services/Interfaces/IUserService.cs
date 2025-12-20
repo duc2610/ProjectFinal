@@ -18,6 +18,7 @@ namespace ToeicGenius.Services.Interfaces
 		// CRUD
 		Task<Result<UserResponseDto>> CreateUserAsync(CreateUserDto dto);
 		Task<Result<UserResponseDto>> UpdateUserAsync(Guid userId, UpdateUserDto dto);
+		Task<Result<UserResponseDto>> UpdateNameAsync(Guid userId, string newFullName);
 
 		// Thống kê
 		Task<Result<UserStatisticsResponseDto>> GetUserStatisticsAsync();

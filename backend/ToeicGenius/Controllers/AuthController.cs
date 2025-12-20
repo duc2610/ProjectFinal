@@ -218,6 +218,21 @@ namespace ToeicGenius.Controllers
 			return Ok(ApiResponse<UserResponseDto>.SuccessResponse(result.Data));
 		}
 
+		[HttpPut("update-name")]
+		[Authorize]
+		public async Task<IActionResult> UpdateName([FromBody] UpdateNameRequestDto dto)
+		{
+			var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			if (string.IsNullOrEmpty(userId))
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.TokenInvalid));
 
+			var result = await _userService.UpdateNameAsync(Guid.Parse(userId), dto.FullName);
+			if (!result.IsSuccess)
+			{
+				return BadRequest(ApiResponse<string>.ErrorResponse(result.ErrorMessage!, 400));
+			}
+
+			return Ok(ApiResponse<UserResponseDto>.SuccessResponse(result.Data!));
+		}
 	}
 }
