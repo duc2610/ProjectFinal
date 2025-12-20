@@ -15,11 +15,11 @@ import {
     TEST_TYPE,
 } from "@services/testsService";
 import { HistoryOutlined } from "@ant-design/icons";
-import { TOTAL_QUESTIONS_BY_SKILL } from "@shared/constants/toeicStructure";
-import TestTypeSelectionModal from "@shared/components/ExamManagement/TestTypeSelectionModal";
-import FromBankTestForm from "@shared/components/ExamManagement/FromBankTestForm";
-import ManualTestForm from "@shared/components/ExamManagement/ManualTestForm";
-import TestVersionsModal from "@shared/components/ExamManagement/TestVersionsModal";
+import { TOTAL_QUESTIONS_BY_SKILL } from "@constants/toeicStructure";
+import TestTypeSelectionModal from "@components/ExamManagement/TestTypeSelectionModal";
+import FromBankTestForm from "@components/ExamManagement/FromBankTestForm";
+import ManualTestForm from "@components/ExamManagement/ManualTestForm";
+import TestVersionsModal from "@components/ExamManagement/TestVersionsModal";
 
 const { Text } = Typography;
 

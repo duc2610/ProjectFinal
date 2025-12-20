@@ -4,7 +4,7 @@ import { AudioOutlined, StopOutlined, PlayCircleOutlined, FlagOutlined } from "@
 import styles from "../../styles/Exam.module.css";
 import { uploadFile } from "../../../services/filesService";
 import { reportQuestion } from "../../../services/questionReportService";
-import { translateErrorMessage } from "@shared/utils/translateError";
+import { translateErrorMessage } from "@utils/translateError";
 import { getUserFlashcardSets, createFlashcardSet, addFlashcardFromTest } from "../../../services/flashcardService";
 import { useAuth } from "@shared/hooks/useAuth";
 

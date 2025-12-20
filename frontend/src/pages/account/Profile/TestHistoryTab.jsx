@@ -13,7 +13,7 @@ import dayjs from "dayjs";
 
 const EMPTY_LR_MESSAGE =
   "Không có câu trả lời cho phần này. Có thể bạn chưa làm hoặc dữ liệu chưa được ghi nhận.";
-import { translateErrorMessage } from "@shared/utils/translateError";
+import { translateErrorMessage } from "@utils/translateError";
 
 // Helper function để format question text (giữ nguyên xuống dòng)
 const formatQuestionText = (text) => {

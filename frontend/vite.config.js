@@ -12,6 +12,7 @@ export default defineConfig({
     alias: {
       "@app": "/src/app",
       "@pages": "/src/pages",
+      "@components": "/src/components",
       "@shared": "/src/shared",
       "@modules": "/src/modules",
       "@config": "/src/config",
@@ -19,6 +20,7 @@ export default defineConfig({
       "@hooks": "/src/hooks",
       "@services": "/src/services",
       "@utils": "/src/utils",
+      "@constants": "/src/constants",
       "@CSS": "/src/styles",
     },
   },

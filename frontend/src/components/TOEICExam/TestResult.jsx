@@ -36,7 +36,7 @@ import {
   CommentOutlined,
 } from "@ant-design/icons";
 import { getTestResultDetail, startTest } from "../../../services/testExamService";
-import { translateErrorMessage } from "@shared/utils/translateError";
+import { translateErrorMessage } from "@utils/translateError";
 import { reportQuestion as reportQuestionAPI, getTestResultReports, getMyQuestionReports } from "../../../services/questionReportService";
 import styles from "../../styles/Result.module.css";
 import { useAuth } from "@shared/hooks/useAuth";

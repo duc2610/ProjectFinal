@@ -4,7 +4,7 @@ import { PlusOutlined, DeleteOutlined, CheckCircleOutlined, EyeOutlined } from "
 import { createTestFromBank, getTestById, updateTestFromBank, createTestFromBankRandom } from "@services/testsService";
 import { getQuestionById } from "@services/questionsService";
 import { getQuestionGroupById } from "@services/questionGroupService";
-import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL } from "@shared/constants/toeicStructure";
+import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL } from "@constants/toeicStructure";
 import QuestionBankSelectorModal from "./QuestionBankSelectorModal";
 import QuestionGroupSelectorModal from "./QuestionGroupSelectorModal";
 

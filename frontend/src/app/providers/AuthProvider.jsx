@@ -13,8 +13,8 @@ import {
   getProfile as svcGetProfile,
 } from "@services/authService";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ROLES } from "@shared/utils/acl";
-import { getCookie, setCookie, removeCookie, hasCookie } from "@shared/utils/cookie";
+import { ROLES } from "@utils/acl";
+import { getCookie, setCookie, removeCookie, hasCookie } from "@utils/cookie";
 
 const AuthContext = createContext(null);
 

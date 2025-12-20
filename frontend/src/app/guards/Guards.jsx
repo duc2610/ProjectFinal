@@ -1,9 +1,9 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@shared/hooks/useAuth";
-import Splash from "@shared/components/Splash";
+import Splash from "@components/Splash";
 import { message, notification } from "antd";
-import { hasRole, ROLES } from "@shared/utils/acl";
-import { hasCookie } from "@shared/utils/cookie";
+import { hasRole, ROLES } from "@utils/acl";
+import { hasCookie } from "@utils/cookie";
 import { useRef, useEffect } from "react";
 
 export function PrivateRoute() {

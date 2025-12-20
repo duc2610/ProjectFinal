@@ -7,7 +7,7 @@ import QuestionCard from "./QuestionCard";
 import { submitTest, submitAssessmentBulk, saveProgress, startTest } from "../../../services/testExamService";
 import { uploadFile } from "../../../services/filesService";
 import { getMyQuestionReports } from "../../../services/questionReportService";
-import { translateErrorMessage } from "@shared/utils/translateError";
+import { translateErrorMessage } from "@utils/translateError";
 import { useNavigate } from "react-router-dom";
 import { SaveOutlined } from "@ant-design/icons";
 import { useAuth } from "@shared/hooks/useAuth";

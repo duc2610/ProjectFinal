@@ -38,7 +38,7 @@ import {
   requiresAudio,
   requiresImage,
   TEST_SKILL,
-} from "@shared/constants/toeicStructure";
+} from "@constants/toeicStructure";
 import {
   getQuestionReports,
   reviewReport,

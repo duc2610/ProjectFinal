@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert, Button, Drawer, Divider } from "antd";
 import { SearchOutlined, EyeOutlined } from "@ant-design/icons";
 import { getQuestions, buildQuestionListParams, getQuestionById } from "@services/questionsService";
-import { loadPartsBySkill, TEST_SKILL } from "@shared/constants/toeicStructure";
+import { loadPartsBySkill, TEST_SKILL } from "@constants/toeicStructure";
 
 const { Option } = Select;
 

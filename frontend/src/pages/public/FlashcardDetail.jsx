@@ -15,10 +15,10 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { getFlashcardSetById, getFlashcardsBySetId, deleteFlashcard, startStudySession } from "@services/flashcardService";
 import { useAuth } from "@shared/hooks/useAuth";
-import { textToSpeech } from "@shared/utils/textToSpeech";
-import AddFlashcardModal from "@shared/components/Flashcard/AddFlashcardModal";
-import UpdateFlashcardSetModal from "@shared/components/Flashcard/UpdateFlashcardSetModal";
-import UpdateFlashcardModal from "@shared/components/Flashcard/UpdateFlashcardModal";
+import { textToSpeech } from "@utils/textToSpeech";
+import AddFlashcardModal from "@components/Flashcard/AddFlashcardModal";
+import UpdateFlashcardSetModal from "@components/Flashcard/UpdateFlashcardSetModal";
+import UpdateFlashcardModal from "@components/Flashcard/UpdateFlashcardModal";
 import "@shared/styles/FlashcardDetail.css";
 
 export default function FlashcardDetail() {

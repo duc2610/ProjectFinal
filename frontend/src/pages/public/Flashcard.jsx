@@ -4,8 +4,8 @@ import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { getUserFlashcardSets, getPublicFlashcardSets, deleteFlashcardSet } from "@services/flashcardService";
 import { useAuth } from "@shared/hooks/useAuth";
-import CreateFlashcardSetModal from "@shared/components/Flashcard/CreateFlashcardSetModal";
-import UpdateFlashcardSetModal from "@shared/components/Flashcard/UpdateFlashcardSetModal";
+import CreateFlashcardSetModal from "@components/Flashcard/CreateFlashcardSetModal";
+import UpdateFlashcardSetModal from "@components/Flashcard/UpdateFlashcardSetModal";
 import "../../shared/styles/Flashcard.css";
 
 export default function Flashcard() {

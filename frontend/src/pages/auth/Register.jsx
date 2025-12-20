@@ -15,7 +15,7 @@ import { ArrowRightOutlined } from "@ant-design/icons";
 import logo from "@assets/images/logo.png";
 import { useNavigate } from "react-router-dom";
 import { register as registerService } from "@services/authService";
-import LegalModal from "@shared/components/LegalModal";
+import LegalModal from "@components/LegalModal";
 
 const { Title, Text, Link } = Typography;
 

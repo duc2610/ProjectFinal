@@ -3,8 +3,8 @@ import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Collaps
 import { PlusOutlined, DeleteOutlined, CheckCircleOutlined, UploadOutlined, PictureOutlined } from "@ant-design/icons";
 import { createTestManual, getTestById, updateTestManual, createTestDraft, saveTestPart, publishTest } from "@services/testsService";
 import { uploadFile } from "@services/filesService";
-import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL, PART_QUESTION_COUNT, validateTestStructure, requiresAudio, supportsQuestionGroups, createDefaultOptions, requiresImage } from "@shared/constants/toeicStructure";
-import { TEST_TYPE } from "@shared/constants/toeicStructure";
+import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL, PART_QUESTION_COUNT, validateTestStructure, requiresAudio, supportsQuestionGroups, createDefaultOptions, requiresImage } from "@constants/toeicStructure";
+import { TEST_TYPE } from "@constants/toeicStructure";
 
 const { TextArea } = Input;
 const { Option } = Select;

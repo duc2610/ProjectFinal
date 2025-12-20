@@ -38,7 +38,7 @@ import {
   unbanUser,
 } from "@services/accountManagerService";
 import { useAuth } from "@shared/hooks/useAuth";
-import { hasCookie } from "@shared/utils/cookie";
+import { hasCookie } from "@utils/cookie";
 
 const { Option } = Select;
 const { TabPane } = Tabs;

@@ -22,7 +22,7 @@ import {
 } from "antd";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@shared/hooks/useAuth";
-import { ROLES } from "@shared/utils/acl";
+import { ROLES } from "@utils/acl";
 import { getQuestionReports } from "@services/questionReportService";
 
 const { Header, Content, Sider } = Layout;

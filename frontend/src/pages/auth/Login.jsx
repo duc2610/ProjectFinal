@@ -14,10 +14,10 @@ const { Title, Text, Link } = Typography;
 import { useAuth } from "@shared/hooks/useAuth";
 import logo from "@assets/images/logo.png";
 import { useGoogleLogin } from "@react-oauth/google";
-import { ROLES } from "@shared/utils/acl";
+import { ROLES } from "@utils/acl";
 import styles from "@shared/styles/Auth.module.css";
 import { setAutoRedirecting } from "@app/guards/Guards";
-import LegalModal from "@shared/components/LegalModal";
+import LegalModal from "@components/LegalModal";
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();

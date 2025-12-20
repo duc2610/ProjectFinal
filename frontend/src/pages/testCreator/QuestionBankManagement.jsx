@@ -27,8 +27,8 @@ import {
   WarningOutlined
 } from "@ant-design/icons";
 
-import SingleQuestionModal from "@shared/components/QuestionBank/SingleQuestionModal.jsx";
-import QuestionGroupModal from "@shared/components/QuestionBank/QuestionGroupModal.jsx";
+import SingleQuestionModal from "@components/QuestionBank/SingleQuestionModal.jsx";
+import QuestionGroupModal from "@components/QuestionBank/QuestionGroupModal.jsx";
 
 import {
   getQuestions,

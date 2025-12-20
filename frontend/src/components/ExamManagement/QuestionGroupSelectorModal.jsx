@@ -3,7 +3,7 @@ import { Modal, Table, Input, Select, Space, Tag, message, Tooltip, Alert, Butto
 import { SearchOutlined, InfoCircleOutlined, EyeOutlined, WarningOutlined } from "@ant-design/icons";
 import { buildQuestionListParams } from "@services/questionsService";
 import { getQuestionGroups, getQuestionGroupById } from "@services/questionGroupService";
-import { loadPartsBySkill, TEST_SKILL } from "@shared/constants/toeicStructure";
+import { loadPartsBySkill, TEST_SKILL } from "@constants/toeicStructure";
 
 const { Option } = Select;
 

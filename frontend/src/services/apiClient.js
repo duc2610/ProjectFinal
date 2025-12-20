@@ -1,6 +1,6 @@
 import axios from "axios";
 import env from "@config/env";
-import { getCookie, setCookie, removeCookie } from "@shared/utils/cookie";
+import { getCookie, setCookie, removeCookie } from "@utils/cookie";
 
 const ACCESS_KEY = "tg_access_token";
 const REFRESH_KEY = "tg_refresh_token";

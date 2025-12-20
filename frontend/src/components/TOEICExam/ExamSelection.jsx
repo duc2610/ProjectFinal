@@ -5,7 +5,7 @@ import styles from "../../styles/Exam.module.css";
 import { startTest } from "../../../services/testExamService";
 import { getTestById } from "../../../services/testsService";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
-import { translateErrorMessage } from "@shared/utils/translateError";
+import { translateErrorMessage } from "@utils/translateError";
 import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text } = Typography;

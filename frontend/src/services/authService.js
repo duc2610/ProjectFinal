@@ -1,5 +1,5 @@
 import { api, tokenStore } from "./apiClient";
-import { setCookie, removeCookie } from "@shared/utils/cookie";
+import { setCookie, removeCookie } from "@utils/cookie";
 
 const unwrap = (res) => res?.data?.data ?? res?.data;
 

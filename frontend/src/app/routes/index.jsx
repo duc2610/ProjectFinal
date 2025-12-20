@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { PrivateRoute, PublicOnlyRoute, RoleRoute } from "@app/guards/Guards";
-import { ROLES } from "@shared/utils/acl";
+import { ROLES } from "@utils/acl";
 import AdminShell from "@shared/layouts/AdminShell.jsx";
 import MainLayout from "@shared/layouts/MainLayout";
 import { Spin } from "antd";
@@ -38,13 +38,13 @@ const QuestionBankManagement = lazy(() =>
   import("@pages/testCreator/QuestionBankManagement.jsx")
 );
 const TOEICExam = lazy(() =>
-  import("../../../src/shared/components/TOEICExam/ExamSelection.jsx")
+  import("@components/TOEICExam/ExamSelection.jsx")
 );
 const TestResults = lazy(() =>
-  import("../../../src/shared/components/TOEICExam/TestResult.jsx")
+  import("@components/TOEICExam/TestResult.jsx")
 );
 const ExamScreen = lazy(() =>
-  import("../../../src/shared/components/TOEICExam/ExamScreen.jsx")
+  import("@components/TOEICExam/ExamScreen.jsx")
 );
 const ExamManagement = lazy(() =>
   import("@pages/testCreator/ExamManagement.jsx")
