@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Modal, Typography, Checkbox, Spin, message, Alert } from "antd";
 import { LoadingOutlined, BulbOutlined } from "@ant-design/icons";
-import styles from "../../styles/Exam.module.css";
-import { startTest } from "../../../services/testExamService";
-import { getTestById } from "../../../services/testsService";
+import styles from "@shared/styles/Exam.module.css";
+import { startTest } from "@services/testExamService";
+import { getTestById } from "@services/testsService";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { translateErrorMessage } from "@utils/translateError";
 import { useAuth } from "@shared/hooks/useAuth";
@@ -47,13 +47,69 @@ const buildQuestions = (parts = []) => {
   const sortedParts = [...parts].sort((a, b) => (a.partId || 0) - (b.partId || 0));
 
   sortedParts.forEach((part) => {
+    // Kiểm tra xem có phải Speaking part không (partId 11-15)
+    const isSpeakingPart = part.partId >= 11 && part.partId <= 15;
+    
     part?.testQuestions?.forEach((tq) => {
-      if (tq.isGroup && tq.questionGroupSnapshotDto) {
+      // Với Speaking parts: nếu có group, tạo một speaking_group question
+      if (isSpeakingPart && tq.isGroup && tq.questionGroupSnapshotDto) {
+        const group = tq.questionGroupSnapshotDto;
+        const subQuestions = [];
+        const globalIndexStart = globalIndex;
+        
+        group.questionSnapshots?.forEach((qs, idx) => {
+          subQuestions.push({
+            testQuestionId: tq.testQuestionId, // Tất cả sub-questions có cùng testQuestionId
+            questionId: qs.questionId,
+            subQuestionIndex: idx,
+            partId: part.partId,
+            partName: part.partName,
+            partDescription: part.description,
+            globalIndex: globalIndex++, // Mỗi sub-question có globalIndex riêng (13, 14, 15)
+            type: "group",
+            question: qs.content,
+            passage: group.passage,
+            imageUrl: qs.imageUrl,
+            audioUrl: qs.audioUrl,
+            options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+            correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+            userAnswer: qs.userAnswer,
+          });
+        });
+        
+        // Tạo một speaking_group question chứa tất cả sub-questions
+        if (subQuestions.length > 0) {
+          const globalIndexEnd = subQuestions[subQuestions.length - 1].globalIndex;
+          const speakingGroupQuestion = {
+            testQuestionId: tq.testQuestionId,
+            questionId: subQuestions[0].questionId, // Dùng questionId của câu đầu cho report
+            subQuestionIndex: 0, // Với speaking_group, subQuestionIndex = 0
+            partId: part.partId,
+            partName: part.partName,
+            partDescription: part.description,
+            globalIndex: globalIndexStart,
+            globalIndexEnd: globalIndexEnd,
+            type: "speaking_group",
+            question: null, // Không có question riêng cho group
+            passage: group.passage,
+            imageUrl: subQuestions[0].imageUrl,
+            audioUrl: subQuestions[0].audioUrl,
+            options: [],
+            correctAnswer: null,
+            userAnswer: null,
+            subQuestions: subQuestions, // Lưu tất cả sub-questions
+          };
+          questions.push(speakingGroupQuestion);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[ExamSelection] Created speaking_group: partId=${part.partId}, testQuestionId=${tq.testQuestionId}, globalIndex=${globalIndexStart}-${globalIndexEnd}, subQuestions=${subQuestions.length}`);
+          }
+        }
+      } else if (tq.isGroup && tq.questionGroupSnapshotDto) {
+        // Group questions cho L&R hoặc Writing: xử lý như bình thường
         const group = tq.questionGroupSnapshotDto;
         group.questionSnapshots?.forEach((qs, idx) => {
           questions.push({
             testQuestionId: tq.testQuestionId,
-            // questionId: ID của sub-question trong group (dùng cho report SubQuestionId)
             questionId: qs.questionId,
             subQuestionIndex: idx,
             partId: part.partId,
@@ -71,10 +127,10 @@ const buildQuestions = (parts = []) => {
           });
         });
       } else if (!tq.isGroup && tq.questionSnapshotDto) {
+        // Câu đơn: xử lý như bình thường
         const qs = tq.questionSnapshotDto;
         questions.push({
           testQuestionId: tq.testQuestionId,
-          // Với câu đơn, vẫn lưu questionId phòng khi backend có dùng (không bắt buộc cho report)
           questionId: qs.questionId,
           subQuestionIndex: 0,
           partId: part.partId,

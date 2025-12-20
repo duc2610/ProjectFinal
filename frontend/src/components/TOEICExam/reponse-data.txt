@@ -1,0 +1,154 @@
+{
+    "statusCode": 200,
+    "message": "Success",
+    "data": {
+        "testResultId": 150,
+        "testId": 61,
+        "title": "TOEIC S&W Test 1  ",
+        "testType": "Simulator",
+        "testSkill": "SW",
+        "duration": 80,
+        "timeResuilt": 1,
+        "quantityQuestion": 19,
+        "isSimulator": true,
+        "writingScore": 15,
+        "speakingScore": 15,
+        "totalScore": 30,
+        "writingRawScore": null,
+        "speakingRawScore": 0,
+        "totalQuestions": 19,
+        "answeredQuestions": 3,
+        "skippedQuestions": 16,
+        "isSelectTime": true,
+        "status": "Graded",
+        "perPartFeedbacks": [
+            {
+                "testQuestionId": 4776,
+                "feedbackId": 134,
+                "userAnswerId": 469,
+                "answerText": null,
+                "answerAudioUrl": "https://daksgci46xjpr.cloudfront.net/toeic-audio/13914505-8492-4b61-b3c8-a8e6177f1648_speaking_4776_0.wav",
+                "score": 0,
+                "content": "Score: 0/100. word_count: 0, pronunciation: 0, intonation: 0",
+                "aiScorer": "speaking",
+                "detailedScores": {
+                    "word_count": 0,
+                    "pronunciation": 0,
+                    "intonation": 0,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "cohesion": 0,
+                    "relevance": 0,
+                    "completeness": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {},
+                "recommendations": [
+                    "❌ FAIL: Too short (0 words < 20 minimum)",
+                    "Must answer all 3 questions",
+                    "Need at least 60 words for good score",
+                    "Speak more - give details and examples"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": 10.2,
+                "createdAt": "2025-12-20T12:29:12.1766075",
+                "partId": 13,
+                "partName": "S-Part 3",
+                "questionContent": {
+                    "questionGroupId": 0,
+                    "partId": 0,
+                    "passage": null,
+                    "audioUrl": null,
+                    "imageUrl": null,
+                    "questionSnapshots": []
+                }
+            },
+            {
+                "testQuestionId": 4776,
+                "feedbackId": 135,
+                "userAnswerId": 470,
+                "answerText": null,
+                "answerAudioUrl": "https://daksgci46xjpr.cloudfront.net/toeic-audio/13914505-8492-4b61-b3c8-a8e6177f1648_speaking_4776_0.wav",
+                "score": 0,
+                "content": "Score: 0/100. word_count: 0, pronunciation: 0, intonation: 0",
+                "aiScorer": "speaking",
+                "detailedScores": {
+                    "word_count": 0,
+                    "pronunciation": 0,
+                    "intonation": 0,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "cohesion": 0,
+                    "relevance": 0,
+                    "completeness": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {},
+                "recommendations": [
+                    "❌ FAIL: Too short (0 words < 20 minimum)",
+                    "Must answer all 3 questions",
+                    "Need at least 60 words for good score",
+                    "Speak more - give details and examples"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": 10.2,
+                "createdAt": "2025-12-20T12:29:12.909792",
+                "partId": 13,
+                "partName": "S-Part 3",
+                "questionContent": {
+                    "questionGroupId": 0,
+                    "partId": 0,
+                    "passage": null,
+                    "audioUrl": null,
+                    "imageUrl": null,
+                    "questionSnapshots": []
+                }
+            },
+            {
+                "testQuestionId": 4776,
+                "feedbackId": 136,
+                "userAnswerId": 471,
+                "answerText": null,
+                "answerAudioUrl": "https://daksgci46xjpr.cloudfront.net/toeic-audio/13914505-8492-4b61-b3c8-a8e6177f1648_speaking_4776_0.wav",
+                "score": 0,
+                "content": "Score: 0/100. word_count: 0, pronunciation: 0, intonation: 0",
+                "aiScorer": "speaking",
+                "detailedScores": {
+                    "word_count": 0,
+                    "pronunciation": 0,
+                    "intonation": 0,
+                    "grammar": 0,
+                    "vocabulary": 0,
+                    "cohesion": 0,
+                    "relevance": 0,
+                    "completeness": 0,
+                    "overall": 0
+                },
+                "detailedAnalysis": {},
+                "recommendations": [
+                    "❌ FAIL: Too short (0 words < 20 minimum)",
+                    "Must answer all 3 questions",
+                    "Need at least 60 words for good score",
+                    "Speak more - give details and examples"
+                ],
+                "transcription": "",
+                "correctedText": "",
+                "audioDuration": 10.2,
+                "createdAt": "2025-12-20T12:29:13.6614486",
+                "partId": 13,
+                "partName": "S-Part 3",
+                "questionContent": {
+                    "questionGroupId": 0,
+                    "partId": 0,
+                    "passage": null,
+                    "audioUrl": null,
+                    "imageUrl": null,
+                    "questionSnapshots": []
+                }
+            }
+        ]
+    },
+    "success": true
+}

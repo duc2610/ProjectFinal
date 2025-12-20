@@ -118,6 +118,29 @@ export function TestHistoryTab() {
     return "Simulator";
   };
 
+  // Helper function để lấy skill group từ giá trị skill
+  const getSkillGroupFromValue = (skill) => {
+    if (!skill && skill !== 0) return null;
+    if (typeof skill === "string") {
+      const upper = skill.toUpperCase();
+      if (upper.includes("LISTENING") || upper.includes("READING") || upper.includes("L&R") || upper === "LR") {
+        return "lr";
+      }
+      if (
+        upper.includes("WRITING") ||
+        upper.includes("SPEAKING") ||
+        upper.includes("S&W") ||
+        upper === "SW"
+      ) {
+        return "sw";
+      }
+    } else if (typeof skill === "number") {
+      if (skill === 3) return "lr";
+      if ([1, 2, 4].includes(skill)) return "sw";
+    }
+    return null;
+  };
+
   // Lọc dữ liệu theo search và filter
   const filteredHistory = useMemo(() => {
     let filtered = [...history];
@@ -143,6 +166,29 @@ export function TestHistoryTab() {
     // Lọc theo kỹ năng
     if (filterTestSkill !== null && filterTestSkill !== undefined) {
       filtered = filtered.filter((item) => {
+        // Nếu filter là 1 (Nói) hoặc 2 (Viết), so sánh trực tiếp
+        if (filterTestSkill === 1 || filterTestSkill === 2) {
+          // Chuẩn hóa cả hai giá trị để so sánh
+          const itemSkill = typeof item.testSkill === "string" 
+            ? item.testSkill.toUpperCase() 
+            : item.testSkill;
+          const filterSkill = filterTestSkill;
+          
+          // Xử lý string: "SPEAKING" -> 1, "WRITING" -> 2
+          if (typeof itemSkill === "string") {
+            if (filterSkill === 1 && (itemSkill.includes("SPEAKING") || itemSkill === "NÓI")) {
+              return true;
+            }
+            if (filterSkill === 2 && (itemSkill.includes("WRITING") || itemSkill === "VIẾT")) {
+              return true;
+            }
+          }
+          
+          // So sánh số trực tiếp
+          return itemSkill === filterSkill;
+        }
+        
+        // Nếu filter là 3 (LR) hoặc 4 (SW), dùng skillGroup
         const skillGroup = getSkillGroupFromValue(item.testSkill);
         const filterSkillGroup = getSkillGroupFromValue(filterTestSkill);
         return skillGroup === filterSkillGroup;
@@ -302,28 +348,6 @@ export function TestHistoryTab() {
     return "default";
   };
 
-  const getSkillGroupFromValue = (skill) => {
-    if (!skill && skill !== 0) return null;
-    if (typeof skill === "string") {
-      const upper = skill.toUpperCase();
-      if (upper.includes("LISTENING") || upper.includes("READING") || upper.includes("L&R") || upper === "LR") {
-        return "lr";
-      }
-      if (
-        upper.includes("WRITING") ||
-        upper.includes("SPEAKING") ||
-        upper.includes("S&W") ||
-        upper === "SW"
-      ) {
-        return "sw";
-      }
-    } else if (typeof skill === "number") {
-      if (skill === 3) return "lr";
-      if ([1, 2, 4].includes(skill)) return "sw";
-    }
-    return null;
-  };
-
   const buildLRQuestionsFromDetail = (detailData = {}) => {
     const rows = [];
     let globalIndex = 1;
@@ -456,13 +480,72 @@ export function TestHistoryTab() {
         const questions = [];
         let globalIndex = 1;
         const sortedParts = [...parts].sort((a, b) => (a.partId || 0) - (b.partId || 0));
+        
         sortedParts.forEach((part) => {
+          // Kiểm tra xem có phải Speaking part không (partId 11-15)
+          const isSpeakingPart = part.partId >= 11 && part.partId <= 15;
+          
           part?.testQuestions?.forEach((tq) => {
-            if (tq.isGroup && tq.questionGroupSnapshotDto) {
+            // Với Speaking parts: nếu có group, tạo một speaking_group question
+            if (isSpeakingPart && tq.isGroup && tq.questionGroupSnapshotDto) {
+              const group = tq.questionGroupSnapshotDto;
+              const subQuestions = [];
+              const globalIndexStart = globalIndex;
+              
+              group.questionSnapshots?.forEach((qs, idx) => {
+                subQuestions.push({
+                  testQuestionId: tq.testQuestionId, // Tất cả sub-questions có cùng testQuestionId
+                  questionId: qs.questionId,
+                  subQuestionIndex: idx,
+                  partId: part.partId,
+                  partName: part.partName,
+                  partDescription: part.description,
+                  globalIndex: globalIndex++, // Mỗi sub-question có globalIndex riêng (13, 14, 15)
+                  type: "group",
+                  question: qs.content,
+                  passage: group.passage,
+                  imageUrl: qs.imageUrl,
+                  audioUrl: qs.audioUrl,
+                  options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+                  correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+                  userAnswer: qs.userAnswer,
+                });
+              });
+              
+              // Tạo một speaking_group question chứa tất cả sub-questions
+              if (subQuestions.length > 0) {
+                const globalIndexEnd = subQuestions[subQuestions.length - 1].globalIndex;
+                const speakingGroupQuestion = {
+                  testQuestionId: tq.testQuestionId,
+                  questionId: subQuestions[0].questionId, // Dùng questionId của câu đầu cho report
+                  subQuestionIndex: 0, // Với speaking_group, subQuestionIndex = 0
+                  partId: part.partId,
+                  partName: part.partName,
+                  partDescription: part.description,
+                  globalIndex: globalIndexStart,
+                  globalIndexEnd: globalIndexEnd,
+                  type: "speaking_group",
+                  question: null, // Không có question riêng cho group
+                  passage: group.passage,
+                  imageUrl: subQuestions[0].imageUrl,
+                  audioUrl: subQuestions[0].audioUrl,
+                  options: [],
+                  correctAnswer: null,
+                  userAnswer: null,
+                  subQuestions: subQuestions, // Lưu tất cả sub-questions
+                };
+                questions.push(speakingGroupQuestion);
+                if (process.env.NODE_ENV === 'development') {
+                  console.log(`[TestHistoryTab] Created speaking_group: partId=${part.partId}, testQuestionId=${tq.testQuestionId}, globalIndex=${globalIndexStart}-${globalIndexEnd}, subQuestions=${subQuestions.length}`);
+                }
+              }
+            } else if (tq.isGroup && tq.questionGroupSnapshotDto) {
+              // Group questions cho L&R hoặc Writing: xử lý như bình thường
               const group = tq.questionGroupSnapshotDto;
               group.questionSnapshots?.forEach((qs, idx) => {
                 questions.push({
                   testQuestionId: tq.testQuestionId,
+                  questionId: qs.questionId,
                   subQuestionIndex: idx,
                   partId: part.partId,
                   partName: part.partName,
@@ -479,9 +562,11 @@ export function TestHistoryTab() {
                 });
               });
             } else if (!tq.isGroup && tq.questionSnapshotDto) {
+              // Câu đơn: xử lý như bình thường
               const qs = tq.questionSnapshotDto;
               questions.push({
                 testQuestionId: tq.testQuestionId,
+                questionId: qs.questionId,
                 subQuestionIndex: 0,
                 partId: part.partId,
                 partName: part.partName,

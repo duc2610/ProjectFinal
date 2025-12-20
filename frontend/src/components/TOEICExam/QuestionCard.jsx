@@ -1,11 +1,11 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Card, Typography, Radio, Button, Image, Progress, Input, message, Modal, Select, Tooltip, Radio as AntRadio, notification } from "antd";
 import { AudioOutlined, StopOutlined, PlayCircleOutlined, FlagOutlined } from "@ant-design/icons";
-import styles from "../../styles/Exam.module.css";
-import { uploadFile } from "../../../services/filesService";
-import { reportQuestion } from "../../../services/questionReportService";
+import styles from "@shared/styles/Exam.module.css";
+import { uploadFile } from "@services/filesService";
+import { reportQuestion } from "@services/questionReportService";
 import { translateErrorMessage } from "@utils/translateError";
-import { getUserFlashcardSets, createFlashcardSet, addFlashcardFromTest } from "../../../services/flashcardService";
+import { getUserFlashcardSets, createFlashcardSet, addFlashcardFromTest } from "@services/flashcardService";
 import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text } = Typography;
@@ -359,16 +359,26 @@ export default function QuestionCard({
     previousGlobalAudioUrlRef.current = effectiveAudioUrl;
 
     // Load lại answer đã lưu nếu có
-    // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
-    // Chuẩn hóa: null/undefined = 0, nhưng nếu là 0 thì không thêm vào key
-    const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
-      ? question.subQuestionIndex
-      : 0;
-    // Đảm bảo testQuestionId là string để tránh type mismatch
-    const testQuestionIdStr = String(question.testQuestionId);
-    const answerKey = subIndex !== 0
-      ? `${testQuestionIdStr}_${subIndex}`
-      : testQuestionIdStr;
+    // Với speaking_group, audio được lưu với key là testQuestionId của câu đầu (subQuestionIndex = 0)
+    // Với câu đơn hoặc group thường, dùng logic cũ
+    let answerKey;
+    const isSpeakingGroup = question.type === "speaking_group" && question.subQuestions && question.subQuestions.length > 0;
+    
+    if (isSpeakingGroup) {
+      // speaking_group: lấy từ câu đầu tiên
+      const firstSubQ = question.subQuestions[0];
+      const firstTestQuestionIdStr = String(firstSubQ.testQuestionId);
+      answerKey = firstTestQuestionIdStr; // subQuestionIndex = 0
+    } else {
+      // Câu đơn hoặc group thường: dùng logic cũ
+      const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+        ? question.subQuestionIndex
+        : 0;
+      const testQuestionIdStr = String(question.testQuestionId);
+      answerKey = subIndex !== 0
+        ? `${testQuestionIdStr}_${subIndex}`
+        : testQuestionIdStr;
+    }
     const savedAnswer = answers[answerKey];
     if (isSpeakingPart && savedAnswer) {
       if (savedAnswer instanceof Blob) {
@@ -487,15 +497,26 @@ export default function QuestionCard({
         const tempUrl = URL.createObjectURL(audioBlob);
         setRecordedAudioUrl(tempUrl);
 
-        // Tạo key duy nhất cho mỗi câu hỏi
-        const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
-          ? question.subQuestionIndex
-          : 0;
-        // Đảm bảo testQuestionId là string để tránh type mismatch
-        const testQuestionIdStr = String(question.testQuestionId);
-        const answerKey = subIndex !== 0
-          ? `${testQuestionIdStr}_${subIndex}`
-          : testQuestionIdStr;
+        // Với speaking_group, lưu audio vào câu đầu tiên (subQuestionIndex = 0)
+        // Với câu đơn hoặc group thường, dùng logic cũ
+        let answerKey;
+        const isSpeakingGroup = question.type === "speaking_group" && question.subQuestions && question.subQuestions.length > 0;
+        
+        if (isSpeakingGroup) {
+          // speaking_group: dùng testQuestionId của câu đầu tiên, subQuestionIndex = 0
+          const firstSubQ = question.subQuestions[0];
+          const testQuestionIdStr = String(firstSubQ.testQuestionId);
+          answerKey = testQuestionIdStr; // subQuestionIndex = 0 nên không thêm vào key
+        } else {
+          // Câu đơn hoặc group thường: dùng logic cũ
+          const subIndex = question.subQuestionIndex !== undefined && question.subQuestionIndex !== null
+            ? question.subQuestionIndex
+            : 0;
+          const testQuestionIdStr = String(question.testQuestionId);
+          answerKey = subIndex !== 0
+            ? `${testQuestionIdStr}_${subIndex}`
+            : testQuestionIdStr;
+        }
 
         // Upload audio ngay sau khi ghi âm xong
         setIsUploading(true);
@@ -732,7 +753,9 @@ export default function QuestionCard({
       <div className={styles.questionHeader} style={{ flexWrap: "nowrap", gap: 12 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
           <Title level={4} style={{ margin: 0, color: "#2d3748", fontSize: "24px", whiteSpace: "nowrap" }}>
-            Câu {question.globalIndex}
+            {question.type === "speaking_group" && question.globalIndexEnd
+              ? `Câu ${question.globalIndex}-${question.globalIndexEnd}`
+              : `Câu ${question.globalIndex}`}
           </Title>
           {/* Nút Report - gọn gàng, chỉ icon với tooltip, ở sau text "Câu..." */}
           <Tooltip title={isReported ? "Đã báo cáo câu hỏi này" : "Báo cáo câu hỏi"}>
@@ -770,7 +793,8 @@ export default function QuestionCard({
       </div>
 
       <div className={styles.qContentRow}>
-        {question.passage && (
+        {/* Chỉ hiển thị passage ở đây nếu KHÔNG phải speaking_group (speaking_group sẽ hiển thị passage riêng) */}
+        {question.passage && question.type !== "speaking_group" && (
           <div
             style={{
               margin: "0 0 20px 0",
@@ -1037,57 +1061,119 @@ export default function QuestionCard({
           </div>
         ) : null}
 
-          {/* Chỉ hiển thị nội dung câu hỏi nếu không phải Part 1, 2 và có text */}
-          {!isPart1Or2 && hasQuestionText && (
-            <div
-              ref={questionTextContainerRef}
-              style={{
-                marginTop: "0",
-                padding: "20px",
-                background: "#ffffff",
-                borderRadius: "12px",
-                border: "1px solid #e2e8f0",
-                fontSize: "16px",
-                lineHeight: "1.8",
-                color: "#2d3748",
-                whiteSpace: "pre-wrap", // Giữ nguyên xuống dòng từ \r\n và \n
-                cursor: "text",
-              }}
-              onMouseUp={() => {
-                if (typeof window === "undefined" || !window.getSelection) return;
-                const selection = window.getSelection();
-                if (!selection || selection.rangeCount === 0) return;
+          {/* Hiển thị nội dung cho speaking_group: hiển thị tất cả sub-questions */}
+          {question.type === "speaking_group" && question.subQuestions && question.subQuestions.length > 0 ? (
+            <div style={{ marginTop: "0" }}>
+              {/* Hiển thị passage chung nếu có */}
+              {question.passage && (
+                <div
+                  style={{
+                    margin: "0 0 20px 0",
+                    padding: "20px",
+                    background: "linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%)",
+                    borderRadius: "12px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.02)",
+                    overflowX: "auto",
+                  }}
+                >
+                  <div
+                    style={{ fontSize: "15px", lineHeight: "1.8", color: "#4a5568" }}
+                    dangerouslySetInnerHTML={{ __html: formatPassageHtml(question.passage) }}
+                  />
+                </div>
+              )}
+              
+              {/* Hiển thị từng sub-question */}
+              {question.subQuestions.map((subQ, subIdx) => (
+                <div
+                  key={subIdx}
+                  style={{
+                    marginBottom: subIdx < question.subQuestions.length - 1 ? "24px" : "0",
+                    padding: "20px",
+                    background: "#ffffff",
+                    borderRadius: "12px",
+                    border: "1px solid #e2e8f0",
+                  }}
+                >
+                  <Text strong style={{ fontSize: "16px", color: "#667eea", display: "block", marginBottom: "12px" }}>
+                    Câu {subQ.globalIndex}
+                  </Text>
+                  {subQ.question && (
+                    <Text style={{ fontSize: "16px", lineHeight: "1.8", color: "#2d3748", whiteSpace: "pre-wrap" }}>
+                      {formatQuestionText(subQ.question)}
+                    </Text>
+                  )}
+                  {subQ.imageUrl && (
+                    <div style={{ marginTop: "12px", textAlign: "center" }}>
+                      <Image
+                        src={subQ.imageUrl}
+                        alt={`Câu ${subQ.globalIndex}`}
+                        style={{
+                          maxHeight: 300,
+                          borderRadius: "8px",
+                          objectFit: "contain",
+                        }}
+                        preview={false}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* Chỉ hiển thị nội dung câu hỏi nếu không phải Part 1, 2 và có text */
+            !isPart1Or2 && hasQuestionText && (
+              <div
+                ref={questionTextContainerRef}
+                style={{
+                  marginTop: "0",
+                  padding: "20px",
+                  background: "#ffffff",
+                  borderRadius: "12px",
+                  border: "1px solid #e2e8f0",
+                  fontSize: "16px",
+                  lineHeight: "1.8",
+                  color: "#2d3748",
+                  whiteSpace: "pre-wrap", // Giữ nguyên xuống dòng từ \r\n và \n
+                  cursor: "text",
+                }}
+                onMouseUp={() => {
+                  if (typeof window === "undefined" || !window.getSelection) return;
+                  const selection = window.getSelection();
+                  if (!selection || selection.rangeCount === 0) return;
 
-                const range = selection.getRangeAt(0);
-                const text = selection.toString().trim();
-                if (!text) {
-                  setHighlightToolbarVisible(false);
-                  return;
-                }
+                  const range = selection.getRangeAt(0);
+                  const text = selection.toString().trim();
+                  if (!text) {
+                    setHighlightToolbarVisible(false);
+                    return;
+                  }
 
-                const rootEl = questionTextContainerRef.current;
-                // Tính offset toàn cục trong toàn bộ câu hỏi, không chỉ trong text node hiện tại
-                const start = getGlobalOffset(
-                  rootEl,
-                  range.startContainer,
-                  range.startOffset
-                );
-                const end = getGlobalOffset(rootEl, range.endContainer, range.endOffset);
-                setPendingSelection({ start, end, text });
+                  const rootEl = questionTextContainerRef.current;
+                  // Tính offset toàn cục trong toàn bộ câu hỏi, không chỉ trong text node hiện tại
+                  const start = getGlobalOffset(
+                    rootEl,
+                    range.startContainer,
+                    range.startOffset
+                  );
+                  const end = getGlobalOffset(rootEl, range.endContainer, range.endOffset);
+                  setPendingSelection({ start, end, text });
 
-                // Tính vị trí toolbar theo viewport (hiển thị ngay trên vùng bôi đen)
-                const rect = range.getBoundingClientRect();
-                setHighlightToolbarPos({
-                  top: rect.top + window.scrollY - 40,
-                  left: rect.left + window.scrollX,
-                });
-                setHighlightToolbarVisible(true);
-              }}
-            >
-            <Text strong style={{ fontSize: "16px", color: "#2d3748" }}>
-              {renderQuestionWithHighlights()}
-            </Text>
-          </div>
+                  // Tính vị trí toolbar theo viewport (hiển thị ngay trên vùng bôi đen)
+                  const rect = range.getBoundingClientRect();
+                  setHighlightToolbarPos({
+                    top: rect.top + window.scrollY - 40,
+                    left: rect.left + window.scrollX,
+                  });
+                  setHighlightToolbarVisible(true);
+                }}
+              >
+              <Text strong style={{ fontSize: "16px", color: "#2d3748" }}>
+                {renderQuestionWithHighlights()}
+              </Text>
+            </div>
+            )
           )}
       </div>
       </Card>
@@ -1465,7 +1551,19 @@ export default function QuestionCard({
         </div>
         <Button
           type="primary"
-          onClick={handleSubmit}
+          onClick={() => {
+            Modal.confirm({
+              title: "Xác nhận nộp bài",
+              content: "Bạn có chắc chắn muốn nộp bài? Sau khi nộp bạn sẽ không thể tiếp tục làm bài này.",
+              okText: "Nộp bài",
+              cancelText: "Hủy",
+              onOk: () => {
+                // Đóng modal confirm ngay lập tức trước khi gọi handleSubmit
+                // để tránh hiển thị đề lên spin thông báo bên dưới
+                handleSubmit();
+              },
+            });
+          }}
           disabled={isSubmitting}
           loading={isSubmitting}
           size="large"

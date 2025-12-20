@@ -5,6 +5,7 @@ import { message, notification } from "antd";
 import { hasRole, ROLES } from "@utils/acl";
 import { hasCookie } from "@utils/cookie";
 import { useRef, useEffect } from "react";
+import { showNotificationOnce, resetNotificationTracking } from "@utils/notificationHelper";
 
 export function PrivateRoute() {
   const { isAuthenticated, loading } = useAuth();
@@ -13,25 +14,52 @@ export function PrivateRoute() {
   if (loading) return <Splash />;
 
   if (!isAuthenticated) {
-    if (hasCookie("tg_access_token")) {
-      notification.warning({
-        message: "Phiên đăng nhập đã hết hạn",
-        description: "Vui lòng đăng nhập lại.",
-        placement: "topRight",
-        duration: 4,
-      });
-    } else {
-      // Hiển thị thông báo yêu cầu đăng nhập thay vì redirect về login
-      notification.warning({
-        message: "Yêu cầu đăng nhập",
-        description: "Vui lòng đăng nhập để sử dụng chức năng này.",
-        placement: "topRight",
-        duration: 4,
-      });
+    const currentPath = location.pathname;
+    
+    // Nếu đang trong quá trình đăng xuất, không hiển thị thông báo
+    // Chỉ redirect về home
+    if (isLoggingOut) {
+      return <Navigate to="/" replace />;
     }
+    
+    // Chỉ hiển thị thông báo một lần cho mỗi path (tránh hiển thị nhiều lần do re-render)
+    // Và chỉ hiển thị khi không phải đang redirect về home
+    if (loginWarningShownForPath !== currentPath && currentPath !== "/") {
+      loginWarningShownForPath = currentPath;
+      
+      const notificationKey = `login-warning-${currentPath}`;
+      
+      if (hasCookie("tg_access_token")) {
+        showNotificationOnce({
+          key: notificationKey,
+          type: "warning",
+          message: "Phiên đăng nhập đã hết hạn",
+          description: "Vui lòng đăng nhập lại.",
+          placement: "topRight",
+          duration: 4,
+        });
+      } else {
+        // Hiển thị thông báo yêu cầu đăng nhập thay vì redirect về login
+        showNotificationOnce({
+          key: notificationKey,
+          type: "warning",
+          message: "Yêu cầu đăng nhập",
+          description: "Vui lòng đăng nhập để sử dụng chức năng này.",
+          placement: "topRight",
+          duration: 4,
+        });
+      }
+    }
+    
     // Redirect về home thay vì login
     return <Navigate to="/" replace />;
   }
+  
+  // Reset warning khi đã authenticated
+  if (loginWarningShownForPath === location.pathname) {
+    loginWarningShownForPath = null;
+  }
+  
   return <Outlet />;
 }
 
@@ -58,6 +86,10 @@ let warningShownForPath = null;
 // Biến để track xem có đang trong quá trình redirect tự động sau login không
 let isAutoRedirecting = false;
 let autoRedirectTimeout = null;
+// Biến để track xem có đang trong quá trình đăng xuất không
+let isLoggingOut = false;
+// Biến để track xem đã hiển thị thông báo đăng nhập cho path hiện tại chưa
+let loginWarningShownForPath = null;
 
 // Export function để set flag auto redirecting (được gọi từ Login component)
 export function setAutoRedirecting(value) {
@@ -70,6 +102,21 @@ export function setAutoRedirecting(value) {
     autoRedirectTimeout = setTimeout(() => {
       isAutoRedirecting = false;
     }, 1000);
+  }
+}
+
+// Export function để set flag logging out (được gọi từ AuthProvider)
+export function setLoggingOut(value) {
+  isLoggingOut = value;
+  if (value) {
+    // Reset các flag khi đăng xuất
+    loginWarningShownForPath = null;
+    // Reset notification tracking khi đăng xuất
+    resetNotificationTracking();
+    // Reset flag sau 2 giây để đảm bảo redirect hoàn tất
+    setTimeout(() => {
+      isLoggingOut = false;
+    }, 2000);
   }
 }
 
@@ -97,13 +144,31 @@ export function RoleRoute({ allow }) {
   if (loading) return <Splash />;
 
   if (!isAuthenticated) {
-    // Hiển thị thông báo yêu cầu đăng nhập thay vì redirect về login
-    notification.warning({
-      message: "Yêu cầu đăng nhập",
-      description: "Vui lòng đăng nhập để sử dụng chức năng này.",
-      placement: "topRight",
-      duration: 4,
-    });
+    const currentPath = location.pathname;
+    
+    // Nếu đang trong quá trình đăng xuất, không hiển thị thông báo
+    // Chỉ redirect về home
+    if (isLoggingOut) {
+      return <Navigate to="/" replace />;
+    }
+    
+    // Chỉ hiển thị thông báo một lần cho mỗi path (tránh hiển thị nhiều lần do re-render)
+    // Và chỉ hiển thị khi không phải đang redirect về home
+    if (loginWarningShownForPath !== currentPath && currentPath !== "/") {
+      loginWarningShownForPath = currentPath;
+      
+      // Hiển thị thông báo yêu cầu đăng nhập thay vì redirect về login
+      const notificationKey = `role-login-warning-${currentPath}`;
+      showNotificationOnce({
+        key: notificationKey,
+        type: "warning",
+        message: "Yêu cầu đăng nhập",
+        description: "Vui lòng đăng nhập để sử dụng chức năng này.",
+        placement: "topRight",
+        duration: 4,
+      });
+    }
+    
     // Redirect về home thay vì login
     return <Navigate to="/" replace />;
   }

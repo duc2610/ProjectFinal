@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { Layout, Button, Modal, Typography, message, Spin, Alert } from "antd";
 import { MenuOutlined, LoadingOutlined, WarningOutlined } from "@ant-design/icons";
-import styles from "../../styles/Exam.module.css";
+import styles from "@shared/styles/Exam.module.css";
 import QuestionNavigator from "./QuestionNavigator";
 import QuestionCard from "./QuestionCard";
-import { submitTest, submitAssessmentBulk, saveProgress, startTest } from "../../../services/testExamService";
-import { uploadFile } from "../../../services/filesService";
-import { getMyQuestionReports } from "../../../services/questionReportService";
+import { submitTest, submitAssessmentBulk, saveProgress, startTest } from "@services/testExamService";
+import { uploadFile } from "@services/filesService";
+import { getMyQuestionReports } from "@services/questionReportService";
 import { translateErrorMessage } from "@utils/translateError";
 import { useNavigate } from "react-router-dom";
 import { SaveOutlined } from "@ant-design/icons";
@@ -887,15 +887,26 @@ export default function ExamScreen() {
       }
 
       // Tìm question tương ứng
-      const q = questions.find((q) => 
-        q.testQuestionId === testQuestionId && 
-        (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === null && !q.subQuestionIndex))
-      );
+      // Với speaking_group, audio được lưu với key là testQuestionId của câu đầu tiên (subQuestionIndex = 0)
+      let q = questions.find((q) => {
+        // Nếu là speaking_group, kiểm tra xem answerKey có khớp với testQuestionId của câu đầu không
+        if (q.type === "speaking_group" && q.subQuestions && q.subQuestions.length > 0) {
+          const firstSubQ = q.subQuestions[0];
+          // Audio được lưu với key là testQuestionId của câu đầu (subQuestionIndex = 0)
+          if (String(firstSubQ.testQuestionId) === String(testQuestionId) && subQuestionIndex === null) {
+            return true;
+          }
+        }
+        // Câu hỏi thường
+        return q.testQuestionId === testQuestionId && 
+          (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === null && !q.subQuestionIndex));
+      });
       if (!q) continue;
 
       const isLrPart = q.partId >= 1 && q.partId <= 7;
       const isWritingPart = q.partId >= 8 && q.partId <= 10;
       const isSpeakingPart = q.partId >= 11 && q.partId <= 15;
+      const isSpeakingGroup = q.type === "speaking_group" && q.subQuestions && q.subQuestions.length > 0;
 
       // Format theo loại câu hỏi
       if (isLrPart && answerValue) {
@@ -917,19 +928,39 @@ export default function ExamScreen() {
           subQuestionIndex: subQuestionIndex,
         });
       } else if (isSpeakingPart && answerValue) {
-        // Speaking: answerAudioUrl (nếu là URL) hoặc null nếu là Blob
-        const audioUrl = typeof answerValue === "string" && answerValue.startsWith("http") 
-          ? answerValue 
-          : null;
-        // Chỉ lưu nếu đã upload (có URL)
-        if (audioUrl) {
-          formattedAnswers.push({
-            testQuestionId: testQuestionId,
-            chosenOptionLabel: null,
-            answerText: null,
-            answerAudioUrl: audioUrl,
-            subQuestionIndex: subQuestionIndex,
-          });
+        // Speaking: kiểm tra xem có phải speaking_group không
+        if (isSpeakingGroup) {
+          // speaking_group: format answer cho tất cả sub-questions
+          const audioUrl = typeof answerValue === "string" && answerValue.startsWith("http") 
+            ? answerValue 
+            : null;
+          // Chỉ lưu nếu đã upload (có URL)
+          if (audioUrl) {
+            q.subQuestions.forEach((subQ) => {
+              formattedAnswers.push({
+                testQuestionId: subQ.testQuestionId,
+                chosenOptionLabel: null,
+                answerText: null,
+                answerAudioUrl: audioUrl,
+                subQuestionIndex: subQ.subQuestionIndex,
+              });
+            });
+          }
+        } else {
+          // Câu đơn hoặc group thường: format như bình thường
+          const audioUrl = typeof answerValue === "string" && answerValue.startsWith("http") 
+            ? answerValue 
+            : null;
+          // Chỉ lưu nếu đã upload (có URL)
+          if (audioUrl) {
+            formattedAnswers.push({
+              testQuestionId: testQuestionId,
+              chosenOptionLabel: null,
+              answerText: null,
+              answerAudioUrl: audioUrl,
+              subQuestionIndex: subQuestionIndex,
+            });
+          }
         }
       }
     }
@@ -1076,15 +1107,26 @@ export default function ExamScreen() {
         }
 
         // Tìm question tương ứng
-        const q = questions.find((q) => 
-          q.testQuestionId === testQuestionId && 
-          (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === 0 && !q.subQuestionIndex))
-        );
+        // Với speaking_group, audio được lưu với key là testQuestionId của câu đầu tiên (subQuestionIndex = 0)
+        let q = questions.find((q) => {
+          // Nếu là speaking_group, kiểm tra xem answerKey có khớp với testQuestionId của câu đầu không
+          if (q.type === "speaking_group" && q.subQuestions && q.subQuestions.length > 0) {
+            const firstSubQ = q.subQuestions[0];
+            // Audio được lưu với key là testQuestionId của câu đầu (subQuestionIndex = 0)
+            if (String(firstSubQ.testQuestionId) === String(testQuestionId) && subQuestionIndex === 0) {
+              return true;
+            }
+          }
+          // Câu hỏi thường
+          return q.testQuestionId === testQuestionId && 
+            (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === 0 && !q.subQuestionIndex));
+        });
         if (!q) continue;
 
         const isWritingPart = q.partId >= 8 && q.partId <= 10;
         const isSpeakingPart = q.partId >= 11 && q.partId <= 15;
         const isLrPart = q.partId >= 1 && q.partId <= 7;
+        const isSpeakingGroup = q.type === "speaking_group" && q.subQuestions && q.subQuestions.length > 0;
 
         if (isLrPart) {
           // L&R: gửi với testQuestionId và subQuestionIndex
@@ -1099,44 +1141,70 @@ export default function ExamScreen() {
           if (partType && typeof answerValue === "string" && answerValue.trim() !== "") {
             swAnswers.push({
               testQuestionId: testQuestionId,
+              subQuestionIndex: subQuestionIndex !== 0 ? subQuestionIndex : null,
               partType: partType,
               answerText: answerValue,
               audioFileUrl: null,
             });
           }
         } else if (isSpeakingPart) {
-          // Speaking: kiểm tra nếu đã có URL thì dùng trực tiếp, nếu là Blob thì upload
-          const partType = getPartType(q.partId);
-          if (partType) {
-            let audioFileUrl = null;
-            
-            // Nếu answerValue là URL (string) thì dùng trực tiếp
-            if (typeof answerValue === "string" && answerValue.startsWith("http")) {
-              audioFileUrl = answerValue;
-            } 
-            // Nếu answerValue là Blob thì upload lên
-            else if (answerValue instanceof Blob) {
-              try {
-                // Upload audio file
-                const audioFile = new File([answerValue], `speaking_${testQuestionId}_${subQuestionIndex}.webm`, {
-                  type: "audio/webm",
+          // Speaking: kiểm tra xem có phải speaking_group không
+          if (isSpeakingGroup) {
+            // speaking_group: format answer cho tất cả sub-questions
+            const audioUrl = typeof answerValue === "string" && answerValue.startsWith("http") 
+              ? answerValue 
+              : null;
+            // Chỉ lưu nếu đã upload (có URL)
+            if (audioUrl) {
+              const partType = getPartType(q.partId);
+              if (partType) {
+                // Gửi audio cho tất cả sub-questions trong group
+                q.subQuestions.forEach((subQ) => {
+                  swAnswers.push({
+                    testQuestionId: subQ.testQuestionId,
+                    subQuestionIndex: subQ.subQuestionIndex !== undefined && subQ.subQuestionIndex !== null ? subQ.subQuestionIndex : null,
+                    partType: partType,
+                    answerText: null,
+                    audioFileUrl: audioUrl,
+                  });
                 });
-                audioFileUrl = await uploadFile(audioFile, "audio");
-              } catch (error) {
-                console.error(`Error uploading audio for question ${testQuestionId}:`, error);
-                message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}`);
-                audioFileUrl = null;
               }
             }
-            
-            // Chỉ thêm vào swAnswers nếu có audioFileUrl hoặc đã cố gắng upload
-            if (audioFileUrl !== null || answerValue instanceof Blob || (typeof answerValue === "string" && answerValue.startsWith("http"))) {
-              swAnswers.push({
-                testQuestionId: testQuestionId,
-                partType: partType,
-                answerText: null,
-                audioFileUrl: audioFileUrl,
-              });
+          } else {
+            // Câu đơn hoặc group thường: format như bình thường
+            const partType = getPartType(q.partId);
+            if (partType) {
+              let audioFileUrl = null;
+              
+              // Nếu answerValue là URL (string) thì dùng trực tiếp
+              if (typeof answerValue === "string" && answerValue.startsWith("http")) {
+                audioFileUrl = answerValue;
+              } 
+              // Nếu answerValue là Blob thì upload lên
+              else if (answerValue instanceof Blob) {
+                try {
+                  // Upload audio file
+                  const audioFile = new File([answerValue], `speaking_${testQuestionId}_${subQuestionIndex}.webm`, {
+                    type: "audio/webm",
+                  });
+                  audioFileUrl = await uploadFile(audioFile, "audio");
+                } catch (error) {
+                  console.error(`Error uploading audio for question ${testQuestionId}:`, error);
+                  message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}`);
+                  audioFileUrl = null;
+                }
+              }
+              
+              // Chỉ thêm vào swAnswers nếu có audioFileUrl hoặc đã cố gắng upload
+              if (audioFileUrl !== null || answerValue instanceof Blob || (typeof answerValue === "string" && answerValue.startsWith("http"))) {
+                swAnswers.push({
+                  testQuestionId: testQuestionId,
+                  subQuestionIndex: subQuestionIndex !== 0 ? subQuestionIndex : null,
+                  partType: partType,
+                  answerText: null,
+                  audioFileUrl: audioFileUrl,
+                });
+              }
             }
           }
         }
@@ -1153,13 +1221,16 @@ export default function ExamScreen() {
       
       if (lrAnswers.length > 0) {
         const lrPayload = {
-          userId: "33333333-3333-3333-3333-333333333333",
+          userId: currentUserId || rawTestData.ownerUserId || null,
           testId: rawTestData.testId,
           testResultId: finalTestResultId, // Dùng testResultId ban đầu (từ history nếu tiếp tục test)
           duration: durationMinutes,
           testType: testType,
           answers: lrAnswers,
         };
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[ExamScreen] L&R Payload:', JSON.stringify(lrPayload, null, 2));
+        }
         lrResult = await submitTest(lrPayload);
 
         // CHỈ cập nhật testResultId từ response nếu KHÔNG phải tiếp tục từ history
@@ -1187,6 +1258,9 @@ export default function ExamScreen() {
           duration: durationMinutes,
           parts: swAnswers,
         };
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[ExamScreen] S&W Payload:', JSON.stringify(swPayload, null, 2));
+        }
         swResult = await submitAssessmentBulk(swPayload);
         // KHÔNG cập nhật testResultId từ response - luôn dùng testResultId ban đầu hoặc từ history
       }
@@ -1436,7 +1510,11 @@ export default function ExamScreen() {
                   content: "Bạn có chắc chắn muốn nộp bài? Sau khi nộp bạn sẽ không thể tiếp tục làm bài này.",
                   okText: "Nộp bài",
                   cancelText: "Hủy",
-                  onOk: () => handleSubmit(false),
+                  onOk: () => {
+                    // Gọi handleSubmit ngay lập tức, modal sẽ tự động đóng khi onOk được gọi
+                    // Không return Promise để modal đóng ngay, không đợi handleSubmit hoàn thành
+                    handleSubmit(false);
+                  },
                 });
               }}
               disabled={isSubmitting}

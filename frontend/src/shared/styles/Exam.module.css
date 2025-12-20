@@ -267,8 +267,9 @@
 }
 
 .numBtn {
-    width: 40px;
+    min-width: 40px;
     height: 40px;
+    padding: 0 8px;
     border-radius: 8px;
     border: 2px solid #e2e8f0;
     background: #ffffff;
@@ -279,6 +280,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    white-space: nowrap;
 }
 
 .numBtn:hover {

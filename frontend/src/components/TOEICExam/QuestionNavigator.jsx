@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "../../styles/Exam.module.css";
+import styles from "@shared/styles/Exam.module.css";
 
 export default function QuestionNavigator({ questions, currentIndex, answers, goToQuestionByIndex }) {
   const groups = {};
@@ -30,45 +30,78 @@ export default function QuestionNavigator({ questions, currentIndex, answers, go
           <div className={styles.partGroupTitle}>{partKey}</div>
           <div className={styles.numbersGrid}>
             {groupData.items.map(({ q, idx }) => {
-              // Tạo key duy nhất cho mỗi câu hỏi, bao gồm cả subQuestionIndex cho group questions
-              // Chuẩn hóa: null/undefined = 0, nhưng nếu là 0 thì không thêm vào key
-              const subIndex = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
-                ? q.subQuestionIndex
-                : 0;
-              // Đảm bảo testQuestionId là string để tránh type mismatch
-              const testQuestionIdStr = String(q.testQuestionId);
-              const answerKey = subIndex !== 0
-                ? `${testQuestionIdStr}_${subIndex}`
-                : testQuestionIdStr;
-              // Kiểm tra answer có giá trị hợp lệ (không phải undefined, null, hoặc empty string)
-              const answerValue = answers[answerKey];
-              const isAnswered = answerValue !== undefined && answerValue !== null && answerValue !== "";
-              const isActive = idx === currentIndex;
-              
-              // Debug logging cho một số câu hỏi cụ thể
-              if (q.globalIndex <= 6 || q.globalIndex === 13 || q.globalIndex === 14 || q.globalIndex === 34 || q.globalIndex === 40) {
+              // Kiểm tra xem có phải speaking_group không
+              const isSpeakingGroup = q.type === "speaking_group" && q.subQuestions && q.subQuestions.length > 0;
+              if (process.env.NODE_ENV === 'development' && q.partId >= 11 && q.partId <= 15) {
+                console.log(`[QuestionNavigator] Question: partId=${q.partId}, type=${q.type}, globalIndex=${q.globalIndex}, isSpeakingGroup=${isSpeakingGroup}, hasSubQuestions=${!!q.subQuestions}, subQuestionsLength=${q.subQuestions?.length || 0}`);
               }
+              
+              if (isSpeakingGroup) {
+                // Với speaking_group: hiển thị một nút với format "13-15"
+                const globalIndexStart = q.globalIndex;
+                const globalIndexEnd = q.globalIndexEnd || q.globalIndex;
+                const displayText = globalIndexStart === globalIndexEnd 
+                  ? `${globalIndexStart}` 
+                  : `${globalIndexStart}-${globalIndexEnd}`;
+                
+                // Kiểm tra xem có câu nào trong group đã được trả lời không
+                // Với speaking_group, audio được lưu với key là testQuestionId của câu đầu (subQuestionIndex = 0)
+                const testQuestionIdStr = String(q.testQuestionId);
+                const answerKey = testQuestionIdStr; // subQuestionIndex = 0
+                const answerValue = answers[answerKey];
+                const isAnswered = answerValue !== undefined && answerValue !== null && answerValue !== "";
+                const isActive = idx === currentIndex;
+                
+                return (
+                  <button
+                    key={`${testQuestionIdStr}_group`}
+                    onClick={() => goToQuestionByIndex(idx)}
+                    className={`${styles.numBtn} ${isActive ? styles.activeNum : ""} ${isAnswered ? styles.answeredNum : ""}`}
+                    style={{
+                      backgroundColor: isAnswered ? "#52c41a" : isActive ? "#1677ff" : "#f0f0f0",
+                      color: isAnswered || isActive ? "#fff" : "#000",
+                      fontWeight: isAnswered ? 600 : 400,
+                      border: isAnswered ? "2px solid #389e0d" : isActive ? "2px solid #0958d9" : "1px solid #d9d9d9",
+                      minWidth: "auto",
+                      width: "auto",
+                    }}
+                  >
+                    {displayText}
+                  </button>
+                );
+              } else {
+                // Câu hỏi thường: xử lý như bình thường
+                const subIndex = q.subQuestionIndex !== undefined && q.subQuestionIndex !== null
+                  ? q.subQuestionIndex
+                  : 0;
+                const testQuestionIdStr = String(q.testQuestionId);
+                const answerKey = subIndex !== 0
+                  ? `${testQuestionIdStr}_${subIndex}`
+                  : testQuestionIdStr;
+                const answerValue = answers[answerKey];
+                const isAnswered = answerValue !== undefined && answerValue !== null && answerValue !== "";
+                const isActive = idx === currentIndex;
+                
+                const elementKey = subIndex !== 0
+                  ? `${testQuestionIdStr}_${subIndex}`
+                  : testQuestionIdStr;
 
-              // Tạo key cho React element, phải khớp với answerKey logic
-              const elementKey = subIndex !== 0
-                ? `${testQuestionIdStr}_${subIndex}`
-                : testQuestionIdStr;
-
-              return (
-                <button
-                  key={elementKey}
-                  onClick={() => goToQuestionByIndex(idx)}
-                  className={`${styles.numBtn} ${isActive ? styles.activeNum : ""} ${isAnswered ? styles.answeredNum : ""}`}
-                  style={{
-                    backgroundColor: isAnswered ? "#52c41a" : isActive ? "#1677ff" : "#f0f0f0",
-                    color: isAnswered || isActive ? "#fff" : "#000",
-                    fontWeight: isAnswered ? 600 : 400,
-                    border: isAnswered ? "2px solid #389e0d" : isActive ? "2px solid #0958d9" : "1px solid #d9d9d9",
-                  }}
-                >
-                  {q.globalIndex}
-                </button>
-              );
+                return (
+                  <button
+                    key={elementKey}
+                    onClick={() => goToQuestionByIndex(idx)}
+                    className={`${styles.numBtn} ${isActive ? styles.activeNum : ""} ${isAnswered ? styles.answeredNum : ""}`}
+                    style={{
+                      backgroundColor: isAnswered ? "#52c41a" : isActive ? "#1677ff" : "#f0f0f0",
+                      color: isAnswered || isActive ? "#fff" : "#000",
+                      fontWeight: isAnswered ? 600 : 400,
+                      border: isAnswered ? "2px solid #389e0d" : isActive ? "2px solid #0958d9" : "1px solid #d9d9d9",
+                    }}
+                  >
+                    {q.globalIndex}
+                  </button>
+                );
+              }
             })}
           </div>
         </div>

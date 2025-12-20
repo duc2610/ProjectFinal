@@ -35,10 +35,10 @@ import {
   StopOutlined,
   CommentOutlined,
 } from "@ant-design/icons";
-import { getTestResultDetail, startTest } from "../../../services/testExamService";
+import { getTestResultDetail, startTest } from "@services/testExamService";
 import { translateErrorMessage } from "@utils/translateError";
-import { reportQuestion as reportQuestionAPI, getTestResultReports, getMyQuestionReports } from "../../../services/questionReportService";
-import styles from "../../styles/Result.module.css";
+import { reportQuestion as reportQuestionAPI, getTestResultReports, getMyQuestionReports } from "@services/questionReportService";
+import styles from "@shared/styles/Result.module.css";
 import { useAuth } from "@shared/hooks/useAuth";
 
 const { Title, Text } = Typography;
@@ -676,14 +676,16 @@ export default function ResultScreen() {
     if (!detailData?.parts) return { listening: [], reading: [], all: [] };
 
     const rows = { listening: [], reading: [], all: [] };
-    let globalIndex = 1;
+    
+    // Tạo map để lưu tất cả câu hỏi với order từ questionOrderMap
+    const allQuestionsWithOrder = [];
 
     // Sắp xếp parts theo partId để đảm bảo thứ tự giống màn thi
     const sortedParts = [...(detailData.parts || [])].sort((a, b) => (a.partId || 0) - (b.partId || 0));
 
     sortedParts.forEach((part) => {
       part.testQuestions?.forEach((tq) => {
-        const partTitle = part.partName || `Part ${part.partId}`;
+        let partTitle = part.partName || `Part ${part.partId}`;
 
         // Xử lý single question
         if (!tq.isGroup && tq.questionSnapshotDto) {
@@ -692,7 +694,6 @@ export default function ResultScreen() {
           const options = qs.options || [];
           const correctOption = options.find((o) => o.isCorrect);
           const selectedOption = options.find((o) => o.label === userAnswer);
-          const currentGlobalIndex = globalIndex++; // Tăng globalIndex cho TẤT CẢ câu hỏi
           
           const correctAnswer = correctOption?.label || "";
           const hasAnswer =
@@ -706,31 +707,29 @@ export default function ResultScreen() {
 
           const orderKey = String(tq.testQuestionId);
           const mappedOrder = questionOrderMap[orderKey];
-            const row = {
-              key: tq.testQuestionId,
-              testQuestionId: tq.testQuestionId, // Thêm testQuestionId để dùng cho report
-              // Lưu questionId để dùng làm SubQuestionId (câu đơn không bắt buộc nhưng không hại)
-              questionId: qs.questionId,
-              subQuestionIndex: 0, // Câu đơn luôn có subQuestionIndex = 0
-              isGroup: false, // Đánh dấu đây là câu đơn
-              index: mappedOrder ?? currentGlobalIndex, // Dùng globalIndex đã tính cho TẤT CẢ câu hỏi
-              partId: qs.partId || part.partId,
-              partTitle,
-              question: qs.content || "",
-              passage: null,
-              userAnswer: hasAnswer ? userAnswer : "",
-              correctAnswer,
-              isCorrect: hasAnswer ? isCorrect : null,
-              imageUrl: qs.imageUrl,
-              explanation: qs.explanation,
-              options,
-              userAnswerText: hasAnswer ? selectedOption?.content || "" : "",
-              correctAnswerText: correctOption?.content || "",
-            };
+          
+          const row = {
+            key: tq.testQuestionId,
+            testQuestionId: tq.testQuestionId,
+            questionId: qs.questionId,
+            subQuestionIndex: 0,
+            isGroup: false,
+            order: mappedOrder, // Lưu order từ questionOrderMap để sắp xếp sau
+            partId: qs.partId || part.partId,
+            partTitle,
+            question: qs.content || "",
+            passage: null,
+            userAnswer: hasAnswer ? userAnswer : "",
+            correctAnswer,
+            isCorrect: hasAnswer ? isCorrect : null,
+            imageUrl: qs.imageUrl,
+            explanation: qs.explanation,
+            options,
+            userAnswerText: hasAnswer ? selectedOption?.content || "" : "",
+            correctAnswerText: correctOption?.content || "",
+          };
 
-          rows.all.push(row);
-          if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
-          if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
+          allQuestionsWithOrder.push(row);
         }
 
         // Xử lý group question
@@ -741,7 +740,6 @@ export default function ResultScreen() {
             const options = qs.options || [];
             const correctOption = options.find((o) => o.isCorrect);
             const selectedOption = options.find((o) => o.label === userAnswer);
-            const currentGlobalIndex = globalIndex++; // Tăng globalIndex cho TẤT CẢ câu hỏi
             
             const correctAnswer = correctOption?.label || "";
             const hasAnswer =
@@ -756,14 +754,14 @@ export default function ResultScreen() {
             const subKey = `${tq.testQuestionId}_${idx}`;
             const mappedOrder =
               questionOrderMap[subKey] ?? questionOrderMap[String(tq.testQuestionId)];
+            
             const row = {
               key: `${tq.testQuestionId}_${idx}`,
-              testQuestionId: tq.testQuestionId, // Thêm testQuestionId để dùng cho report
-              subQuestionIndex: idx, // Lưu subQuestionIndex cho group questions (0, 1, 2...)
-              isGroup: true, // Đánh dấu đây là câu trong nhóm
-              // questionId (ID sub-question trong group) dùng để gửi SubQuestionId lên backend
+              testQuestionId: tq.testQuestionId,
+              subQuestionIndex: idx,
+              isGroup: true,
               questionId: qs.questionId,
-              index: mappedOrder ?? currentGlobalIndex, // Dùng globalIndex đã tính cho TẤT CẢ câu hỏi
+              order: mappedOrder, // Lưu order từ questionOrderMap để sắp xếp sau
               partId: qs.partId || part.partId,
               partTitle,
               question: qs.content || "",
@@ -778,14 +776,35 @@ export default function ResultScreen() {
               correctAnswerText: correctOption?.content || "",
             };
 
-            rows.all.push(row);
-            if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
-            if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
+            allQuestionsWithOrder.push(row);
           });
         }
       });
     });
 
+    // Sắp xếp tất cả câu hỏi theo order từ questionOrderMap
+    allQuestionsWithOrder.sort((a, b) => {
+      const orderA = a.order ?? Infinity;
+      const orderB = b.order ?? Infinity;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      // Nếu không có order, sắp xếp theo partId và testQuestionId
+      if (a.partId !== b.partId) {
+        return a.partId - b.partId;
+      }
+      return (a.testQuestionId || 0) - (b.testQuestionId || 0);
+    });
+
+    // Gán index theo thứ tự đã sắp xếp và phân loại vào rows
+    allQuestionsWithOrder.forEach((row, idx) => {
+      row.index = idx + 1; // Index bắt đầu từ 1
+      rows.all.push(row);
+      if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
+      if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
+    });
+
+    // Sắp xếp lại từng section theo index
     const sortByIndex = (arr) =>
       arr.sort((a, b) => {
         const indexA = a.index ?? 0;

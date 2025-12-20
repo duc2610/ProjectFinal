@@ -15,6 +15,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { ROLES } from "@utils/acl";
 import { getCookie, setCookie, removeCookie, hasCookie } from "@utils/cookie";
+import { setLoggingOut } from "@app/guards/Guards";
 
 const AuthContext = createContext(null);
 
@@ -99,8 +100,15 @@ export function AuthProvider({ children }) {
     [refreshProfile]
   );
 
-  const signOut = () => {
-    svcLogout();
+  const signOut = async () => {
+    // Đánh dấu đang trong quá trình đăng xuất để tránh hiển thị thông báo
+    setLoggingOut(true);
+    
+    // Đảm bảo xóa tất cả token trước khi navigate
+    await svcLogout();
+    // Xóa thêm token để đảm bảo không còn sót lại
+    removeCookie("tg_access_token");
+    removeCookie("tg_refresh_token");
     setUser(null);
     removeCookie("user");
     // Clear TOEIC exam session data to prevent cross-account session leakage

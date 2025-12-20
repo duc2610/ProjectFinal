@@ -199,13 +199,68 @@ export default function TestList() {
                 const questions = [];
                 let globalIndex = 1;
                 const sortedParts = [...parts].sort((a, b) => (a.partId || 0) - (b.partId || 0));
+                
                 sortedParts.forEach((part) => {
+                    // Kiểm tra xem có phải Speaking part không (partId 11-15)
+                    const isSpeakingPart = part.partId >= 11 && part.partId <= 15;
+                    
                     part?.testQuestions?.forEach((tq) => {
-                        if (tq.isGroup && tq.questionGroupSnapshotDto) {
+                        // Với Speaking parts: nếu có group, tạo một speaking_group question
+                        if (isSpeakingPart && tq.isGroup && tq.questionGroupSnapshotDto) {
+                            const group = tq.questionGroupSnapshotDto;
+                            const subQuestions = [];
+                            const globalIndexStart = globalIndex;
+                            
+                            group.questionSnapshots?.forEach((qs, idx) => {
+                                subQuestions.push({
+                                    testQuestionId: tq.testQuestionId,
+                                    questionId: qs.questionId,
+                                    subQuestionIndex: idx,
+                                    partId: part.partId,
+                                    partName: part.partName,
+                                    partDescription: part.description,
+                                    globalIndex: globalIndex++,
+                                    type: "group",
+                                    question: qs.content,
+                                    passage: group.passage,
+                                    imageUrl: qs.imageUrl,
+                                    audioUrl: qs.audioUrl,
+                                    options: (qs.options || []).map((o) => ({ key: o.label, text: o.content })),
+                                    correctAnswer: qs.options?.find((o) => o.isCorrect)?.label,
+                                    userAnswer: qs.userAnswer,
+                                });
+                            });
+                            
+                            // Tạo một speaking_group question chứa tất cả sub-questions
+                            if (subQuestions.length > 0) {
+                                const globalIndexEnd = subQuestions[subQuestions.length - 1].globalIndex;
+                                questions.push({
+                                    testQuestionId: tq.testQuestionId,
+                                    questionId: subQuestions[0].questionId,
+                                    subQuestionIndex: 0,
+                                    partId: part.partId,
+                                    partName: part.partName,
+                                    partDescription: part.description,
+                                    globalIndex: globalIndexStart,
+                                    globalIndexEnd: globalIndexEnd,
+                                    type: "speaking_group",
+                                    question: null,
+                                    passage: group.passage,
+                                    imageUrl: subQuestions[0].imageUrl,
+                                    audioUrl: subQuestions[0].audioUrl,
+                                    options: [],
+                                    correctAnswer: null,
+                                    userAnswer: null,
+                                    subQuestions: subQuestions,
+                                });
+                            }
+                        } else if (tq.isGroup && tq.questionGroupSnapshotDto) {
+                            // Group questions cho L&R hoặc Writing: xử lý như bình thường
                             const group = tq.questionGroupSnapshotDto;
                             group.questionSnapshots?.forEach((qs, idx) => {
                                 questions.push({
                                     testQuestionId: tq.testQuestionId,
+                                    questionId: qs.questionId,
                                     subQuestionIndex: idx,
                                     partId: part.partId,
                                     partName: part.partName,
@@ -222,9 +277,11 @@ export default function TestList() {
                                 });
                             });
                         } else if (!tq.isGroup && tq.questionSnapshotDto) {
+                            // Câu đơn: xử lý như bình thường
                             const qs = tq.questionSnapshotDto;
                             questions.push({
                                 testQuestionId: tq.testQuestionId,
+                                questionId: qs.questionId,
                                 subQuestionIndex: 0,
                                 partId: part.partId,
                                 partName: part.partName,
