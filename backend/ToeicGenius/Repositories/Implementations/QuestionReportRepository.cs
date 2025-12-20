@@ -111,7 +111,7 @@ namespace ToeicGenius.Repositories.Implementations
 				.AnyAsync(r => r.TestQuestionId == testQuestionId
 					&& r.ReportedBy == userId
 					&& r.SubQuestionId == subQuestionId
-					&& r.Status == ReportStatus.Pending);
+					&& (r.Status == ReportStatus.Pending || r.Status == ReportStatus.Reviewing));
 		}
 
 		public async Task<int> GetPendingReportsCountAsync(Guid? testCreatorId = null)

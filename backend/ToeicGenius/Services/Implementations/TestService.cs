@@ -1569,15 +1569,170 @@ namespace ToeicGenius.Services.Implementations
 			int answeredQuestions = aiFeedbacks.Count;
 			int skippedQuestions = totalQuestions - answeredQuestions;
 
-			// L?y t?t c? TestQuestionId t? feedbacks
+			// Lấy tất cả TestQuestionId từ feedbacks (cho PerPartFeedbacks legacy)
 			var testQuestionIds = aiFeedbacks
 				.Select(f => f.UserAnswer?.TestQuestionId ?? 0)
 				.Where(id => id > 0)
 				.Distinct()
 				.ToList();
 
-			// L?y TestQuestions v?i Part
-			var testQuestions = await _uow.TestQuestions.GetByIdsWithPartAsync(testQuestionIds);
+			// Lấy TestQuestions với Part (cho PerPartFeedbacks)
+			var testQuestionsForFeedbacks = await _uow.TestQuestions.GetByIdsWithPartAsync(testQuestionIds);
+
+			// Lấy TẤT CẢ TestQuestions của test (để build Parts giống L&R)
+			var allTestQuestions = await _uow.TestQuestions.GetByTestIdWithPartAsync(testResult.TestId);
+
+			// Tạo map để tra cứu nhanh UserAnswer và AIFeedback theo TestQuestionId
+			var userAnswersMap = testResult.UserAnswers
+				.GroupBy(ua => ua.TestQuestionId)
+				.ToDictionary(g => g.Key, g => g.ToList());
+
+			var aiFeedbacksMap = aiFeedbacks
+				.GroupBy(f => f.UserAnswer?.TestQuestionId ?? 0)
+				.ToDictionary(g => g.Key, g => g.ToList());
+
+			// JSON options với case-insensitive để deserialize snapshot
+			var jsonOptions = new System.Text.Json.JsonSerializerOptions
+			{
+				PropertyNameCaseInsensitive = true
+			};
+
+			// Build Parts giống L&R
+			var parts = new List<TestPartDto>();
+			var groupedByPart = allTestQuestions
+				.Where(q => q.PartId != null)
+				.GroupBy(q => q.PartId)
+				.ToList();
+
+			foreach (var group in groupedByPart)
+			{
+				var first = group.First();
+				var partDto = new TestPartDto
+				{
+					PartId = first.PartId,
+					PartName = first.Part?.Name ?? $"Part {first.PartId}",
+					Description = first.Part?.Description
+				};
+
+				foreach (var tq in group.OrderBy(q => q.OrderInTest))
+				{
+					// Get snapshot JSON (version-aware nếu có)
+					string snapshotJsonToUse = tq.SnapshotJson;
+
+					if (!string.IsNullOrEmpty(tq.SnapshotVersions))
+					{
+						// Tìm UserAnswer để lấy version
+						var anyUserAnswer = userAnswersMap.ContainsKey(tq.TestQuestionId)
+							? userAnswersMap[tq.TestQuestionId].FirstOrDefault()
+							: null;
+
+						if (anyUserAnswer != null)
+						{
+							try
+							{
+								if (tq.IsQuestionGroup)
+								{
+									var versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionGroupVersionHistory>(
+										tq.SnapshotVersions, jsonOptions);
+									if (versionHistory != null)
+									{
+										var versionSnapshot = versionHistory.GetSnapshot(anyUserAnswer.QuestionVersion);
+										if (versionSnapshot != null)
+										{
+											snapshotJsonToUse = System.Text.Json.JsonSerializer.Serialize(versionSnapshot);
+										}
+									}
+								}
+								else
+								{
+									var versionHistory = System.Text.Json.JsonSerializer.Deserialize<QuestionVersionHistory>(
+										tq.SnapshotVersions, jsonOptions);
+									if (versionHistory != null)
+									{
+										var versionSnapshot = versionHistory.GetSnapshot(anyUserAnswer.QuestionVersion);
+										if (versionSnapshot != null)
+										{
+											snapshotJsonToUse = System.Text.Json.JsonSerializer.Serialize(versionSnapshot);
+										}
+									}
+								}
+							}
+							catch
+							{
+								// Fall back to SnapshotJson
+							}
+						}
+					}
+
+					if (tq.IsQuestionGroup)
+					{
+						// Question Group
+						var groupSnap = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(snapshotJsonToUse ?? "{}");
+						if (groupSnap == null) continue;
+
+						// Map UserAnswer và AIFeedback vào từng sub-question
+						for (int i = 0; i < groupSnap.QuestionSnapshots.Count; i++)
+						{
+							var subQuestion = groupSnap.QuestionSnapshots[i];
+
+							// Tìm UserAnswer cho sub-question này
+							var subAnswer = userAnswersMap.ContainsKey(tq.TestQuestionId)
+								? userAnswersMap[tq.TestQuestionId].FirstOrDefault(ua => ua.SubQuestionIndex == i)
+								: null;
+
+							if (subAnswer != null)
+							{
+								// Tìm AIFeedback tương ứng
+								var feedback = aiFeedbacksMap.ContainsKey(tq.TestQuestionId)
+									? aiFeedbacksMap[tq.TestQuestionId].FirstOrDefault()
+									: null;
+
+								// Gắn thông tin answer và feedback vào sub-question
+								subQuestion.UserAnswer = subAnswer.AnswerText; // S&W dùng AnswerText, không phải ChosenOptionLabel
+								subQuestion.AnswerAudioUrl = subAnswer.AnswerAudioUrl;
+								// Có thể thêm score từ feedback nếu cần
+							}
+						}
+
+						partDto.TestQuestions.Add(new TestQuestionViewDto
+						{
+							TestQuestionId = tq.TestQuestionId,
+							IsGroup = true,
+							QuestionGroupSnapshotDto = groupSnap
+						});
+					}
+					else
+					{
+						// Single Question
+						var questionSnap = JsonConvert.DeserializeObject<QuestionSnapshotDto>(snapshotJsonToUse ?? "{}");
+						if (questionSnap == null) continue;
+
+						// Tìm UserAnswer và AIFeedback
+						var userAnswer = userAnswersMap.ContainsKey(tq.TestQuestionId)
+							? userAnswersMap[tq.TestQuestionId].FirstOrDefault()
+							: null;
+
+						var feedback = aiFeedbacksMap.ContainsKey(tq.TestQuestionId)
+							? aiFeedbacksMap[tq.TestQuestionId].FirstOrDefault()
+							: null;
+
+						if (userAnswer != null)
+						{
+							questionSnap.UserAnswer = userAnswer.AnswerText; // S&W dùng AnswerText
+							questionSnap.AnswerAudioUrl = userAnswer.AnswerAudioUrl;
+						}
+
+						partDto.TestQuestions.Add(new TestQuestionViewDto
+						{
+							TestQuestionId = tq.TestQuestionId,
+							IsGroup = false,
+							QuestionSnapshotDto = questionSnap
+						});
+					}
+				}
+
+				parts.Add(partDto);
+			}
 
 			// Map sang TestResultDetailSWDto
 			var response = new Domains.DTOs.Responses.Test.TestResultDetailSWDto
@@ -1595,14 +1750,14 @@ namespace ToeicGenius.Services.Implementations
 				// Mode indicator
 				IsSimulator = isSimulator,
 
-				// TOEIC Scaled scores (0-200) - Ch? c� gi� tr? khi Simulator
+				// TOEIC Scaled scores (0-200) - Chỉ có giá trị khi Simulator
 				WritingScore = isSimulator && writingSkillScore != null ? (double?)writingSkillScore.Score : null,
 				SpeakingScore = isSimulator && speakingSkillScore != null ? (double?)speakingSkillScore.Score : null,
 
 				// TotalScore: Simulator = 0-400, Practice = 0-100
 				TotalScore = (double)testResult.TotalScore,
 
-				// Raw scores (0-100) - Lu�n c� gi� tr? n?u c� feedback
+				// Raw scores (0-100) - Luôn có giá trị nếu có feedback
 				WritingRawScore = writingRawScore,
 				SpeakingRawScore = speakingRawScore,
 
@@ -1613,12 +1768,13 @@ namespace ToeicGenius.Services.Implementations
 
 				IsSelectTime = testResult.IsSelectTime,
 				Status = testResult.Status,
+				Parts = parts, // Parts với questions giống L&R
 				PerPartFeedbacks = aiFeedbacks.Select(f =>
 				{
 					var testQuestionId = f.UserAnswer?.TestQuestionId ?? 0;
-					var testQuestion = testQuestions.FirstOrDefault(tq => tq.TestQuestionId == testQuestionId);
+					var testQuestion = testQuestionsForFeedbacks.FirstOrDefault(tq => tq.TestQuestionId == testQuestionId);
 
-					// Deserialize QuestionContent
+					// Deserialize QuestionContent với case-insensitive
 					object? questionContent = null;
 					if (testQuestion != null && !string.IsNullOrEmpty(testQuestion.SnapshotJson))
 					{
@@ -1626,11 +1782,13 @@ namespace ToeicGenius.Services.Implementations
 						{
 							if (testQuestion.IsQuestionGroup)
 							{
-								questionContent = System.Text.Json.JsonSerializer.Deserialize<Domains.DTOs.Responses.QuestionGroup.QuestionGroupSnapshotDto>(testQuestion.SnapshotJson);
+								questionContent = System.Text.Json.JsonSerializer.Deserialize<Domains.DTOs.Responses.QuestionGroup.QuestionGroupSnapshotDto>(
+									testQuestion.SnapshotJson, jsonOptions);
 							}
 							else
 							{
-								questionContent = System.Text.Json.JsonSerializer.Deserialize<Domains.DTOs.Responses.Question.QuestionSnapshotDto>(testQuestion.SnapshotJson);
+								questionContent = System.Text.Json.JsonSerializer.Deserialize<Domains.DTOs.Responses.Question.QuestionSnapshotDto>(
+									testQuestion.SnapshotJson, jsonOptions);
 							}
 						}
 						catch
@@ -1647,7 +1805,7 @@ namespace ToeicGenius.Services.Implementations
 						// User's original answer
 						AnswerText = f.UserAnswer?.AnswerText,
 						AnswerAudioUrl = f.UserAnswer?.AnswerAudioUrl,
-						Score = (double)f.Score,  // Raw score 0-100 cho t?ng c�u
+						Score = (double)f.Score,  // Raw score 0-100 cho từng câu
 						Content = f.Content ?? string.Empty,
 						AIScorer = f.AIScorer ?? string.Empty,
 						DetailedScores = string.IsNullOrEmpty(f.DetailedScoresJson)
