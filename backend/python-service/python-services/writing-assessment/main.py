@@ -778,7 +778,7 @@ class TOEICWritingAssessment:
                     "  3. Body paragraph 2 (reason + specific example)",
                     "  4. Conclusion (restate opinion)",
                     "",
-                    "Recommended length: 300+ words for good score"
+                    "Recommended length: 150-200 words for good score"
                 ],
                 'overall_score': 0
             }
@@ -915,8 +915,8 @@ class TOEICWritingAssessment:
                     recommendations.append(f"  {i}. {issue}")
                 recommendations.append("")
 
-            if word_count < 250:
-                recommendations.append(f"💡 Length: {word_count} words - aim for 300+ for better development")
+            if word_count < 200:
+                recommendations.append(f"💡 Length: {word_count} words - aim for 150-200 for better development")
                 recommendations.append("")
 
             if grammar_score < 70 and grammar_errors:
