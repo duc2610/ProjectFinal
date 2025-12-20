@@ -2429,7 +2429,7 @@ namespace ToeicGenius.Services.Implementations
 			if (anyUserAnswers)
 			{
 				// Add as new version (preserve old version)
-				versionHistory.AddVersion(newSnapshot, Now);
+				versionHistory.AddVersion(newSnapshot, UtcNow);
 				testQuestion.CurrentVersion = versionHistory.CurrentVersion;
 			}
 			else
@@ -2642,7 +2642,7 @@ namespace ToeicGenius.Services.Implementations
 			if (anyUserAnswers)
 			{
 				// Add as new version (preserve old version for users who already answered)
-				versionHistory.AddVersion(newGroupSnapshot, Now);
+				versionHistory.AddVersion(newGroupSnapshot, UtcNow);
 				testQuestion.CurrentVersion = versionHistory.CurrentVersion;
 			}
 			else

@@ -222,6 +222,7 @@ export default function ResetPassword() {
                                 icon={<ArrowRightOutlined />}
                                 iconPosition="end"
                                 loading={loading}
+                                disabled={loading}
                             >
                                 Đổi mật khẩu
                             </Button>

@@ -391,7 +391,7 @@ namespace ToeicGenius.Services.Implementations
 
 		private async Task SendOtpByEmailAsync(string email, string otpCode, string subject)
 		{
-			var body = $"Mã OTP của bạn là: {otpCode}. Mã có hiệu lực trong 10 phút.";
+			var body = EmailTemplates.BuildOtpEmail(otpCode);
 			await _emailService.SendMailAsync(email, subject, body);
 		}
 	}

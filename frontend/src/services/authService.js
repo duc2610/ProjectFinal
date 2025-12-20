@@ -119,3 +119,8 @@ export async function changePassword({
   });
   return unwrap(res);
 }
+
+export async function updateName({ fullName }) {
+  const res = await api.put("/api/Auth/update-name", { fullName });
+  return unwrap(res);
+}

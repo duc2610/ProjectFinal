@@ -249,7 +249,7 @@ namespace ToeicGenius.Controllers
             return Ok(new
             {
                 success = true,
-                timestamp = Now,
+                timestamp = ToVietnamTime(UtcNow),
                 services = new
                 {
                     writing_api = new

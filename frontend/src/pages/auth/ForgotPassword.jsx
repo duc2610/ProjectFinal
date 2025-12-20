@@ -151,6 +151,7 @@ export default function ForgotPassword() {
                 icon={<ArrowRightOutlined />}
                 iconPosition="end"
                 loading={loading}
+                disabled={loading}
               >
                 Gửi OTP
               </Button>

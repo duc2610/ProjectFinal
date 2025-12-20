@@ -138,6 +138,7 @@ export default function VerifyReset() {
                                 icon={<ArrowRightOutlined />}
                                 iconPosition="end"
                                 loading={loading}
+                                disabled={loading || resendLoading}
                             >
                                 Tiếp tục
                             </Button>
@@ -148,6 +149,7 @@ export default function VerifyReset() {
                                 icon={<ReloadOutlined />}
                                 onClick={handleResendOtp}
                                 loading={resendLoading}
+                                disabled={loading || resendLoading}
                             >
                                 Gửi lại mã xác nhận
                             </Button>

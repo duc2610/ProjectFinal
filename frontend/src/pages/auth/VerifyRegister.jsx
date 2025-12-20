@@ -146,6 +146,7 @@ export default function VerifyRegister() {
             icon={<ArrowRightOutlined />}
             iconPosition="end"
             loading={loading}
+            disabled={loading || resendLoading}
           >
             Đăng ký
           </Button>
@@ -156,6 +157,7 @@ export default function VerifyRegister() {
             icon={<ReloadOutlined />}
             onClick={handleResendOtp}
             loading={resendLoading}
+            disabled={loading || resendLoading}
           >
             Gửi lại mã xác nhận
           </Button>

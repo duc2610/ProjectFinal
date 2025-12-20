@@ -24,6 +24,7 @@ export default function Register() {
   const navigate = useNavigate();
   const [legalModalOpen, setLegalModalOpen] = useState(false);
   const [legalModalType, setLegalModalType] = useState("terms");
+  const [loading, setLoading] = useState(false);
 
   const collapseSpaces = (s) => {
     if (typeof s !== "string") return s;
@@ -64,6 +65,7 @@ export default function Register() {
 
     const payload = { fullName, email, password };
 
+    setLoading(true);
     try {
       await registerService(payload);
       notification.success({
@@ -89,6 +91,8 @@ export default function Register() {
       const rawMsg = err?.response?.data?.message || "Gửi OTP thất bại";
       const msg = translateError(rawMsg);
       form.setFields([{ name: "email", errors: [msg] }]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -363,6 +367,8 @@ export default function Register() {
               width: "100%",
             }}
             icon={<ArrowRightOutlined />}
+            loading={loading}
+            disabled={loading}
           >
             Đăng ký
           </Button>

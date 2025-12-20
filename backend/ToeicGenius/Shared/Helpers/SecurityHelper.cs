@@ -30,7 +30,7 @@ namespace ToeicGenius.Shared.Helpers
 
 		public static bool ValidateOtp(string inputOtp, string storedOtp, DateTime expiryTime)
 		{
-			if (Now > expiryTime) return false;
+			if (UtcNow > expiryTime) return false;
 			return BCrypt.Net.BCrypt.Verify(inputOtp, storedOtp);
 		}
 		public static (bool IsValid, string? ErrorMessage) ValidatePassword(string? password)

@@ -1,18 +1,77 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Form, Input, Button, Row, Col, Modal, notification } from "antd";
+import { EditOutlined, CheckOutlined } from "@ant-design/icons";
 import styles from "@shared/styles/Profile.module.css";
-import { changePassword } from "@services/authService";
+import { changePassword, updateName } from "@services/authService";
+import { useAuth } from "@shared/hooks/useAuth";
 
 export function PersonalTab({ user }) {
+  const { refreshProfile } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm();
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState(user?.fullName || "");
+  const [nameLoading, setNameLoading] = useState(false);
+
+  // Sync nameValue khi user thay đổi
+  useEffect(() => {
+    if (!isEditingName) {
+      setNameValue(user?.fullName || "");
+    }
+  }, [user?.fullName, isEditingName]);
 
   const showModal = () => setIsModalOpen(true);
 
   const handleCancel = () => {
     setIsModalOpen(false);
     form.resetFields();
+  };
+
+  const handleStartEditName = () => {
+    setIsEditingName(true);
+    setNameValue(user?.fullName || "");
+  };
+
+  const handleCancelEditName = () => {
+    setIsEditingName(false);
+    setNameValue(user?.fullName || "");
+  };
+
+  const handleSaveName = async () => {
+    const trimmedName = (nameValue || "").trim();
+    
+    if (!trimmedName) {
+      notification.error({
+        message: "Lỗi",
+        description: "Họ và tên không được để trống",
+      });
+      return;
+    }
+
+    if (trimmedName === user?.fullName) {
+      setIsEditingName(false);
+      return;
+    }
+
+    setNameLoading(true);
+    try {
+      await updateName({ fullName: trimmedName });
+      await refreshProfile();
+      notification.success({
+        message: "Cập nhật thành công",
+        description: "Tên của bạn đã được cập nhật.",
+      });
+      setIsEditingName(false);
+    } catch (error) {
+      const rawMsg = error?.response?.data?.message || "Cập nhật tên thất bại";
+      notification.error({
+        message: "Cập nhật thất bại",
+        description: rawMsg,
+      });
+    } finally {
+      setNameLoading(false);
+    }
   };
 
   // Hàm chuyển đổi thông báo lỗi sang tiếng Việt
@@ -99,9 +158,65 @@ export function PersonalTab({ user }) {
         <Row gutter={32} justify="center">
           <Col xs={24} sm={20} md={18} lg={16} xl={14}>
             <Form layout="vertical" className={styles.form}>
-              <Form.Item label="Họ và tên">
-                <Input value={user?.fullName || ""} readOnly />
-              </Form.Item>
+               <Form.Item label="Họ và tên">
+                 {isEditingName ? (
+                   <div>
+                     <Input
+                       value={nameValue}
+                       onChange={(e) => setNameValue(e.target.value)}
+                       onPressEnter={handleSaveName}
+                       disabled={nameLoading}
+                       placeholder="Nhập họ và tên"
+                       size="large"
+                       style={{ marginBottom: 12 }}
+                     />
+                     <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                       <Button
+                         onClick={handleCancelEditName}
+                         disabled={nameLoading}
+                         size="large"
+                         style={{ minWidth: 100 }}
+                       >
+                         Hủy
+                       </Button>
+                       <Button
+                         type="primary"
+                         icon={<CheckOutlined />}
+                         onClick={handleSaveName}
+                         loading={nameLoading}
+                         disabled={nameLoading}
+                         size="large"
+                         style={{ minWidth: 100 }}
+                       >
+                         Lưu
+                       </Button>
+                     </div>
+                   </div>
+                 ) : (
+                   <Input
+                     value={user?.fullName || ""}
+                     readOnly
+                     size="large"
+                     addonAfter={
+                       <Button
+                         type="text"
+                         icon={<EditOutlined />}
+                         onClick={handleStartEditName}
+                         style={{
+                           padding: "0 8px",
+                           height: "100%",
+                           display: "flex",
+                           alignItems: "center",
+                           color: "#1890ff",
+                           fontWeight: 500,
+                         }}
+                       >
+                         Sửa
+                       </Button>
+                     }
+                   />
+                 )}
+               </Form.Item>
               <Form.Item label="Email">
                 <Input value={user?.email || ""} readOnly />
               </Form.Item>

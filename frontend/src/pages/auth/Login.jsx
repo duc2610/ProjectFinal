@@ -229,7 +229,7 @@ export default function Login() {
               icon={<ArrowRightOutlined />}
               loading={loading}
               iconPosition="end"
-              disabled={googleLoading}
+              disabled={loading || googleLoading}
             >
               Đăng nhập
             </Button>

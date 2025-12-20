@@ -23,6 +23,8 @@ namespace ToeicGenius.Services.Implementations
 
 			var from = new EmailAddress(_configuration["SendGrid:FromEmail"], _configuration["SendGrid:FromName"]);
 			var to = new EmailAddress(toEmail);
+			
+			// Create email with HTML body (plain text fallback is auto-generated from HTML)
 			var msg = MailHelper.CreateSingleEmail(from, to, subject, null, body);
 
 			var response = await client.SendEmailAsync(msg);
@@ -31,6 +33,7 @@ namespace ToeicGenius.Services.Implementations
 			{
 				// Logic xử lý khi lỗi (log error)
 				var error = await response.Body.ReadAsStringAsync();
+				_logger.LogError("SendGrid Error: {Error}", error);
 				throw new Exception($"SendGrid Error: {error}");
 			}
 		}
