@@ -283,6 +283,7 @@ namespace ToeicGenius.Services.Implementations
                         // Dùng PartNumber để xác định partType (dựa vào cấu trúc TOEIC S&W)
                         string partType = GetPartTypeFromPart(tq.Part);
 
+                        // Both question groups and single questions count as 1 part = 1 score
                         if (tq.Part?.Skill == QuestionSkill.Writing)
                         {
                             rawWritingScores.Add(0);
