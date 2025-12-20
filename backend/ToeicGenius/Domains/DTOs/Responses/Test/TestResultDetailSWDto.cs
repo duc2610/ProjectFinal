@@ -47,7 +47,10 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
         public bool? IsSelectTime { get; set; }
         public TestResultStatus? Status { get; set; }
 
-        // Feedbacks with question content
+        // Feedbacks with question content (legacy - kept for backward compatibility)
         public List<PerPartAssessmentFeedbackDto> PerPartFeedbacks { get; set; } = new();
+
+        // Parts with questions (similar to L&R structure)
+        public List<TestPartDto> Parts { get; set; } = new();
     }
 }
