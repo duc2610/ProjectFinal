@@ -146,7 +146,7 @@ export default function Login() {
         src={logo} 
         alt="Logo" 
         className={styles.authLogo}
-        onClick={() => navigate("/login")}
+        onClick={() => navigate("/")}
         style={{ cursor: "pointer" }}
       />
       <Card

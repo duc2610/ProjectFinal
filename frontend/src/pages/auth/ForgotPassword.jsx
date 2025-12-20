@@ -1,6 +1,6 @@
 import React from "react";
 import {Card, Form, Input, Button, Typography, Divider, notification} from "antd";
-import { GoogleOutlined, ArrowRightOutlined } from "@ant-design/icons";
+import { GoogleOutlined, ArrowRightOutlined, HomeOutlined } from "@ant-design/icons";
 import logo from "@assets/images/logo.png";
 import { useNavigate } from "react-router-dom";
 import {sendOTP} from "@services/authService";
@@ -80,7 +80,12 @@ export default function ForgotPassword() {
           padding: 16,
         }}
       >
-        <img src={logo} alt="Logo" style={{ height: 90, margin: 16 }} />
+        <img 
+          src={logo} 
+          alt="Logo" 
+          style={{ height: 90, margin: 16, cursor: "pointer" }}
+          onClick={() => navigate("/")}
+        />
         <Card
           style={{
             width: 520,
@@ -173,6 +178,17 @@ export default function ForgotPassword() {
                   <a href="/terms">Điều khoản dịch vụ</a> và{" "}
                   <a href="/privacy">Chính sách bảo mật</a>.
                 </Text>
+              </div>
+
+              <div style={{ textAlign: "center", marginTop: 16 }}>
+                <Button
+                  type="default"
+                  icon={<HomeOutlined />}
+                  onClick={() => navigate("/")}
+                  style={{ borderRadius: 8 }}
+                >
+                  Về trang chủ
+                </Button>
               </div>
             </Form>
           </div>

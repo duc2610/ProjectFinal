@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, Form, Input, Button, Typography, notification } from "antd";
-import { ArrowRightOutlined, ReloadOutlined } from "@ant-design/icons";
+import { ArrowRightOutlined, ReloadOutlined, HomeOutlined } from "@ant-design/icons";
 import { useLocation, useNavigate } from "react-router-dom";
 import logo from "@assets/images/logo.png";
 import { verifyResetOtp, sendOTP } from "@services/authService";
@@ -86,7 +86,12 @@ export default function VerifyReset() {
                     padding: 16,
                 }}
             >
-                <img src={logo} alt="Logo" style={{ height: 90, margin: 16 }} />
+                <img 
+                  src={logo} 
+                  alt="Logo" 
+                  style={{ height: 90, margin: 16, cursor: "pointer" }}
+                  onClick={() => navigate("/")}
+                />
                 <Card
                     style={{
                         width: 520,
@@ -172,6 +177,17 @@ export default function VerifyReset() {
                                     <a href="/terms">Điều khoản dịch vụ</a> và{" "}
                                     <a href="/privacy">Chính sách bảo mật</a>.
                                 </Text>
+                            </div>
+
+                            <div style={{ textAlign: "center", marginTop: 16 }}>
+                                <Button
+                                    type="default"
+                                    icon={<HomeOutlined />}
+                                    onClick={() => navigate("/")}
+                                    style={{ borderRadius: 8 }}
+                                >
+                                    Về trang chủ
+                                </Button>
                             </div>
                         </Form>
                     </div>

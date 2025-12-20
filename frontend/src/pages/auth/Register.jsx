@@ -11,7 +11,7 @@ import {
   Col,
   notification,
 } from "antd";
-import { ArrowRightOutlined } from "@ant-design/icons";
+import { ArrowRightOutlined, HomeOutlined } from "@ant-design/icons";
 import logo from "@assets/images/logo.png";
 import { useNavigate } from "react-router-dom";
 import { register as registerService } from "@services/authService";
@@ -108,7 +108,12 @@ export default function Register() {
         padding: 16,
       }}
     >
-      <img src={logo} alt="Logo" style={{ height: 90, margin: 16 }} />
+      <img 
+        src={logo} 
+        alt="Logo" 
+        style={{ height: 90, margin: 16, cursor: "pointer" }}
+        onClick={() => navigate("/")}
+      />
       <Card
         style={{
           width: 750,
@@ -382,6 +387,17 @@ export default function Register() {
               Quên mật khẩu?{" "}
               <Link href="/forgot-password">Đặt lại tại đây</Link>
             </Text>
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <Button
+              type="default"
+              icon={<HomeOutlined />}
+              onClick={() => navigate("/")}
+              style={{ borderRadius: 8 }}
+            >
+              Về trang chủ
+            </Button>
           </div>
         </Form>
       </Card>
