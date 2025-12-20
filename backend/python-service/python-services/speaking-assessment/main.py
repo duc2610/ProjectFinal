@@ -50,7 +50,7 @@ class QuestionType(str, Enum):
 
 
 # ============================================
-# FLEXIBLE GRAMMAR CHECKER (KHÔNG CONFIG CỨNG)
+# FLEXIBLE GRAMMAR CHECKER (NO HARDCODED CONFIG)
 # ============================================
 
 class FlexibleGrammarChecker:
@@ -677,7 +677,7 @@ Return ONLY valid JSON."""
         transcription = self.transcribe_audio_azure(audio_path)
         text_match = self._calculate_text_similarity(transcription, reference_text)
 
-        # CẤP 1: < 40% → FAIL
+        # TIER 1: < 40% → FAIL
         if text_match < 40:
             overall_score = 0
             scores = {
@@ -720,8 +720,8 @@ Return ONLY valid JSON."""
                 'overall_score': overall_score
             }
 
-        # CẤP 2: 40-60% → POOR
-        elif text_match < 60:
+        # TIER 2: 40-50% → POOR (No pronunciation - too many wrong words)
+        elif text_match < 50:
             overall_score = int(text_match)
             scores = {
                 'text_match': text_match,
@@ -735,8 +735,8 @@ Return ONLY valid JSON."""
             }
 
             recommendations = [
-                f"⚠️ POOR: Many words wrong ({text_match:.1f}% match)",
-                f"Need ≥60% to get pronunciation feedback",
+                f"⚠️ POOR: Too many words wrong ({text_match:.1f}% match)",
+                f"Need ≥50% to get pronunciation feedback",
                 "",
                 "What you said:",
                 f"❌ \"{transcription}\"",
@@ -748,7 +748,7 @@ Return ONLY valid JSON."""
                 "• Compare your text with reference carefully",
                 "• Read each word from the text",
                 "• Don't skip or add words",
-                "• Score can improve to 60+ if you read all words correctly"
+                "• Score can improve to 50+ if you read more words correctly"
             ]
 
             return {
@@ -764,7 +764,7 @@ Return ONLY valid JSON."""
                 'overall_score': overall_score
             }
 
-        # CẤP 3: 60-80% → FAIR
+        # TIER 3: 50-80% → FAIR (With pronunciation feedback)
         elif text_match < 80:
             pronunciation = self.analyze_pronunciation_azure(audio_path, reference_text)
             overall_score = int(text_match * 0.6 + pronunciation['pronunciation_score'] * 0.4)
@@ -818,7 +818,7 @@ Return ONLY valid JSON."""
                 'overall_score': overall_score
             }
 
-        # CẤP 4: >= 80% → GOOD/EXCELLENT
+        # TIER 4: >= 80% → GOOD/EXCELLENT
         else:
             pronunciation = self.analyze_pronunciation_azure(audio_path, reference_text)
             intonation_score = self._analyze_intonation_basic(audio_path)
@@ -1214,32 +1214,62 @@ Return ONLY valid JSON."""
             }
 
         elif content_score < 70:
+            # TIER 3: Add pronunciation assessment
+            pronunciation = self.analyze_pronunciation_azure(audio_path, transcription)
             intonation_score = self._analyze_intonation_basic(audio_path)
-            overall_score = int(content_score * 0.7 + intonation_score * 0.3)
-            scores = {'content_accuracy': content_score, 'intonation': intonation_score,
-                      'grammar': 0, 'vocabulary': 0, 'fluency': 0, 'overall': overall_score}
+
+            overall_score = int(
+                content_score * 0.50 +
+                pronunciation['pronunciation_score'] * 0.30 +
+                intonation_score * 0.20
+            )
+
+            scores = {
+                'content_accuracy': content_score,
+                'pronunciation': pronunciation['pronunciation_score'],
+                'accuracy': pronunciation['accuracy_score'],
+                'fluency': pronunciation['fluency_score'],
+                'completeness': pronunciation['completeness_score'],
+                'intonation': intonation_score,
+                'grammar': 0,
+                'vocabulary': 0,
+                'overall': overall_score
+            }
 
             missing = content_relevance.get('missing_elements', [])
             suggestions = content_relevance.get('suggestions', [])
+            mispronounced = pronunciation.get('mispronounced_words', [])
 
             recommendations = [
                 f"👍 FAIR: Partially correct ({content_score}/100)",
-                f"Intonation: {intonation_score}/100",
-                f"Missing: {', '.join(missing[:2])}" if missing else "",
-                f"✓ {suggestions[0]}" if suggestions else "Add more details",
-                "Grammar/vocabulary not evaluated yet - improve content first"
+                f"Pronunciation: {pronunciation['pronunciation_score']}/100",
+                f"Intonation: {intonation_score}/100"
             ]
+
+            if mispronounced:
+                recommendations.append(f"⚠️ Mispronounced: {', '.join([w['word'] for w in mispronounced[:2]])}")
+
+            if missing:
+                recommendations.append(f"Missing: {', '.join(missing[:2])}")
+
+            if suggestions:
+                recommendations.append(f"✓ {suggestions[0]}")
 
             return {
                 'transcription': transcription,
                 'duration': duration,
                 'scores': scores,
-                'detailed_analysis': {'content_relevance': content_relevance},
+                'detailed_analysis': {
+                    'content_relevance': content_relevance,
+                    'pronunciation_details': pronunciation
+                },
                 'recommendations': recommendations,
                 'overall_score': overall_score
             }
 
         else:
+            # TIER 4: Full assessment with pronunciation
+            pronunciation = self.analyze_pronunciation_azure(audio_path, transcription)
             intonation_score = self._analyze_intonation_basic(audio_path)
 
             text_analysis = await self._analyze_with_flexible_ai(
@@ -1248,6 +1278,10 @@ Return ONLY valid JSON."""
 
             scores = {
                 'content_accuracy': content_score,
+                'pronunciation': pronunciation['pronunciation_score'],
+                'accuracy': pronunciation['accuracy_score'],
+                'fluency_azure': pronunciation['fluency_score'],
+                'completeness': pronunciation['completeness_score'],
                 'intonation': intonation_score,
                 'grammar': text_analysis.get('grammar', {}).get('score', 75),
                 'vocabulary': text_analysis.get('vocabulary', {}).get('score', 75),
@@ -1255,16 +1289,18 @@ Return ONLY valid JSON."""
             }
 
             overall_score = int(
-                content_score * 0.40 +
+                content_score * 0.30 +
+                pronunciation['pronunciation_score'] * 0.20 +
                 intonation_score * 0.10 +
-                scores['grammar'] * 0.20 +
-                scores['vocabulary'] * 0.20 +
+                scores['grammar'] * 0.15 +
+                scores['vocabulary'] * 0.15 +
                 scores['fluency'] * 0.10
             )
             scores['overall'] = overall_score
 
             detailed_analysis = {
                 'content_relevance': content_relevance,
+                'pronunciation_details': pronunciation,
                 'grammar_analysis': text_analysis.get('grammar', {}),
                 'vocabulary_analysis': text_analysis.get('vocabulary', {}),
                 'fluency_analysis': text_analysis.get('fluency', {})
@@ -1275,6 +1311,10 @@ Return ONLY valid JSON."""
             missing = content_relevance.get('missing_elements', [])
             if missing:
                 recommendations.insert(0, f"Content: Add {', '.join(missing[:2])}")
+
+            mispronounced = pronunciation.get('mispronounced_words', [])
+            if mispronounced:
+                recommendations.insert(1, f"⚠️ Pronunciation: {', '.join([w['word'] for w in mispronounced[:2]])}")
 
             return {
                 'transcription': transcription,
@@ -1345,16 +1385,24 @@ Return ONLY valid JSON."""
                 'overall': overall_score
             }
 
-            issues = text_analysis.get('relevance_of_content', {}).get('issues', 'Off-topic')
-            missing_details = text_analysis.get('completeness_of_content', {}).get('missing_details',
-                                                                                   'Missing key info')
+            recommendations = ["❌ FAIL: Didn't answer properly", ""]
 
-            recommendations = [
-                "❌ FAIL: Didn't answer properly",
-                f"Relevance issue: {issues}" if issues not in ['none', 'N/A'] else "",
-                f"Completeness: {missing_details}",
-                "Answer ALL questions that were asked"
-            ]
+            # Add per-question feedback
+            per_question = text_analysis.get('per_question_feedback', [])
+            if per_question:
+                for q in per_question:
+                    q_num = q.get('question_number', 0)
+                    feedback = q.get('feedback', 'No feedback')
+                    quality = q.get('quality', 'unknown')
+                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality == 'fair' else "❌"
+                    recommendations.append(f"{icon} Question {q_num}: {feedback}")
+                recommendations.append("")
+
+            overall_feedback = text_analysis.get('completeness_of_content', {}).get('overall_feedback', '')
+            if overall_feedback:
+                recommendations.append(f"Overall: {overall_feedback}")
+
+            recommendations.append("Must answer ALL questions that were asked")
 
             return {
                 'transcription': transcription,
@@ -1381,14 +1429,21 @@ Return ONLY valid JSON."""
                 'overall': overall_score
             }
 
-            suggestions = text_analysis.get('completeness_of_content', {}).get('suggestions', [])
             recommendations = [
                 f"👍 Content incomplete ({completeness_score}/100)",
-                f"Intonation: {intonation_score}/100"
+                f"Intonation: {intonation_score}/100",
+                ""
             ]
-            if suggestions:
-                for sug in suggestions[:2]:
-                    recommendations.append(f"✓ {sug}")
+
+            # Add per-question feedback
+            per_question = text_analysis.get('per_question_feedback', [])
+            if per_question:
+                for q in per_question:
+                    q_num = q.get('question_number', 0)
+                    feedback = q.get('feedback', 'No feedback')
+                    quality = q.get('quality', 'unknown')
+                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality in ['fair', 'weak'] else "❌"
+                    recommendations.append(f"{icon} Question {q_num}: {feedback}")
 
             return {
                 'transcription': transcription,
@@ -1431,10 +1486,24 @@ Return ONLY valid JSON."""
                 'vocabulary_analysis': text_analysis.get('vocabulary', {}),
                 'cohesion_analysis': text_analysis.get('cohesion', {}),
                 'relevance_analysis': text_analysis.get('relevance_of_content', {}),
-                'completeness_analysis': text_analysis.get('completeness_of_content', {})
+                'completeness_analysis': text_analysis.get('completeness_of_content', {}),
+                'per_question_feedback': text_analysis.get('per_question_feedback', [])
             }
 
             recommendations = self._generate_recommendations(scores, detailed_analysis)
+
+            # Add per-question feedback to recommendations
+            per_question = text_analysis.get('per_question_feedback', [])
+            if per_question:
+                recommendations.insert(0, "")
+                for q in reversed(per_question):
+                    q_num = q.get('question_number', 0)
+                    feedback = q.get('feedback', 'No feedback')
+                    quality = q.get('quality', 'unknown')
+                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality in ['fair', 'weak'] else "❌"
+                    recommendations.insert(0, f"{icon} Question {q_num}: {feedback}")
+                recommendations.insert(0, "Per-Question Feedback:")
+                recommendations.insert(0, "")
 
             return {
                 'transcription': transcription,
@@ -1489,20 +1558,37 @@ DURATION: {duration}s, {word_count} words, {wpm:.1f} WPM
 
 Return ONLY JSON:
 {{
+    "per_question_feedback": [
+        {{
+            "question_number": 1,
+            "answered": true,
+            "quality": "excellent|good|fair|weak|missing",
+            "feedback": "Specific detailed feedback for Question 1 - what's good, what's missing, what to improve"
+        }},
+        {{
+            "question_number": 2,
+            "answered": true,
+            "quality": "excellent|good|fair|weak|missing",
+            "feedback": "Specific detailed feedback for Question 2 - what's good, what's missing, what to improve"
+        }},
+        {{
+            "question_number": 3,
+            "answered": false,
+            "quality": "missing",
+            "feedback": "You did not answer Question 3"
+        }}
+    ],
+
     "relevance_of_content": {{
         "score": 75,
         "assessment": "relevant|partially relevant|off-topic",
-        "issues": "specific issue or none",
-        "which_questions_answered": [1, 2, 3],
-        "missing_questions": []
+        "issues": "specific issue or none"
     }},
 
     "completeness_of_content": {{
         "score": 70,
         "questions_answered": 3,
-        "missing_details": "Should add X",
-        "coverage": "adequate|incomplete",
-        "suggestions": ["Add example for Q2"]
+        "overall_feedback": "Overall assessment of all 3 answers together"
     }},
 
     "grammar": {{
@@ -1669,6 +1755,17 @@ Return ONLY valid JSON."""
                 ""
             ]
 
+            # Add per-question feedback
+            per_question = text_analysis.get('per_question_feedback', [])
+            if per_question:
+                for q in per_question:
+                    q_num = q.get('question_number', 0)
+                    feedback = q.get('feedback', 'No feedback')
+                    quality = q.get('quality', 'unknown')
+                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality in ['fair', 'weak'] else "❌"
+                    recommendations.append(f"{icon} Question {q_num}: {feedback}")
+                recommendations.append("")
+
             if incorrect:
                 recommendations.append("X Your errors:")
                 for fact in incorrect[:2]:
@@ -1716,8 +1813,20 @@ Return ONLY valid JSON."""
 
             recommendations = [
                 f"👍 FAIR: Information accuracy needs improvement ({accuracy_score}/100)",
-                f"Factual errors: {error_count}"
+                f"Factual errors: {error_count}",
+                ""
             ]
+
+            # Add per-question feedback
+            per_question = text_analysis.get('per_question_feedback', [])
+            if per_question:
+                for q in per_question:
+                    q_num = q.get('question_number', 0)
+                    feedback = q.get('feedback', 'No feedback')
+                    quality = q.get('quality', 'unknown')
+                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality in ['fair', 'weak'] else "❌"
+                    recommendations.append(f"{icon} Question {q_num}: {feedback}")
+                recommendations.append("")
 
             if incorrect:
                 for fact in incorrect[:2]:
@@ -1755,6 +1864,18 @@ Return ONLY valid JSON."""
             )
 
             recommendations = []
+
+            # Add per-question feedback first
+            per_question = text_analysis.get('per_question_feedback', [])
+            if per_question:
+                for q in per_question:
+                    q_num = q.get('question_number', 0)
+                    feedback = q.get('feedback', 'No feedback')
+                    quality = q.get('quality', 'unknown')
+                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality in ['fair', 'weak'] else "❌"
+                    recommendations.append(f"{icon} Question {q_num}: {feedback}")
+                recommendations.append("")
+
             if accuracy_score < 90:
                 recommendations.append(f"Information Accuracy: {accuracy_score}/100 - minor issues")
             if pronunciation['pronunciation_score'] < 80:
@@ -1810,6 +1931,27 @@ STUDENT ANSWER: "{text}"
 
 Return ONLY JSON:
 {{
+    "per_question_feedback": [
+        {{
+            "question_number": 1,
+            "answered": true,
+            "quality": "excellent|good|fair|weak|missing",
+            "feedback": "Specific feedback for Question 1 - accuracy, what's correct/incorrect"
+        }},
+        {{
+            "question_number": 2,
+            "answered": true,
+            "quality": "excellent|good|fair|weak|missing",
+            "feedback": "Specific feedback for Question 2 - accuracy, what's correct/incorrect"
+        }},
+        {{
+            "question_number": 3,
+            "answered": false,
+            "quality": "missing",
+            "feedback": "You did not answer Question 3"
+        }}
+    ],
+
     "information_accuracy": {{
         "score": 75,
         "correct_facts": ["Student said meeting at 2pm correctly"],
@@ -1825,8 +1967,7 @@ Return ONLY JSON:
     "completeness_of_content": {{
         "score": 70,
         "questions_answered": 3,
-        "missing_details": "Should mention X",
-        "suggestions": ["Add Y"]
+        "overall_feedback": "Overall assessment of all 3 answers"
     }},
 
     "grammar": {{
@@ -2378,7 +2519,9 @@ async def assess_speaking(
         reference_text: Optional[str] = Form(None),
         picture: Optional[UploadFile] = File(None),
         expected_content: Optional[str] = Form(None),
-        question_context: Optional[str] = Form(None)
+        question_context: Optional[str] = Form(None),
+        passage: Optional[str] = Form(None),  # For question groups (Part 3/4)
+        questions: Optional[str] = Form(None)  # JSON array of questions for groups
 ):
     """
     Main assessment endpoint
@@ -2412,6 +2555,23 @@ async def assess_speaking(
         with open(audio_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
         logger.info(f"✅ Audio saved: {audio_path}")
+
+        # Format question_context for question groups (Part 3/4)
+        # If passage and questions are provided, combine them into question_context
+        if passage and questions and not question_context:
+            try:
+                import json
+                questions_list = json.loads(questions)
+                formatted_questions = "\n".join([
+                    f"Question {q['order']}: {q['content']}"
+                    for q in questions_list
+                ])
+                question_context = f"PASSAGE:\n{passage}\n\nQUESTIONS:\n{formatted_questions}"
+                logger.info(f"📝 Formatted question_context from passage and questions")
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to format question_context: {e}")
+                # Fallback to passage only
+                question_context = passage if passage else None
 
         # Route to appropriate assessment function
         if q_type == QuestionType.READ_ALOUD:
