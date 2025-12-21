@@ -115,6 +115,7 @@ export default function UpdateFlashcardModal({ open, onClose, onSuccess, card })
         <Form.Item
           name="definition"
           label="Định nghĩa / Nghĩa"
+          required
           validateTrigger={['onBlur']}
           rules={[
             { required: true, message: "Vui lòng nhập định nghĩa" },

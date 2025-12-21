@@ -248,6 +248,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
         <Form.Item
           name="term"
           label="Từ vựng / Thuật ngữ"
+          required
           validateTrigger={['onBlur']}
           rules={[
             { required: true, message: "Vui lòng nhập từ vựng" },
@@ -277,6 +278,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
         <Form.Item
           name="definition"
           label="Định nghĩa / Nghĩa"
+          required
           validateTrigger={['onBlur']}
           rules={[
             { required: true, message: "Vui lòng nhập định nghĩa" },
@@ -444,6 +446,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
               <Form.Item
                 name={`card_${index}_term`}
                 label="Từ vựng / Thuật ngữ"
+                required
                 initialValue={card.term}
                 validateTrigger={['onBlur']}
                 rules={[
@@ -476,6 +479,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
               <Form.Item
                 name={`card_${index}_definition`}
                 label="Định nghĩa / Nghĩa"
+                required
                 initialValue={card.definition}
                 validateTrigger={['onBlur']}
                 rules={[

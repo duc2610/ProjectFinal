@@ -1234,7 +1234,7 @@ export default function ExamScreen() {
         const swPayload = {
           testResultId: finalTestResultId, // Dùng CÙNG testResultId ban đầu (từ history nếu tiếp tục test)
           testType: testTypeForSW, // "Simulator" hoặc "Practice" (case-sensitive)
-          duration: durationSeconds, // API yêu cầu duration tính bằng giây
+          duration: durationMinutes, // API yêu cầu duration tính bằng phút
           parts: swAnswers,
         };
         swResult = await submitAssessmentBulk(swPayload);

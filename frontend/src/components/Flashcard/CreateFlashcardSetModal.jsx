@@ -67,6 +67,7 @@ export default function CreateFlashcardSetModal({ open, onClose, onSuccess }) {
         <Form.Item
           name="title"
           label="Tiêu đề"
+          required
           validateTrigger={['onBlur']}
           rules={[
             { required: true, message: "Vui lòng nhập tiêu đề" },
@@ -120,6 +121,7 @@ export default function CreateFlashcardSetModal({ open, onClose, onSuccess }) {
         <Form.Item
           name="language"
           label="Ngôn ngữ"
+          required
           validateTrigger={['onBlur', 'onChange']}
           rules={[{ required: true, message: "Vui lòng chọn ngôn ngữ" }]}
         >
@@ -141,7 +143,7 @@ export default function CreateFlashcardSetModal({ open, onClose, onSuccess }) {
 
         <Form.Item
           name="isPublic"
-          label="Công khai"
+          label="Công khai (tùy chọn)"
           valuePropName="checked"
         >
           <Switch

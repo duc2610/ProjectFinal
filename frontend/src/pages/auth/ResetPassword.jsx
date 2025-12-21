@@ -194,6 +194,7 @@ export default function ResetPassword() {
                             <Form.Item
                                 label="Xác nhận mật khẩu"
                                 name="confirmNewPassword"
+                                required
                                 dependencies={["newPassword"]}
                                 normalize={trimOnly}
                                 rules={[

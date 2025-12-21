@@ -569,9 +569,11 @@ export default function SingleQuestionModal({
             <Form.Item
               name="skill"
               label="Kỹ năng"
+              required
               validateTrigger={['onBlur', 'onChange']}
               rules={[
                 {
+                  required: true,
                   validator: (_, value) => {
                     if (!value) {
                       return Promise.reject(new Error("Vui lòng chọn kỹ năng"));
@@ -614,9 +616,11 @@ export default function SingleQuestionModal({
             <Form.Item
               name="partId"
               label="Part"
+              required
               validateTrigger={['onBlur', 'onChange']}
               rules={[
                 {
+                  required: true,
                   validator: (_, value) => {
                     if (!value) {
                       return Promise.reject(new Error("Vui lòng chọn Part"));
@@ -688,9 +692,11 @@ export default function SingleQuestionModal({
             <Form.Item
               name="questionTypeId"
               label="Loại câu hỏi"
+              required
               validateTrigger={['onBlur', 'onChange']}
               rules={[
                 {
+                  required: true,
                   validator: (_, value) => {
                     if (!value) {
                       return Promise.reject(new Error("Vui lòng chọn loại câu hỏi"));
@@ -739,7 +745,14 @@ export default function SingleQuestionModal({
         {isContentVisible && (
           <Form.Item
             name="content"
-            label="Nội dung câu hỏi"
+            label={(() => {
+              const partId = Number(form.getFieldValue("partId"));
+              return partId === 2 ? "Nội dung câu hỏi (tùy chọn)" : "Nội dung câu hỏi";
+            })()}
+            required={(() => {
+              const partId = Number(form.getFieldValue("partId"));
+              return partId !== 2;
+            })()}
             validateTrigger={['onBlur']}
             rules={[
               {
@@ -791,9 +804,8 @@ export default function SingleQuestionModal({
             <Col span={12}>
               <Form.Item
                 name="audio"
-                label={`Audio ${
-                  isAudioRequired ? "(bắt buộc - MP3)" : "(tùy chọn - MP3)"
-                }`}
+                label={isAudioRequired ? "Audio (bắt buộc - MP3)" : "Audio (tùy chọn - MP3)"}
+                required={isAudioRequired}
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList}
                 validateTrigger={['onBlur']}
@@ -881,7 +893,8 @@ export default function SingleQuestionModal({
             <Col span={12}>
               <Form.Item
                 name="image"
-                label={`Ảnh ${isImageRequired ? "(bắt buộc)" : "(tùy chọn)"}`}
+                label={isImageRequired ? "Ảnh (bắt buộc)" : "Ảnh (tùy chọn)"}
+                required={isImageRequired}
                 valuePropName="fileList"
                 getValueFromEvent={(e) => e?.fileList}
                 validateTrigger={['onBlur']}
@@ -1076,10 +1089,13 @@ export default function SingleQuestionModal({
                         <Form.Item
                           {...restField}
                           name={[restField.name, "content"]}
+                          label="Nội dung đáp án"
+                          required
                           validateTrigger={["onBlur"]}
                           style={{ marginBottom: 0 }}
                           rules={[
                             {
+                              required: true,
                               validator: (_, value) => {
                                 if (!value || !String(value).trim()) {
                                   return Promise.reject(

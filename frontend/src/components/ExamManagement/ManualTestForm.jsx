@@ -1881,9 +1881,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                         <Form.Item
                             name="title"
                             label="Tiêu đề bài thi"
+                            required
                             validateTrigger={['onBlur']}
                             rules={[
                                 {
+                                    required: true,
                                     validator: (_, value) => {
                                         if (!value || !String(value).trim()) {
                                             return Promise.reject(new Error("Vui lòng nhập tiêu đề!"));
@@ -1909,9 +1911,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                         <Form.Item
                             name="skill"
                             label="Kỹ năng"
+                            required
                             validateTrigger={['onBlur', 'onChange']}
                             rules={[
                                 {
+                                    required: true,
                                     validator: (_, value) => {
                                         if (!value) {
                                             return Promise.reject(new Error("Vui lòng chọn kỹ năng!"));
@@ -1936,8 +1940,8 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 disabled={readOnly || !!editingId}
                             >
                                 <Option value={TEST_SKILL.LR}>Nghe &amp; Đọc (L&amp;R)</Option>
-                                <Option value={TEST_SKILL.SPEAKING}>Nói (Speaking)</Option>
-                                <Option value={TEST_SKILL.WRITING}>Viết (Writing)</Option>
+                                {/* <Option value={TEST_SKILL.SPEAKING}>Nói (Speaking)</Option>
+                                <Option value={TEST_SKILL.WRITING}>Viết (Writing)</Option> */}
                                 <Option value={TEST_SKILL.SW}>Nói & Viết (S&amp;W)</Option>
                             </Select>
                         </Form.Item>
@@ -1955,13 +1959,13 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     </Col>
                 </Row>
 
-                <Form.Item name="description" label="Mô tả">
+                <Form.Item name="description" label="Mô tả (tùy chọn)">
                     <TextArea rows={2} placeholder="Mô tả về bài thi (tùy chọn)" disabled={readOnly} />
                 </Form.Item>
 
                 {requiresAudio(selectedSkill) && (
                     <Form.Item 
-                        label={audioUrl ? "Audio file (Đã upload)" : "Audio file "}
+                        label={audioUrl ? "Audio file (Đã upload)" : "Audio file (bắt buộc)"}
                         required={!audioUrl}
                     >
                         <Space direction="vertical" style={{ width: "100%" }} size="small">
@@ -2318,7 +2322,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
             {/* Trường content luôn hiển thị; các part 1,2,6 là tùy chọn */}
             {isContentVisible && (
                 <Form.Item 
-                    label="Nội dung câu hỏi"
+                    label={isContentOptional ? "Nội dung câu hỏi (tùy chọn)" : "Nội dung câu hỏi"}
                     required={!isContentOptional}
                     validateStatus={contentError ? "error" : ""}
                     help={contentError}
@@ -2348,7 +2352,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
 
             {showImage && (
                 <Form.Item 
-                    label={requireImage ? "Image (Bắt buộc)" : "Image"}
+                    label={requireImage ? "Image (bắt buộc)" : "Image (tùy chọn)"}
                     required={requireImage}
                     validateStatus={imageError ? "error" : ""}
                     help={imageError}
@@ -2454,7 +2458,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
 
 
             <Form.Item 
-                label="Giải thích"
+                label="Giải thích (tùy chọn)"
                 validateStatus={explanationError ? "error" : ""}
                 help={explanationError}
             >
@@ -2710,7 +2714,7 @@ function GroupEditor({ group, partId, groupIndex, skill, partLabel, onUpdate, on
             {/* Chỉ hiển thị trường passage cho các part không phải 3, 4 */}
             {isPassageVisible && (
                 <Form.Item 
-                    label="Passage/Đoạn văn"
+                    label={isPassageOptional ? "Passage/Đoạn văn (tùy chọn)" : "Passage/Đoạn văn"}
                     required={!isPassageOptional}
                     validateStatus={passageError ? "error" : ""}
                     help={passageError}
@@ -2751,7 +2755,7 @@ function GroupEditor({ group, partId, groupIndex, skill, partLabel, onUpdate, on
             {/* Image cho group - chỉ hiển thị cho L&R parts có thể có ảnh */}
             {skill === TEST_SKILL.LR && (
                 <Form.Item 
-                    label="Image"
+                    label="Image (tùy chọn)"
                     validateStatus={imageError ? "error" : ""}
                     help={imageError}
                 >

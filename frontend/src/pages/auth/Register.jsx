@@ -135,6 +135,7 @@ export default function Register() {
               <Form.Item
                 label="Họ và tên"
                 name="fullName"
+                required
                 validateTrigger={['onBlur']}
                 rules={[
                   { required: true, message: "Vui lòng nhập họ và tên" },
@@ -166,6 +167,7 @@ export default function Register() {
               <Form.Item
                 label="Email"
                 name="email"
+                required
                 normalize={(v) => (v ? v.trim() : v)}
                 validateTrigger={['onBlur', 'onChange']}
                 rules={[
@@ -215,6 +217,7 @@ export default function Register() {
               <Form.Item
                 label="Mật khẩu"
                 name="password"
+                required
                 normalize={(v) => (v ? v.trim() : v)}
                 validateTrigger={['onBlur', 'onChange']}
                 rules={[
@@ -285,6 +288,7 @@ export default function Register() {
               <Form.Item
                 label="Xác nhận mật khẩu"
                 name="confirmPassword"
+                required
                 dependencies={["password"]}
                 validateTrigger={['onBlur']}
                 rules={[
@@ -320,9 +324,12 @@ export default function Register() {
 
           <Form.Item
             name="accept"
+            label="Đồng ý điều khoản & bảo mật"
+            required
             valuePropName="checked"
             rules={[
               {
+                required: true,
                 validator: (_, v) =>
                   v
                     ? Promise.resolve()

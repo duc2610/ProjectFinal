@@ -666,9 +666,11 @@ export default function QuestionGroupModal({
             <Form.Item
               name="skill"
               label="Kỹ năng"
+              required
               validateTrigger={['onBlur', 'onChange']}
               rules={[
                 {
+                  required: true,
                   validator: (_, value) => {
                     if (!value) {
                       return Promise.reject(new Error("Vui lòng chọn kỹ năng"));
@@ -700,9 +702,11 @@ export default function QuestionGroupModal({
             <Form.Item
               name="partId"
               label="Part"
+              required
               validateTrigger={['onBlur', 'onChange']}
               rules={[
                 {
+                  required: true,
                   validator: (_, value) => {
                     if (!value) {
                       return Promise.reject(new Error("Vui lòng chọn Part"));
@@ -749,9 +753,11 @@ export default function QuestionGroupModal({
           <Form.Item
             name="passageContent"
             label="Nội dung đoạn văn / Passage"
+            required
             validateTrigger={['onBlur']}
             rules={[
               {
+                required: true,
                 validator: (_, value) => {
                   if (!value || !value.trim()) {
                     return Promise.reject(new Error("Vui lòng nhập nội dung đoạn văn"));
@@ -793,9 +799,8 @@ export default function QuestionGroupModal({
               <Col span={showImageField ? 12 : 24}>
                 <Form.Item
                   name="audio"
-                  label={`Audio nhóm ${
-                    isAudioRequired ? "(bắt buộc - MP3)" : "(tùy chọn - MP3)"
-                  }`}
+                  label={isAudioRequired ? "Audio nhóm (bắt buộc - MP3)" : "Audio nhóm (tùy chọn - MP3)"}
+                  required={isAudioRequired}
                   valuePropName="fileList"
                   getValueFromEvent={(e) => e?.fileList}
                   validateTrigger={['onBlur']}
@@ -866,9 +871,8 @@ export default function QuestionGroupModal({
               <Col span={showAudioField ? 12 : 24}>
                 <Form.Item
                   name="image"
-                  label={`Ảnh nhóm ${
-                    isImageRequired ? "(bắt buộc)" : "(tùy chọn)"
-                  }`}
+                  label={isImageRequired ? "Ảnh nhóm (bắt buộc)" : "Ảnh nhóm (tùy chọn)"}
+                  required={isImageRequired}
                   valuePropName="fileList"
                   getValueFromEvent={(e) => e?.fileList}
                 >
@@ -1042,22 +1046,29 @@ export default function QuestionGroupModal({
                         name={[name, "partId"]}
                         label="Part (của câu)"
                         initialValue={selectedPart}
+                        style={{ marginBottom: 0 }}
                       >
-                        <Select
-                          disabled
-                          value={selectedPart}
-                          options={(parts || [])
-                            .filter((p) => isGroupPart(p.partId ?? p.id ?? p))
-                            .map((p) => ({
-                              value: toNum(p.partId ?? p.id ?? p),
-                              label:
-                                p.name ||
-                                p.partName ||
-                                `Part ${p.partId ?? p.id ?? p}`,
-                            }))}
-                          showSearch
-                          optionFilterProp="label"
-                        />
+                        {(() => {
+                          const part = (parts || []).find(
+                            (p) => toNum(p.partId ?? p.id ?? p) === toNum(selectedPart)
+                          );
+                          const partLabel = part
+                            ? part.name || part.partName || `Part ${part.partId ?? part.id ?? part}`
+                            : selectedPart
+                            ? `Part ${selectedPart}`
+                            : "";
+                          return (
+                            <div style={{ 
+                              padding: "4px 11px",
+                              minHeight: "32px",
+                              display: "flex",
+                              alignItems: "center",
+                              color: "rgba(0, 0, 0, 0.85)"
+                            }}>
+                              {partLabel}
+                            </div>
+                          );
+                        })()}
                       </Form.Item>
                     </Col>
                   </Row>
@@ -1068,9 +1079,11 @@ export default function QuestionGroupModal({
                       {...restField}
                       name={[name, "content"]}
                       label="Nội dung câu hỏi"
+                      required
                       validateTrigger={['onBlur']}
                       rules={[
                         {
+                          required: true,
                           validator: (_, value) => {
                             if (!value || !String(value).trim()) {
                               return Promise.reject(new Error("Vui lòng nhập nội dung câu hỏi"));
@@ -1158,10 +1171,13 @@ export default function QuestionGroupModal({
                                 <Form.Item
                                   {...rest2}
                                   name={[n2, "content"]}
+                                  label="Nội dung đáp án"
+                                  required
                                   validateTrigger={["onBlur"]}
                                   style={{ marginBottom: 0 }}
                                   rules={[
                                     {
+                                      required: true,
                                       validator: (_, value) => {
                                         if (!value || !String(value).trim()) {
                                           return Promise.reject(

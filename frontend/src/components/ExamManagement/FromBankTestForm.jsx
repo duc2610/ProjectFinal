@@ -471,9 +471,11 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         <Form.Item
                             name="title"
                             label="Tiêu đề bài thi"
+                            required
                             validateTrigger={['onBlur']}
                             rules={[
                                 {
+                                    required: true,
                                     validator: (_, value) => {
                                         if (!value || !String(value).trim()) {
                                             return Promise.reject(new Error("Vui lòng nhập tiêu đề!"));
@@ -499,9 +501,11 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         <Form.Item
                             name="skill"
                             label="Kỹ năng"
+                            required
                             validateTrigger={['onBlur', 'onChange']}
                             rules={[
                                 {
+                                    required: true,
                                     validator: (_, value) => {
                                         if (!value) {
                                             return Promise.reject(new Error("Vui lòng chọn kỹ năng!"));
@@ -535,9 +539,11 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         <Form.Item
                             name="duration"
                             label="Thời lượng (phút)"
+                            required
                             validateTrigger={['onBlur']}
                             rules={[
                                 {
+                                    required: true,
                                     validator: (_, value) => {
                                         if (!value && value !== 0) {
                                             return Promise.reject(new Error("Vui lòng nhập thời lượng!"));

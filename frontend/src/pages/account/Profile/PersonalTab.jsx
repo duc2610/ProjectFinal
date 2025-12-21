@@ -251,6 +251,7 @@ export function PersonalTab({ user }) {
           <Form.Item
             label="Mật khẩu hiện tại"
             name="oldPassword"
+            required
             rules={[
               { required: true, message: "Vui lòng nhập mật khẩu hiện tại" },
             ]}
@@ -262,6 +263,7 @@ export function PersonalTab({ user }) {
           <Form.Item
             label="Mật khẩu mới"
             name="newPassword"
+            required
             validateTrigger={['onBlur', 'onChange']}
             rules={[
               { required: true, message: "Vui lòng nhập mật khẩu mới!" },
@@ -311,6 +313,7 @@ export function PersonalTab({ user }) {
           <Form.Item
             label="Xác nhận mật khẩu mới"
             name="confirmNewPassword"
+            required
             dependencies={["newPassword"]}
             hasFeedback
             rules={[

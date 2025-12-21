@@ -458,8 +458,8 @@ export default function TestList() {
                     >
                         <Option value="all">Tất cả</Option>
                         <Option value="lr">Listening & Reading</Option>
-                        <Option value="speaking">Speaking</Option>
-                        <Option value="writing">Writing</Option>
+                        {/* <Option value="speaking">Speaking</Option>
+                        <Option value="writing">Writing</Option> */}
                         <Option value="sw">Speaking & Writing</Option>
                     </Select>
                 </div>
