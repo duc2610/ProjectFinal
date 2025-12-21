@@ -1149,34 +1149,6 @@ export default function SingleQuestionModal({
                           </Checkbox>
                           </Form.Item>
                       </div>
-
-                      <Button
-                        danger
-                        type="text"
-                        icon={<DeleteOutlined />}
-                        onClick={() => {
-                          Modal.confirm({
-                            title: "Xác nhận xóa đáp án",
-                            content: "Bạn có chắc chắn muốn xóa đáp án này khỏi câu hỏi?",
-                            okText: "Xóa đáp án",
-                            okType: "danger",
-                            cancelText: "Hủy",
-                            onOk: () => remove(restField.name),
-                          });
-                        }}
-                        disabled={
-                          requiredOptionsCount
-                            ? fields.length <= requiredOptionsCount
-                            : fields.length <= 1
-                        }
-                        style={{
-                          padding: 0,
-                          height: 32,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      />
                     </div>
                   ))}
                 </>

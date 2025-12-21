@@ -959,55 +959,6 @@ export default function QuestionGroupModal({
                 <Col>
                   <strong>Câu hỏi trong nhóm (2–5 câu)</strong>
                 </Col>
-                <Col>
-                  <Button
-                    onClick={() => {
-                      const groupPartId = form.getFieldValue("partId");
-                      const currentQuestions = form.getFieldValue("questions") || [];
-                      const firstType = questionTypes?.[0]?.__val 
-                        ? toNum(questionTypes[0].__val) 
-                        : undefined;
-                      
-                      add({
-                        questionId: null,
-                        content: "",
-                        questionTypeId: firstType,
-                        partId: groupPartId ? toNum(groupPartId) : undefined,
-                        solution: "",
-                        answerOptions: [
-                          {
-                            optionId: null,
-                            label: "A",
-                            content: "",
-                            isCorrect: false,
-                          },
-                          {
-                            optionId: null,
-                            label: "B",
-                            content: "",
-                            isCorrect: false,
-                          },
-                          {
-                            optionId: null,
-                            label: "C",
-                            content: "",
-                            isCorrect: false,
-                          },
-                          {
-                            optionId: null,
-                            label: "D",
-                            content: "",
-                            isCorrect: false,
-                          },
-                        ],
-                      });
-                    }}
-                    icon={<PlusOutlined />}
-                    disabled={fields.length >= 5}
-                  >
-                    Thêm câu hỏi
-                  </Button>
-                </Col>
               </Row>
 
               {fields.map(({ key, name, ...restField }, qIndex) => (
@@ -1344,6 +1295,59 @@ export default function QuestionGroupModal({
                   </Form.Item>
                 </div>
               ))}
+              
+              <div style={{ marginTop: 16, textAlign: "center" }}>
+                <Button
+                  onClick={() => {
+                    const groupPartId = form.getFieldValue("partId");
+                    const currentQuestions = form.getFieldValue("questions") || [];
+                    const firstType = questionTypes?.[0]?.__val 
+                      ? toNum(questionTypes[0].__val) 
+                      : undefined;
+                    
+                    add({
+                      questionId: null,
+                      content: "",
+                      questionTypeId: firstType,
+                      partId: groupPartId ? toNum(groupPartId) : undefined,
+                      solution: "",
+                      answerOptions: [
+                        {
+                          optionId: null,
+                          label: "A",
+                          content: "",
+                          isCorrect: false,
+                        },
+                        {
+                          optionId: null,
+                          label: "B",
+                          content: "",
+                          isCorrect: false,
+                        },
+                        {
+                          optionId: null,
+                          label: "C",
+                          content: "",
+                          isCorrect: false,
+                        },
+                        {
+                          optionId: null,
+                          label: "D",
+                          content: "",
+                          isCorrect: false,
+                        },
+                      ],
+                    });
+                  }}
+                  icon={<PlusOutlined />}
+                  disabled={fields.length >= 5}
+                  type="dashed"
+                  block
+                  style={{ marginTop: 8 }}
+                >
+                  Thêm câu hỏi
+                </Button>
+              </div>
             </>
           )}
         </Form.List>
