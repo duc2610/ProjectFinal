@@ -405,7 +405,7 @@ export default function QuestionGroupSelectorModal({
                 description={skill === TEST_SKILL.LR 
                     ? "Chỉ hiển thị các nhóm câu hỏi. Hiển thị Part 3, 4 (Nghe) và Part 6, 7 (Đọc)."
                     : skill === TEST_SKILL.SPEAKING
-                    ? "Chỉ hiển thị các nhóm câu hỏi. Hiển thị Part 13, 14 (Nói)."
+                    ? "Chỉ hiển thị các nhóm câu hỏi. Hiển thị Part 3, Part 4 (Nói)."
                     : "Chỉ hiển thị các nhóm câu hỏi."}
             />
             

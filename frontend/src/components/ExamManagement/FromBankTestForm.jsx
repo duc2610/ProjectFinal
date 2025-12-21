@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Table, Space, Tag, Row, Col, Statistic, Alert, Drawer, Divider } from "antd";
 import { PlusOutlined, DeleteOutlined, CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { createTestFromBank, getTestById, updateTestFromBank, createTestFromBankRandom } from "@services/testsService";
-import { getQuestionById } from "@services/questionsService";
-import { getQuestionGroupById } from "@services/questionGroupService";
+import { getQuestionById, getQuestions, buildQuestionListParams } from "@services/questionsService";
+import { getQuestionGroupById, getQuestionGroups } from "@services/questionGroupService";
 import { loadPartsBySkill, TOTAL_QUESTIONS_BY_SKILL, TEST_SKILL } from "@constants/toeicStructure";
 import QuestionBankSelectorModal from "./QuestionBankSelectorModal";
 import QuestionGroupSelectorModal from "./QuestionGroupSelectorModal";
-
+import { getQuestionTypesByPart } from "@services/questionTypesService";
 // Parts chỉ dành cho group questions:
 // - Listening: 3, 4
 // - Reading: 6, 7
@@ -580,7 +580,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                             onChange={setSelectionMode}
                             items={[
                                 { key: "manual", label: "Chọn thủ công" },
-                                { key: "random", label: "Chọn random" },
+                                { key: "random", label: "Chọn ngẫu nhiên" },
                             ]}
                             style={{ marginBottom: 16 }}
                         />
@@ -935,6 +935,8 @@ function QuestionSelector({
     const [singleQuestionModalOpen, setSingleQuestionModalOpen] = useState(false);
     const [groupQuestionModalOpen, setGroupQuestionModalOpen] = useState(false);
     const isLR = skill === TEST_SKILL.LR;
+    // Cho phép group questions cho cả L&R (Part 3, 4, 6, 7) và Speaking (Part 13, 14)
+    const supportsGroupQuestions = skill === TEST_SKILL.LR || skill === TEST_SKILL.SPEAKING;
     
     // Sử dụng prop nếu có, nếu không thì dùng state nội bộ
     const activeTab = setActiveTabProp ? activeTabProp : internalActiveTab;
@@ -1223,7 +1225,7 @@ function QuestionSelector({
                 )}
             </Tabs.TabPane>
 
-            {isLR && (
+            {supportsGroupQuestions && (
             <Tabs.TabPane tab={`Nhóm câu hỏi (${selectedGroupQuestions.length})`} key="group">
                 {!readOnly && (
                 <div style={{ marginBottom: 16 }}>
@@ -1530,7 +1532,7 @@ function QuestionSelector({
         />
         )}
 
-        {isLR && !readOnly && (
+        {supportsGroupQuestions && !readOnly && (
           <QuestionGroupSelectorModal
               open={groupQuestionModalOpen}
               onClose={() => setGroupQuestionModalOpen(false)}
@@ -1552,10 +1554,11 @@ function RandomQuestionSelector({
     readOnly,
 }) {
     const [questionTypes, setQuestionTypes] = useState({}); // { partId: [types] }
+    const [questionCounts, setQuestionCounts] = useState({}); // { partId: { single: count, group: count } }
 
     const loadQuestionTypes = async (partId) => {
         try {
-            const { getQuestionTypesByPart } = await import("@services/questionTypesService");
+         
             const types = await getQuestionTypesByPart(partId);
             const typesData = Array.isArray(types) ? types : (types?.data || []);
             setQuestionTypes(prev => ({
@@ -1564,6 +1567,58 @@ function RandomQuestionSelector({
             }));
         } catch (error) {
             console.error(`Error loading question types for part ${partId}:`, error);
+        }
+    };
+
+    const loadQuestionCounts = async (partId) => {
+        if (!partId) return;
+        
+        try {
+            const partIdNum = Number(partId);
+            const isGroupPartId = isGroupPart(partIdNum);
+            
+            // Xác định skill từ partId
+            let effectiveSkill = skill;
+            if (skill === TEST_SKILL.LR) {
+                // Nếu là L&R, xác định skill theo partId
+                effectiveSkill = partIdNum >= 5 ? 4 : 3; // Reading = 4, Listening = 3
+            }
+            
+            if (isGroupPartId) {
+                // Load số lượng group questions
+                const params = buildQuestionListParams({
+                    page: 1,
+                    pageSize: 1, // Chỉ cần total count
+                    skill: effectiveSkill,
+                    partId: partIdNum,
+                });
+                const response = await getQuestionGroups(params);
+                const payload = response?.data || response || {};
+                const totalCount = payload.totalCount || payload.total || 0;
+                
+                setQuestionCounts(prev => ({
+                    ...prev,
+                    [partId]: { ...prev[partId], group: totalCount }
+                }));
+            } else {
+                // Load số lượng single questions
+                const params = buildQuestionListParams({
+                    page: 1,
+                    pageSize: 1, // Chỉ cần total count
+                    skill: effectiveSkill,
+                    partId: partIdNum,
+                });
+                const response = await getQuestions(params);
+                const payload = response?.data || response || {};
+                const totalCount = payload.totalCount || payload.total || 0;
+                
+                setQuestionCounts(prev => ({
+                    ...prev,
+                    [partId]: { ...prev[partId], single: totalCount }
+                }));
+            }
+        } catch (error) {
+            console.error(`Error loading question counts for part ${partId}:`, error);
         }
     };
 
@@ -1589,11 +1644,12 @@ function RandomQuestionSelector({
             [field]: value,
         };
         
-        // Khi partId thay đổi, reset questionTypeId và load question types
+        // Khi partId thay đổi, reset questionTypeId và load question types + counts
         if (field === "partId") {
             newRanges[index].questionTypeId = undefined;
             if (value) {
                 loadQuestionTypes(value);
+                loadQuestionCounts(value);
             }
         }
         
@@ -1628,7 +1684,7 @@ function RandomQuestionSelector({
                 showIcon
                 style={{ marginBottom: 16 }}
                 message="Chọn ngẫu nhiên câu hỏi"
-                description="Cấu hình số lượng câu hỏi ngẫu nhiên cho từng part. Part 3, 4, 6, 7 chỉ có thể chọn nhóm câu hỏi hoặc câu hỏi đơn."
+                description="Cấu hình số lượng câu hỏi ngẫu nhiên cho từng part. Part 3, 4, 6, 7 (L&R) và Part 13, 14 (Speaking) chỉ có thể chọn nhóm câu hỏi, các part khác chỉ có thể chọn câu hỏi đơn."
             />
 
             {!readOnly && (
@@ -1703,9 +1759,21 @@ function RandomQuestionSelector({
                                     <Col span={isGroupPartId ? 6 : 8}>
                                         <div style={{ marginBottom: 4, fontSize: 12, color: "#666" }}>
                                             {isGroupPartId ? "Số nhóm câu hỏi" : "Số câu hỏi đơn"}
+                                            {range.partId && questionCounts[range.partId] && (
+                                                <span style={{ marginLeft: 4, color: "#1890ff", fontSize: 11 }}>
+                                                    (Có sẵn: {isGroupPartId 
+                                                        ? questionCounts[range.partId].group || 0 
+                                                        : questionCounts[range.partId].single || 0})
+                                                </span>
+                                            )}
                                         </div>
                                         <InputNumber
                                             min={0}
+                                            max={range.partId && questionCounts[range.partId] 
+                                                ? (isGroupPartId 
+                                                    ? questionCounts[range.partId].group 
+                                                    : questionCounts[range.partId].single)
+                                                : undefined}
                                             value={isGroupPartId ? range.groupQuestionCount : range.singleQuestionCount}
                                             onChange={(value) => handleRangeChange(
                                                 index, 
