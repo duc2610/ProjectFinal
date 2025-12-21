@@ -150,7 +150,7 @@ namespace ToeicGenius.Services.Implementations
 			// 2) Validate id_token
 			var payload = await _googleAuthService.ValidateIdTokenAsync(tokens.IdToken);
 			if (payload == null || string.IsNullOrWhiteSpace(payload.Email))
-				throw new Exception("Google user payload invalid");
+				throw new Exception("Dữ liệu người dùng Google không hợp lệ");
 
 			// 3) Find-or-create user
 			var user = await _unitOfWork.Users.GetByEmailAsync(payload.Email);

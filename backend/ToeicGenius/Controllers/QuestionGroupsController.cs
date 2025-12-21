@@ -44,11 +44,11 @@ namespace ToeicGenius.Controllers
 			}
 			catch (Exception ex)
 			{
-				return BadRequest(ApiResponse<string>.ErrorResponse($"Invalid Questions JSON: {ex.Message}"));
+				return BadRequest(ApiResponse<string>.ErrorResponse($"Định dạng JSON câu hỏi không hợp lệ: {ex.Message}"));
 			}
 			var result = await _questionGroupService.CreateAsync(request, userId);
 			if (!result.IsSuccess)
-				return BadRequest(ApiResponse<QuestionGroupResponseDto>.ErrorResponse(result.ErrorMessage ?? "Create failed"));
+				return BadRequest(ApiResponse<QuestionGroupResponseDto>.ErrorResponse(result.ErrorMessage ?? ErrorMessages.OperationFailed));
 			return Ok(ApiResponse<string>.SuccessResponse(result.Data!));
 		}
 
@@ -88,7 +88,7 @@ namespace ToeicGenius.Controllers
 
 			var result = await _questionGroupService.FilterQuestionGroupAsync(part, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Active, userId);
 			if (!result.IsSuccess)
-				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? ErrorMessages.OperationFailed));
 			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));
 		}
 
@@ -105,11 +105,11 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(ErrorMessages.Unauthorized));
 
 			var result = await _questionGroupService.FilterQuestionGroupAsync(part, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Inactive, userId);
 			if (!result.IsSuccess)
-				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? ErrorMessages.OperationFailed));
 			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));
 		}
 
@@ -120,7 +120,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.Unauthorized));
 
 			var isAdmin = User.IsInRole("Admin");
 
@@ -132,7 +132,7 @@ namespace ToeicGenius.Controllers
 			}
 			catch (Exception ex)
 			{
-				return BadRequest(ApiResponse<string>.ErrorResponse($"Invalid Questions JSON: {ex.Message}"));
+				return BadRequest(ApiResponse<string>.ErrorResponse($"Định dạng JSON câu hỏi không hợp lệ: {ex.Message}"));
 			}
 			var result = await _questionGroupService.UpdateAsync(id, request, userId, isAdmin);
 			if (!result.IsSuccess)

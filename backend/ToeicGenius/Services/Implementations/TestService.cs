@@ -411,7 +411,7 @@ namespace ToeicGenius.Services.Implementations
 			{
 				await _uow.RollbackTransactionAsync();
 				await _fileService.RollbackAndCleanupAsync(uploadedFiles);
-				return Result<string>.Failure($"Error: {ex.Message}");
+				return Result<string>.Failure($"{ErrorMessages.InternalServerError}: {ex.Message}");
 			}
 		}
 
@@ -445,7 +445,7 @@ namespace ToeicGenius.Services.Implementations
 			}
 			catch (Exception ex)
 			{
-				return Result<string>.Failure($"Create draft failed: {ex.Message}");
+				return Result<string>.Failure($"{ErrorMessages.CreateDraftFailed}: {ex.Message}");
 			}
 		}
 
@@ -590,7 +590,7 @@ namespace ToeicGenius.Services.Implementations
 			catch (Exception ex)
 			{
 				await _uow.RollbackTransactionAsync();
-				return Result<string>.Failure($"Save part failed: {ex.Message}");
+				return Result<string>.Failure($"{ErrorMessages.SavePartFailed}: {ex.Message}");
 			}
 		}
 
@@ -1038,7 +1038,7 @@ namespace ToeicGenius.Services.Implementations
 		{
 			var source = await _uow.Tests.GetByIdAsync(sourceTestId);
 			if (source == null)
-				throw new Exception("Source test not found");
+				throw new Exception(ErrorMessages.SourceTestNotFound);
 
 			var clone = new Test
 			{
@@ -1082,7 +1082,7 @@ namespace ToeicGenius.Services.Implementations
 			// L?y test g?c
 			var parent = await _uow.Tests.GetTestByIdAsync(parentTestId);
 			if (parent == null)
-				return Result<List<TestVersionDto>>.Failure("Parent test not found");
+				return Result<List<TestVersionDto>>.Failure(ErrorMessages.ParentTestNotFound);
 
 			// L?y t?t c? version c� c�ng parent (bao g?m c? parent)
 			var allVersions = await _uow.Tests.GetVersionsByParentIdAsync(parentTestId);
@@ -1304,7 +1304,7 @@ namespace ToeicGenius.Services.Implementations
 			TestResult? testResult = await _uow.TestResults.GetByIdAsync(request.TestResultId.Value);
 
 			if (testResult == null)
-				return Result<GeneralLRResultDto>.Failure("Test session not found.");
+				return Result<GeneralLRResultDto>.Failure(ErrorMessages.TestSessionNotFound);
 			if (testResult.UserId != userId || testResult.TestId != request.TestId)
 				return Result<GeneralLRResultDto>.Failure("Test session does not match the submitted data.");
 			if (testResult.Status == TestResultStatus.Graded)
@@ -1393,7 +1393,7 @@ namespace ToeicGenius.Services.Implementations
 			var testResult = await _uow.TestResults.GetListeningReadingResultDetailAsync(testResultId, userId);
 
 			if (testResult == null || testResult.UserId != userId)
-				return Result<TestResultDetailDto>.Failure("Test result not found or unauthorized.");
+				return Result<TestResultDetailDto>.Failure(ErrorMessages.TestResultNotFoundOrUnauthorized);
 
 			var test = testResult.Test;
 
@@ -1525,7 +1525,7 @@ namespace ToeicGenius.Services.Implementations
 			var testResult = await _uow.TestResults.GetTestResultWithDetailsAsync(testResultId);
 
 			if (testResult == null)
-				return Result<object>.Failure("Test result not found.");
+				return Result<object>.Failure(ErrorMessages.TestResultNotFound);
 
 			if (testResult.UserId != userId)
 				return Result<object>.Failure(ErrorMessages.UnauthorizedAccess);
@@ -1838,7 +1838,7 @@ namespace ToeicGenius.Services.Implementations
 			var result = await _uow.Tests.GetTestByType(testType, userId);
 			if (result == null || !result.Any())
 			{
-				return Result<List<TestListResponseDto>>.Failure("Not found");
+				return Result<List<TestListResponseDto>>.Failure(ErrorMessages.DataNotFound);
 			}
 			// Convert UTC → Vietnam time cho tất cả items
 			foreach (var item in result)
@@ -1941,7 +1941,7 @@ namespace ToeicGenius.Services.Implementations
 				TestSkill.Speaking => NumberConstants.SpeakingDuration,
 				TestSkill.Writing => NumberConstants.WritingDuration,
 				TestSkill.SW => NumberConstants.SWDuration,
-				_ => throw new Exception("Invalid test skill")
+				_ => throw new Exception(ErrorMessages.InvalidTestSkill)
 			};
 		}
 		private int GetQuantityQuestion(CreateTestManualDto dto)
@@ -2256,7 +2256,7 @@ namespace ToeicGenius.Services.Implementations
 		{
 			var part = await _uow.Parts.GetByIdAsync(partId);
 			if (part == null)
-				return (false, $"Part {partId} not found");
+				return (false, $"{ErrorMessages.PartNotFound} (PartId: {partId})");
 
 			// Mapping validation:
 			// TestSkill.Speaking (1) ? QuestionSkill.Speaking (1) ? Parts 11-15
@@ -2284,7 +2284,7 @@ namespace ToeicGenius.Services.Implementations
 						return (false, $"Part {partId} ({part.Name}) is not a Speaking or Reading part. TestSkill is LR but Part skill is {part.Skill}");
 					break;
 				default:
-					return (false, $"Invalid TestSkill: {testSkill}");
+					return (false, $"{ErrorMessages.InvalidTestSkill}: {testSkill}");
 			}
 
 			return (true, string.Empty);
@@ -2297,10 +2297,10 @@ namespace ToeicGenius.Services.Implementations
 				// Validate TestResult ownership and status
 				var testResult = await _uow.TestResults.GetByIdAsync(request.TestResultId);
 				if (testResult == null)
-					return Result<string>.Failure($"TestResult {request.TestResultId} not found");
+					return Result<string>.Failure($"{ErrorMessages.TestResultNotFound} (TestResultId: {request.TestResultId})");
 
 				if (testResult.UserId != userId)
-					return Result<string>.Failure("You don't have permission to save this test result");
+					return Result<string>.Failure(ErrorMessages.NoPermissionToSaveTestResult);
 
 				if (testResult.Status == TestResultStatus.Graded)
 					return Result<string>.Failure("This test has already been submitted/graded. Cannot save progress.");
@@ -2448,11 +2448,11 @@ namespace ToeicGenius.Services.Implementations
 				// Get TestQuestion with details
 				var testQuestion = await _uow.TestQuestions.GetByIdWithDetailsAsync(testQuestionId);
 				if (testQuestion == null)
-					return Result<string>.Failure("TestQuestion not found");
+					return Result<string>.Failure(ErrorMessages.TestQuestionNotFound);
 
 				// Check ownership if not admin - verify the test belongs to this user
 				if (!isAdmin && testQuestion.Test?.CreatedById != userId)
-					return Result<string>.Failure("You don't have permission to update this question. Only the test creator can modify.");
+					return Result<string>.Failure(ErrorMessages.NoPermissionToUpdateQuestion);
 
 				// Branch based on whether this is a question group or single question
 				if (testQuestion.IsQuestionGroup)
@@ -2495,11 +2495,11 @@ namespace ToeicGenius.Services.Implementations
 				}
 				catch
 				{
-					return Result<string>.Failure("Invalid snapshot versions format");
+					return Result<string>.Failure(ErrorMessages.InvalidSnapshotVersionsFormat);
 				}
 
 				if (versionHistory == null || !versionHistory.Versions.Any())
-					return Result<string>.Failure("Failed to deserialize version history");
+					return Result<string>.Failure(ErrorMessages.FailedToDeserializeVersionHistory);
 
 				currentSnapshot = versionHistory.GetLatestSnapshot();
 			}
@@ -2512,11 +2512,11 @@ namespace ToeicGenius.Services.Implementations
 				}
 				catch
 				{
-					return Result<string>.Failure("Invalid snapshot JSON format");
+					return Result<string>.Failure(ErrorMessages.InvalidSnapshotJsonFormat);
 				}
 
 				if (currentSnapshot == null)
-					return Result<string>.Failure("Failed to deserialize snapshot");
+					return Result<string>.Failure(ErrorMessages.FailedToDeserializeSnapshot);
 
 				// Initialize version history with current snapshot
 				versionHistory = QuestionVersionHistory.CreateInitial(currentSnapshot, testQuestion.CreatedAt);
@@ -2682,11 +2682,11 @@ namespace ToeicGenius.Services.Implementations
 				}
 				catch
 				{
-					return Result<string>.Failure("Invalid question group snapshot versions format");
+					return Result<string>.Failure(ErrorMessages.InvalidQuestionGroupSnapshotVersionsFormat);
 				}
 
 				if (versionHistory == null || !versionHistory.Versions.Any())
-					return Result<string>.Failure("Failed to deserialize question group version history");
+					return Result<string>.Failure(ErrorMessages.FailedToDeserializeQuestionGroupVersionHistory);
 
 				currentGroupSnapshot = versionHistory.GetLatestSnapshot();
 			}
@@ -2699,11 +2699,11 @@ namespace ToeicGenius.Services.Implementations
 				}
 				catch
 				{
-					return Result<string>.Failure("Invalid question group snapshot JSON format");
+					return Result<string>.Failure(ErrorMessages.InvalidQuestionGroupSnapshotJsonFormat);
 				}
 
 				if (currentGroupSnapshot == null)
-					return Result<string>.Failure("Failed to deserialize question group snapshot");
+					return Result<string>.Failure(ErrorMessages.FailedToDeserializeQuestionGroupSnapshot);
 
 				// Initialize version history with current snapshot
 				versionHistory = QuestionGroupVersionHistory.CreateInitial(currentGroupSnapshot, testQuestion.CreatedAt);

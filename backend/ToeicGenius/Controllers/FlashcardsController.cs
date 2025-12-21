@@ -311,7 +311,7 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				throw new UnauthorizedAccessException("Invalid user token");
+				throw new UnauthorizedAccessException(ErrorMessages.InvalidOrMissingUserToken);
 			}
 			return userId;
 		}

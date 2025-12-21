@@ -38,7 +38,7 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 			var result = await _testService.CreateFromBankAsync(userId, request);
 			if (!result.IsSuccess)
@@ -84,7 +84,7 @@ namespace ToeicGenius.Controllers
 				var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 				if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 				{
-					return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+					return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 				}
 				var result = await _testService.CreateManualAsync(userId, request);
 				if (!result.IsSuccess)
@@ -106,11 +106,11 @@ namespace ToeicGenius.Controllers
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 			{
-				return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+				return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 			}
 			if (request == null || request.ExcelFile == null)
 			{
-				return BadRequest(ApiResponse<string>.ErrorResponse("Excel file is required"));
+				return BadRequest(ApiResponse<string>.ErrorResponse(ErrorMessages.ExcelFileRequired));
 			}
 
 			if (request.AudioFile == null)
@@ -150,7 +150,7 @@ namespace ToeicGenius.Controllers
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, ApiResponse<string>.ErrorResponse($"Internal server error: {ex.Message}"));
+				return StatusCode(500, ApiResponse<string>.ErrorResponse($"{ErrorMessages.InternalServerError}: {ex.Message}"));
 			}
 		}
 
@@ -176,7 +176,7 @@ namespace ToeicGenius.Controllers
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, ApiResponse<string>.ErrorResponse($"Internal server error: {ex.Message}"));
+				return StatusCode(500, ApiResponse<string>.ErrorResponse($"{ErrorMessages.InternalServerError}: {ex.Message}"));
 			}
 		}
 
@@ -202,7 +202,7 @@ namespace ToeicGenius.Controllers
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, ApiResponse<string>.ErrorResponse($"Internal server error: {ex.Message}"));
+				return StatusCode(500, ApiResponse<string>.ErrorResponse($"{ErrorMessages.InternalServerError}: {ex.Message}"));
 			}
 		}
 
@@ -216,7 +216,7 @@ namespace ToeicGenius.Controllers
 				var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 				if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
 				{
-					return Unauthorized(ApiResponse<string>.UnauthorizedResponse("Invalid or missing user token"));
+					return Unauthorized(ApiResponse<string>.UnauthorizedResponse(ErrorMessages.InvalidOrMissingUserToken));
 				}
 
 				if (request == null || request.ExcelFile == null)
@@ -245,7 +245,7 @@ namespace ToeicGenius.Controllers
 			}
 			catch (Exception ex)
 			{
-				return StatusCode(500, ApiResponse<string>.ErrorResponse($"Internal server error: {ex.Message}"));
+				return StatusCode(500, ApiResponse<string>.ErrorResponse($"{ErrorMessages.InternalServerError}: {ex.Message}"));
 			}
 		}
 

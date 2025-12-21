@@ -30,7 +30,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.Unauthorized));
 
 			var result = await _questionService.CreateAsync(request, userId);
 			if (!result.IsSuccess)
@@ -47,7 +47,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<QuestionResponseDto>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<QuestionResponseDto>.ErrorResponse(ErrorMessages.Unauthorized));
 
 			var isAdmin = User.IsInRole("Admin");
 			var question = await _questionService.GetQuestionResponseByIdAsync(id, userId, isAdmin);
@@ -62,7 +62,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.Unauthorized));
 
 			var isAdmin = User.IsInRole("Admin");
 			var result = await _questionService.UpdateAsync(id, dto, userId, isAdmin);
@@ -84,7 +84,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.Unauthorized));
 
 			var isAdmin = User.IsInRole("Admin");
 			bool isRestore = false;
@@ -101,7 +101,7 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<string>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<string>.ErrorResponse(ErrorMessages.Unauthorized));
 
 			var isAdmin = User.IsInRole("Admin");
 			bool isRestore = true;
@@ -125,11 +125,11 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(ErrorMessages.Unauthorized));
 
 			var result = await _questionService.FilterSingleQuestionAsync(part, questionType, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Active, userId);
 			if (!result.IsSuccess)
-				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? ErrorMessages.OperationFailed));
 			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));
 		}
 
@@ -147,11 +147,11 @@ namespace ToeicGenius.Controllers
 		{
 			var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 			if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-				return Unauthorized(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse("Unauthorized"));
+				return Unauthorized(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(ErrorMessages.Unauthorized));
 
 			var result = await _questionService.FilterSingleQuestionAsync(part, questionType, keyWord, skill, sortOrder, page, pageSize, Domains.Enums.CommonStatus.Inactive, userId);
 			if (!result.IsSuccess)
-				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? "Error"));
+				return BadRequest(ApiResponse<PaginationResponse<QuestionListItemDto>>.ErrorResponse(result.ErrorMessage ?? ErrorMessages.OperationFailed));
 			return Ok(ApiResponse<PaginationResponse<QuestionListItemDto>>.SuccessResponse(result.Data!));
 		}
 	}

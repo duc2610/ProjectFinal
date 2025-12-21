@@ -97,5 +97,39 @@
 		public const string UnauthorizedAccess = "Truy cập không được phép.";
 		public const string InvalidTestOrQuestions = "Bài kiểm tra hoặc câu hỏi không hợp lệ.";
 		public const string DuplicateTestName = "Tên bài thi đã tồn tại. Vui lòng chọn tên khác.";
+		
+		// Additional error messages
+		public const string SourceTestNotFound = "Không tìm thấy bài thi nguồn.";
+		public const string ParentTestNotFound = "Không tìm thấy bài thi gốc.";
+		public const string TestSessionNotFound = "Không tìm thấy phiên làm bài.";
+		public const string TestResultNotFound = "Không tìm thấy kết quả bài thi.";
+		public const string TestResultNotFoundOrUnauthorized = "Không tìm thấy kết quả bài thi hoặc không có quyền truy cập.";
+		public const string NoPermissionToSaveTestResult = "Bạn không có quyền lưu kết quả bài thi này.";
+		public const string TestQuestionNotFound = "Không tìm thấy câu hỏi trong bài thi.";
+		public const string NoPermissionToUpdateQuestion = "Bạn không có quyền cập nhật câu hỏi này. Chỉ người tạo bài thi mới có thể chỉnh sửa.";
+		public const string InvalidSnapshotVersionsFormat = "Định dạng phiên bản snapshot không hợp lệ.";
+		public const string FailedToDeserializeVersionHistory = "Không thể giải mã lịch sử phiên bản.";
+		public const string InvalidSnapshotJsonFormat = "Định dạng JSON snapshot không hợp lệ.";
+		public const string FailedToDeserializeSnapshot = "Không thể giải mã snapshot.";
+		public const string InvalidQuestionGroupSnapshotVersionsFormat = "Định dạng phiên bản snapshot nhóm câu hỏi không hợp lệ.";
+		public const string FailedToDeserializeQuestionGroupVersionHistory = "Không thể giải mã lịch sử phiên bản nhóm câu hỏi.";
+		public const string InvalidQuestionGroupSnapshotJsonFormat = "Định dạng JSON snapshot nhóm câu hỏi không hợp lệ.";
+		public const string FailedToDeserializeQuestionGroupSnapshot = "Không thể giải mã snapshot nhóm câu hỏi.";
+		public const string PartNotFound = "Không tìm thấy Part.";
+		public const string InvalidTestSkill = "Kỹ năng bài thi không hợp lệ.";
+		public const string CreateDraftFailed = "Tạo bản nháp thất bại.";
+		public const string SavePartFailed = "Lưu phần thất bại.";
+		public const string DataNotFound = "Không tìm thấy dữ liệu.";
+		
+		// Assessment Service
+		public const string NoPermissionToSubmitTestResult = "Bạn không có quyền nộp kết quả bài thi này.";
+		public const string TestAlreadySubmitted = "Bài thi này đã được nộp/hoàn thành.";
+		public const string FailedToDownloadAudio = "Không thể tải xuống file âm thanh từ URL được cung cấp.";
+		public const string FailedToUploadAudioFile = "Không thể tải lên file âm thanh.";
+		public const string FeedbackNotFound = "Không tìm thấy phản hồi.";
+		public const string NoPermissionToAccessFeedback = "Bạn không có quyền truy cập phản hồi này.";
+		public const string NoPermissionToUseTestResult = "Bạn không có quyền sử dụng kết quả bài thi này.";
+		public const string FailedToDeserializeTestQuestionSnapshot = "Không thể giải mã snapshot câu hỏi bài thi.";
+		public const string PythonApiError = "Lỗi Python API.";
 	}
 }

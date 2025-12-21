@@ -74,11 +74,11 @@ namespace ToeicGenius.Services.Implementations
             // Validate TestResult ownership - Include Test để lấy TotalQuestion
             var testResult = await _uow.TestResults.GetTestResultWithDetailsAsync(request.TestResultId);
             if (testResult == null)
-                throw new Exception($"TestResult {request.TestResultId} not found");
+                throw new Exception($"{ErrorMessages.TestResultNotFound} (TestResultId: {request.TestResultId})");
             if (testResult.UserId != userId)
-                throw new UnauthorizedAccessException("You don't have permission to submit this test result");
+                throw new UnauthorizedAccessException(ErrorMessages.NoPermissionToSubmitTestResult);
             if (testResult.Status == TestResultStatus.Graded)
-                throw new Exception("This test has already been submitted/completed.");
+                throw new Exception(ErrorMessages.TestAlreadySubmitted);
 
             // Determine test type (Simulator or Practice)
             bool isSimulator = string.Equals(request.TestType, "Simulator", StringComparison.OrdinalIgnoreCase)
@@ -417,12 +417,12 @@ namespace ToeicGenius.Services.Implementations
             // Download audio stream
             var audioStream = await _fileService.DownloadFileAsync(audioUrl);
             if (audioStream == null)
-                throw new Exception("Failed to download audio file from provided URL.");
+                throw new Exception(ErrorMessages.FailedToDownloadAudio);
 
             // Get TestQuestion
             var testQuestion = await _testQuestionRepository.GetByIdAsync(testQuestionId);
             if (testQuestion == null)
-                throw new Exception($"TestQuestion {testQuestionId} not found");
+                throw new Exception($"{ErrorMessages.TestQuestionNotFound} (TestQuestionId: {testQuestionId})");
 
             var (testResult, userAnswer) = await CreateSpeakingUserAnswerAsync(userId, testQuestionId, audioUrl);
 
@@ -500,7 +500,7 @@ namespace ToeicGenius.Services.Implementations
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                throw new Exception($"Python API error: {response.StatusCode} - {error}");
+                throw new Exception($"{ErrorMessages.PythonApiError} (StatusCode: {response.StatusCode}) - {error}");
             }
 
             var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -568,7 +568,7 @@ namespace ToeicGenius.Services.Implementations
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"Python API error: {response.StatusCode} - {error}");
+                    throw new Exception($"{ErrorMessages.PythonApiError} (StatusCode: {response.StatusCode}) - {error}");
                 }
 
                 var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -641,7 +641,7 @@ namespace ToeicGenius.Services.Implementations
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"Python API error: {response.StatusCode} - {error}");
+                    throw new Exception($"{ErrorMessages.PythonApiError} (StatusCode: {response.StatusCode}) - {error}");
                 }
 
                 var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -713,7 +713,7 @@ namespace ToeicGenius.Services.Implementations
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"Python API error: {response.StatusCode} - {error}");
+                    throw new Exception($"{ErrorMessages.PythonApiError} (StatusCode: {response.StatusCode}) - {error}");
                 }
 
                 var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -773,7 +773,7 @@ namespace ToeicGenius.Services.Implementations
                 // Upload audio file
                 var uploadResult = await _fileService.UploadFileAsync(request.AudioFile, "audio");
                 if (!uploadResult.IsSuccess)
-                    throw new Exception("Failed to upload audio file");
+                    throw new Exception(ErrorMessages.FailedToUploadAudioFile);
 
                 var audioUrl = uploadResult.Data;
                 var (testResult, userAnswer) = await CreateSpeakingUserAnswerAsync(userId, request.TestQuestionId, audioUrl, request.TestResultId);
@@ -814,7 +814,7 @@ namespace ToeicGenius.Services.Implementations
                 if (!response.IsSuccessStatusCode)
                 {
                     var error = await response.Content.ReadAsStringAsync();
-                    throw new Exception($"Python API error: {response.StatusCode} - {error}");
+                    throw new Exception($"{ErrorMessages.PythonApiError} (StatusCode: {response.StatusCode}) - {error}");
                 }
 
                 var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -864,11 +864,11 @@ namespace ToeicGenius.Services.Implementations
             var feedback = await _feedbackRepository.GetByIdAsync(feedbackId);
 
             if (feedback == null)
-                throw new Exception("Feedback not found");
+                throw new Exception(ErrorMessages.FeedbackNotFound);
 
             var isOwner = await _feedbackRepository.IsUserOwnerAsync(feedbackId, userId);
             if (!isOwner)
-                throw new UnauthorizedAccessException("You don't have permission to access this feedback");
+                throw new UnauthorizedAccessException(ErrorMessages.NoPermissionToAccessFeedback);
 
             return MapToResponseDto(feedback);
         }
@@ -917,11 +917,11 @@ namespace ToeicGenius.Services.Implementations
         {
             var testQuestion = await _testQuestionRepository.GetByIdAsync(testQuestionId);
             if (testQuestion == null)
-                throw new Exception($"TestQuestion {testQuestionId} not found");
+                throw new Exception($"{ErrorMessages.TestQuestionNotFound} (TestQuestionId: {testQuestionId})");
 
             var snapshot = JsonSerializer.Deserialize<QuestionSnapshotDto>(testQuestion.SnapshotJson, _jsonOptions);
             if (snapshot == null)
-                throw new Exception($"Failed to deserialize TestQuestion {testQuestionId} snapshot");
+                throw new Exception($"{ErrorMessages.FailedToDeserializeTestQuestionSnapshot} (TestQuestionId: {testQuestionId})");
 
             return (testQuestion, snapshot);
         }
@@ -939,11 +939,11 @@ namespace ToeicGenius.Services.Implementations
             {
                 testResult = await _uow.TestResults.GetByIdAsync(testResultId.Value);
                 if (testResult == null)
-                    throw new Exception($"TestResult {testResultId.Value} not found");
+                    throw new Exception($"{ErrorMessages.TestResultNotFound} (TestResultId: {testResultId.Value})");
                 if (testResult.UserId != userId)
-                    throw new UnauthorizedAccessException("You don't have permission to use this TestResult");
+                    throw new UnauthorizedAccessException(ErrorMessages.NoPermissionToUseTestResult);
                 if (testResult.Status == TestResultStatus.Graded)
-                    throw new Exception("This test has already been completed");
+                    throw new Exception(ErrorMessages.TestAlreadySubmitted);
 
                 _logger.LogInformation("💾 Using provided TestResult: {TestResultId}", testResult.TestResultId);
             }
@@ -990,11 +990,11 @@ namespace ToeicGenius.Services.Implementations
             {
                 testResult = await _uow.TestResults.GetByIdAsync(testResultId.Value);
                 if (testResult == null)
-                    throw new Exception($"TestResult {testResultId.Value} not found");
+                    throw new Exception($"{ErrorMessages.TestResultNotFound} (TestResultId: {testResultId.Value})");
                 if (testResult.UserId != userId)
-                    throw new UnauthorizedAccessException("You don't have permission to use this TestResult");
+                    throw new UnauthorizedAccessException(ErrorMessages.NoPermissionToUseTestResult);
                 if (testResult.Status == TestResultStatus.Graded)
-                    throw new Exception("This test has already been completed");
+                    throw new Exception(ErrorMessages.TestAlreadySubmitted);
 
                 _logger.LogInformation("💾 Using provided TestResult: {TestResultId}", testResult.TestResultId);
             }

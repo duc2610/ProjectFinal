@@ -34,7 +34,7 @@ namespace ToeicGenius.Services.Implementations
 				// Logic xử lý khi lỗi (log error)
 				var error = await response.Body.ReadAsStringAsync();
 				_logger.LogError("SendGrid Error: {Error}", error);
-				throw new Exception($"SendGrid Error: {error}");
+				throw new Exception($"Lỗi SendGrid: {error}");
 			}
 		}
 	}
