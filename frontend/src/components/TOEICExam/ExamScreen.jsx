@@ -283,7 +283,7 @@ export default function ExamScreen() {
         });
       });
     } catch (e) {
-      console.error("Error building subQuestionIdMap:", e);
+      // Error building subQuestionIdMap
     }
     return map;
   }, [rawTestData.parts]);
@@ -387,7 +387,6 @@ export default function ExamScreen() {
             hasLoadedFromBackendRef.current = true;
             // Không gọi startTest, để guard xử lý redirect
             // Đảm bảo không tạo test mới
-            console.log("Bài thi đã được nộp, không load answers từ backend");
             return;
           }
         }
@@ -473,9 +472,6 @@ export default function ExamScreen() {
                   const subQAnswerKey = firstSubQTestQuestionId; // subQuestionIndex = 0
                   if (savedAnswersObj[subQAnswerKey] && !savedAnswersObj[groupTestQuestionId]) {
                     savedAnswersObj[groupTestQuestionId] = savedAnswersObj[subQAnswerKey];
-                    if (process.env.NODE_ENV === 'development') {
-                      console.log(`[ExamScreen] Mapped speaking_group answer from sub-question ${firstSubQTestQuestionId} to group ${groupTestQuestionId}`);
-                    }
                   }
                 }
               }
@@ -499,7 +495,6 @@ export default function ExamScreen() {
             sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
           }
         } catch (error) {
-          console.error("Error loading answers from backend on reload:", error);
           // Nếu lỗi, vẫn dùng answers từ sessionStorage (fallback)
         } finally {
           setIsLoadingAnswers(false);
@@ -542,22 +537,13 @@ export default function ExamScreen() {
               reportedIds.add(key);
               if (process.env.NODE_ENV === 'development') {
                 const isGroup = !!report.isQuestionGroup;
-                console.log(`[ExamScreen] Added report key: ${key} (testQuestionId: ${report.testQuestionId}, subQuestionId: ${report.subQuestionId}, isGroup: ${isGroup}, status: ${report.status})`);
-              }
-            } else {
-              if (process.env.NODE_ENV === 'development') {
-                console.warn(`[ExamScreen] Skipping report without subQuestionId: testQuestionId=${report.testQuestionId}, isQuestionGroup=${report.isQuestionGroup}`);
               }
             }
           }
         });
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[ExamScreen] Loaded ${reportedIds.size} reported question keys from ${activeReports.length} active reports`);
-        }
         setReportedQuestionIds(reportedIds);
       } catch (error) {
-        console.error("Error loading reports:", error);
         // Không hiển thị error vì đây là tính năng phụ
       }
     };
@@ -574,16 +560,10 @@ export default function ExamScreen() {
     // Backend luôn trả về subQuestionId, dùng trực tiếp nếu có
     // Nếu không có subQuestionId, không thể check (cả câu đơn và nhóm)
     if (subQuestionId === null || subQuestionId === undefined) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`[ExamScreen] Cannot check question without subQuestionId: testQuestionId=${testQuestionId}, isGroup=${isGroup}`);
-      }
       return false;
     }
     const key = `${testQuestionId}_${subQuestionId}`;
     const isReported = reportedQuestionIds.has(key);
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[ExamScreen] Check report: key=${key}, isReported=${isReported}, testQuestionId=${testQuestionId}, subQuestionId=${subQuestionId}, isGroup=${isGroup}`);
-    }
     return isReported;
   };
 
@@ -594,13 +574,9 @@ export default function ExamScreen() {
     // Backend luôn trả về subQuestionId, dùng trực tiếp nếu có
     // Nếu không có subQuestionId, không thể tạo key (cả câu đơn và nhóm)
     if (subQuestionId === null || subQuestionId === undefined) {
-      console.warn(`Cannot create report key without subQuestionId: testQuestionId=${testQuestionId}, isGroup=${isGroup}`);
       return;
     }
     const key = `${testQuestionId}_${subQuestionId}`;
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[ExamScreen] handleReportSuccess: Adding key=${key}, testQuestionId=${testQuestionId}, subQuestionId=${subQuestionId}, isGroup=${isGroup}`);
-    }
     // Cập nhật state ngay lập tức để UI phản hồi nhanh
     setReportedQuestionIds(prev => new Set([...prev, key]));
     
@@ -624,24 +600,12 @@ export default function ExamScreen() {
           if (report.subQuestionId !== null && report.subQuestionId !== undefined) {
             const keyReport = `${report.testQuestionId}_${report.subQuestionId}`;
             reportedIds.add(keyReport);
-            if (process.env.NODE_ENV === 'development') {
-              const isGroupReport = !!report.isQuestionGroup;
-              console.log(`[ExamScreen] Reloaded report key: ${keyReport} (testQuestionId: ${report.testQuestionId}, subQuestionId: ${report.subQuestionId}, isGroup: ${isGroupReport}, status: ${report.status})`);
-            }
-          } else {
-            if (process.env.NODE_ENV === 'development') {
-              console.warn(`[ExamScreen] Skipping report reload without subQuestionId: testQuestionId=${report.testQuestionId}`);
-            }
           }
         }
       });
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[ExamScreen] Reloaded ${reportedIds.size} reported question keys after report success`);
-      }
       setReportedQuestionIds(reportedIds);
     } catch (error) {
-      console.error("Error reloading reports after report success:", error);
       // Nếu lỗi, vẫn giữ key đã thêm vào để UI vẫn hiển thị đúng
     }
   };
@@ -872,7 +836,7 @@ export default function ExamScreen() {
         savedData.answers = newAnswers;
         sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
       } catch (error) {
-        console.error("Error saving answers to sessionStorage:", error);
+        // Error saving answers to sessionStorage
       }
       
       return newAnswers;
@@ -888,7 +852,7 @@ export default function ExamScreen() {
         savedData.currentIndex = i;
         sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
       } catch (error) {
-        console.error("Error saving currentIndex to sessionStorage:", error);
+        // Error saving currentIndex to sessionStorage
       }
     }
   };
@@ -1029,7 +993,6 @@ export default function ExamScreen() {
       savedData.lastBackendLoadTime = Date.now();
       sessionStorage.setItem("toeic_testData", JSON.stringify(savedData));
     } catch (error) {
-      console.error("Error saving progress:", error);
       // Nếu lỗi do mất mạng, lưu answers vào offlineAnswers
       if (!navigator.onLine || error.code === 'ERR_NETWORK' || error.message.includes('Network')) {
         setOfflineAnswers({ ...snapshot });
@@ -1039,7 +1002,6 @@ export default function ExamScreen() {
       } else if (error.response?.status === 405) {
         // Endpoint chưa được implement trên backend
         message.warning("Tính năng lưu tiến độ chưa được kích hoạt. Vui lòng liên hệ quản trị viên.");
-        console.warn("Save progress endpoint may not be implemented on backend");
       } else {
         message.error("Không thể lưu tiến độ: " + translateErrorMessage(error.response?.data?.message || error.message));
       }
@@ -1211,7 +1173,6 @@ export default function ExamScreen() {
                   });
                   audioFileUrl = await uploadFile(audioFile, "audio");
                 } catch (error) {
-                  console.error(`Error uploading audio for question ${testQuestionId}:`, error);
                   message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}`);
                   audioFileUrl = null;
                 }
@@ -1249,9 +1210,6 @@ export default function ExamScreen() {
           testType: testType,
           answers: lrAnswers,
         };
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[ExamScreen] L&R Payload:', JSON.stringify(lrPayload, null, 2));
-        }
         lrResult = await submitTest(lrPayload);
 
         // CHỈ cập nhật testResultId từ response nếu KHÔNG phải tiếp tục từ history
@@ -1264,7 +1222,7 @@ export default function ExamScreen() {
             saved.testResultId = finalTestResultId;
             sessionStorage.setItem("toeic_testData", JSON.stringify(saved));
           } catch (e) {
-            console.error("Error syncing testResultId to sessionStorage:", e);
+            // Error syncing testResultId to sessionStorage
           }
         } else if (isContinueFromHistory) {
         }
@@ -1279,9 +1237,6 @@ export default function ExamScreen() {
           duration: durationSeconds, // API yêu cầu duration tính bằng giây
           parts: swAnswers,
         };
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[ExamScreen] S&W Payload:', JSON.stringify(swPayload, null, 2));
-        }
         swResult = await submitAssessmentBulk(swPayload);
         // KHÔNG cập nhật testResultId từ response - luôn dùng testResultId ban đầu hoặc từ history
       }
@@ -1313,7 +1268,7 @@ export default function ExamScreen() {
       try {
         sessionStorage.setItem("toeic_resultMeta", JSON.stringify(resultMeta));
       } catch (e) {
-        console.error("Error saving result meta to sessionStorage:", e);
+        // Error saving result meta to sessionStorage
       }
 
 

@@ -83,7 +83,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         explanation: q.explanation || q.Explanation || q.solution || q.Solution || "",
                     };
                 } catch (error) {
-                    console.error(`Error loading question ${qid}:`, error);
+                    // Error loading question
                     details[qid] = {
                         content: "Không tải được nội dung",
                         partName: "",
@@ -126,7 +126,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         questions: questions,
                     };
                 } catch (error) {
-                    console.error(`Error loading group ${gid}:`, error);
+                    // Error loading group
                     details[gid] = {
                         passage: "Không tải được nội dung",
                         partName: "",
@@ -333,7 +333,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         onClose();
                     }, 300);
                 } catch (error) {
-                    console.error("Error creating random test:", error);
+                    // Error creating random test
                     const errorMessage = error?.response?.data?.message || 
                                       error?.response?.data?.error || 
                                       error?.message || 
@@ -419,7 +419,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                 onClose();
             }, 300);
         } catch (error) {
-            console.error("Error creating test:", error);
+            // Error creating test
             const errorMessage = error?.response?.data?.message || 
                                 error?.response?.data?.error || 
                                 error?.message || 
@@ -1566,7 +1566,7 @@ function RandomQuestionSelector({
                 [partId]: typesData,
             }));
         } catch (error) {
-            console.error(`Error loading question types for part ${partId}:`, error);
+            // Error loading question types for part
         }
     };
 
@@ -1618,7 +1618,7 @@ function RandomQuestionSelector({
                 }));
             }
         } catch (error) {
-            console.error(`Error loading question counts for part ${partId}:`, error);
+            // Error loading question counts for part
         }
     };
 

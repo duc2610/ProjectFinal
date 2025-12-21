@@ -40,7 +40,7 @@ export const textToSpeech = {
      */
     speak: (text, options = {}) => {
       if (!textToSpeech.isSupported()) {
-        console.warn('Trình duyệt không hỗ trợ speech synthesis');
+        // Trình duyệt không hỗ trợ speech synthesis
         return null;
       }
   

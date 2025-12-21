@@ -24,7 +24,7 @@ export default function CreateFlashcardSetModal({ open, onClose, onSuccess }) {
       onSuccess?.(result);
       onClose?.();
     } catch (error) {
-      console.error("Error creating flashcard set:", error);
+      // Error creating flashcard set
       const errorMsg = error?.response?.data?.message || "Không thể tạo flashcard set";
       message.error(errorMsg);
     } finally {

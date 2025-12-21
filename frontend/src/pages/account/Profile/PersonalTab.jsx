@@ -120,7 +120,7 @@ export function PersonalTab({ user }) {
       
       // Nếu là lỗi validation từ backend, không hiển thị cho user
       if (isValidationError) {
-        console.error("Lỗi validation từ backend (không hiển thị):", error.response?.data);
+        // Lỗi validation từ backend (không hiển thị)
         return;
       }
 

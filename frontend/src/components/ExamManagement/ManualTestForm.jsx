@@ -132,7 +132,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                             await publishTest(newId);
                             message.success("Đã tạo phiên bản mới và tự động công khai.");
                         } catch (publishError) {
-                            console.error("Error auto-publishing new version:", publishError);
+                            // Error auto-publishing new version
                             // Nếu không publish được (có thể do test chưa hoàn thành), vẫn hiển thị thông báo tạo thành công
                             // Không dùng responseText từ backend (có thể có lỗi encoding), dùng thông báo từ frontend
                             message.success("Đã tạo phiên bản mới.");
@@ -140,9 +140,6 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     } else {
                         // Không hiển thị thông báo khi autoPublish = false (sẽ có thông báo chi tiết ở nơi gọi)
                         // Chỉ log để debug
-                        if (process.env.NODE_ENV === 'development') {
-                            console.log("Clone thành công, không hiển thị thông báo (sẽ có thông báo chi tiết sau)");
-                        }
                     }
                 }
             } else {
@@ -214,7 +211,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
         // Đảm bảo validEditingId là số hợp lệ hoặc null/undefined
         if (validEditingId !== null && validEditingId !== undefined) {
             if (typeof validEditingId !== 'number' || isNaN(validEditingId)) {
-                console.warn("Invalid editingId format:", editingId);
+                // Invalid editingId format
                 validEditingId = null;
             }
         }
@@ -264,7 +261,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     try {
                         const partId = p.partId || p.PartId;
                         if (!partId) {
-                            console.warn("Part không có partId:", p);
+                            // Part không có partId
                             return;
                         }
                         
@@ -280,7 +277,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 if (isGroup) {
                                     const gSnap = tq.questionGroupSnapshotDto || tq.QuestionGroupSnapshotDto;
                                     if (!gSnap) {
-                                        console.warn(`Part ${partId}, TestQuestion ${tqIndex}: Group snapshot không tồn tại`, tq);
+                                        // Group snapshot không tồn tại
                                         return;
                                     }
                                     
@@ -288,7 +285,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                     const questionSnapshots = gSnap.questionSnapshots || gSnap.QuestionSnapshots || [];
                                     
                                     if (questionSnapshots.length === 0) {
-                                        console.warn(`Part ${partId}, Group ${tqIndex}: Group không có questions!`, gSnap);
+                                        // Group không có questions
                                     }
                                     
                                     newPartsData[partId].groups.push({
@@ -331,7 +328,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 } else {
                                     const qSnap = tq.questionSnapshotDto || tq.QuestionSnapshotDto;
                                     if (!qSnap) {
-                                        console.warn(`Part ${partId}, TestQuestion ${tqIndex}: Question snapshot không tồn tại`, tq);
+                                        // Question snapshot không tồn tại
                                         return;
                                     }
                                     // Writing và Speaking parts không có options (partId 8-15)
@@ -366,11 +363,11 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                     });
                                 }
                             } catch (err) {
-                                console.error(`Lỗi khi parse testQuestion cho partId ${partId}:`, err, tq);
+                                // Lỗi khi parse testQuestion cho partId
                             }
                         });
                     } catch (err) {
-                        console.error("Lỗi khi parse part:", err, p);
+                        // Lỗi khi parse part
                     }
                 });
                 
@@ -1165,8 +1162,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     }
                 }
             } catch (reloadError) {
-                console.error("Error reloading test data after save:", reloadError);
-                // Không hiển thị lỗi cho user vì lưu đã thành công, chỉ log để debug
+                // Không hiển thị lỗi cho user vì lưu đã thành công
             }
             
             // Tìm tên part thân thiện (ví dụ: W-Part 2, S-Part 5) để hiển thị trong toast
@@ -1180,7 +1176,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 onSuccess();
             }
         } catch (error) {
-            console.error(`Error saving part ${partId}:`, error);
+            // Error saving part
             const errorMessage = getErrorMessage(error);
             const normalizedError = (errorMessage || "").toLowerCase();
 
@@ -1207,7 +1203,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 await publishTest(newId);
                                 // Không hiển thị thông báo publish ở đây, sẽ hiển thị thông báo tổng hợp ở cuối
                             } catch (publishError) {
-                                console.error("Error auto-publishing new version after saving part:", publishError);
+                                // Error auto-publishing new version after saving part
                                 // Nếu không publish được, vẫn hiển thị thông báo lưu thành công
                             }
                             
@@ -1309,8 +1305,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                     }
                                 }
                             } catch (reloadError) {
-                                console.error("Error reloading test data after clone and save:", reloadError);
-                                // Không hiển thị lỗi cho user vì lưu đã thành công, chỉ log để debug
+                                // Không hiển thị lỗi cho user vì lưu đã thành công
                             }
                             
                             const friendlyPartName = (() => {
@@ -1330,7 +1325,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                             message.success("Đã tạo phiên bản mới. Vui lòng mở lại bài thi để tiếp tục chỉnh sửa.");
                         }
                     } catch (cloneError) {
-                        console.error("clonePublishedTestToDraft error:", cloneError);
+                        // clonePublishedTestToDraft error
                         const cloneMessage = getErrorMessage(cloneError);
                         message.error(`Không thể tạo phiên bản mới: ${cloneMessage}`);
                     }
@@ -1588,7 +1583,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                 
                                 setPartsData(reloadedPartsData);
                             } catch (reloadError) {
-                                console.error("Error reloading test data after clone:", reloadError);
+                                // Error reloading test data after clone
                             }
                         }
                     message.success("Đã cập nhật bài thi thành công!");
@@ -1727,7 +1722,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
 
                         setPartsData(reloadedPartsData);
                     } catch (reloadErr) {
-                        console.error("Error reloading test after update:", reloadErr);
+                        // Error reloading test after update
                     }
 
                     message.success("Đã cập nhật thông tin bài thi thành công!");
@@ -1735,7 +1730,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                     onClose(); // Đóng modal sau khi cập nhật thành công
                     return;
                 } catch (error) {
-                    console.error("Error updating test:", error);
+                    // Error updating test
                     const errorMessage = getErrorMessage(error);
                     message.error(`Lỗi khi cập nhật bài thi: ${errorMessage}`);
                     throw error;
@@ -1805,8 +1800,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                 onSuccess();
             }
         } catch (error) {
-            console.error("Error creating draft test:", error);
-            console.error("Error response:", error.response?.data);
+            // Error creating draft test
             
             const errorMessage = error.response?.data?.message 
                 || error.response?.data?.data 
@@ -1986,7 +1980,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                                             onSuccess(url);
                                             message.success("Upload audio thành công");
                                         } catch (error) {
-                                            console.error("Upload error:", error);
+                                            // Upload error
                                             onError(error);
                                             message.error("Upload audio thất bại: " + (error.message || "Unknown error"));
                                         }
@@ -2394,7 +2388,7 @@ function QuestionEditor({ question, partId, questionIndex, skill, onUpdate, onUp
                                         onSuccess(url);
                                         message.success("Upload ảnh thành công");
                                     } catch (error) {
-                                        console.error("Upload error:", error);
+                                        // Upload error
                                         onError(error);
                                         message.error("Upload ảnh thất bại: " + (error.message || "Unknown error"));
                                     }
@@ -2778,7 +2772,7 @@ function GroupEditor({ group, partId, groupIndex, skill, partLabel, onUpdate, on
                                         onSuccess(url);
                                         message.success("Upload ảnh thành công");
                                     } catch (error) {
-                                        console.error("Upload error:", error);
+                                        // Upload error
                                         onError(error);
                                         message.error("Upload ảnh thất bại: " + (error.message || "Unknown error"));
                                     }

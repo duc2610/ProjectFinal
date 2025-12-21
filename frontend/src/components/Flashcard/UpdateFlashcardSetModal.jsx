@@ -24,7 +24,7 @@ export default function UpdateFlashcardSetModal({ open, onClose, onSuccess, setI
         isPublic: data.isPublic || false,
       });
     } catch (error) {
-      console.error("Error loading flashcard set:", error);
+      // Error loading flashcard set
       message.error("Không thể tải thông tin flashcard set");
     } finally {
       setLoadingData(false);
@@ -48,7 +48,7 @@ export default function UpdateFlashcardSetModal({ open, onClose, onSuccess, setI
       onSuccess?.(result);
       onClose?.();
     } catch (error) {
-      console.error("Error updating flashcard set:", error);
+      // Error updating flashcard set
       const errorMsg = error?.response?.data?.message || "Không thể cập nhật flashcard set";
       message.error(errorMsg);
     } finally {

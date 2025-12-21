@@ -33,7 +33,6 @@ export default function QuestionNavigator({ questions, currentIndex, answers, go
               // Kiểm tra xem có phải speaking_group không
               const isSpeakingGroup = q.type === "speaking_group" && q.subQuestions && q.subQuestions.length > 0;
               if (process.env.NODE_ENV === 'development' && q.partId >= 11 && q.partId <= 15) {
-                console.log(`[QuestionNavigator] Question: partId=${q.partId}, type=${q.type}, globalIndex=${q.globalIndex}, isSpeakingGroup=${isSpeakingGroup}, hasSubQuestions=${!!q.subQuestions}, subQuestionsLength=${q.subQuestions?.length || 0}`);
               }
               
               if (isSpeakingGroup) {

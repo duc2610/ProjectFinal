@@ -664,7 +664,7 @@ export default function ExamManagement() {
             setSelectedStatus(null);
             fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
         } catch (error) {
-            console.error("Error finalizing test:", error);
+            // Error finalizing test
             const errorMessage = error.response?.data?.message 
                 || error.response?.data?.data 
                 || error.message 
@@ -724,7 +724,7 @@ export default function ExamManagement() {
             message.success("Đã hoàn tất bài thi thành công! Bây giờ bạn có thể công khai hoặc ẩn bài thi.");
             fetchExams(pagination.current, pagination.pageSize, searchExam, filterSkill, filterTestType, filterStatus, filterCreationStatus, dateRange);
         } catch (error) {
-            console.error("Error finalizing test:", error);
+            // Error finalizing test
             const errorMessage = error.response?.data?.message 
                 || error.response?.data?.data 
                 || error.message 

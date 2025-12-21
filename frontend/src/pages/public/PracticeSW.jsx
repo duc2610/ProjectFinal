@@ -104,7 +104,6 @@ export default function PracticeSW() {
                 setWritingTests([]);
             }
         } catch (error) {
-            console.error("Error fetching practice tests:", error);
             // Không hiển thị thông báo lỗi, chỉ set data rỗng
             setSpeakingTests([]);
             setWritingTests([]);
@@ -351,7 +350,7 @@ export default function PracticeSW() {
             message.success({ content: "Đã tải bài thi thành công", key: "continueTest" });
             navigate("/exam");
         } catch (error) {
-            console.error("Error continuing test:", error);
+            // Error continuing test
             message.error({ 
                 content: error.response?.data?.message || "Không thể tiếp tục bài test. Vui lòng thử lại.", 
                 key: "continueTest" 

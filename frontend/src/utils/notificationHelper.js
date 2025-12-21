@@ -25,7 +25,7 @@ export function showNotificationOnce(config) {
   } = config;
 
   if (!key) {
-    console.warn("showNotificationOnce: key is required");
+    // showNotificationOnce: key is required
     return;
   }
 

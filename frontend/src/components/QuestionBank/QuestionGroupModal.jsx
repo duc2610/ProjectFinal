@@ -298,7 +298,7 @@ export default function QuestionGroupModal({
       } catch (e) {
         message.error("Không tải được chi tiết nhóm câu hỏi");
         onClose?.();
-        console.error(e);
+        // Error
       }
     };
 
@@ -615,7 +615,7 @@ export default function QuestionGroupModal({
       
       const first = e?.errorFields?.[0]?.name;
       if (first) form.scrollToField(first, { block: "center" });
-      console.error("Group submit error:", e);
+      // Group submit error
     } finally {
       setSubmitting(false);
     }

@@ -188,8 +188,7 @@ export function ReportTab() {
         total: totalRecords,
       });
     } catch (error) {
-      console.error("Error fetching question reports:", error);
-      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
+      // Không hiển thị thông báo lỗi
       setReports([]);
     } finally {
       setLoading(false);

@@ -369,7 +369,7 @@ export default function SingleQuestionModal({
       } catch (e) {
         message.error("Không tải được chi tiết câu hỏi");
         onClose?.();
-        console.error(e);
+        // Error
       }
     };
 
@@ -536,7 +536,7 @@ export default function SingleQuestionModal({
       
       const first = e?.errorFields?.[0]?.name;
       if (first) form.scrollToField(first, { block: "center" });
-      console.error("Question submit error:", e);
+      // Question submit error
     } finally {
       setSubmitting(false);
     }

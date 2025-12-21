@@ -27,7 +27,7 @@ const convertWebmToWav = async (webmBlob) => {
         audioBuffer = await audioContext.decodeAudioData(arrayBuffer.slice(0));
       } catch (decodeError) {
         // Nếu không decode được trực tiếp, thử dùng audio element
-        console.warn("Direct decode failed, trying with audio element:", decodeError);
+        // Direct decode failed, trying with audio element
         const audio = new Audio();
         const audioUrl = URL.createObjectURL(webmBlob);
 
@@ -104,7 +104,7 @@ const convertWebmToWav = async (webmBlob) => {
       const wavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
       resolve(wavBlob);
     } catch (error) {
-      console.error("Error converting WebM to WAV:", error);
+      // Error converting WebM to WAV
       reject(error);
     }
   });
@@ -224,7 +224,7 @@ export default function QuestionCard({
       const played = sessionStorage.getItem(key);
       return played === "true";
     } catch (error) {
-      console.error("Error reading audio played state from sessionStorage:", error);
+      // Error reading audio played state from sessionStorage
       return false;
     }
   };
@@ -236,7 +236,7 @@ export default function QuestionCard({
     try {
       sessionStorage.setItem(key, "true");
     } catch (error) {
-      console.error("Error saving audio played state to sessionStorage:", error);
+      // Error saving audio played state to sessionStorage
     }
   };
   
@@ -530,7 +530,7 @@ export default function QuestionCard({
               type: "audio/wav",
             });
           } catch (convertError) {
-            console.warn("Failed to convert to WAV, trying with original format:", convertError);
+            // Failed to convert to WAV, trying with original format
             // Fallback: thử upload webm với extension .wav
             audioFile = new File([audioBlob], `speaking_${question.testQuestionId}_${question.subQuestionIndex || 0}.wav`, {
               type: "audio/webm",
@@ -550,7 +550,7 @@ export default function QuestionCard({
 
           message.success("Đã upload audio thành công");
         } catch (error) {
-          console.error("Error uploading audio:", error);
+          // Error uploading audio
           const errorMessage = translateErrorMessage(error.response?.data?.message || error.message) || "Không thể upload audio";
           message.error(`Lỗi upload audio: ${errorMessage}. Vui lòng thử lại.`);
           // Nếu upload thất bại, vẫn lưu Blob để có thể upload lại khi submit
@@ -570,7 +570,7 @@ export default function QuestionCard({
         setRecordingTime((prev) => prev + 1);
       }, 1000);
     } catch (error) {
-      console.error("Error accessing microphone:", error);
+      // Error accessing microphone
       message.error("Không thể truy cập microphone. Vui lòng kiểm tra quyền truy cập.");
     }
   };
@@ -641,7 +641,7 @@ export default function QuestionCard({
         onReportSuccess(question.testQuestionId, subQuestionId, isGroupQuestion);
       }
     } catch (error) {
-      console.error("Error reporting question:", error);
+      // Error reporting question
       let errorMsg = translateErrorMessage(error?.response?.data?.message || error?.message) || "Không thể gửi báo cáo";
       
       // Chuyển đổi thông báo lỗi tiếng Anh sang tiếng Việt
@@ -720,7 +720,7 @@ export default function QuestionCard({
       message.success("Đã thêm thẻ flashcard từ bài thi!");
       setFlashcardModalVisible(false);
     } catch (error) {
-      console.error("Lỗi khi lưu flashcard từ bài thi:", error);
+      // Lỗi khi lưu flashcard từ bài thi
       const errorMsg =
         error?.response?.data?.message || "Không thể lưu flashcard từ bài thi.";
       message.error(errorMsg);
@@ -996,7 +996,7 @@ export default function QuestionCard({
                       setSelectedSetId(sets[0].setId);
                     }
                   } catch (error) {
-                    console.error("Không thể tải danh sách flashcard:", error);
+                    // Không thể tải danh sách flashcard
                     const errorMsg =
                       error?.response?.data?.message || "Không thể tải danh sách flashcard";
                     message.error(errorMsg);

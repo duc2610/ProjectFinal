@@ -100,9 +100,6 @@ const buildQuestions = (parts = []) => {
             subQuestions: subQuestions, // Lưu tất cả sub-questions
           };
           questions.push(speakingGroupQuestion);
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[ExamSelection] Created speaking_group: partId=${part.partId}, testQuestionId=${tq.testQuestionId}, globalIndex=${globalIndexStart}-${globalIndexEnd}, subQuestions=${subQuestions.length}`);
-          }
         }
       } else if (tq.isGroup && tq.questionGroupSnapshotDto) {
         // Group questions cho L&R hoặc Writing: xử lý như bình thường
@@ -210,7 +207,7 @@ export default function ExamSelection() {
             data.questionQuantity ?? data.quantityQuestion ?? data.QuestionQuantity ?? 0,
         });
       } catch (error) {
-        console.error("Error fetching test info:", error);
+        // Error fetching test info
         message.error("Không thể tải thông tin bài test.");
         navigate(location.state?.from || "/test-list");
       } finally {
@@ -315,9 +312,6 @@ export default function ExamSelection() {
             const subQAnswerKey = firstSubQTestQuestionId; // subQuestionIndex = 0
             if (answers[subQAnswerKey] && !answers[groupTestQuestionId]) {
               answers[groupTestQuestionId] = answers[subQAnswerKey];
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`[ExamSelection] Mapped speaking_group answer from sub-question ${firstSubQTestQuestionId} to group ${groupTestQuestionId}`);
-              }
             }
           }
         }
@@ -346,7 +340,7 @@ export default function ExamSelection() {
       sessionStorage.setItem("toeic_testData", JSON.stringify(payload));
       navigate("/exam");
     } catch (error) {
-      console.error("Error starting test:", error);
+      // Error starting test
       message.error(translateErrorMessage(error.response?.data?.message) || "Không thể bắt đầu bài thi. Vui lòng thử lại.");
     } finally {
       setConfirmLoading(false);

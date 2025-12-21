@@ -85,11 +85,10 @@ export default function FlashcardLearn() {
         const stats = await getStudyStats(setId);
         setStudyStats(stats);
       } catch (statsError) {
-        console.error("Error fetching study stats:", statsError);
         // Không hiển thị lỗi nếu không lấy được stats
       }
     } catch (error) {
-      console.error("Error fetching study session:", error);
+      // Error fetching study session
       const errorMsg = error?.response?.data?.message || "Không thể tải phiên học tập";
       const status = error?.response?.status;
       
@@ -124,7 +123,6 @@ export default function FlashcardLearn() {
         // Với fallback, tất cả đều là "new" (chưa học)
         setFlashcards(allCards);
       } catch (fallbackError) {
-        console.error("Fallback error:", fallbackError);
         // Kiểm tra lại nếu fallback cũng bị lỗi quyền truy cập
         const fallbackStatus = fallbackError?.response?.status;
         const fallbackMsg = fallbackError?.response?.data?.message || "";
@@ -272,7 +270,7 @@ export default function FlashcardLearn() {
         }, 300);
       }
     } catch (error) {
-      console.error("Error marking card as learned:", error);
+      // Error marking card as learned
       message.error("Không thể đánh dấu thẻ đã nhớ. Vui lòng thử lại.");
       // Vẫn cập nhật UI để người dùng có thể tiếp tục
       setIsCardAnimating(false);
@@ -329,7 +327,6 @@ export default function FlashcardLearn() {
         }
       }
     } catch (error) {
-      console.error("Error marking card as not learned:", error);
       // Continue with UI update even if API fails
     }
 
@@ -377,7 +374,7 @@ export default function FlashcardLearn() {
       setCurrentCardIndex(0);
       await fetchStudySession(false);
     } catch (error) {
-      console.error("Error resetting study session:", error);
+      // Error resetting study session
       const errorMsg = error?.response?.data?.message || "Không thể đặt lại tiến trình học";
       message.error(errorMsg);
     } finally {

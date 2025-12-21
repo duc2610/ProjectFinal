@@ -92,8 +92,7 @@ export function TestHistoryTab() {
         total: normalizedHistory.length,
       }));
     } catch (error) {
-      console.error("Error fetching test history:", error);
-      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
+      // Không hiển thị thông báo lỗi
     } finally {
       setLoading(false);
     }
@@ -545,9 +544,6 @@ export function TestHistoryTab() {
                   subQuestions: subQuestions, // Lưu tất cả sub-questions
                 };
                 questions.push(speakingGroupQuestion);
-                if (process.env.NODE_ENV === 'development') {
-                  console.log(`[TestHistoryTab] Created speaking_group: partId=${part.partId}, testQuestionId=${tq.testQuestionId}, globalIndex=${globalIndexStart}-${globalIndexEnd}, subQuestions=${subQuestions.length}`);
-                }
               }
             } else if (tq.isGroup && tq.questionGroupSnapshotDto) {
               // Group questions cho L&R hoặc Writing: xử lý như bình thường
@@ -667,9 +663,6 @@ export function TestHistoryTab() {
             const subQAnswerKey = firstSubQTestQuestionId; // subQuestionIndex = 0
             if (answers[subQAnswerKey] && !answers[groupTestQuestionId]) {
               answers[groupTestQuestionId] = answers[subQAnswerKey];
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`[TestHistoryTab] Mapped speaking_group answer from sub-question ${firstSubQTestQuestionId} to group ${groupTestQuestionId}`);
-              }
             }
           }
         }
@@ -709,7 +702,6 @@ export function TestHistoryTab() {
       message.success({ content: "Đã tải bài thi thành công", key: "continueTest" });
       navigate("/exam");
     } catch (error) {
-      console.error("Error continuing test:", error);
       message.error({ 
         content: translateErrorMessage(error.response?.data?.message) || "Không thể tiếp tục bài test. Vui lòng thử lại.", 
         key: "continueTest" 
@@ -881,9 +873,6 @@ export function TestHistoryTab() {
             // Fallback: nếu không tìm thấy trong map, có thể là group question cho Writing (hiếm)
             // Hoặc có vấn đề với dữ liệu, dùng testQuestionId làm index tạm thời
             itemIndex = f.testQuestionId || 0;
-            if (process.env.NODE_ENV === 'development') {
-              console.warn(`[TestHistoryTab] Cannot find globalIndex for testQuestionId=${f.testQuestionId}, partId=${f.partId}, partName=${f.partName}, isSpeakingGroup=${isSpeakingGroup}`);
-            }
           }
           
           const item = { 
@@ -942,7 +931,6 @@ export function TestHistoryTab() {
         });
       }
     } catch (error) {
-      console.error("Error loading test detail:", error);
       message.error(
         translateErrorMessage(error?.response?.data?.message) || "Không thể tải chi tiết bài thi"
       );

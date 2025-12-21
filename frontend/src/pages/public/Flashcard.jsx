@@ -49,8 +49,7 @@ export default function Flashcard() {
         setPublicSets(normalizeSets(data));
       }
     } catch (error) {
-      console.error("Error fetching flashcard sets:", error);
-      // Không hiển thị thông báo lỗi, chỉ log lỗi vào console
+      // Không hiển thị thông báo lỗi
     } finally {
       setLoading(false);
     }
@@ -93,7 +92,7 @@ export default function Flashcard() {
           message.success("Đã xóa flashcard thành công");
           fetchFlashcardSets();
         } catch (error) {
-          console.error("Error deleting flashcard set:", error);
+          // Error deleting flashcard set
           message.error("Xóa flashcard thất bại. Vui lòng thử lại.");
         }
       },

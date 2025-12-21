@@ -72,7 +72,7 @@ export async function loadPartsBySkill(skill) {
         }
         return parts || [];
     } catch (error) {
-        console.error("Error loading parts:", error);
+        // Error loading parts
         return [];
     }
 }

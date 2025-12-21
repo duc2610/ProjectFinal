@@ -37,7 +37,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
       onSuccess?.(result);
       onClose?.();
     } catch (error) {
-      console.error("Error creating flashcard:", error);
+      // Error creating flashcard
       const errorMsg = error?.response?.data?.message || "Không thể thêm thẻ flashcard";
       message.error(errorMsg);
     } finally {
@@ -104,7 +104,6 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
       };
 
       // Debug: log dữ liệu để kiểm tra
-      console.log("Bulk flashcards data to send:", JSON.stringify(data, null, 2));
 
       const result = await bulkCreateFlashcards(data);
       message.success(`Đã thêm ${validCards.length} thẻ flashcard thành công!`);
@@ -113,7 +112,7 @@ export default function AddFlashcardModal({ open, onClose, onSuccess, setId }) {
       onSuccess?.(result);
       onClose?.();
     } catch (error) {
-      console.error("Error creating bulk flashcards:", error);
+      // Error creating bulk flashcards
       // Nếu là lỗi validation, không hiển thị message error
       if (error.errorFields) {
         message.warning("Vui lòng kiểm tra lại các trường bắt buộc");

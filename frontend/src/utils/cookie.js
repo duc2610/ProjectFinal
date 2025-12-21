@@ -54,7 +54,7 @@ export const cookieStorage = {
   },
   clear() {
 
-    console.warn('cookieStorage.clear() - Please remove specific cookies');
+    // cookieStorage.clear() - Please remove specific cookies
   },
 };
 

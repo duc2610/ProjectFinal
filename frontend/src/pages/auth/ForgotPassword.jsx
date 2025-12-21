@@ -56,7 +56,6 @@ export default function ForgotPassword() {
             
             // Nếu là lỗi validation từ backend, không hiển thị cho user
             if (isValidationError) {
-                console.error("Lỗi validation từ backend (không hiển thị):", e.response?.data);
                 return;
             }
 

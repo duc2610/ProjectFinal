@@ -21,7 +21,7 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
             const arr = data?.data || data || [];
             setVersions(arr);
         } catch (error) {
-            console.error("Error loading versions:", error);
+            // Error loading versions
             message.error("Không tải được danh sách version");
         } finally {
             setLoading(false);
@@ -143,7 +143,7 @@ export default function TestVersionsModal({ open, onClose, parentTestId, onSelec
                 onVisibilityChange();
             }
         } catch (error) {
-            console.error("Toggle visibility error:", error);
+            // Toggle visibility error
             const errorMessage = error?.response?.data?.message
                 || error?.response?.data?.data
                 || error?.message

@@ -504,7 +504,6 @@ export default function ResultScreen() {
       // Kiểm tra xem có parts không
       if (!data.parts || !Array.isArray(data.parts) || data.parts.length === 0) {
         message.error("Không có câu hỏi trong bài thi. Vui lòng thử lại.");
-        console.error("API response không có parts:", data);
         return;
       }
 
@@ -514,7 +513,6 @@ export default function ResultScreen() {
       // Kiểm tra xem có questions không
       if (!questions || questions.length === 0) {
         message.error("Không thể tạo danh sách câu hỏi. Vui lòng thử lại.");
-        console.error("Không build được questions từ parts:", data.parts);
         return;
       }
       
@@ -541,7 +539,7 @@ export default function ResultScreen() {
       setRetakeModalVisible(false);
       navigate("/exam");
     } catch (error) {
-      console.error("Error starting test:", error);
+      // Error starting test
       message.error(translateErrorMessage(error.response?.data?.message) || "Không thể bắt đầu bài thi. Vui lòng thử lại.");
     } finally {
       setRetakeConfirmLoading(false);
@@ -599,7 +597,7 @@ export default function ResultScreen() {
         setTestMeta(nextMeta);
         sessionStorage.setItem("toeic_resultMeta", JSON.stringify(nextMeta));
       } catch (error) {
-        console.error("Error loading detail:", error);
+        // Error loading detail
         
         // Set API error instead of showing message.error
         setApiError({
@@ -654,7 +652,7 @@ export default function ResultScreen() {
       try {
         sessionStorage.setItem("toeic_resultMeta", JSON.stringify(meta));
       } catch (e) {
-        console.error("Error saving result meta to sessionStorage:", e);
+        // Error saving result meta to sessionStorage
       }
     }
 
@@ -680,16 +678,10 @@ export default function ResultScreen() {
     // Backend luôn trả về subQuestionId, dùng trực tiếp nếu có
     // Nếu không có subQuestionId, không thể check (cả câu đơn và nhóm)
     if (subQuestionId === null || subQuestionId === undefined) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`[TestResult] Cannot check question without subQuestionId: testQuestionId=${testQuestionId}, isGroup=${isGroup}`);
-      }
       return false;
     }
     const key = `${testQuestionId}_${subQuestionId}`;
     const isReported = reportedQuestionIds.has(key);
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[TestResult] Check report: key=${key}, isReported=${isReported}, testQuestionId=${testQuestionId}, subQuestionId=${subQuestionId}, isGroup=${isGroup}`);
-    }
     return isReported;
   };
 
@@ -700,13 +692,9 @@ export default function ResultScreen() {
     // Backend luôn trả về subQuestionId, dùng trực tiếp nếu có
     // Nếu không có subQuestionId, không thể tạo key (cả câu đơn và nhóm)
     if (subQuestionId === null || subQuestionId === undefined) {
-      console.warn(`Cannot create report key without subQuestionId: testQuestionId=${testQuestionId}, isGroup=${isGroup}`);
       return;
     }
     const key = `${testQuestionId}_${subQuestionId}`;
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[TestResult] handleReportSuccess: Adding key=${key}, testQuestionId=${testQuestionId}, subQuestionId=${subQuestionId}, isGroup=${isGroup}`);
-    }
     // Cập nhật state ngay lập tức để UI phản hồi nhanh
     setReportedQuestionIds(prev => new Set([...prev, key]));
     // Cập nhật reports array tạm thời (giữ thông tin SubQuestionId để dùng lại nếu cần)
@@ -932,24 +920,12 @@ export default function ResultScreen() {
             if (report.subQuestionId !== null && report.subQuestionId !== undefined) {
               const key = `${report.testQuestionId}_${report.subQuestionId}`;
               newSet.add(key);
-              if (process.env.NODE_ENV === 'development') {
-                const isGroup = !!report.isQuestionGroup;
-                console.log(`[TestResult] Added report key: ${key} (testQuestionId: ${report.testQuestionId}, subQuestionId: ${report.subQuestionId}, isGroup: ${isGroup}, status: ${report.status})`);
-              }
-            } else {
-              if (process.env.NODE_ENV === 'development') {
-                console.warn(`[TestResult] Skipping report without subQuestionId: testQuestionId=${report.testQuestionId}, isQuestionGroup=${report.isQuestionGroup}`);
-              }
             }
           }
         });
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`[TestResult] Loaded ${newSet.size} reported question keys from ${relevantReports.length} relevant reports (out of ${allReports.length} total reports)`);
-        }
         return newSet;
       });
     } catch (error) {
-      console.error("Error loading reports:", error);
       // Không hiển thị error vì đây là tính năng phụ
     }
   }, [questionRowsBySection]);
@@ -1086,18 +1062,8 @@ export default function ResultScreen() {
       const isWriting = scorer === "writing" || partType.startsWith("writing");
       const isSpeaking = scorer === "speaking" || partType.startsWith("speaking");
 
-      // Debug: log để kiểm tra feedback bị bỏ qua
-      if (process.env.NODE_ENV === 'development' && !isWriting && !isSpeaking) {
-        console.warn(`[TestResult] Skipping feedback: testQuestionId=${feedback.testQuestionId}, partId=${feedback.partId}, partType=${partType}, aiScorer=${scorer}, partName=${feedback.partName}`);
-      }
-
       if (!isWriting && !isSpeaking) {
         return;
-      }
-
-      // Debug: log để kiểm tra feedback được xử lý
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`[TestResult] Processing feedback: testQuestionId=${feedback.testQuestionId}, partId=${feedback.partId}, partType=${partType}, aiScorer=${scorer}, partName=${feedback.partName}, isWriting=${isWriting}, isSpeaking=${isSpeaking}`);
       }
 
       // Tính partName hiển thị - LUÔN tính lại theo logic renumber (giống ExamScreen.jsx)
@@ -1131,13 +1097,6 @@ export default function ResultScreen() {
           }
           
           displayPartName = updatedPartName;
-          
-          // Debug log để kiểm tra
-          if (process.env.NODE_ENV === 'development') {
-            console.log(`[TestResult] Renumbered partName: partId=${partId}, original="${feedback.partName}", new="${displayPartName}", newPartNumber=${newPartNumber}`);
-          }
-        } else if (process.env.NODE_ENV === 'development') {
-          console.warn(`[TestResult] Cannot renumber partName: partId=${partId}, newPartNumber=${newPartNumber}, displayPartName="${displayPartName}", partNumberMap has keys:`, Array.from(partNumberMap.keys()));
         }
       }
       // Writing parts (8-10) và Speaking parts khi không có Writing: giữ nguyên partName gốc
@@ -2260,19 +2219,6 @@ export default function ResultScreen() {
       const writingScore = isSimulatorMode 
         ? result?.writingScore 
         : result?.writingRawScore;
-      // Debug: log để kiểm tra giá trị từ API
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Writing Score Debug:', {
-          isSimulatorMode,
-          writingScore,
-          writingRawScore: result?.writingRawScore,
-          writingScore_simulator: result?.writingScore,
-          totalScore: result?.totalScore,
-          totalQuestions,
-          answeredQuestions,
-          skippedQuestions,
-        });
-      }
       if (writingScore != null) {
         tiles.push({
           label: "Điểm Writing",
@@ -2404,17 +2350,6 @@ export default function ResultScreen() {
             ? result?.speakingScore 
             : result?.speakingRawScore;
           
-          // Debug: log để kiểm tra giá trị từ API
-          if (process.env.NODE_ENV === 'development') {
-            console.log('SW Score Debug:', {
-              isSimulatorMode,
-              writingScore,
-              writingRawScore: result?.writingRawScore,
-              speakingScore,
-              speakingRawScore: result?.speakingRawScore,
-              totalScore: result?.totalScore,
-            });
-          }
           
           if (writingScore != null) {
             tiles.push({
@@ -3098,7 +3033,7 @@ export default function ResultScreen() {
               }, 500);
             }
           } catch (error) {
-            console.error("Error reporting question:", error);
+            // Error reporting question
             const errorMsg = translateErrorMessage(error?.response?.data?.message || error?.message) || "Không thể gửi báo cáo";
             // Xử lý lỗi "đã báo cáo rồi" một cách thân thiện hơn
             if (errorMsg.includes("already reported") || errorMsg.includes("đã báo cáo") || errorMsg.includes("Bạn đã báo cáo")) {

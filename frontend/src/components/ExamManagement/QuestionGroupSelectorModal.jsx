@@ -60,7 +60,7 @@ export default function QuestionGroupSelectorModal({
             });
             setParts(filteredParts);
         } catch (error) {
-            console.error("Error loading parts:", error);
+            // Error loading parts
         }
     };
 
@@ -157,7 +157,7 @@ export default function QuestionGroupSelectorModal({
             
             setPagination({ current: page, pageSize, total: totalCount });
         } catch (error) {
-            console.error("Error loading question groups:", error);
+            // Error loading question groups
             message.error("Lỗi khi tải danh sách nhóm câu hỏi");
         } finally {
             setLoading(false);
@@ -245,7 +245,7 @@ export default function QuestionGroupSelectorModal({
                 questions: questions,
             });
         } catch (error) {
-            console.error(`Error loading group detail ${groupId}:`, error);
+            // Error loading group detail
             message.error("Không tải được chi tiết nhóm câu hỏi");
             setGroupDetail(null);
         } finally {

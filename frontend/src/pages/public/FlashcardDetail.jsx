@@ -69,7 +69,6 @@ export default function FlashcardDetail() {
             setCardStatusMap(statusMap);
           }
         } catch (studyError) {
-          console.error("Error fetching study session:", studyError);
           // Kiểm tra nếu lỗi study session cũng là lỗi quyền truy cập
           const studyErrorMsg = studyError?.response?.data?.message || "";
           const studyStatus = studyError?.response?.status;
@@ -90,7 +89,7 @@ export default function FlashcardDetail() {
         }
       }
     } catch (error) {
-      console.error("Error fetching flashcard detail:", error);
+      // Error fetching flashcard detail
       const errorMsg = error?.response?.data?.message || "Không thể tải chi tiết flashcard";
       const status = error?.response?.status;
       
@@ -170,7 +169,7 @@ export default function FlashcardDetail() {
             setCurrentCardIndex(Math.max(0, flashcards.length - 2));
           }
         } catch (error) {
-          console.error("Error deleting flashcard:", error);
+          // Error deleting flashcard
           const errorMsg = error?.response?.data?.message || "Không thể xóa thẻ";
           message.error(errorMsg);
         }
@@ -200,7 +199,7 @@ export default function FlashcardDetail() {
         textToSpeech.speak(text, { lang });
       }
     } catch (error) {
-      console.error("Error playing audio:", error);
+      // Error playing audio
       message.error("Không thể phát âm");
     }
   };

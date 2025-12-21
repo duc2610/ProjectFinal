@@ -66,7 +66,7 @@ export default function QuestionBankSelectorModal({
             });
             setParts(formattedParts);
         } catch (error) {
-            console.error("Error loading parts:", error);
+            // Error loading parts
         }
     };
 
@@ -190,7 +190,7 @@ export default function QuestionBankSelectorModal({
                 setPagination({ current: currentPage, pageSize: size, total: totalCount });
             }
         } catch (error) {
-            console.error("Error loading questions:", error);
+            // Error loading questions
             message.error("Lỗi khi tải danh sách câu hỏi");
         } finally {
             setLoading(false);
@@ -261,7 +261,7 @@ export default function QuestionBankSelectorModal({
                 explanation: q.explanation || q.Explanation || q.solution || q.Solution || "",
             });
         } catch (error) {
-            console.error(`Error loading question detail ${questionId}:`, error);
+            // Error loading question detail
             message.error("Không tải được chi tiết câu hỏi");
             setQuestionDetail(null);
         } finally {

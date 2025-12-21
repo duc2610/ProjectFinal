@@ -277,7 +277,6 @@ const AccountManagement = () => {
       
       // Nếu là lỗi validation từ backend, không hiển thị cho user (chỉ log)
       if (isValidationError) {
-        console.error("Lỗi validation từ backend (không hiển thị):", error.response?.data);
         return; // Không hiển thị lỗi validation
       }
 
@@ -292,7 +291,7 @@ const AccountManagement = () => {
       errMsg = translateError(errMsg);
 
       message.error(errMsg);
-      console.error("Lỗi lưu tài khoản:", error);
+      // Lỗi lưu tài khoản
     } finally {
       setLoading(prev => ({ ...prev, active: false }));
     }

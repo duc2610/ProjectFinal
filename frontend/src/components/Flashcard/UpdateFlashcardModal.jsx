@@ -45,7 +45,7 @@ export default function UpdateFlashcardModal({ open, onClose, onSuccess, card })
       onSuccess?.(result);
       onClose?.();
     } catch (error) {
-      console.error("Error updating flashcard:", error);
+      // Error updating flashcard
       const errorMsg = error?.response?.data?.message || "Không thể cập nhật thẻ flashcard";
       message.error(errorMsg);
     } finally {
