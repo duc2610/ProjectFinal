@@ -1106,6 +1106,7 @@ export default function ExamManagement() {
                             >
                                 <Select.Option value="all">Tất cả kỹ năng</Select.Option>
                                 <Select.Option value={3}>Nghe & Đọc</Select.Option>
+                                <Select.Option value={4}>Nói & Viết</Select.Option>
                                 <Select.Option value={1}>Nói</Select.Option>
                                 <Select.Option value={2}>Viết</Select.Option>
                             </Select>

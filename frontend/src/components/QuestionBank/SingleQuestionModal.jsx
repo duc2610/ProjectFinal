@@ -744,6 +744,16 @@ export default function SingleQuestionModal({
             rules={[
               {
                 validator: (_, value) => {
+                  const partId = Number(form.getFieldValue("partId"));
+                  // Part 2 (L-Part 2) không bắt buộc phải nhập nội dung câu hỏi
+                  if (partId === 2) {
+                    // Chỉ kiểm tra độ dài nếu có nhập nội dung
+                    if (value && String(value).length > 1000) {
+                      return Promise.reject(new Error("Tối đa 1000 ký tự"));
+                    }
+                    return Promise.resolve();
+                  }
+                  // Các part khác vẫn bắt buộc phải nhập
                   if (!value || !String(value).trim()) {
                     return Promise.reject(new Error("Vui lòng nhập nội dung câu hỏi"));
                   }
