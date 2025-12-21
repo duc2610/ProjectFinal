@@ -1216,6 +1216,7 @@ namespace ToeicGenius.Services.Implementations
 			// Set CreatedAt và UpdatedAt từ userTest (thời gian bắt đầu làm bài của user), không phải test.CreatedAt
 			result.CreatedAt = ToVietnamTime(userTest.CreatedAt);
 			result.UpdatedAt = userTest.UpdatedAt.HasValue ? ToVietnamTime(userTest.UpdatedAt.Value) : null;
+			result.Status = userTest.Status; // Set Status để frontend biết test đã được submit chưa
 
 			// Load saved answers if user is resuming
 			var savedAnswers = await _uow.UserAnswers.GetByTestResultIdAsync(userTest.TestResultId);

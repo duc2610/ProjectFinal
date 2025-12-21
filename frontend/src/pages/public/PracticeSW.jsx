@@ -152,6 +152,16 @@ export default function PracticeSW() {
                 return;
             }
 
+            // Kiểm tra status của testResult - nếu đã được submit (Graded), không cho phép tiếp tục làm bài
+            if (data.status === "Graded" || data.status === "graded") {
+                message.error({ 
+                    content: "Bài thi này đã được nộp và chấm điểm. Bạn không thể tiếp tục làm bài.", 
+                    key: "continueTest",
+                    duration: 5
+                });
+                return;
+            }
+
             if (!data.parts || !Array.isArray(data.parts) || data.parts.length === 0) {
                 message.error({ content: "Không có câu hỏi trong bài thi. Vui lòng thử lại.", key: "continueTest" });
                 return;

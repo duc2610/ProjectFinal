@@ -17,5 +17,6 @@ namespace ToeicGenius.Domains.DTOs.Responses.Test
 		public List<SavedAnswerDto> SavedAnswers { get; set; } = new();
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public TestResultStatus Status { get; set; }
     }
 }

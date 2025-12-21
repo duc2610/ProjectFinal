@@ -15,6 +15,7 @@ import {
   Select,
   Tooltip,
   Grid,
+  Space,
 } from "antd";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -163,10 +164,40 @@ const formatQuestionText = (text) => {
 };
 
 const resolveSwPartType = (feedback = {}) => {
-  if (feedback.partType) return feedback.partType;
+  // Ưu tiên 1: Nếu có partType từ backend, normalize nó
+  if (feedback.partType) {
+    const partType = feedback.partType;
+    // Backend trả về "respond_questions" và "respond_with_info" (không có prefix "speaking_")
+    // Cần normalize về format có prefix "speaking_" để match với SW_PART_TYPE_MAP
+    if (partType === "respond_questions") {
+      return "speaking_respond_questions";
+    }
+    if (partType === "respond_with_info") {
+      return "speaking_respond_questions_info";
+    }
+    if (partType === "express_opinion") {
+      return "speaking_express_opinion";
+    }
+    if (partType === "read_aloud") {
+      return "speaking_read_aloud";
+    }
+    if (partType === "describe_picture") {
+      return "speaking_describe_picture";
+    }
+    // Nếu đã có prefix "speaking_" hoặc "writing_", trả về trực tiếp
+    if (partType.startsWith("speaking_") || partType.startsWith("writing_")) {
+      return partType;
+    }
+    // Fallback: trả về partType gốc
+    return partType;
+  }
+  
+  // Ưu tiên 2: Dùng partId để map
   if (feedback.partId && SW_PART_TYPE_MAP[feedback.partId]) {
     return SW_PART_TYPE_MAP[feedback.partId];
   }
+  
+  // Ưu tiên 3: Dùng partName để suy luận
   if (feedback.partName) {
     const name = feedback.partName.toLowerCase();
     if (name.includes("email")) return "writing_email";
@@ -303,6 +334,8 @@ export default function ResultScreen() {
 
   const questionOrderMap = useMemo(() => {
     const map = {};
+    const globalIndexEndMap = {}; // Map để lưu globalIndexEnd cho speaking_group
+    const partNameMap = {}; // Map để lưu partName đã renumber từ sessionStorage (giống ExamScreen)
     try {
       const saved = JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
       (saved.questions || []).forEach((q) => {
@@ -325,19 +358,31 @@ export default function ResultScreen() {
               map[baseKey] = order;
             }
           }
+          // Lưu globalIndexEnd cho speaking_group
+          if (q.type === "speaking_group" && q.globalIndexEnd !== undefined && q.globalIndexEnd !== null) {
+            globalIndexEndMap[String(q.testQuestionId)] = q.globalIndexEnd;
+          }
+          // Lưu partName đã renumber từ sessionStorage (giống ExamScreen)
+          // Với speaking_group, chỉ lưu một lần với testQuestionId của group
+          // Với single questions, lưu với testQuestionId
+          if (q.partName) {
+            const partNameKey = String(q.testQuestionId);
+            // Chỉ lưu nếu chưa có hoặc là speaking_group (ưu tiên partName của group)
+            if (!partNameMap[partNameKey] || q.type === "speaking_group") {
+              partNameMap[partNameKey] = q.partName;
+            }
+          }
         }
       });
     } catch (e) {
-      console.error("Error building question order map:", e);
     }
-    return map;
+    return { orderMap: map, globalIndexEndMap, partNameMap };
   }, [stateTestResultId]);
 
   const getSavedTestData = useCallback(() => {
     try {
       return JSON.parse(sessionStorage.getItem("toeic_testData") || "{}");
     } catch (e) {
-      console.error("Error reading test data from sessionStorage:", e);
       return {};
     }
   }, []);
@@ -706,7 +751,7 @@ export default function ResultScreen() {
           }
 
           const orderKey = String(tq.testQuestionId);
-          const mappedOrder = questionOrderMap[orderKey];
+          const mappedOrder = questionOrderMap.orderMap[orderKey];
           
           const row = {
             key: tq.testQuestionId,
@@ -753,7 +798,7 @@ export default function ResultScreen() {
 
             const subKey = `${tq.testQuestionId}_${idx}`;
             const mappedOrder =
-              questionOrderMap[subKey] ?? questionOrderMap[String(tq.testQuestionId)];
+              questionOrderMap.orderMap[subKey] ?? questionOrderMap.orderMap[String(tq.testQuestionId)];
             
             const row = {
               key: `${tq.testQuestionId}_${idx}`,
@@ -796,9 +841,10 @@ export default function ResultScreen() {
       return (a.testQuestionId || 0) - (b.testQuestionId || 0);
     });
 
-    // Gán index theo thứ tự đã sắp xếp và phân loại vào rows
+    // Gán index theo globalIndex từ questionOrderMap (giống ExamScreen) và phân loại vào rows
     allQuestionsWithOrder.forEach((row, idx) => {
-      row.index = idx + 1; // Index bắt đầu từ 1
+      // Ưu tiên dùng order (globalIndex) từ questionOrderMap, nếu không có thì dùng idx + 1 làm fallback
+      row.index = row.order ?? (idx + 1);
       rows.all.push(row);
       if (row.partId >= 1 && row.partId <= 4) rows.listening.push(row);
       if (row.partId >= 5 && row.partId <= 7) rows.reading.push(row);
@@ -915,6 +961,52 @@ export default function ResultScreen() {
     return result.readingScore || 0;
   }, [result]);
 
+  // === TÍNH GLOBALINDEX CHO SW QUESTIONS TỪ DETAILDATA (GIỐNG LR) ===
+  const swGlobalIndexMap = useMemo(() => {
+    const map = {}; // Map testQuestionId -> globalIndex
+    const globalIndexEndMap = {}; // Map testQuestionId -> globalIndexEnd (cho speaking_group)
+    
+    if (!detailData?.parts) {
+      return { map, globalIndexEndMap };
+    }
+    
+    let globalIndex = 1;
+    const sortedParts = [...(detailData.parts || [])].sort((a, b) => (a.partId || 0) - (b.partId || 0));
+    
+    sortedParts.forEach((part) => {
+      part.testQuestions?.forEach((tq) => {
+        const partId = part.partId || 0;
+        // Chỉ xử lý SW parts (8-15)
+        if (partId >= 8 && partId <= 15) {
+          if (tq.isGroup && tq.questionGroupSnapshotDto) {
+            const group = tq.questionGroupSnapshotDto;
+            const questionSnapshots = group.questionSnapshots || [];
+            if (questionSnapshots.length > 0) {
+              // Với speaking_group (partId 11-15): lưu globalIndexStart và globalIndexEnd
+              if (partId >= 11 && partId <= 15) {
+                const globalIndexStart = globalIndex;
+                globalIndex += questionSnapshots.length;
+                const globalIndexEnd = globalIndex - 1;
+                map[String(tq.testQuestionId)] = globalIndexStart;
+                globalIndexEndMap[String(tq.testQuestionId)] = globalIndexEnd;
+              } else {
+                // Với group questions cho Writing (nếu có): mỗi sub-question có globalIndex riêng
+                questionSnapshots.forEach((qs, idx) => {
+                  map[`${tq.testQuestionId}_${idx}`] = globalIndex++;
+                });
+              }
+            }
+          } else if (!tq.isGroup && tq.questionSnapshotDto) {
+            // Single question: lưu globalIndex
+            map[String(tq.testQuestionId)] = globalIndex++;
+          }
+        }
+      });
+    });
+    
+    return { map, globalIndexEndMap };
+  }, [detailData]);
+
   // === XỬ LÝ DỮ LIỆU WRITING/SPEAKING TỪ PERPARTFEEDBACKS ===
   const swFeedbacks = useMemo(() => {
     if (!result?.perPartFeedbacks || !Array.isArray(result.perPartFeedbacks)) {
@@ -924,8 +1016,8 @@ export default function ResultScreen() {
     const sortedFeedbacks = [...result.perPartFeedbacks].sort((a, b) => {
       const typeA = resolveSwPartType(a);
       const typeB = resolveSwPartType(b);
-      const questionOrderA = questionOrderMap[a.testQuestionId];
-      const questionOrderB = questionOrderMap[b.testQuestionId];
+      const questionOrderA = questionOrderMap.orderMap[a.testQuestionId];
+      const questionOrderB = questionOrderMap.orderMap[b.testQuestionId];
 
       if (questionOrderA !== undefined && questionOrderB !== undefined) {
         if (questionOrderA !== questionOrderB) {
@@ -945,44 +1037,46 @@ export default function ResultScreen() {
     let speakingIndex = 1;
     let rowKeyCounter = 1;
 
-    // Xác định có đủ cả Writing & Speaking để renumber part
-    const hasWritingPart = sortedFeedbacks.some((f) => {
-      const partType = resolveSwPartType(f);
-      const scorer = (f.aiScorer || "").toLowerCase();
-      return scorer === "writing" || partType.startsWith("writing");
-    });
-    const hasSpeakingPart = sortedFeedbacks.some((f) => {
-      const partType = resolveSwPartType(f);
-      const scorer = (f.aiScorer || "").toLowerCase();
-      return scorer === "speaking" || partType.startsWith("speaking");
-    });
-    const shouldRenumber = hasWritingPart && hasSpeakingPart;
-
-    // Map partType -> new sequential part number (writing first then speaking)
-    const partNumberMap = new Map();
-    if (shouldRenumber) {
-      let nextPartNo = 1;
-      const writingTypes = [
-        "writing_sentence",
-        "writing_email",
-        "writing_essay",
-      ];
-      const speakingTypes = [
-        "speaking_read_aloud",
-        "speaking_describe_picture",
-        "speaking_respond_questions",
-        "speaking_respond_questions_info",
-        "speaking_express_opinion",
-      ];
-      writingTypes.forEach((t) => {
-        if (sortedFeedbacks.some((f) => resolveSwPartType(f) === t)) {
-          partNumberMap.set(t, nextPartNo++);
+    // Xác định có đủ cả Writing & Speaking để renumber part (giống ExamScreen.jsx)
+    // QUAN TRỌNG: Build partNumberMap từ detailData.parts (tất cả parts), không phải từ sortedFeedbacks
+    // Vì sortedFeedbacks chỉ chứa các feedbacks có answer, có thể thiếu một số parts
+    const writingPartIds = new Set();
+    const speakingPartIds = new Set();
+    
+    // Lấy tất cả parts từ detailData.parts (giống ExamScreen.jsx)
+    if (detailData?.parts) {
+      const sortedParts = [...(detailData.parts || [])].sort((a, b) => (a.partId || 0) - (b.partId || 0));
+      sortedParts.forEach((part) => {
+        const partId = part.partId || 0;
+        if (partId >= 8 && partId <= 10) {
+          writingPartIds.add(partId);
+        } else if (partId >= 11 && partId <= 15) {
+          speakingPartIds.add(partId);
         }
       });
-      speakingTypes.forEach((t) => {
-        if (sortedFeedbacks.some((f) => resolveSwPartType(f) === t)) {
-          partNumberMap.set(t, nextPartNo++);
-        }
+    }
+    
+    const hasWritingPart = writingPartIds.size > 0;
+    const hasSpeakingPart = speakingPartIds.size > 0;
+    const shouldRenumber = hasWritingPart && hasSpeakingPart;
+
+    // Map partId -> new sequential part number (writing first then speaking) - giống ExamScreen.jsx
+    const partNumberMap = new Map();
+    if (shouldRenumber) {
+      let currentPartNumber = 1;
+      
+      // Xử lý Writing parts (sắp xếp theo partId tăng dần) - giống ExamScreen.jsx
+      const sortedWritingPartIds = Array.from(writingPartIds).sort((a, b) => a - b);
+      sortedWritingPartIds.forEach((partId) => {
+        partNumberMap.set(partId, currentPartNumber);
+        currentPartNumber++;
+      });
+      
+      // Xử lý Speaking parts (sắp xếp theo partId tăng dần, cộng thêm số Writing parts) - giống ExamScreen.jsx
+      const sortedSpeakingPartIds = Array.from(speakingPartIds).sort((a, b) => a - b);
+      sortedSpeakingPartIds.forEach((partId) => {
+        partNumberMap.set(partId, currentPartNumber);
+        currentPartNumber++;
       });
     }
 
@@ -992,29 +1086,82 @@ export default function ResultScreen() {
       const isWriting = scorer === "writing" || partType.startsWith("writing");
       const isSpeaking = scorer === "speaking" || partType.startsWith("speaking");
 
+      // Debug: log để kiểm tra feedback bị bỏ qua
+      if (process.env.NODE_ENV === 'development' && !isWriting && !isSpeaking) {
+        console.warn(`[TestResult] Skipping feedback: testQuestionId=${feedback.testQuestionId}, partId=${feedback.partId}, partType=${partType}, aiScorer=${scorer}, partName=${feedback.partName}`);
+      }
+
       if (!isWriting && !isSpeaking) {
         return;
       }
 
-      // Tính partName hiển thị theo renumber nếu cần
-      let displayPartName = feedback.partName || "";
-      if (shouldRenumber && partNumberMap.has(partType)) {
-        const newNo = partNumberMap.get(partType);
-        // Giữ nhãn gốc nếu có, chỉ thay số part
-        if (displayPartName.match(/part\s*\d+/i)) {
-          displayPartName = displayPartName.replace(/(part\s*)\d+/i, `$1${newNo}`);
-        } else {
-          displayPartName = `Part ${newNo}`;
-        }
+      // Debug: log để kiểm tra feedback được xử lý
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[TestResult] Processing feedback: testQuestionId=${feedback.testQuestionId}, partId=${feedback.partId}, partType=${partType}, aiScorer=${scorer}, partName=${feedback.partName}, isWriting=${isWriting}, isSpeaking=${isSpeaking}`);
       }
 
-      const mappedIndex = questionOrderMap[feedback.testQuestionId];
+      // Tính partName hiển thị - LUÔN tính lại theo logic renumber (giống ExamScreen.jsx)
+      // Vì partName từ API là gốc chưa renumber (ví dụ: "S-PART 3"), cần renumber thành "S-PART 6" nếu có Writing
+      // PartName trong sessionStorage có thể chưa được renumber (vì được lưu trước khi ExamScreen renumber)
+      let displayPartName = feedback.partName || "";
+      
+      // LUÔN tính lại partName theo logic renumber (giống ExamScreen.jsx)
+      // Không phụ thuộc vào sessionStorage vì partName trong sessionStorage có thể chưa được renumber
+      const partId = feedback.partId || 0;
+      if (shouldRenumber && partId >= 11 && partId <= 15) {
+        // Chỉ renumber Speaking parts (11-15) khi có cả Writing và Speaking
+        const newPartNumber = partNumberMap.get(partId);
+        if (newPartNumber !== undefined && displayPartName) {
+          // Thay thế số part trong partName - giống ExamScreen.jsx
+          // Hỗ trợ các format: "S-PART 1", "S-PART 1 - ...", "SPART 1", v.v.
+          let updatedPartName = displayPartName;
+          
+          // Thử thay thế với format "S-PART X" hoặc "SPART X"
+          if (updatedPartName.match(/S[- ]?PART\s+\d+/i)) {
+            updatedPartName = updatedPartName.replace(
+              /(S[- ]?PART\s+)\d+/i,
+              `$1${newPartNumber}`
+            );
+        } else {
+            // Nếu không match format trên, thử tìm và thay thế số đầu tiên sau "PART"
+            updatedPartName = updatedPartName.replace(
+              /(PART\s+)\d+/i,
+              `$1${newPartNumber}`
+            );
+          }
+          
+          displayPartName = updatedPartName;
+          
+          // Debug log để kiểm tra
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[TestResult] Renumbered partName: partId=${partId}, original="${feedback.partName}", new="${displayPartName}", newPartNumber=${newPartNumber}`);
+          }
+        } else if (process.env.NODE_ENV === 'development') {
+          console.warn(`[TestResult] Cannot renumber partName: partId=${partId}, newPartNumber=${newPartNumber}, displayPartName="${displayPartName}", partNumberMap has keys:`, Array.from(partNumberMap.keys()));
+        }
+      }
+      // Writing parts (8-10) và Speaking parts khi không có Writing: giữ nguyên partName gốc
+
+      // Ưu tiên 1: Lấy globalIndex từ questionOrderMap (sessionStorage - giống LR)
+      // Ưu tiên 2: Lấy globalIndex từ swGlobalIndexMap (detailData.parts - giống LR)
+      // Fallback: Không có (sẽ bỏ qua hoặc dùng fallback)
+      const mappedIndex = questionOrderMap.orderMap[feedback.testQuestionId] 
+        ?? swGlobalIndexMap.map[String(feedback.testQuestionId)];
+      const globalIndexEnd = questionOrderMap.globalIndexEndMap[String(feedback.testQuestionId)]
+        ?? swGlobalIndexMap.globalIndexEndMap[String(feedback.testQuestionId)];
+      
+      // Kiểm tra xem có phải speaking_group không (có questionSnapshots trong questionContent)
+      const isSpeakingGroup = feedback.questionContent && 
+        feedback.questionContent.questionSnapshots && 
+        Array.isArray(feedback.questionContent.questionSnapshots) &&
+        feedback.questionContent.questionSnapshots.length > 0;
+      
       const baseRow = {
         key: feedback.testQuestionId || rowKeyCounter++,
         testQuestionId: feedback.testQuestionId,
         partType,
         partName: displayPartName,
-        questionContent: feedback.questionContent?.content || "",
+        questionContent: isSpeakingGroup ? "" : (feedback.questionContent?.content || ""), // Không set cho group, sẽ dùng questionContentFull
         answerText: feedback.answerText || "",
         answerAudioUrl: feedback.answerAudioUrl || "",
         score: feedback.score || 0,
@@ -1024,7 +1171,12 @@ export default function ResultScreen() {
         detailedScores: feedback.detailedScores || {},
         detailedAnalysis: feedback.detailedAnalysis || {},
         recommendations: feedback.recommendations || [],
-        questionContentFull: feedback.questionContent || null,
+        questionContentFull: feedback.questionContent || null, // Lưu toàn bộ questionContent (có thể chứa questionSnapshots)
+        transcription: feedback.transcription || "",
+        correctedText: feedback.correctedText || "",
+        audioDuration: feedback.audioDuration || null,
+        globalIndexEnd: globalIndexEnd || null, // Lưu globalIndexEnd cho speaking_group
+        isSpeakingGroup: isSpeakingGroup || false, // Flag để biết có phải speaking_group không
       };
 
       const hasAnswer =
@@ -1035,16 +1187,26 @@ export default function ResultScreen() {
       }
 
       if (isWriting) {
-        const indexValue = mappedIndex ?? writingIndex++;
-        writing.push({ ...baseRow, index: indexValue });
+        // Dùng mappedIndex (globalIndex) - giống LR: ưu tiên từ questionOrderMap, fallback từ swGlobalIndexMap
+        // Nếu không có mappedIndex, bỏ qua (không thêm vào danh sách) để đảm bảo số câu khớp 100%
+        if (mappedIndex !== undefined && mappedIndex !== null) {
+          writing.push({ ...baseRow, index: mappedIndex });
+        }
       } else if (isSpeaking) {
-        const indexValue = mappedIndex ?? speakingIndex++;
-        speaking.push({ ...baseRow, index: indexValue });
+        // Dùng mappedIndex (globalIndex) - giống LR: ưu tiên từ questionOrderMap, fallback từ swGlobalIndexMap
+        // Nếu không có mappedIndex, bỏ qua (không thêm vào danh sách) để đảm bảo số câu khớp 100%
+        if (mappedIndex !== undefined && mappedIndex !== null) {
+          speaking.push({ ...baseRow, index: mappedIndex });
+      }
       }
     });
 
+    // Sắp xếp lại theo index (globalIndex) để đảm bảo thứ tự đúng giống ExamScreen
+    writing.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+    speaking.sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+
     return { writing, speaking };
-  }, [result, questionOrderMap]);
+  }, [result, questionOrderMap, swGlobalIndexMap, detailData]);
 
   // Reload reports khi questionRowsBySection hoặc SW feedbacks thay đổi (đã có dữ liệu)
   useEffect(() => {
@@ -2014,6 +2176,15 @@ export default function ResultScreen() {
         value: `${listeningAccuracy}%`,
         color: "#08979c",
       });
+      
+      // Thêm điểm Listening cho Simulator mode
+      if (isSimulatorMode && result?.listeningScore != null) {
+        tiles.push({
+          label: "Điểm Listening",
+          value: result.listeningScore,
+          color: "#1890ff",
+        });
+      }
     } else if (selectedSection === "reading") {
       // Thông tin chi tiết phần Đọc
       const readingStats = practiceLrStats.reading;
@@ -2051,6 +2222,15 @@ export default function ResultScreen() {
         value: `${readingAccuracy}%`,
         color: "#08979c",
       });
+      
+      // Thêm điểm Reading cho Simulator mode
+      if (isSimulatorMode && result?.readingScore != null) {
+        tiles.push({
+          label: "Điểm Reading",
+          value: result.readingScore,
+          color: "#fa8c16",
+        });
+      }
     } else if (selectedSection === "writing") {
       // Thông tin chi tiết phần Viết
       const writingFeedbacks = swFeedbacks.writing || [];
@@ -2139,14 +2319,20 @@ export default function ResultScreen() {
     } else if (selectedSection === "overall") {
       // Thông tin tổng quan
       if (skillGroup === "lr") {
+        // LR: Ưu tiên dùng correctCount từ API cho Simulator mode, nếu không có thì dùng practiceLrStats
+        const correctCount = result?.correctCount ?? practiceLrStats.correct;
+        const totalQuestions = practiceLrStats.totalQuestions;
+        const totalAnswered = practiceLrStats.totalAnswered;
+        const wrong = totalAnswered - correctCount; // Tính từ totalAnswered - correctCount
+        
         tiles.push({
           label: "Tổng số câu trong đề",
-          value: practiceLrStats.totalQuestions,
+          value: totalQuestions,
           color: "#0958d9",
         });
         tiles.push({
           label: "Câu đã làm",
-          value: practiceLrStats.totalAnswered,
+          value: totalAnswered,
           color: "#1d39c4",
         });
         tiles.push({
@@ -2156,19 +2342,35 @@ export default function ResultScreen() {
         });
         tiles.push({
           label: "Đúng",
-          value: practiceLrStats.correct,
+          value: correctCount,
           color: "#389e0d",
         });
         tiles.push({
           label: "Sai",
-          value: practiceLrStats.wrong,
+          value: wrong,
           color: "#cf1322",
         });
         tiles.push({
           label: "Độ chính xác (trên toàn đề)",
-          value: `${practiceLrStats.accuracy}%`,
+          value: totalQuestions > 0 ? `${Math.round((correctCount / totalQuestions) * 100)}%` : "0%",
           color: "#08979c",
         });
+        
+        // Thêm điểm cho Simulator mode
+        if (isSimulatorMode && result?.listeningScore != null) {
+          tiles.push({
+            label: "Điểm Listening",
+            value: result.listeningScore,
+            color: "#1890ff",
+          });
+        }
+        if (isSimulatorMode && result?.readingScore != null) {
+          tiles.push({
+            label: "Điểm Reading",
+            value: result.readingScore,
+            color: "#fa8c16",
+          });
+        }
       } else {
         const totalQuestions =
           result?.totalQuestions ?? result?.questionQuantity ?? testMeta?.questionQuantity ?? 0;
@@ -2659,7 +2861,9 @@ export default function ResultScreen() {
                           <div style={{ flex: 1 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
                               <Tag color="blue" style={{ fontSize: 14, padding: "4px 12px" }}>
-                                Câu {item.index}
+                                {item.isSpeakingGroup && item.globalIndexEnd 
+                                  ? `Câu ${item.index}-${item.globalIndexEnd}`
+                                  : `Câu ${item.index}`}
                               </Tag>
                               {item.partName && (
                                 <Tag color="purple" style={{ fontSize: 13, padding: "3px 10px" }}>
@@ -2670,14 +2874,73 @@ export default function ResultScreen() {
                                 {getSwPartDisplayName(item.partType)}
                               </Text>
                             </div>
-                            {item.questionContent && (
+                            {/* Hiển thị đề bài - xử lý cả single question và group question */}
+                            {(() => {
+                              const questionContent = item.questionContentFull || item.questionContent;
+                              
+                              // Nếu là group question (questionGroupSnapshotDto)
+                              if (item.isSpeakingGroup && questionContent && questionContent.questionSnapshots && Array.isArray(questionContent.questionSnapshots)) {
+                                return (
+                                  <div style={{ marginBottom: 8 }}>
+                                    <Text strong>Đề bài:</Text>
+                                    {questionContent.passage && (
+                                      <div style={{ 
+                                        marginTop: 8, 
+                                        padding: 12, 
+                                        backgroundColor: "#f0f2f5", 
+                                        borderRadius: 4,
+                                        marginBottom: 8,
+                                        whiteSpace: "pre-wrap",
+                                        wordBreak: "break-word"
+                                      }}>
+                                        <Text strong style={{ display: "block", marginBottom: 4 }}>
+                                          Đoạn văn/Thông tin:
+                                        </Text>
+                                        <Text>{formatQuestionText(questionContent.passage)}</Text>
+                                      </div>
+                                    )}
+                                    <Space direction="vertical" size="small" style={{ width: "100%", marginTop: 8 }}>
+                                      {questionContent.questionSnapshots.map((qs, idx) => {
+                                        // Tính số câu thực tế từ globalIndex (item.index là globalIndex của câu đầu tiên)
+                                        const actualQuestionNumber = item.index ? (item.index + idx) : (idx + 1);
+                                        return (
+                                          <div
+                                            key={idx}
+                                            style={{
+                                              padding: 10,
+                                              backgroundColor: "#fff",
+                                              border: "1px solid #f0f0f0",
+                                              borderRadius: 4,
+                                              whiteSpace: "pre-wrap",
+                                              wordBreak: "break-word",
+                                            }}
+                                          >
+                                            <Text strong style={{ display: "block", marginBottom: 4 }}>
+                                              Câu {actualQuestionNumber}:
+                                            </Text>
+                                            <Text>{formatQuestionText(qs.content || "")}</Text>
+                                          </div>
+                                        );
+                                      })}
+                                    </Space>
+                                  </div>
+                                );
+                              }
+                              
+                              // Single question
+                              if (item.questionContent && item.questionContent.trim()) {
+                                return (
                               <div style={{ marginBottom: 8 }}>
                                 <Text strong>Đề bài:</Text>
                                 <div style={{ marginTop: 4, whiteSpace: "pre-wrap" }}>
                                   {formatQuestionText(item.questionContent)}
                                 </div>
                               </div>
-                            )}
+                                );
+                              }
+                              
+                              return null;
+                            })()}
                             <div style={{ marginBottom: 8 }}>
                               <Text type="secondary" style={{ fontSize: 13 }}>
                                 {item.content || "Chưa có đánh giá tổng quan"}
@@ -3206,9 +3469,63 @@ export default function ResultScreen() {
                 <Text type="secondary">{getSwPartDisplayName(selectedSwFeedback.partType)}</Text>
               </div>
             )}
-            {(selectedSwFeedback.questionContent ||
-              selectedSwFeedback.questionContentFull?.content) && (
+            {/* Đề bài - xử lý cả single question và group question */}
+            {(() => {
+              const questionContent = selectedSwFeedback.questionContentFull || selectedSwFeedback.questionContent;
+              
+              // Nếu là group question (questionGroupSnapshotDto)
+              if (questionContent && questionContent.questionSnapshots && Array.isArray(questionContent.questionSnapshots)) {
+                return (
               <div style={{ marginBottom: 16 }}>
+                <Title level={5}>Đề bài:</Title>
+                    {questionContent.passage && (
+                      <div
+                        style={{
+                          padding: 12,
+                          backgroundColor: "#f0f2f5",
+                          border: "1px solid #d9d9d9",
+                          borderRadius: 4,
+                          marginBottom: 12,
+                          whiteSpace: "pre-wrap",
+                        }}
+                      >
+                        <Text strong style={{ display: "block", marginBottom: 8 }}>
+                          Đoạn văn/Thông tin:
+                        </Text>
+                        <Text>{formatQuestionText(questionContent.passage)}</Text>
+                      </div>
+                    )}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                      {questionContent.questionSnapshots.map((qs, idx) => {
+                        // Tính số câu thực tế từ globalIndex (selectedSwFeedback.index là globalIndex của câu đầu tiên)
+                        const actualQuestionNumber = selectedSwFeedback.index ? (selectedSwFeedback.index + idx) : (idx + 1);
+                        return (
+                          <div
+                            key={idx}
+                            style={{
+                              padding: 12,
+                              backgroundColor: "#fff",
+                              border: "1px solid #f0f0f0",
+                              borderRadius: 4,
+                              whiteSpace: "pre-wrap",
+                            }}
+                          >
+                            <Text strong style={{ display: "block", marginBottom: 4 }}>
+                              Câu {actualQuestionNumber}:
+                            </Text>
+                            <Text>{formatQuestionText(qs.content || "")}</Text>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
+              
+              // Single question
+              if (selectedSwFeedback.questionContent || selectedSwFeedback.questionContentFull?.content) {
+                return (
+                  <div style={{ marginBottom: 16 }}>
                 <Title level={5}>Đề bài:</Title>
                 <div
                   style={{
@@ -3227,7 +3544,11 @@ export default function ResultScreen() {
                   </Text>
                 </div>
               </div>
-            )}
+                );
+              }
+              
+              return null;
+            })()}
             {/* Điểm số tổng quan */}
             <div
               style={{
@@ -3327,12 +3648,63 @@ export default function ResultScreen() {
                     >
                       Trình duyệt không hỗ trợ audio.
                     </audio>
+                    {selectedSwFeedback.audioDuration && (
+                      <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 4 }}>
+                        Độ dài: {selectedSwFeedback.audioDuration.toFixed(2)} giây
+                      </Text>
+                    )}
                   </div>
                 );
               }
 
               return null;
             })()}
+
+            {/* Transcription (cho Speaking) */}
+            {selectedSwFeedback.transcription && selectedSwFeedback.transcription.trim().length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <Title level={5}>
+                  <SoundOutlined style={{ marginRight: 8 }} />
+                  Phiên âm từ audio:
+                </Title>
+                <div
+                  style={{
+                    padding: 12,
+                    backgroundColor: "#f0f2f5",
+                    border: "1px solid #d9d9d9",
+                    borderRadius: 4,
+                    whiteSpace: "pre-wrap",
+                    maxHeight: 200,
+                    overflowY: "auto",
+                  }}
+                >
+                  <Text>{selectedSwFeedback.transcription}</Text>
+                </div>
+              </div>
+            )}
+
+            {/* Reference Text (cho Speaking - read_aloud) */}
+            {selectedSwFeedback.detailedAnalysis?.reference_text && (
+              <div style={{ marginBottom: 16 }}>
+                <Title level={5}>
+                  <FileTextOutlined style={{ marginRight: 8 }} />
+                  Văn bản tham khảo (Reference Text):
+                </Title>
+                <div
+                  style={{
+                    padding: 12,
+                    backgroundColor: "#e6f7ff",
+                    border: "1px solid #91d5ff",
+                    borderRadius: 4,
+                    whiteSpace: "pre-wrap",
+                    maxHeight: 200,
+                    overflowY: "auto",
+                  }}
+                >
+                  <Text>{selectedSwFeedback.detailedAnalysis.reference_text}</Text>
+                </div>
+              </div>
+            )}
 
             {/* Câu trả lời đã chỉnh sửa */}
             {selectedSwFeedback.correctedText && (
@@ -3506,6 +3878,63 @@ export default function ResultScreen() {
                         }}
                       >
                         <Text>{issue}</Text>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Per-question feedback (cho group questions - Part 3 & 4) */}
+            {selectedSwFeedback.detailedAnalysis?.per_question_feedback &&
+              Array.isArray(selectedSwFeedback.detailedAnalysis.per_question_feedback) &&
+              selectedSwFeedback.detailedAnalysis.per_question_feedback.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <Title level={5}>
+                    <CommentOutlined style={{ marginRight: 8 }} />
+                    Đánh giá từng câu hỏi:
+                  </Title>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    {selectedSwFeedback.detailedAnalysis.per_question_feedback.map((qFeedback, idx) => (
+                      <div
+                        key={idx}
+                        style={{
+                          padding: 12,
+                          backgroundColor: qFeedback.answered ? "#f6ffed" : "#fff1f0",
+                          border: `1px solid ${qFeedback.answered ? "#52c41a" : "#ffccc7"}`,
+                          borderRadius: 4,
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          {(() => {
+                            // Nếu question_number là số thứ tự trong group (1, 2, 3), tính lại từ globalIndex
+                            // Nếu question_number đã là globalIndex (13, 14, 15), dùng trực tiếp
+                            let questionNumber = qFeedback.question_number;
+                            if (selectedSwFeedback.index && questionNumber && questionNumber <= (selectedSwFeedback.detailedAnalysis?.per_question_feedback?.length || 3)) {
+                              // question_number là số thứ tự trong group, tính lại từ globalIndex
+                              questionNumber = selectedSwFeedback.index + (questionNumber - 1);
+                            }
+                            return <Text strong>Câu {questionNumber}:</Text>;
+                          })()}
+                          {qFeedback.answered ? (
+                            <Tag color="success" icon={<CheckCircleOutlined />}>
+                              Đã trả lời
+                            </Tag>
+                          ) : (
+                            <Tag color="error" icon={<CloseCircleOutlined />}>
+                              Chưa trả lời
+                            </Tag>
+                          )}
+                          {qFeedback.quality && (
+                            <Tag color={qFeedback.quality === "excellent" ? "success" : qFeedback.quality === "good" ? "processing" : "warning"}>
+                              {qFeedback.quality === "excellent" ? "Xuất sắc" : qFeedback.quality === "good" ? "Tốt" : "Khá"}
+                            </Tag>
+                          )}
+                        </div>
+                        {qFeedback.feedback && (
+                          <div style={{ marginTop: 8 }}>
+                            <Text>{qFeedback.feedback}</Text>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -302,6 +302,26 @@ export default function ExamSelection() {
         answers[key] = item.value;
       });
       
+      // Xử lý đặc biệt cho speaking_group: map answers từ sub-question đầu tiên sang group testQuestionId
+      // Nếu backend lưu với testQuestionId của sub-question đầu tiên, cần map lại sang testQuestionId của group
+      questions.forEach((q) => {
+        if (q.type === "speaking_group" && q.subQuestions && q.subQuestions.length > 0) {
+          const firstSubQ = q.subQuestions[0];
+          const groupTestQuestionId = String(q.testQuestionId);
+          const firstSubQTestQuestionId = String(firstSubQ.testQuestionId);
+          
+          // Nếu có answer với testQuestionId của sub-question đầu tiên, map sang testQuestionId của group
+          if (firstSubQTestQuestionId !== groupTestQuestionId) {
+            const subQAnswerKey = firstSubQTestQuestionId; // subQuestionIndex = 0
+            if (answers[subQAnswerKey] && !answers[groupTestQuestionId]) {
+              answers[groupTestQuestionId] = answers[subQAnswerKey];
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`[ExamSelection] Mapped speaking_group answer from sub-question ${firstSubQTestQuestionId} to group ${groupTestQuestionId}`);
+              }
+            }
+          }
+        }
+      });
       
       const payload = {
         ...data,

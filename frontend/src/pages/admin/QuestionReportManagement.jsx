@@ -44,6 +44,8 @@ import {
   reviewReport,
   updateTestQuestionFromReport,
 } from "@services/questionReportService";
+import { getTestById, updateTestManual } from "@services/testsService";
+import { uploadFile } from "@services/filesService";
 
 dayjs.extend(relativeTime);
 dayjs.locale("vi");
@@ -162,6 +164,10 @@ export default function QuestionReportManagement() {
   const [audioPreviewUrl, setAudioPreviewUrl] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [alsoUpdateSourceInBank, setAlsoUpdateSourceInBank] = useState(true);
+  // State cho test audio (Simulator test)
+  const [testAudioFile, setTestAudioFile] = useState(null);
+  const [testAudioPreviewUrl, setTestAudioPreviewUrl] = useState(null);
+  const [testAudioUrl, setTestAudioUrl] = useState(null);
 
   const [reviewForm] = Form.useForm();
 
@@ -393,6 +399,35 @@ export default function QuestionReportManagement() {
     setAudioPreviewUrl(null);
     setImagePreviewUrl(null);
     setAlsoUpdateSourceInBank(true); // Mặc định là true
+    
+    // Lấy test audio URL (nếu có) - cho Simulator test
+    // Có thể lấy từ record hoặc cần fetch từ API
+    const testAudio = record.testAudioUrl || record.globalAudioUrl || record.test?.audioUrl || null;
+    setTestAudioUrl(testAudio);
+    setTestAudioFile(null);
+    setTestAudioPreviewUrl(null);
+    
+    // Nếu là Simulator test và chưa có testAudioUrl, fetch từ API
+    if (!testAudio && record.testId) {
+      // Kiểm tra xem có phải Simulator test không
+      const isSimulator = record.testType === 1 || 
+                         record.testType === "Simulator" || 
+                         record.testType === "SIMULATOR" ||
+                         (!record.sourceQuestionId && !record.sourceQuestionGroupId);
+      
+      if (isSimulator) {
+        // Fetch test detail để lấy audioUrl
+        getTestById(record.testId)
+          .then((testData) => {
+            if (testData?.audioUrl) {
+              setTestAudioUrl(testData.audioUrl);
+            }
+          })
+          .catch((error) => {
+            // Silently fail - không hiển thị lỗi nếu không fetch được
+          });
+      }
+    }
 
     reviewForm.setFieldsValue({
       status:
@@ -455,35 +490,102 @@ export default function QuestionReportManagement() {
         try {
           setUpdatingQuestion(true);
           
-          let payload;
+          let payload = {
+            alsoUpdateSourceInBank: alsoUpdateSourceInBank,
+          };
+          
           if (isQuestionGroup) {
-            // Question group payload
-            payload = {
-              passage: editableQuestionGroup.passage ?? "",
-              alsoUpdateSourceInBank: alsoUpdateSourceInBank,
-              audioFile,
-              imageFile,
-              questions: Array.isArray(editableQuestionGroup.questions)
-                ? editableQuestionGroup.questions.map((q) => ({
+            // Question group payload - chỉ gửi các fields có giá trị (partial update)
+            // Passage: chỉ gửi nếu có giá trị
+            if (editableQuestionGroup.passage != null && editableQuestionGroup.passage.trim() !== "") {
+              payload.passage = editableQuestionGroup.passage;
+            }
+            
+            // Audio: chỉ gửi nếu có file mới được chọn
+            // Lưu ý: Với Simulator test, audio có thể dùng chung ở test level
+            // Nhưng nếu user chọn file mới, vẫn gửi để update
+            if (audioFile) {
+              payload.audioFile = audioFile;
+            }
+            
+            // Image: chỉ gửi nếu có file mới được chọn
+            if (imageFile) {
+              payload.imageFile = imageFile;
+            }
+            
+            // Questions: chỉ gửi nếu có questions và có ít nhất 1 question có dữ liệu
+            if (Array.isArray(editableQuestionGroup.questions) && editableQuestionGroup.questions.length > 0) {
+              const validQuestions = editableQuestionGroup.questions
+                .filter(q => q.questionId != null) // Phải có questionId
+                .map((q) => {
+                  const questionData = {
                     questionId: q.questionId,
-                    content: q.content ?? "",
-                    explanation: q.explanation ?? "",
-                    options: Array.isArray(q.options) ? q.options : [],
-                  }))
-                : [],
-            };
+                  };
+                  
+                  // Chỉ thêm content nếu có giá trị
+                  if (q.content != null && q.content.trim() !== "") {
+                    questionData.content = q.content;
+                  }
+                  
+                  // Chỉ thêm explanation nếu có giá trị
+                  if (q.explanation != null && q.explanation.trim() !== "") {
+                    questionData.explanation = q.explanation;
+                  }
+                  
+                  // Options: chỉ gửi nếu có options
+                  if (Array.isArray(q.options) && q.options.length > 0) {
+                    questionData.options = q.options.map(opt => ({
+                      label: opt.label ?? "",
+                      content: opt.content ?? "",
+                      isCorrect: !!opt.isCorrect,
+                    }));
+                  }
+                  
+                  return questionData;
+                })
+                .filter(q => 
+                  // Chỉ giữ lại question nếu có ít nhất content hoặc explanation hoặc options
+                  (q.content != null && q.content.trim() !== "") ||
+                  (q.explanation != null && q.explanation.trim() !== "") ||
+                  (Array.isArray(q.options) && q.options.length > 0)
+                );
+              
+              if (validQuestions.length > 0) {
+                payload.questions = validQuestions;
+              }
+            }
           } else {
-            // Single question payload
-            payload = {
-              content: editableQuestion.content ?? "",
-              solution: editableQuestion.explanation ?? "",
-              alsoUpdateSourceInBank: alsoUpdateSourceInBank,
-              audioFile,
-              imageFile,
-              answerOptions: Array.isArray(editableQuestion.options)
-                ? editableQuestion.options
-                : [],
-            };
+            // Single question payload - chỉ gửi các fields có giá trị (partial update)
+            // Content: chỉ gửi nếu có giá trị
+            if (editableQuestion.content != null && editableQuestion.content.trim() !== "") {
+              payload.content = editableQuestion.content;
+            }
+            
+            // Solution: chỉ gửi nếu có giá trị
+            if (editableQuestion.explanation != null && editableQuestion.explanation.trim() !== "") {
+              payload.solution = editableQuestion.explanation;
+            }
+            
+            // Audio: chỉ gửi nếu có file mới được chọn
+            // Lưu ý: Với Simulator test, audio có thể dùng chung ở test level
+            // Nhưng nếu user chọn file mới, vẫn gửi để update
+            if (audioFile) {
+              payload.audioFile = audioFile;
+            }
+            
+            // Image: chỉ gửi nếu có file mới được chọn
+            if (imageFile) {
+              payload.imageFile = imageFile;
+            }
+            
+            // AnswerOptions: chỉ gửi nếu có options
+            if (Array.isArray(editableQuestion.options) && editableQuestion.options.length > 0) {
+              payload.answerOptions = editableQuestion.options.map(opt => ({
+                label: opt.label ?? "",
+                content: opt.content ?? "",
+                isCorrect: !!opt.isCorrect,
+              }));
+            }
           }
 
           await updateTestQuestionFromReport(
@@ -493,8 +595,27 @@ export default function QuestionReportManagement() {
           message.success(
             "Đã cập nhật câu hỏi trong bài thi theo dữ liệu."
           );
+          
+          // Reset preview URLs sau khi update thành công
+          if (audioPreviewUrl) {
+            URL.revokeObjectURL(audioPreviewUrl);
+            setAudioPreviewUrl(null);
+          }
+          if (imagePreviewUrl) {
+            URL.revokeObjectURL(imagePreviewUrl);
+            setImagePreviewUrl(null);
+          }
+          setAudioFile(null);
+          setImageFile(null);
+          
+          // Refresh data để hiển thị dữ liệu mới
+          fetchData();
         } catch (error) {
-          message.error("Không thể cập nhật câu hỏi từ báo cáo.");
+          const errorMessage = error?.response?.data?.message || 
+                              error?.response?.data?.error || 
+                              error?.message || 
+                              "Không thể cập nhật câu hỏi từ báo cáo.";
+          message.error(errorMessage);
         } finally {
           setUpdatingQuestion(false);
         }
@@ -747,6 +868,12 @@ export default function QuestionReportManagement() {
     const showAudioControls = requiresAudio(skill);
     const showImageControls = imageRule.show;
 
+    // Kiểm tra xem có phải Simulator test và có test audio không
+    const isSimulatorTest = !isPracticeTest;
+    const hasTestAudio = testAudioUrl != null || testAudioPreviewUrl != null;
+    // Với Simulator test, nếu có test audio thì không hiển thị nút chọn audio cho câu hỏi riêng lẻ
+    const shouldShowQuestionAudioControls = showAudioControls && (!isSimulatorTest || !hasTestAudio);
+
     return (
       <Space direction="vertical" style={{ width: "100%" }} size="middle">
         {/* Card tiêu đề */}
@@ -756,11 +883,134 @@ export default function QuestionReportManagement() {
           </Title>
         </Card>
 
+        {/* Card Audio chung của test (Simulator) */}
+        {isSimulatorTest && (
+          <Card 
+            size="small" 
+            title={
+              <Space>
+                <Text strong>Audio chung của bài thi (Simulator)</Text>
+                <Tag color="blue">Dùng chung cho tất cả câu hỏi</Tag>
+              </Space>
+            }
+          >
+            <Space direction="vertical" style={{ width: "100%" }} size="middle">
+              {(testAudioPreviewUrl || testAudioUrl) ? (
+                <div>
+                  <Text strong style={{ display: "block", marginBottom: 8 }}>
+                    Audio hiện tại:
+                  </Text>
+                  <audio
+                    src={testAudioPreviewUrl || testAudioUrl}
+                    controls
+                    style={{ width: "100%" }}
+                  />
+                </div>
+              ) : (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Chưa có audio cho bài thi này. Vui lòng chọn file audio để upload.
+                </Text>
+              )}
+              {!isReadOnly && (
+                <Upload
+                  accept="audio/*"
+                  showUploadList={false}
+                  beforeUpload={(file) => {
+                    setTestAudioFile(file);
+                    if (testAudioPreviewUrl) {
+                      URL.revokeObjectURL(testAudioPreviewUrl);
+                    }
+                    const url = URL.createObjectURL(file);
+                    setTestAudioPreviewUrl(url);
+                    message.success(
+                      "Đã chọn file audio mới cho bài thi. Nhấn 'Cập nhật audio bài thi' để lưu."
+                    );
+                    return false;
+                  }}
+                >
+                  <Button size="small" icon={<UploadOutlined />}>
+                    {testAudioUrl ? "Thay đổi audio bài thi" : "Chọn audio bài thi"}
+                  </Button>
+                </Upload>
+              )}
+              {testAudioPreviewUrl && !isReadOnly && (
+                <Button
+                  size="small"
+                  type="primary"
+                  loading={updatingQuestion}
+                  onClick={async () => {
+                    if (!testAudioFile || !selectedReport?.testId) {
+                      message.warning("Vui lòng chọn file audio mới.");
+                      return;
+                    }
+                    
+                    Modal.confirm({
+                      title: "Cập nhật audio chung của bài thi?",
+                      content: "Thao tác này sẽ thay đổi audio chung cho tất cả câu hỏi trong bài thi Simulator này. Bạn có chắc chắn muốn tiếp tục?",
+                      okText: "Cập nhật",
+                      cancelText: "Hủy",
+                      okButtonProps: { danger: false, type: "primary" },
+                      onOk: async () => {
+                        try {
+                          setUpdatingQuestion(true);
+                          
+                          // Bước 1: Upload file audio
+                          const audioUrl = await uploadFile(testAudioFile, "audio");
+                          
+                          // Bước 2: Lấy test hiện tại
+                          const currentTest = await getTestById(selectedReport.testId);
+                          
+                          // Bước 3: Update test với AudioUrl mới (giữ nguyên các field khác)
+                          const updateData = {
+                            title: currentTest.title,
+                            testType: currentTest.testType,
+                            testSkill: currentTest.testSkill,
+                            description: currentTest.description || null,
+                            audioUrl: audioUrl, // URL mới từ upload
+                            parts: currentTest.parts || [], // Giữ nguyên parts
+                          };
+                          
+                          await updateTestManual(selectedReport.testId, updateData);
+                          message.success("Đã cập nhật audio chung của bài thi thành công.");
+                          
+                          // Cập nhật testAudioUrl để hiển thị audio mới
+                          setTestAudioUrl(audioUrl);
+                          
+                          // Reset preview URL và file
+                          if (testAudioPreviewUrl) {
+                            URL.revokeObjectURL(testAudioPreviewUrl);
+                            setTestAudioPreviewUrl(null);
+                          }
+                          setTestAudioFile(null);
+                          
+                          // Refresh data để hiển thị audio mới
+                          fetchData();
+                        } catch (error) {
+                          const errorMessage = error?.response?.data?.message || 
+                                              error?.response?.data?.error || 
+                                              error?.message || 
+                                              "Không thể cập nhật audio bài thi.";
+                          message.error(errorMessage);
+                        } finally {
+                          setUpdatingQuestion(false);
+                        }
+                      },
+                    });
+                  }}
+                >
+                  Cập nhật audio bài thi
+                </Button>
+              )}
+            </Space>
+          </Card>
+        )}
+
         {/* Card nút chức năng */}
         {!isReadOnly && (
           <Card size="small">
             <Space wrap>
-              {showAudioControls && (
+              {/* Chỉ hiển thị nút chọn audio cho câu hỏi nếu không phải Simulator hoặc không có test audio */}
+              {shouldShowQuestionAudioControls && (
                 <Upload
                   accept="audio/*"
                   showUploadList={false}
@@ -875,14 +1125,14 @@ export default function QuestionReportManagement() {
                 }))
               }
               disabled={isReadOnly}
-              placeholder="Giải thích / Solution"
+              placeholder="Giải thích"
             />
           </Descriptions.Item>
           {(audioPreviewUrl ||
             imagePreviewUrl ||
             snapshot.audioUrl ||
             snapshot.imageUrl) && (
-            <Descriptions.Item label="Media">
+            <Descriptions.Item label="Âm thanh">
               <div
                 style={{
                   display: "flex",
@@ -910,7 +1160,7 @@ export default function QuestionReportManagement() {
                   >
                     <img
                       src={imagePreviewUrl || snapshot.imageUrl}
-                      alt="Question"
+                      alt="Câu hỏi"
                       style={{
                         width: "100%",
                         height: "auto",
@@ -1058,6 +1308,12 @@ export default function QuestionReportManagement() {
     const imageRule = requiresImage(partId, skill);
     const showAudioControls = requiresAudio(skill);
     const showImageControls = imageRule.show;
+    
+    // Kiểm tra xem có phải Simulator test và có test audio không
+    const isSimulatorTest = !isPracticeTest;
+    const hasTestAudio = testAudioUrl != null || testAudioPreviewUrl != null;
+    // Với Simulator test, nếu có test audio thì không hiển thị nút chọn audio cho câu hỏi riêng lẻ
+    const shouldShowQuestionAudioControls = showAudioControls && (!isSimulatorTest || !hasTestAudio);
 
     return (
       <Space direction="vertical" style={{ width: "100%" }} size="middle">
@@ -1068,11 +1324,134 @@ export default function QuestionReportManagement() {
           </Title>
         </Card>
 
+        {/* Card Audio chung của test (Simulator) */}
+        {isSimulatorTest && (
+          <Card 
+            size="small" 
+            title={
+              <Space>
+                <Text strong>Audio chung của bài thi (Simulator)</Text>
+                <Tag color="blue">Dùng chung cho tất cả câu hỏi</Tag>
+              </Space>
+            }
+          >
+            <Space direction="vertical" style={{ width: "100%" }} size="middle">
+              {(testAudioPreviewUrl || testAudioUrl) ? (
+                <div>
+                  <Text strong style={{ display: "block", marginBottom: 8 }}>
+                    Audio hiện tại:
+                  </Text>
+                  <audio
+                    src={testAudioPreviewUrl || testAudioUrl}
+                    controls
+                    style={{ width: "100%" }}
+                  />
+                </div>
+              ) : (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  Chưa có audio cho bài thi này. Vui lòng chọn file audio để upload.
+                </Text>
+              )}
+              {!isReadOnly && (
+                <Upload
+                  accept="audio/*"
+                  showUploadList={false}
+                  beforeUpload={(file) => {
+                    setTestAudioFile(file);
+                    if (testAudioPreviewUrl) {
+                      URL.revokeObjectURL(testAudioPreviewUrl);
+                    }
+                    const url = URL.createObjectURL(file);
+                    setTestAudioPreviewUrl(url);
+                    message.success(
+                      "Đã chọn file audio mới cho bài thi. Nhấn 'Cập nhật audio bài thi' để lưu."
+                    );
+                    return false;
+                  }}
+                >
+                  <Button size="small" icon={<UploadOutlined />}>
+                    {testAudioUrl ? "Thay đổi audio bài thi" : "Chọn audio bài thi"}
+                  </Button>
+                </Upload>
+              )}
+              {testAudioPreviewUrl && !isReadOnly && (
+                <Button
+                  size="small"
+                  type="primary"
+                  loading={updatingQuestion}
+                  onClick={async () => {
+                    if (!testAudioFile || !selectedReport?.testId) {
+                      message.warning("Vui lòng chọn file audio mới.");
+                      return;
+                    }
+                    
+                    Modal.confirm({
+                      title: "Cập nhật audio chung của bài thi?",
+                      content: "Thao tác này sẽ thay đổi audio chung cho tất cả câu hỏi trong bài thi Simulator này. Bạn có chắc chắn muốn tiếp tục?",
+                      okText: "Cập nhật",
+                      cancelText: "Hủy",
+                      okButtonProps: { danger: false, type: "primary" },
+                      onOk: async () => {
+                        try {
+                          setUpdatingQuestion(true);
+                          
+                          // Bước 1: Upload file audio
+                          const audioUrl = await uploadFile(testAudioFile, "audio");
+                          
+                          // Bước 2: Lấy test hiện tại
+                          const currentTest = await getTestById(selectedReport.testId);
+                          
+                          // Bước 3: Update test với AudioUrl mới (giữ nguyên các field khác)
+                          const updateData = {
+                            title: currentTest.title,
+                            testType: currentTest.testType,
+                            testSkill: currentTest.testSkill,
+                            description: currentTest.description || null,
+                            audioUrl: audioUrl, // URL mới từ upload
+                            parts: currentTest.parts || [], // Giữ nguyên parts
+                          };
+                          
+                          await updateTestManual(selectedReport.testId, updateData);
+                          message.success("Đã cập nhật audio chung của bài thi thành công.");
+                          
+                          // Cập nhật testAudioUrl để hiển thị audio mới
+                          setTestAudioUrl(audioUrl);
+                          
+                          // Reset preview URL và file
+                          if (testAudioPreviewUrl) {
+                            URL.revokeObjectURL(testAudioPreviewUrl);
+                            setTestAudioPreviewUrl(null);
+                          }
+                          setTestAudioFile(null);
+                          
+                          // Refresh data để hiển thị audio mới
+                          fetchData();
+                        } catch (error) {
+                          const errorMessage = error?.response?.data?.message || 
+                                              error?.response?.data?.error || 
+                                              error?.message || 
+                                              "Không thể cập nhật audio bài thi.";
+                          message.error(errorMessage);
+                        } finally {
+                          setUpdatingQuestion(false);
+                        }
+                      },
+                    });
+                  }}
+                >
+                  Cập nhật audio bài thi
+                </Button>
+              )}
+            </Space>
+          </Card>
+        )}
+
         {/* Card nút chức năng */}
         {!isReadOnly && (
           <Card size="small">
             <Space wrap>
-              {showAudioControls && (
+              {/* Chỉ hiển thị nút chọn audio cho câu hỏi nếu không phải Simulator hoặc không có test audio */}
+              {shouldShowQuestionAudioControls && (
                 <Upload
                   accept="audio/*"
                   showUploadList={false}
@@ -1157,7 +1536,7 @@ export default function QuestionReportManagement() {
         )}
         
         <Descriptions column={1} size="small">
-          <Descriptions.Item label="Đoạn văn (Passage)">
+          <Descriptions.Item label="Đoạn văn">
             <Input.TextArea
               rows={6}
               value={passage}
@@ -1169,7 +1548,7 @@ export default function QuestionReportManagement() {
                 }))
               }
               disabled={isReadOnly}
-              placeholder="Nội dung đoạn văn / passage"
+              placeholder="Nội dung đoạn văn"
             />
           </Descriptions.Item>
           
@@ -1177,7 +1556,7 @@ export default function QuestionReportManagement() {
             imagePreviewUrl ||
             groupSnapshot.audioUrl ||
             groupSnapshot.imageUrl) && (
-            <Descriptions.Item label="Media">
+            <Descriptions.Item label="Âm thanh">
               <div
                 style={{
                   display: "flex",
@@ -1205,7 +1584,7 @@ export default function QuestionReportManagement() {
                   >
                     <img
                       src={imagePreviewUrl || groupSnapshot.imageUrl}
-                      alt="Question Group"
+                      alt="Nhóm câu hỏi"
                       style={{
                         width: "100%",
                         height: "auto",
@@ -1636,34 +2015,82 @@ export default function QuestionReportManagement() {
               <Col xs={24} md={10}>
                 <Card size="small" title="Thông tin báo cáo">
                   <Descriptions column={1} size="small" bordered>
-                    <Descriptions.Item label="Report ID">
+                    <Descriptions.Item label="ID báo cáo">
                       {selectedReport.reportId}
                     </Descriptions.Item>
                     <Descriptions.Item label="ID câu hỏi trong bài thi">
                       {selectedReport.testQuestionId}
                     </Descriptions.Item>
                     <Descriptions.Item label="Bài thi">
-                      {selectedReport.testName} (ID: {selectedReport.testId})
+                      <Space direction="vertical" size={0}>
+                        <Text strong>{selectedReport.testName}</Text>
+                        <Text type="secondary" style={{ fontSize: 12 }}>
+                          ID: {selectedReport.testId}
+                        </Text>
+                      </Space>
                     </Descriptions.Item>
-                    <Descriptions.Item label="Part">
+                    <Descriptions.Item label="Loại test">
+                      {(() => {
+                        // Ưu tiên lấy từ testType trực tiếp
+                        const testType = selectedReport.testType ?? selectedReport.TestType;
+                        if (testType === 1 || testType === "Simulator" || testType === "SIMULATOR") {
+                          return <Tag color="blue">Simulator</Tag>;
+                        } else if (testType === 2 || testType === "Practice" || testType === "PRACTICE") {
+                          return <Tag color="green">Practice</Tag>;
+                        }
+                        // Nếu không có testType, suy luận từ sourceQuestionId/sourceQuestionGroupId
+                        const hasSourceId = selectedReport.sourceQuestionId != null || 
+                                          selectedReport.sourceQuestionGroupId != null ||
+                                          selectedReport?.questionSnapshot?.sourceQuestionId != null ||
+                                          selectedReport?.questionGroupSnapshot?.sourceQuestionGroupId != null;
+                        if (hasSourceId) {
+                          return <Tag color="green">Practice</Tag>;
+                        }
+                        // Nếu không có sourceId, suy luận từ testName (nếu có "Simulator" trong tên)
+                        const testName = (selectedReport.testName || "").toLowerCase();
+                        if (testName.includes("simulator")) {
+                          return <Tag color="blue">Simulator</Tag>;
+                        }
+                        // Mặc định: không xác định
+                        return <Tag color="default">Không xác định</Tag>;
+                      })()}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Phần">
                       {selectedReport.partName || selectedReport.partId}
                     </Descriptions.Item>
                     {/* Với question group: hiển thị rõ câu nào đang bị report */}
                     {selectedReport.isQuestionGroup && (
-                      <Descriptions.Item label="Câu bị report trong group">
-                        {(() => {
-                          const reportedId =
-                            selectedReport.subQuestionId ??
-                            selectedReport?.reportedSubQuestion?.questionId ??
-                            null;
-                          if (!reportedId) return "Không xác định";
-                          const qs =
-                            selectedReport?.questionGroupSnapshot?.questionSnapshots || [];
-                          const idx = qs.findIndex((q) => q.questionId === reportedId);
-                          return idx >= 0
-                            ? `Câu ${idx + 1}/${qs.length} (ID: ${reportedId})`
-                            : `ID: ${reportedId}`;
-                        })()}
+                      <>
+                        <Descriptions.Item label="Số câu trong nhóm">
+                          {selectedReport.groupQuestionCount ?? 
+                           (selectedReport?.questionGroupSnapshot?.questionSnapshots?.length ?? 0)}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Câu bị report trong group">
+                          {(() => {
+                            const reportedId =
+                              selectedReport.subQuestionId ??
+                              selectedReport?.reportedSubQuestion?.questionId ??
+                              null;
+                            if (!reportedId) return "Không xác định";
+                            const qs =
+                              selectedReport?.questionGroupSnapshot?.questionSnapshots || [];
+                            const idx = qs.findIndex((q) => q.questionId === reportedId);
+                            return idx >= 0
+                              ? `Câu ${idx + 1}/${qs.length} (ID: ${reportedId})`
+                              : `ID: ${reportedId}`;
+                          })()}
+                        </Descriptions.Item>
+                      </>
+                    )}
+                    {/* Hiển thị sourceQuestionId/sourceQuestionGroupId nếu có (Practice test) */}
+                    {selectedReport.sourceQuestionId && (
+                      <Descriptions.Item label="ID câu hỏi gốc (Bank)">
+                        {selectedReport.sourceQuestionId}
+                      </Descriptions.Item>
+                    )}
+                    {selectedReport.sourceQuestionGroupId && (
+                      <Descriptions.Item label="ID nhóm câu hỏi gốc (Bank)">
+                        {selectedReport.sourceQuestionGroupId}
                       </Descriptions.Item>
                     )}
                     <Descriptions.Item label="Người báo cáo">
@@ -1687,6 +2114,22 @@ export default function QuestionReportManagement() {
                           )
                         : "—"}
                     </Descriptions.Item>
+                    {/* Hiển thị thông tin người review nếu đã được review */}
+                    {selectedReport.reviewedBy && (
+                      <Descriptions.Item label="Người xử lý">
+                        <Space direction="vertical" size={0}>
+                          <Text strong>{selectedReport.reviewerName || "—"}</Text>
+                          <Text type="secondary" style={{ fontSize: 12 }}>
+                            ID: {selectedReport.reviewedBy}
+                          </Text>
+                        </Space>
+                      </Descriptions.Item>
+                    )}
+                    {selectedReport.reviewedAt && (
+                      <Descriptions.Item label="Thời gian xử lý">
+                        {dayjs(selectedReport.reviewedAt).format("HH:mm DD/MM/YYYY")}
+                      </Descriptions.Item>
+                    )}
                   </Descriptions>
 
                   <Divider style={{ margin: "12px 0" }} />

@@ -460,6 +460,27 @@ export default function ExamScreen() {
               savedAnswersObj[key] = value;
             });
             
+            // Xử lý đặc biệt cho speaking_group: map answers từ sub-question đầu tiên sang group testQuestionId
+            // Nếu backend lưu với testQuestionId của sub-question đầu tiên, cần map lại sang testQuestionId của group
+            questions.forEach((q) => {
+              if (q.type === "speaking_group" && q.subQuestions && q.subQuestions.length > 0) {
+                const firstSubQ = q.subQuestions[0];
+                const groupTestQuestionId = String(q.testQuestionId);
+                const firstSubQTestQuestionId = String(firstSubQ.testQuestionId);
+                
+                // Nếu có answer với testQuestionId của sub-question đầu tiên, map sang testQuestionId của group
+                if (firstSubQTestQuestionId !== groupTestQuestionId) {
+                  const subQAnswerKey = firstSubQTestQuestionId; // subQuestionIndex = 0
+                  if (savedAnswersObj[subQAnswerKey] && !savedAnswersObj[groupTestQuestionId]) {
+                    savedAnswersObj[groupTestQuestionId] = savedAnswersObj[subQAnswerKey];
+                    if (process.env.NODE_ENV === 'development') {
+                      console.log(`[ExamScreen] Mapped speaking_group answer from sub-question ${firstSubQTestQuestionId} to group ${groupTestQuestionId}`);
+                    }
+                  }
+                }
+              }
+            });
+            
             // Chỉ dùng answers từ API, không merge với sessionStorage
             setAnswers(savedAnswersObj);
             
@@ -1084,9 +1105,11 @@ export default function ExamScreen() {
       if (isSelectTime && totalDurationSeconds > 0) {
         elapsedSeconds = Math.min(elapsedSeconds, totalDurationSeconds);
       }
-      const durationMinutes = Math.max(1, Math.ceil(elapsedSeconds / 60));
+      const durationSeconds = Math.max(1, elapsedSeconds); // API yêu cầu duration tính bằng giây
+      const durationMinutes = Math.round(durationSeconds / 60); // Tính durationMinutes từ durationSeconds (cho L&R và resultMeta)
       const testType = rawTestData.testType || "Simulator";
-      const testTypeLower = testType.toLowerCase() === "simulator" ? "simulator" : "practice";
+      // API yêu cầu "Simulator" hoặc "Practice" (case-sensitive), không phải lowercase
+      const testTypeForSW = testType === "Simulator" || testType === "simulator" ? "Simulator" : "Practice";
 
       // Tách answers thành L&R và S&W
       const lrAnswers = [];
@@ -1142,7 +1165,6 @@ export default function ExamScreen() {
           if (partType && typeof answerValue === "string" && answerValue.trim() !== "") {
             swAnswers.push({
               testQuestionId: testQuestionId,
-              subQuestionIndex: subQuestionIndex !== 0 ? subQuestionIndex : null,
               partType: partType,
               answerText: answerValue,
               audioFileUrl: null,
@@ -1151,7 +1173,8 @@ export default function ExamScreen() {
         } else if (isSpeakingPart) {
           // Speaking: kiểm tra xem có phải speaking_group không
           if (isSpeakingGroup) {
-            // speaking_group: format answer cho tất cả sub-questions
+            // speaking_group: Theo API doc, chỉ gửi 1 entry với testQuestionId của group
+            // Backend sẽ xử lý và trả về 1 score cho cả group
             const audioUrl = typeof answerValue === "string" && answerValue.startsWith("http") 
               ? answerValue 
               : null;
@@ -1159,15 +1182,13 @@ export default function ExamScreen() {
             if (audioUrl) {
               const partType = getPartType(q.partId);
               if (partType) {
-                // Gửi audio cho tất cả sub-questions trong group
-                q.subQuestions.forEach((subQ) => {
-                  swAnswers.push({
-                    testQuestionId: subQ.testQuestionId,
-                    subQuestionIndex: subQ.subQuestionIndex !== undefined && subQ.subQuestionIndex !== null ? subQ.subQuestionIndex : null,
-                    partType: partType,
-                    answerText: null,
-                    audioFileUrl: audioUrl,
-                  });
+                // q.testQuestionId chính là testQuestionId của group (từ backend)
+                // Chỉ gửi 1 entry cho cả group, không gửi từng sub-question
+                swAnswers.push({
+                  testQuestionId: q.testQuestionId, // testQuestionId của group (không phải của sub-question)
+                  partType: partType,
+                  answerText: null,
+                  audioFileUrl: audioUrl,
                 });
               }
             }
@@ -1200,7 +1221,6 @@ export default function ExamScreen() {
               if (audioFileUrl !== null || answerValue instanceof Blob || (typeof answerValue === "string" && answerValue.startsWith("http"))) {
                 swAnswers.push({
                   testQuestionId: testQuestionId,
-                  subQuestionIndex: subQuestionIndex !== 0 ? subQuestionIndex : null,
                   partType: partType,
                   answerText: null,
                   audioFileUrl: audioFileUrl,
@@ -1255,8 +1275,8 @@ export default function ExamScreen() {
       if (swAnswers.length > 0) {
         const swPayload = {
           testResultId: finalTestResultId, // Dùng CÙNG testResultId ban đầu (từ history nếu tiếp tục test)
-          testType: testTypeLower,
-          duration: durationMinutes,
+          testType: testTypeForSW, // "Simulator" hoặc "Practice" (case-sensitive)
+          duration: durationSeconds, // API yêu cầu duration tính bằng giây
           parts: swAnswers,
         };
         if (process.env.NODE_ENV === 'development') {

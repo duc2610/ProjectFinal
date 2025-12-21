@@ -174,27 +174,37 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 });
 
 // Auto-migrate database on startup
+// Works for both SQL Server (local) and PostgreSQL (server deploy)
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<ToeicGeniusDbContext>();
-        if (context.Database.IsSqlServer())
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        
+        // Check if database can be connected
+        if (context.Database.CanConnect())
         {
-            context.Database.Migrate(); // Apply pending migrations automatically (SQL Server)
+            // Database exists - apply pending migrations
+            // Migrate() is safe: only applies new migrations, doesn't affect existing data
+            var dbProvider = context.Database.IsSqlServer() ? "SQL Server" : "PostgreSQL";
+            logger.LogInformation($"Database connection successful ({dbProvider}). Applying pending migrations...");
+            context.Database.Migrate();
+            logger.LogInformation("Database migrations applied successfully.");
         }
         else
         {
-            // Provider-agnostic bootstrapping for PostgreSQL on fresh deployments (Render free tier).
-            // Note: EnsureCreated is not a replacement for migrations.
-            context.Database.EnsureCreated();
+            // Database doesn't exist - this shouldn't happen in production
+            logger.LogWarning("Database connection failed. Please check connection string.");
         }
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
+        logger.LogError(ex, "An error occurred while migrating the database. Application will continue, but database operations may fail.");
+        // Don't throw - allow app to start even if migration fails
+        // This is important for production where database might be managed separately
     }
 }
 
