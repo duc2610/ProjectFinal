@@ -2552,7 +2552,7 @@ namespace ToeicGenius.Services.Implementations
 			if (dto.Audio != null)
 			{
 				// Upload new audio
-				var audioUploadResult = await _fileService.UploadFileAsync(dto.Audio, "audios");
+				var audioUploadResult = await _fileService.UploadFileAsync(dto.Audio, "audio");
 				if (!audioUploadResult.IsSuccess)
 					return Result<string>.Failure($"Failed to upload audio: {audioUploadResult.ErrorMessage}");
 				newSnapshot.AudioUrl = audioUploadResult.Data;
@@ -2745,7 +2745,7 @@ namespace ToeicGenius.Services.Implementations
 			// Update Audio if provided
 			if (dto.Audio != null)
 			{
-				var audioUploadResult = await _fileService.UploadFileAsync(dto.Audio, "audios");
+				var audioUploadResult = await _fileService.UploadFileAsync(dto.Audio, "audio");
 				if (!audioUploadResult.IsSuccess)
 					return Result<string>.Failure($"Failed to upload audio: {audioUploadResult.ErrorMessage}");
 				newGroupSnapshot.AudioUrl = audioUploadResult.Data;
