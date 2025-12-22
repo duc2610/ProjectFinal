@@ -207,6 +207,8 @@ class TOEICSpeakingAssessmentUltimate:
 
     def convert_audio_to_azure_format(self, input_path: str) -> str:
         """Convert audio to Azure format"""
+        # Chuyển đổi bất kỳ audio nào (mp3, m4a...) → WAV 16kHz mono
+
         try:
             audio = AudioSegment.from_file(input_path)
             audio = audio.set_frame_rate(16000).set_channels(1).set_sample_width(2)
