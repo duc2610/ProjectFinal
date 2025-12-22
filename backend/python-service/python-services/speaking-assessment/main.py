@@ -1241,7 +1241,7 @@ Return ONLY valid JSON."""
             mispronounced = pronunciation.get('mispronounced_words', [])
 
             recommendations = [
-                f"FAIR: Partially correct ({content_score}/100)")
+                f"FAIR: Partially correct ({content_score}/100)",
                 f"Pronunciation: {pronunciation['pronunciation_score']}/100",
                 f"Intonation: {intonation_score}/100"
             ]
