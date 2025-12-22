@@ -1565,10 +1565,6 @@ namespace ToeicGenius.Services.Implementations
 				? speakingFeedbacks.Average(f => (double)f.Score)
 				: null;
 
-			// Đếm số câu đã trả lời và bỏ qua
-			int answeredQuestions = aiFeedbacks.Count;
-			int skippedQuestions = totalQuestions - answeredQuestions;
-
 			// Lấy tất cả TestQuestionId từ feedbacks (cho PerPartFeedbacks legacy)
 			var testQuestionIds = aiFeedbacks
 				.Select(f => f.UserAnswer?.TestQuestionId ?? 0)
@@ -1578,6 +1574,48 @@ namespace ToeicGenius.Services.Implementations
 
 			// Lấy TestQuestions với Part (cho PerPartFeedbacks)
 			var testQuestionsForFeedbacks = await _uow.TestQuestions.GetByIdsWithPartAsync(testQuestionIds);
+
+			// JSON options để deserialize snapshot
+			var jsonOptionsForCount = new System.Text.Json.JsonSerializerOptions
+			{
+				PropertyNameCaseInsensitive = true
+			};
+
+			// Đếm số câu đã trả lời - xử lý đặc biệt cho Speaking Part 3/4 (group questions)
+			int answeredQuestions = 0;
+			foreach (var feedback in aiFeedbacks)
+			{
+				var testQuestionId = feedback.UserAnswer?.TestQuestionId ?? 0;
+				var testQuestion = testQuestionsForFeedbacks.FirstOrDefault(tq => tq.TestQuestionId == testQuestionId);
+
+				if (testQuestion != null && testQuestion.IsQuestionGroup)
+				{
+					// For group questions (Part 3/4), count the actual number of questions in the group
+					var partType = GetPartTypeFromPart(testQuestion.Part);
+					if (partType == "respond_questions" || partType == "respond_with_info")
+					{
+						try
+						{
+							var groupSnapshot = System.Text.Json.JsonSerializer.Deserialize<QuestionGroupSnapshotDto>(
+								testQuestion.SnapshotJson, jsonOptionsForCount);
+							answeredQuestions += groupSnapshot?.QuestionSnapshots?.Count ?? 3;
+						}
+						catch
+						{
+							answeredQuestions += 3; // Default 3 questions for Part 3/4
+						}
+					}
+					else
+					{
+						answeredQuestions += 1;
+					}
+				}
+				else
+				{
+					answeredQuestions += 1;
+				}
+			}
+			int skippedQuestions = totalQuestions - answeredQuestions;
 
 			// Lấy TẤT CẢ TestQuestions của test (để build Parts giống L&R)
 			var allTestQuestions = await _uow.TestQuestions.GetByTestIdWithPartAsync(testResult.TestId);
@@ -2412,25 +2450,27 @@ namespace ToeicGenius.Services.Implementations
 		}
 
 		/// <summary>
-		/// Get part type string from Part entity for bulk assessment
+		/// Get part type string from Part entity for bulk assessment.
+		/// Uses PartId (8-15) not PartNumber (1-5).
 		/// </summary>
 		private static string GetPartTypeFromPart(Part? part)
 		{
 			if (part == null)
 				return "writing_sentence";
 
-			return part.PartNumber switch
+			// FIX: Use PartId (8-15) instead of PartNumber (1-5)
+			return part.PartId switch
 			{
-				// Writing parts
-				8 => "writing_sentence",
-				9 => "writing_email",
-				10 => "writing_essay",
-				// Speaking parts
-				11 => "read_aloud",
-				12 => "describe_picture",
-				13 => "respond_questions",
-				14 => "respond_with_info",
-				15 => "express_opinion",
+				// Writing parts (PartId 8-10)
+				8 => "writing_sentence",    // W-Part 1
+				9 => "writing_email",       // W-Part 2
+				10 => "writing_essay",      // W-Part 3
+				// Speaking parts (PartId 11-15)
+				11 => "read_aloud",         // S-Part 1
+				12 => "describe_picture",   // S-Part 2
+				13 => "respond_questions",  // S-Part 3
+				14 => "respond_with_info",  // S-Part 4
+				15 => "express_opinion",    // S-Part 5
 				// Fallback based on Skill
 				_ => part.Skill == QuestionSkill.Writing ? "writing_sentence" : "read_aloud"
 			};

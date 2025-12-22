@@ -111,6 +111,26 @@ namespace ToeicGenius.Services.Implementations
             {
                 try
                 {
+                    // Get TestQuestion to check if it's a group question (for Part 3/4 Speaking)
+                    var testQuestion = await _uow.TestQuestions.GetByIdAsync(part.TestQuestionId);
+                    int questionCount = 1; // Default: 1 question per part
+
+                    // For Speaking Part 3/4 (respond_questions, respond_with_info): 1 audio = 3 questions
+                    if (testQuestion != null && testQuestion.IsQuestionGroup &&
+                        (part.PartType == "respond_questions" || part.PartType == "respond_with_info"))
+                    {
+                        try
+                        {
+                            var groupSnapshot = JsonSerializer.Deserialize<ToeicGenius.Domains.DTOs.Responses.QuestionGroup.QuestionGroupSnapshotDto>(
+                                testQuestion.SnapshotJson, _jsonOptions);
+                            questionCount = groupSnapshot?.QuestionSnapshots?.Count ?? 1;
+                        }
+                        catch
+                        {
+                            questionCount = 3; // Default 3 questions for Part 3/4 if deserialization fails
+                        }
+                    }
+
                     // Check if this part is skipped (empty answer)
                     bool isSkipped = false;
                     if (part.PartType?.StartsWith("writing") == true)
@@ -124,7 +144,7 @@ namespace ToeicGenius.Services.Implementations
 
                     if (isSkipped)
                     {
-                        skipCount++;
+                        skipCount += questionCount; // Count all questions in group as skipped
 
                         // Both Practice and Simulator: unanswered questions = 0 score
                         var partType = part.PartType ?? "writing_sentence";
@@ -137,16 +157,20 @@ namespace ToeicGenius.Services.Implementations
                         }
                         else
                         {
-                            rawSpeakingScores.Add(0);
-                            if (!speakingPartScores.ContainsKey(partType))
-                                speakingPartScores[partType] = new List<double>();
-                            speakingPartScores[partType].Add(0);
+                            // Add 0 score for each question in the group
+                            for (int i = 0; i < questionCount; i++)
+                            {
+                                rawSpeakingScores.Add(0);
+                                if (!speakingPartScores.ContainsKey(partType))
+                                    speakingPartScores[partType] = new List<double>();
+                                speakingPartScores[partType].Add(0);
+                            }
                         }
                         continue;
                     }
 
-                    // Câu có trả lời
-                    answeredCount++;
+                    // Câu có trả lời - count all questions in group
+                    answeredCount += questionCount;
 
                     ToeicGenius.Domains.DTOs.Responses.AI.AIFeedbackResponseDto aiResponse = null!;
 
@@ -223,13 +247,16 @@ namespace ToeicGenius.Services.Implementations
                                 aiResponse.PythonApiResponse, _jsonOptions);
                             if (pythonResponse != null)
                             {
-                                rawSpeakingScores.Add(pythonResponse.OverallScore);
-
-                                // Group by part type for weighted calculation (Simulator)
+                                // Add score for each question in the group (Part 3/4 has 3 questions per audio)
                                 var partType = taskType ?? "read_aloud";
                                 if (!speakingPartScores.ContainsKey(partType))
                                     speakingPartScores[partType] = new List<double>();
-                                speakingPartScores[partType].Add(pythonResponse.OverallScore);
+
+                                for (int i = 0; i < questionCount; i++)
+                                {
+                                    rawSpeakingScores.Add(pythonResponse.OverallScore);
+                                    speakingPartScores[partType].Add(pythonResponse.OverallScore);
+                                }
                             }
                         }
                     }
@@ -284,7 +311,22 @@ namespace ToeicGenius.Services.Implementations
                         // Dùng PartNumber để xác định partType (dựa vào cấu trúc TOEIC S&W)
                         string partType = GetPartTypeFromPart(tq.Part);
 
-                        // Both question groups and single questions count as 1 part = 1 score
+                        // Determine question count for group questions (Part 3/4 Speaking)
+                        int questionCount = 1;
+                        if (tq.IsQuestionGroup && (partType == "respond_questions" || partType == "respond_with_info"))
+                        {
+                            try
+                            {
+                                var groupSnapshot = JsonSerializer.Deserialize<ToeicGenius.Domains.DTOs.Responses.QuestionGroup.QuestionGroupSnapshotDto>(
+                                    tq.SnapshotJson, _jsonOptions);
+                                questionCount = groupSnapshot?.QuestionSnapshots?.Count ?? 3;
+                            }
+                            catch
+                            {
+                                questionCount = 3; // Default 3 questions for Part 3/4
+                            }
+                        }
+
                         if (tq.Part?.Skill == QuestionSkill.Writing)
                         {
                             rawWritingScores.Add(0);
@@ -294,10 +336,15 @@ namespace ToeicGenius.Services.Implementations
                         }
                         else if (tq.Part?.Skill == QuestionSkill.Speaking)
                         {
-                            rawSpeakingScores.Add(0);
+                            // Add 0 score for each question in the group
                             if (!speakingPartScores.ContainsKey(partType))
                                 speakingPartScores[partType] = new List<double>();
-                            speakingPartScores[partType].Add(0);
+
+                            for (int i = 0; i < questionCount; i++)
+                            {
+                                rawSpeakingScores.Add(0);
+                                speakingPartScores[partType].Add(0);
+                            }
                         }
                     }
                 }
