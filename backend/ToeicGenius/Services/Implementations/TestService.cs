@@ -76,7 +76,7 @@ namespace ToeicGenius.Services.Implementations
 						var missingIds = dto.SingleQuestionIds.Where(id => !foundIds.Contains(id));
 
 						return Result<string>.Failure(
-							$"Kh�ng t�m th?y c�u h?i trong ng�n h�ng ({string.Join(", ", missingIds)})"
+							$"Không tìm thấy câu hỏi trong ngân hàng ({string.Join(", ", missingIds)})"
 						);
 					}
 					// Validate all PartIds from fetched questions match TestSkill
@@ -85,21 +85,21 @@ namespace ToeicGenius.Services.Implementations
 						var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(q.PartId, dto.TestSkill);
 						if (!isValid)
 						{
-							return Result<string>.Failure($"C�u h?i (id = {q.QuestionId}): {errorMessage}");
+							return Result<string>.Failure($"Câu hỏi (id = {q.QuestionId}): {errorMessage}");
 						}
 					}
 				}
 				if (dto.GroupQuestionIds != null)
 				{
 					groupQuestions = await _uow.QuestionGroups.GetByListIdAsync(dto.GroupQuestionIds);
-					// C� group ID kh�ng t?n t?i
+					// Có group ID kh�ng t?n t?i
 					if (groupQuestions.Count != dto.GroupQuestionIds.Count)
 					{
 						var foundIds = groupQuestions.Select(g => g.QuestionGroupId).ToHashSet();
 						var missingIds = dto.GroupQuestionIds.Where(id => !foundIds.Contains(id));
 
 						return Result<string>.Failure(
-							$"Kh�ng t�m th?y c�u h?i nh�m trong ng�n h�ng ({string.Join(", ", missingIds)})"
+							$"Không tìm thấy câu hỏi nhóm trong ngân hàng ({string.Join(", ", missingIds)})"
 						);
 					}
 					foreach (var g in groupQuestions)
@@ -107,7 +107,7 @@ namespace ToeicGenius.Services.Implementations
 						var (isValid, errorMessage) = await ValidatePartForTestSkillAsync(g.PartId, dto.TestSkill);
 						if (!isValid)
 						{
-							return Result<string>.Failure($"C�u h?i nh�m (id ={g.QuestionGroupId}): {errorMessage}");
+							return Result<string>.Failure($"Câu hỏi nhóm (id ={g.QuestionGroupId}): {errorMessage}");
 						}
 					}
 
@@ -313,13 +313,13 @@ namespace ToeicGenius.Services.Implementations
 			var jsonSettings = new JsonSerializerSettings
 			{
 				ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
-				NullValueHandling = NullValueHandling.Include, // Gi? key n?u null d? d? debug snapshot
+				NullValueHandling = NullValueHandling.Include, 
 				ContractResolver = new CamelCasePropertyNamesContractResolver()
 			};
 
 			try
 			{
-				// Validate c?u tr�c test d?u v�o
+				// Validate
 				TestValidator.ValidateTestStructure(dto);
 
 				if (dto.TestSkill == TestSkill.LR && string.IsNullOrEmpty(dto.AudioUrl))
@@ -331,7 +331,6 @@ namespace ToeicGenius.Services.Implementations
 				int duration = GetTestDuration(dto.TestSkill);
 				int quantity = GetQuantityQuestion(dto);
 
-				// Kh?i t?o d?i tu?ng Test
 				var test = new Test
 				{
 					Title = dto.Title,
@@ -351,10 +350,10 @@ namespace ToeicGenius.Services.Implementations
 				var testQuestions = new List<TestQuestion>();
 				int order = 1;
 
-				// Duy?t qua t?ng Part
+				// Each Part
 				foreach (var part in dto.Parts)
 				{
-					// X? l� nh�m c�u h?i
+					// Question group
 					if (part.Groups?.Any() == true)
 					{
 						foreach (var groupDto in part.Groups)
@@ -376,7 +375,7 @@ namespace ToeicGenius.Services.Implementations
 						}
 					}
 
-					// X? l� c�u h?i don
+					// Single Question
 					if (part.Questions?.Any() == true)
 					{
 						foreach (var questionDto in part.Questions)
@@ -398,7 +397,7 @@ namespace ToeicGenius.Services.Implementations
 						}
 					}
 				}
-				// Luu v�o DB
+				// Save to db
 				await _uow.TestQuestions.AddRangeAsync(testQuestions);
 				test.CreationStatus = TestCreationStatus.Completed;
 				test.VisibilityStatus = TestVisibilityStatus.Hidden;
@@ -476,12 +475,12 @@ namespace ToeicGenius.Services.Implementations
 				if ((dto.Groups == null || !dto.Groups.Any()) && (dto.Questions == null || !dto.Questions.Any()))
 					return Result<string>.Failure(ErrorMessages.NoQuestionsToSaveForThisPart);
 
-				// Xo� d? li?u cu c?a Part n�y (n?u c�)
+				// Delete old data in part
 				var oldQuestions = await _uow.TestQuestions.GetByTestAndPartAsync(testId, partId);
 				if (oldQuestions.Any())
 					_uow.TestQuestions.RemoveRange(oldQuestions);
 
-				// L?y c�c c�u h?i c�n l?i sau khi xo� Part hi?n t?i (d? resequence OrderInTest)
+				// Lấy các câu hỏi còn lại sau khi xoá Part hiện tại (để resequence OrderInTest)
 				var remainingQuestions = await _uow.TestQuestions.GetByTestIdAsync(testId);
 
 				var testQuestions = new List<TestQuestion>();
@@ -539,7 +538,7 @@ namespace ToeicGenius.Services.Implementations
 				await _uow.TestQuestions.AddRangeAsync(testQuestions);
 				await _uow.SaveChangesAsync();
 
-				// Resequence OrderInTest t? 1..N tr�n to�n b? test sau khi d� c� d? li?u m?i
+				// Resequence OrderInTest từ 1..N trên toàn bộ test sau khi đã có dữ liệu mới
 				var allQuestions = await _uow.TestQuestions.GetByTestIdAsync(testId);
 				var orderedPartIds = allQuestions
 					.Select(q => q.PartId)
@@ -553,7 +552,7 @@ namespace ToeicGenius.Services.Implementations
 					var itemsInPart = allQuestions
 						.Where(q => q.PartId == pid)
 						.OrderByDescending(q => q.IsQuestionGroup)
-						.ThenBy(q => q.TestQuestionId) // ?n d?nh theo id d� sinh
+						.ThenBy(q => q.TestQuestionId) 
 						.ToList();
 
 					foreach (var item in itemsInPart)
@@ -567,7 +566,7 @@ namespace ToeicGenius.Services.Implementations
 				{
 					if (q.IsQuestionGroup)
 					{
-						// Deserialize snapshot d? l?y s? c�u trong group
+						// Deserialize snapshot 
 						var snapshot = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(q.SnapshotJson);
 						totalQuestions += snapshot?.QuestionSnapshots?.Count ?? 0;
 					}
@@ -576,7 +575,7 @@ namespace ToeicGenius.Services.Implementations
 						totalQuestions += 1;
 					}
 				}
-				// C?p nh?t t?ng s? c�u h?i c?a test sau khi luu/resequence
+				//  Cập nhật tổng số câu hỏi của test sau khi lưu/resequence
 				test.TotalQuestion = totalQuestions;
 
 				test.UpdatedAt = UtcNow;
@@ -605,7 +604,7 @@ namespace ToeicGenius.Services.Implementations
 			if (test.CreatedById != userId)
 				return Result<string>.Failure(ErrorMessages.NoPermissionToActionTest);
 
-			// Validate c?u tr�c d?y d?
+			// Validate cấu trúc đầy đủ
 			var questions = await _uow.TestQuestions.GetByTestIdAsync(testId);
 			if (questions.Count == 0)
 				return Result<string>.Failure("No questions found.");
@@ -613,7 +612,7 @@ namespace ToeicGenius.Services.Implementations
 			if (test.TestSkill == TestSkill.LR && string.IsNullOrEmpty(test.AudioUrl))
 				return Result<string>.Failure("L&R test requires an audio file.");
 
-			// T�nh t?ng s? c�u
+			// Tính tổng số câu
 			int totalQuestions = 0;
 			foreach (var q in questions)
 			{
@@ -627,7 +626,7 @@ namespace ToeicGenius.Services.Implementations
 					totalQuestions += 1;
 				}
 			}
-			// Validate s? c�u
+			// Validate số câu
 			int expectedCount = GetExpectedQuestionCount(test.TestSkill);
 			if (totalQuestions != expectedCount)
 				return Result<string>.Failure($"Test must have {expectedCount} questions, currently {totalQuestions}.");
@@ -681,7 +680,7 @@ namespace ToeicGenius.Services.Implementations
 				CreatedAt = ToVietnamTime(test.CreatedAt),
 				UpdatedAt = test.UpdatedAt.HasValue ? ToVietnamTime(test.UpdatedAt.Value) : null
 			};
-			// N?u test chua c� c�u h?i
+			// Nếu test chưa có câu hỏi
 			if (test.TestQuestions == null || !test.TestQuestions.Any())
 				return Result<TestDetailDto>.Success(result);
 
@@ -750,16 +749,16 @@ namespace ToeicGenius.Services.Implementations
 
 			if (test.CreationStatus != TestCreationStatus.Completed)
 			{
-				return Result<string>.Failure("Ch? nh?ng b�i test ho�n ch?nh m?i c� th? thay d?i tr?ng th�i hi?n th?.");
+				return Result<string>.Failure("Chỉ những bài test hoàn chỉnh mới có thể thay đổi trạng thái hiển thị.");
 			}
 
-			// X? l� khi chuy?n sang Published
+			// Xử lý khi chuyển sang Published
 			if (request.VisibilityStatus == TestVisibilityStatus.Published)
 			{
-				// X�c d?nh rootId (g?c c?a chu?i version)
+				// RootId: gốc của câu hỏi
 				int rootId = test.ParentTestId ?? test.TestId;
 
-				// ?n t?t c? c�c version KH�C (trong c�ng nh�m) tru?c khi publish b?n n�y
+				// Hide all version except this version
 				await _uow.Tests.HideAllPreviousVersionAsync(rootId, test.TestId);
 			}
 			test.VisibilityStatus = request.VisibilityStatus;
@@ -772,12 +771,12 @@ namespace ToeicGenius.Services.Implementations
 		// Update Test From Bank (practice test) - check ownership
 		public async Task<Result<string>> UpdateTestFromBankAsync(int testId, UpdateTestFromBank dto, Guid userId, bool isAdmin = false)
 		{
-			// 1?. Ki?m tra input h?p l?
+			// Kiểm tra input hợp lệ
 			if ((dto.SingleQuestionIds == null || !dto.SingleQuestionIds.Any()) &&
 				(dto.GroupQuestionIds == null || !dto.GroupQuestionIds.Any()))
 				return Result<string>.Failure(ErrorMessages.NoQuestionsToSaveForThisTest);
 
-			// 2?. L?y test hi?n t?i
+			// Lấy test hiện tại
 			var existing = await _uow.Tests.GetByIdAsync(testId);
 			if (existing == null)
 				return Result<string>.Failure(ErrorMessages.ExamNotFound);
@@ -795,7 +794,7 @@ namespace ToeicGenius.Services.Implementations
 
 			if (isPublished)
 			{
-				// Clone b?n m?i n?u test d� publish
+				// Clone bản mới nếu test đã publish
 				int parentId = existing.ParentTestId ?? existing.TestId;
 				int newVersion = await _uow.Tests.GetNextVersionAsync(parentId);
 
@@ -816,15 +815,15 @@ namespace ToeicGenius.Services.Implementations
 				};
 
 				await _uow.Tests.AddAsync(targetTest);
-				await _uow.SaveChangesAsync(); // d? c� TestId
+				await _uow.SaveChangesAsync(); 
 
-				// ?n c�c b?n cu
+				// Ẩn các bản cũ
 				await _uow.Tests.HideAllPreviousVersionAsync(parentId, targetTest.TestId);
 				await _uow.SaveChangesAsync();
 			}
 			else
 			{
-				// N?u chua publish th� update tr?c ti?p
+				// Nếu chưa publish thì update trực tiếp
 				targetTest = existing;
 				targetTest.Title = dto.Title;
 				targetTest.Description = dto.Description;
@@ -838,7 +837,7 @@ namespace ToeicGenius.Services.Implementations
 				_uow.TestQuestions.RemoveRange(oldQuestions);
 			}
 
-			// 5?. Snapshot c�u h?i t? bank
+			// Snapshot câu hỏi từ bank
 			var jsonSettings = new JsonSerializerSettings
 			{
 				ReferenceLoopHandling = ReferenceLoopHandling.Ignore
@@ -887,17 +886,17 @@ namespace ToeicGenius.Services.Implementations
 				});
 			}
 
-			// 6?. C?p nh?t l?i s? lu?ng c�u h?i
+			// Cập nhật lại số lượng câu hỏi
 			targetTest.TotalQuestion = testQuestions.Count;
 
 			await _uow.TestQuestions.AddRangeAsync(testQuestions);
 			await _uow.SaveChangesAsync();
 
-			// 7?. Tr? v? k?t qu?
+			// Trả về kết quả
 			return Result<string>.Success(
 				isPublished
-					? $"T?o th�nh c�ng phi�n b?n m?i v{targetTest.Version} (TestId={targetTest.TestId})"
-					: $"C?p nh?t tr?c ti?p th�nh c�ng TestId={targetTest.TestId}");
+					? $"Tạo thành công phiên bản mới v{targetTest.Version} (TestId={targetTest.TestId})"
+					: $"Cập nhật trực tiếp thành công TestId={targetTest.TestId}");
 		}
 
 		// Update Test Manual (simulator test)
@@ -915,12 +914,12 @@ namespace ToeicGenius.Services.Implementations
 					return Result<string>.Failure(ErrorMessages.DuplicateTestName);
 
 				int totalQuestion = GetQuantityQuestion(dto);
-				// N?u test dang PUBLISHED -> t?o b?n clone
+				// Nếu test dang PUBLISHED -> tạo bản clone
 				Test targetTest;
 
 				if (existing.VisibilityStatus == TestVisibilityStatus.Published)
 				{
-					// L?y version m?i
+					// Lấy version mới
 					int parentId = existing.ParentTestId ?? existing.TestId;
 					int newVersion = await _uow.Tests.GetNextVersionAsync(parentId);
 
@@ -944,13 +943,13 @@ namespace ToeicGenius.Services.Implementations
 					await _uow.Tests.AddAsync(targetTest);
 					await _uow.SaveChangesAsync();
 
-					// ?n c�c b?n cu
+					// Ẩn các bản cũ
 					await _uow.Tests.HideAllPreviousVersionAsync(parentId, targetTest.TestId);
 					await _uow.SaveChangesAsync();
 				}
 				else
 				{
-					// N?u ko publish, update tr?c ti?p
+					// Nếu ko publish, update trực tiếp
 					targetTest = existing;
 					targetTest.Title = dto.Title;
 					targetTest.Description = dto.Description;
@@ -959,12 +958,12 @@ namespace ToeicGenius.Services.Implementations
 					targetTest.TotalQuestion = totalQuestion;
 					targetTest.UpdatedAt = UtcNow;
 
-					// X�a test question cu
+					//Xóa test question cũ
 					var oldQuestions = await _uow.TestQuestions.GetByTestIdAsync(targetTest.TestId);
 					_uow.TestQuestions.RemoveRange(oldQuestions);
 				}
 
-				// ? Snapshot l?i c�u h?i m?i
+				// Snapshot lại câu hỏi mới
 				var jsonSettings = new JsonSerializerSettings
 				{
 					ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
@@ -1023,8 +1022,8 @@ namespace ToeicGenius.Services.Implementations
 
 				return Result<string>.Success(
 					existing.VisibilityStatus == TestVisibilityStatus.Published
-						? $"T?o th�nh c�ng phi�n b?n m?i v{targetTest.Version} (TestId={targetTest.TestId})"
-						: $"C?p nh?t tr?c ti?p th�nh c�ng TestId={targetTest.TestId}");
+						? $"Tạo thành công phiên bản mới v{targetTest.Version} (TestId={targetTest.TestId})"
+						: $"Cập nhật trực tiếp thành công TestId={targetTest.TestId}");
 			}
 			catch (Exception ex)
 			{
@@ -1057,7 +1056,7 @@ namespace ToeicGenius.Services.Implementations
 				CreatedAt = UtcNow
 			};
 
-			// Clone snapshot c?a TestQuestion
+			// Clone snapshot của TestQuestion
 			foreach (var tq in source.TestQuestions)
 			{
 				clone.TestQuestions.Add(new TestQuestion
@@ -1079,12 +1078,12 @@ namespace ToeicGenius.Services.Implementations
 		// Get version
 		public async Task<Result<List<TestVersionDto>>> GetVersionsByParentIdAsync(int parentTestId)
 		{
-			// L?y test g?c
+			// Lấy test gốc
 			var parent = await _uow.Tests.GetTestByIdAsync(parentTestId);
 			if (parent == null)
 				return Result<List<TestVersionDto>>.Failure(ErrorMessages.ParentTestNotFound);
 
-			// L?y t?t c? version c� c�ng parent (bao g?m c? parent)
+			// Lấy tất cả version có cùng parent (bao gồm cả parent)
 			var allVersions = await _uow.Tests.GetVersionsByParentIdAsync(parentTestId);
 			var dtos = allVersions
 				.OrderByDescending(t => t.Version)
@@ -1120,8 +1119,8 @@ namespace ToeicGenius.Services.Implementations
 			var test = await _uow.Tests.GetTestByIdAsync(request.Id);
 			if (test == null || test.VisibilityStatus != TestVisibilityStatus.Published) return Result<TestStartResponseDto>.Failure(ErrorMessages.ExamNotFound);
 
-			// Simulator: th?i gian c? d?nh
-			// Practice: c� th? ch?n t�nh gi? ho?c kh�ng
+			// Simulator: thời gian cố định
+			// Practice: có thể chọn tính giờ hoặc không
 			int duration = test.Duration;
 			if (test.TestType == TestType.Practice)
 			{
@@ -1146,7 +1145,7 @@ namespace ToeicGenius.Services.Implementations
 			{
 				userTest = existingTestResult;
 
-				// Ch? auto-submit n?u b�i thi c� t�nh gi? (IsSelectTime = true)
+				// Chỉ auto-submit nếu bài thi có tính giờ (IsSelectTime = true)
 				if (userTest.IsSelectTime)
 				{
 					// Check if test time has expired + 5 minutes grace period -> auto-submit
@@ -1226,11 +1225,11 @@ namespace ToeicGenius.Services.Implementations
 				ua => ua
 			);
 
-			// N?u test chua c� c�u h?i
+			// Nếu test chưa có câu hỏi
 			if (test.TestQuestions == null || !test.TestQuestions.Any())
 				return Result<TestStartResponseDto>.Success(result);
 
-			// L?y c�c Parts, m?i Parts g?m c�c c�u h?i
+			// Lấy các Parts, mỗi Parts gồm các câu hỏi
 			var groupedByPart = test.TestQuestions
 				.Where(q => q.PartId != null)
 				.GroupBy(q => q.PartId)
@@ -1310,13 +1309,13 @@ namespace ToeicGenius.Services.Implementations
 			if (testResult.Status == TestResultStatus.Graded)
 				return Result<GeneralLRResultDto>.Failure("This test session has already been submitted.");
 
-			// N?u Answers r?ng (auto-submit), l?y t? DB (saved answers t? save-progress)
+			// Nếu Answers rỗng (auto-submit), lấy từ DB (saved answers từ save-progress)
 			if (request.Answers == null || !request.Answers.Any())
 			{
 				var savedAnswers = await _uow.UserAnswers.GetByTestResultIdAsync(request.TestResultId.Value);
 				if (savedAnswers != null && savedAnswers.Any())
 				{
-					// Group by (TestQuestionId, SubQuestionIndex) v� l?y answer m?i nh?t d? tr�nh duplicate
+					// Group by (TestQuestionId, SubQuestionIndex) và lấy answer mới nhất để tránh duplicate
 					request.Answers = savedAnswers
 						.GroupBy(sa => new { sa.TestQuestionId, sa.SubQuestionIndex })
 						.Select(g => g.OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt).First())
@@ -1329,15 +1328,15 @@ namespace ToeicGenius.Services.Implementations
 				}
 				else
 				{
-					// Kh�ng c� answers n�o du?c luu, t?o list r?ng d? x? l� nhu b? tr?ng t?t c?
+					// Không có answers nào được lưu, tạo list rỗng để xử lý như bỏ trống tất cả
 					request.Answers = new List<UserLRAnswerDto>();
 				}
 			}
 
-			// T?ng s? c�u h?i
+			// Tổng số câu hỏi
 			var totalQuestion = await _uow.Tests.GetTotalQuestionAsync(request.TestId);
 
-			// Test question c?a b�i test
+			// Test question của bài test
 			var testQuestions = await _uow.TestQuestions.GetByTestIdAsync(request.TestId);
 
 			if (!testQuestions.Any())
@@ -1350,19 +1349,19 @@ namespace ToeicGenius.Services.Implementations
 			testResult.Status = TestResultStatus.Graded;
 			testResult.UpdatedAt = UtcNow;
 
-			// L?y map Part -> Skill
+			// Lấy map Part -> Skill
 			var partIds = testQuestions.Select(q => q.PartId).Distinct().ToList();
 			var partSkillMap = await _uow.Parts.GetSkillMapByIdsAsync(partIds);
 
-			// 1?.X? l� & ch?m b�i
+			// 1️.Xử lý & chấm bài
 			var (userAnswers, stats) = ProcessUserAnswers(request, testQuestions, partSkillMap, isSimulator, testResult);
 
-			// 2.T�nh k?t qu? cu?i c�ng
+			// 2.Tính kết quả cuối cùng
 			var result = isSimulator
 				? CalculateSimulatorResult(stats, request.Duration)
 				: CalculatePracticeResult(stats, request.Duration);
 
-			// 3. Set th�ng tin cho test result
+			// 3. Set thông tin cho test result
 			testResult.SkillScores = BuildSkillScores(result, isSimulator);
 			testResult.TotalQuestions = totalQuestion;
 			testResult.CorrectCount = result.CorrectCount;
@@ -1370,7 +1369,7 @@ namespace ToeicGenius.Services.Implementations
 			testResult.SkipCount = result.SkipCount;
 			testResult.TotalScore = (decimal)(isSimulator ? result.TotalScore : 0);
 
-			// 4.Luu v�o DB
+			// 4.Lưu vào DB
 			await _uow.UserAnswers.AddRangeAsync(userAnswers);
 			await _uow.SaveChangesAsync();
 
@@ -1468,7 +1467,7 @@ namespace ToeicGenius.Services.Implementations
 						}
 					}
 
-					// V?i question group
+					// Với question group
 					if (tq.IsQuestionGroup)
 					{
 						var groupSnap = JsonConvert.DeserializeObject<QuestionGroupSnapshotDto>(snapshotJsonToUse ?? "{}");
@@ -1496,7 +1495,7 @@ namespace ToeicGenius.Services.Implementations
 					}
 					else
 					{
-						// ?? C�u h?i don
+						// Câu hỏi đơn
 						var questionSnap = JsonConvert.DeserializeObject<QuestionSnapshotDto>(snapshotJsonToUse ?? "{}");
 						if (questionSnap == null) continue;
 
@@ -1521,7 +1520,7 @@ namespace ToeicGenius.Services.Implementations
 
 		public async Task<Result<object>> GetUnifiedTestResultDetailAsync(int testResultId, Guid userId)
 		{
-			// 1. L?y TestResult v?i Test v� SkillScores
+			// 1. Lấy TestResult với Test và SkillScores
 			var testResult = await _uow.TestResults.GetTestResultWithDetailsAsync(testResultId);
 
 			if (testResult == null)
@@ -1532,7 +1531,7 @@ namespace ToeicGenius.Services.Implementations
 
 			var testSkill = testResult.Test.TestSkill;
 
-			// 2. N?u l� L&R ? tr? v? TestResultDetailDto
+			// 2. Nếu là L&R → trả về TestResultDetailDto
 			if (testSkill == TestSkill.LR)
 			{
 				var lrResult = await GetListeningReadingResultDetailAsync(testResultId, userId);
@@ -1542,18 +1541,18 @@ namespace ToeicGenius.Services.Implementations
 				return Result<object>.Success(lrResult.Data);
 			}
 
-			// 3. N?u l� S/W/SW ? tr? v? TestResultDetailSWDto
+			// 3. Nếu là S/W/SW → trả về TestResultDetailSWDto
 			var aiFeedbacks = await _uow.AIFeedbacks.GetByTestResultIdAsync(testResultId);
 
-			// X�c d?nh lo?i test: Simulator hay Practice
+			// Xác định loại test: Simulator hay Practice
 			bool isSimulator = testResult.Test?.TestType == TestType.Simulator;
 			int totalQuestions = testResult.Test?.TotalQuestion ?? 0;
 
-			// L?y di?m t? SkillScores
+			// Lấy điểm từ SkillScores
 			var writingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Writing");
 			var speakingSkillScore = testResult.SkillScores.FirstOrDefault(s => s.Skill == "Speaking");
 
-			// T�nh raw scores t? AI feedbacks (d�ng Part.Skill d? ph�n bi?t Writing/Speaking)
+			// Tính raw scores từ AI feedbacks (dùng Part.Skill để phân biệt Writing/Speaking)
 			var writingFeedbacks = aiFeedbacks.Where(f =>
 				f.UserAnswer?.TestQuestion?.Part?.Skill == QuestionSkill.Writing).ToList();
 			var speakingFeedbacks = aiFeedbacks.Where(f =>
@@ -1566,7 +1565,7 @@ namespace ToeicGenius.Services.Implementations
 				? speakingFeedbacks.Average(f => (double)f.Score)
 				: null;
 
-			// �?m s? c�u d� tr? l?i v� b? qua
+			// Đếm số câu đã trả lời và bỏ qua
 			int answeredQuestions = aiFeedbacks.Count;
 			int skippedQuestions = totalQuestions - answeredQuestions;
 
@@ -1858,7 +1857,7 @@ namespace ToeicGenius.Services.Implementations
 			if (results == null || !results.Any())
 				return Result<StatisticResultDto>.Failure("No test results found.");
 
-			// L?c k?t qu? theo k? nang
+			// Lọc kết quả theo kỹ năng
 			IEnumerable<TestResult> filtered = skill switch
 			{
 				TestSkill.Speaking => results.Where(r => r.Test.TestSkill == TestSkill.Speaking),
@@ -1869,7 +1868,7 @@ namespace ToeicGenius.Services.Implementations
 			if (!filtered.Any())
 				return Result<StatisticResultDto>.Failure($"No test results found for skill: {skill}");
 
-			// H�m chia an to�n (tr�nh NaN / Infinity)
+			// Hàm chia an toàn (tránh NaN / Infinity)
 			static double SafeDivide(double numerator, double denominator)
 				=> denominator == 0 ? 0 : numerator / denominator;
 
@@ -1884,7 +1883,7 @@ namespace ToeicGenius.Services.Implementations
 				AverageDurationMinutes = Math.Round(filtered.Average(r => SafeDivide(r.Duration, 60.0)), 2)
 			};
 
-			// N?u l� ListeningReading th� chia nh? ph?n b�n trong
+			// Nếu là ListeningReading thì chia nhỏ phần bên trong
 			if (skill == TestSkill.LR)
 			{
 				var listeningScores = filtered
@@ -1950,11 +1949,11 @@ namespace ToeicGenius.Services.Implementations
 
 			foreach (var part in dto.Parts)
 			{
-				// �?m c�u h?i tr?c ti?p trong part
+				// Đếm câu hỏi trực tiếp trong part
 				if (part.Questions != null)
 					quantity += part.Questions.Count;
 
-				// �?m c�u h?i trong t?ng group c?a part
+				// Đếm câu hỏi trong từng group của part
 				if (part.Groups != null)
 				{
 					foreach (var group in part.Groups)
@@ -1973,11 +1972,11 @@ namespace ToeicGenius.Services.Implementations
 
 			foreach (var part in dto.Parts)
 			{
-				// �?m c�u h?i tr?c ti?p trong part
+				// Đếm câu hỏi trực tiếp trong part
 				if (part.Questions != null)
 					quantity += part.Questions.Count;
 
-				// �?m c�u h?i trong t?ng group c?a part
+				// Đếm câu hỏi trong từng group của part
 				if (part.Groups != null)
 				{
 					foreach (var group in part.Groups)
@@ -1999,8 +1998,8 @@ namespace ToeicGenius.Services.Implementations
 
 			var userAnswers = new List<UserAnswer>();
 
-			// T?o map d? tra nhanh c�u tr? l?i ngu?i d�ng (O(1))
-			// X? l� duplicate: n?u c� nhi?u answer c�ng (TestQuestionId, SubQuestionIndex), l?y c�i d?u ti�n
+			// Tạo map để tra nhanh câu trả lời người dùng (O(1))
+			// Xử lý duplicate: nếu có nhiều answer cùng (TestQuestionId, SubQuestionIndex), lấy cái đầu tiên
 			var answerMap = request.Answers
 				.GroupBy(a => a.TestQuestionId)
 				.ToDictionary(
@@ -2011,7 +2010,7 @@ namespace ToeicGenius.Services.Implementations
 
 			foreach (var tq in testQuestions)
 			{
-				// X�c d?nh k? nang
+				// Xác định kỹ năng
 				if (!partSkillMap.TryGetValue(tq.PartId, out var skill))
 					continue;
 
@@ -2027,7 +2026,7 @@ namespace ToeicGenius.Services.Implementations
 						var snapshot = JsonConvert.DeserializeObject<QuestionSnapshotDto>(tq.SnapshotJson);
 						if (snapshot == null || snapshot.Options == null) continue;
 
-						// T�m c�u tr? l?i
+						// Tìm câu trả lời
 						if (!answerMap.TryGetValue(tq.TestQuestionId, out var subMap)
 							|| !subMap.TryGetValue(0, out var userAnswerDto))
 						{
@@ -2063,7 +2062,7 @@ namespace ToeicGenius.Services.Implementations
 							totalQuestions++;
 							if (isListening) listeningTotal++; else readingTotal++;
 
-							// T�m c�u tr? l?i user
+							// Tìm câu trả lời user
 							if (!answerMap.TryGetValue(tq.TestQuestionId, out var subMap)
 								|| !subMap.TryGetValue(i, out var userAnswerDto))
 							{
@@ -2090,12 +2089,12 @@ namespace ToeicGenius.Services.Implementations
 				}
 				catch (Exception ex)
 				{
-					// debug khi snapshot b? l?i JSON
+					// debug khi snapshot bị lỗi JSON
 					Console.WriteLine($"Error processing TestQuestionId={tq.TestQuestionId}: {ex.Message}");
 				}
 			}
 
-			// T?ng k?t th?ng k�
+			// Tổng kết thống kê
 			var stats = new TestStats
 			{
 				TotalQuestions = totalQuestions,
@@ -2170,9 +2169,6 @@ namespace ToeicGenius.Services.Implementations
 		}
 		private async Task<QuestionGroupSnapshotDto> HandleQuestionGroupSnapshotAsync(QuestionGroupDto dto, int partId, TestSkill skill)
 		{
-			// Mapping th? c�ng, tr�nh ph? thu?c EF entity d? snapshot chu?n nh?t
-			// S? d?ng index (1, 2, 3...) l�m QuestionId cho c�c c�u trong group (Test Simulator)
-			// Index n�y d�ng l�m subQuestionId khi Examinee report c�u h?i trong group
 			return new QuestionGroupSnapshotDto
 			{
 				QuestionGroupId = 0,
@@ -2181,7 +2177,7 @@ namespace ToeicGenius.Services.Implementations
 				ImageUrl = dto.ImageUrl,
 				QuestionSnapshots = dto.Questions?.Select((q, index) => new QuestionSnapshotDto
 				{
-					QuestionId = index + 1, // Index b?t d?u t? 1 (1, 2, 3...)
+					QuestionId = index + 1, // Index bắt đầu từ 1 (1, 2, 3...)
 					PartId = partId,
 					Content = q.Content ?? string.Empty,
 					ImageUrl = q.ImageUrl,
@@ -2197,10 +2193,10 @@ namespace ToeicGenius.Services.Implementations
 		}
 		private async Task<QuestionSnapshotDto> HandleSingleQuestionSnapshotAsync(QuestionDto dto, int partId, TestSkill skill)
 		{
-			// C�u h?i don kh�ng c?n subQuestionId khi report, nhung d?t = 1 d? consistency
+			// Câu hỏi đơn không cần subQuestionId khi report, nhung đăt = 1 d? consistency
 			return new QuestionSnapshotDto
 			{
-				QuestionId = 1, // C�u h?i don lu�n = 1 (kh�ng d�ng trong report v� subQuestionId = null)
+				QuestionId = 1, // Câu hỏi đơn luôn = 1 (không dng trong report và subQuestionId = null)
 				PartId = partId,
 				Content = dto.Content ?? string.Empty,
 				ImageUrl = dto.ImageUrl,

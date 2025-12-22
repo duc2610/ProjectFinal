@@ -24,7 +24,9 @@ import {
   EditOutlined, 
   DeleteOutlined, 
   UndoOutlined,
-  WarningOutlined
+  WarningOutlined,
+  SoundOutlined,
+  PictureOutlined
 } from "@ant-design/icons";
 
 import SingleQuestionModal from "@components/QuestionBank/SingleQuestionModal.jsx";
@@ -710,14 +712,14 @@ export default function QuanLyNganHangCauHoi() {
                     if (record.__hasAudio) {
                       info.push(
                         <Tag key="audio" color="green" style={{ fontSize: 11 }}>
-                          🔊 Audio
+                          <SoundOutlined style={{ marginRight: 4 }} /> Audio
                         </Tag>
                       );
                     }
                     if (record.__hasImage) {
                       info.push(
                         <Tag key="image" color="orange" style={{ fontSize: 11 }}>
-                          🖼️ Ảnh
+                          <PictureOutlined style={{ marginRight: 4 }} /> Ảnh
                         </Tag>
                       );
                     }
