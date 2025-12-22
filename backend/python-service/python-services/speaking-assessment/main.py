@@ -77,10 +77,10 @@ class FlexibleGrammarChecker:
 
             self.tool = language_tool_python.LanguageTool('en-US', remote_server=None)
             self.available = True
-            logger.info("✅ LanguageTool available (safety net mode)")
+            logger.info("LanguageTool available (safety net mode)")
 
         except Exception as e:
-            logger.info(f"ℹ️ LanguageTool unavailable: {e}")
+            logger.info(f"LanguageTool unavailable: {e}")
             logger.info("   Will use Gemini-only (still 85%+ accurate)")
             self.available = False
 
@@ -156,10 +156,10 @@ class TOEICSpeakingAssessmentUltimate:
 
     def __init__(self):
         logger.info("=" * 70)
-        logger.info("🚀 TOEIC Assessment ULTIMATE v6.0.0")
+        logger.info("TOEIC Assessment ULTIMATE v6.0.0")
         logger.info("=" * 70)
         self.setup_services()
-        logger.info("✅ System ready")
+        logger.info("System ready")
         logger.info("=" * 70)
 
     def setup_services(self):
@@ -178,9 +178,9 @@ class TOEICSpeakingAssessmentUltimate:
                 generation_config={"temperature": 0.1, "response_mime_type": "application/json"}
             )
             self.gemini_vision_model = genai.GenerativeModel('gemini-2.5-flash')
-            logger.info("✅ Gemini AI initialized")
+            logger.info("Gemini AI initialized")
         except Exception as e:
-            logger.error(f"❌ Gemini failed: {e}")
+            logger.error(f"Gemini failed: {e}")
             self.gemini_text_model = None
             self.gemini_vision_model = None
 
@@ -196,7 +196,7 @@ class TOEICSpeakingAssessmentUltimate:
         self.speech_config.set_property(
             speechsdk.PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs, "15000"
         )
-        logger.info("✅ Azure Speech initialized")
+        logger.info("Azure Speech initialized")
 
         # Flexible Grammar Checker
         self.grammar_checker = FlexibleGrammarChecker()
@@ -623,7 +623,7 @@ Return ONLY valid JSON."""
                 else:
                     analysis['grammar']['score'] = min(base_score, 60 - (error_count - 5) * 3)
 
-            logger.info("✅ Flexible AI analysis complete")
+            logger.info("Flexible AI analysis complete")
             return analysis
 
         except Exception as e:
@@ -671,7 +671,7 @@ Return ONLY valid JSON."""
 
     async def assess_read_aloud(self, audio_path: str, reference_text: str) -> Dict:
         """Part 1: Read Aloud - 100% V4.5.0 proven code"""
-        logger.info("📖 Part 1: Read Aloud (v4.5.0 proven)")
+        logger.info("Part 1: Read Aloud (v4.5.0 proven)")
 
         duration = self.get_audio_duration(audio_path)
         transcription = self.transcribe_audio_azure(audio_path)
@@ -692,16 +692,16 @@ Return ONLY valid JSON."""
             }
 
             recommendations = [
-                "❌ FAIL: Did NOT read the reference text",
+                "FAIL: Did NOT read the reference text",
                 f"Text match: {text_match:.1f}% (need ≥40%)",
                 "",
                 "What you said:",
-                f"❌ \"{transcription}\"",
+                f"\"{transcription}\"",
                 "",
                 "What you should say:",
-                f"✅ \"{reference_text}\"",
+                f"\"{reference_text}\"",
                 "",
-                "💡 Tips:",
+                "Tips:",
                 "• Read word-by-word slowly first",
                 "• Practice the text before recording",
                 "• Focus on accuracy over speed"
@@ -735,16 +735,16 @@ Return ONLY valid JSON."""
             }
 
             recommendations = [
-                f"⚠️ POOR: Too many words wrong ({text_match:.1f}% match)",
+                f"POOR: Too many words wrong ({text_match:.1f}% match)",
                 f"Need ≥50% to get pronunciation feedback",
                 "",
                 "What you said:",
-                f"❌ \"{transcription}\"",
+                f"\"{transcription}\"",
                 "",
                 "Reference text:",
-                f"✅ \"{reference_text}\"",
+                f"\"{reference_text}\"",
                 "",
-                "💡 Next steps:",
+                "Next steps:",
                 "• Compare your text with reference carefully",
                 "• Read each word from the text",
                 "• Don't skip or add words",
@@ -781,17 +781,17 @@ Return ONLY valid JSON."""
             }
 
             recommendations = [
-                f"👍 FAIR: Some words missing ({text_match:.1f}% match)",
+                f"FAIR: Some words missing ({text_match:.1f}% match)",
                 f"Pronunciation: {pronunciation['pronunciation_score']}/100",
                 f"Accuracy: {pronunciation['accuracy_score']}/100",
                 "",
                 "What you said:",
-                f"⚠️ \"{transcription}\"",
+                f"\"{transcription}\"",
                 "",
                 "Reference text:",
-                f"✅ \"{reference_text}\"",
+                f"\"{reference_text}\"",
                 "",
-                "💡 Improvements needed:",
+                "Improvements needed:",
                 "• Read more carefully - don't skip any words",
                 "• Need ≥80% match to unlock full analysis",
                 "• Practice pronunciation of individual words"
@@ -799,7 +799,7 @@ Return ONLY valid JSON."""
 
             if pronunciation.get('mispronounced_words'):
                 recommendations.append("")
-                recommendations.append("🗣️ Mispronounced words:")
+                recommendations.append("Mispronounced words:")
                 for word_info in pronunciation['mispronounced_words'][:5]:
                     word = word_info.get('word', '')
                     accuracy = word_info.get('accuracy', 0)
@@ -902,7 +902,7 @@ Return ONLY valid JSON."""
             mispronounced_list = [w.get('word', '') for w in mispronounced[:8]]
 
             pronunciation_context = f"""
-🎤 PRONUNCIATION DATA FROM AZURE:
+PRONUNCIATION DATA FROM AZURE:
 
 Mispronounced words: {mispronounced_list if mispronounced_list else "None"}
 Omitted words: {omitted if omitted else "None"}
@@ -930,7 +930,7 @@ Example format:
 
         prompt = f"""You are an expert TOEIC Speaking assessor and pronunciation coach.
 
-📝 READ ALOUD ASSESSMENT:
+READ ALOUD ASSESSMENT:
 
 Reference: "{reference_text}"
 Student: "{text}"
@@ -1027,16 +1027,16 @@ Return ONLY valid JSON."""
         overall = scores.get('overall', 0)
 
         if overall >= 90:
-            recommendations.append("🌟 EXCELLENT! Almost perfect reading.")
+            recommendations.append("EXCELLENT! Almost perfect reading.")
         elif overall >= 80:
-            recommendations.append("✅ GOOD JOB! Minor improvements needed.")
+            recommendations.append("GOOD JOB! Minor improvements needed.")
         elif overall >= 70:
-            recommendations.append("👍 FAIR. Focus on areas below.")
+            recommendations.append("FAIR. Focus on areas below.")
         else:
-            recommendations.append("⚠️ NEEDS IMPROVEMENT. Practice more.")
+            recommendations.append("NEEDS IMPROVEMENT. Practice more.")
 
         recommendations.append("")
-        recommendations.append(f"📊 Your Scores:")
+        recommendations.append(f"Your Scores:")
         recommendations.append(f"   • Text Match: {scores.get('text_match', 0):.1f}%")
         recommendations.append(f"   • Pronunciation: {scores.get('pronunciation', 0)}/100")
         recommendations.append(f"   • Accuracy: {scores.get('accuracy', 0)}/100")
@@ -1050,7 +1050,7 @@ Return ONLY valid JSON."""
         coaching = detailed_analysis.get('pronunciation_coaching', [])
 
         if coaching:
-            recommendations.append("🎤 PRONUNCIATION COACHING:")
+            recommendations.append("PRONUNCIATION COACHING:")
             recommendations.append("")
 
             for i, tip in enumerate(coaching[:5], 1):
@@ -1064,16 +1064,16 @@ Return ONLY valid JSON."""
                     recommendations.append(f"   {i}. Word: \"{word}\"")
 
                     if issue:
-                        recommendations.append(f"      ❌ Your issue: {issue}")
+                        recommendations.append(f"      Your issue: {issue}")
 
                     if correct:
-                        recommendations.append(f"      ✅ Correct: {correct}")
+                        recommendations.append(f"      Correct: {correct}")
 
                     if syllables:
-                        recommendations.append(f"      📖 Syllables: {syllables}")
+                        recommendations.append(f"      Syllables: {syllables}")
 
                     if practice:
-                        recommendations.append(f"      💡 Practice: {practice}")
+                        recommendations.append(f"      Practice: {practice}")
 
                     recommendations.append("")
 
@@ -1085,7 +1085,7 @@ Return ONLY valid JSON."""
             errors = grammar_analysis.get('errors', [])
 
             if errors:
-                recommendations.append(f"📝 GRAMMAR ({grammar_score}/100):")
+                recommendations.append(f"GRAMMAR ({grammar_score}/100):")
                 recommendations.append("")
 
                 for i, err in enumerate(errors[:3], 1):
@@ -1094,11 +1094,11 @@ Return ONLY valid JSON."""
                         correct = err.get('correct', '')
                         rule = err.get('rule', '')
 
-                        recommendations.append(f"   {i}. ❌ \"{wrong}\"")
-                        recommendations.append(f"      ✅ \"{correct}\"")
+                        recommendations.append(f"   {i}. \"{wrong}\"")
+                        recommendations.append(f"      \"{correct}\"")
 
                         if rule:
-                            recommendations.append(f"      📖 Rule: {rule}")
+                            recommendations.append(f"      Rule: {rule}")
 
                         recommendations.append("")
 
@@ -1124,7 +1124,7 @@ Return ONLY valid JSON."""
         if not image_path and not expected_content:
             raise HTTPException(400, "Image or expected_content REQUIRED")
 
-        logger.info("🖼️ Part 2: Describe Picture")
+        logger.info("Part 2: Describe Picture")
 
         duration = self.get_audio_duration(audio_path)
         transcription = self.transcribe_audio_azure(audio_path)
@@ -1135,7 +1135,7 @@ Return ONLY valid JSON."""
                 'duration': duration,
                 'scores': {'relevance': 0, 'overall': 0},
                 'recommendations': [
-                    "❌ FAIL: Response too short (need 10+ words)",
+                    "FAIL: Response too short (need 10+ words)",
                     f"Word count: {len(transcription.split())}",
                     "Describe people, objects, actions, colors, location"
                 ],
@@ -1171,9 +1171,9 @@ Return ONLY valid JSON."""
 
             incorrect = content_relevance.get('incorrect_elements', [])
             recommendations = [
-                "❌ FAIL: Completely wrong description",
+                "FAIL: Completely wrong description",
                 f"X You described: {', '.join(incorrect[:2])}" if incorrect else "You described something different",
-                f"✓ Image shows: {reference_content[:100]}...",
+                f"Image shows: {reference_content[:100]}...",
                 "Look at the image again - describe what you SEE",
                 "Score: 0"
             ]
@@ -1197,10 +1197,10 @@ Return ONLY valid JSON."""
             suggestions = content_relevance.get('suggestions', [])
 
             recommendations = [
-                f"⚠️ POOR: Major errors ({content_score}/100)",
+                f"POOR: Major errors ({content_score}/100)",
                 f"X Wrong: {', '.join(incorrect[:2])}" if incorrect else "",
                 f"Missing: {', '.join(missing[:3])}" if missing else "",
-                f"✓ Add: {suggestions[0]}" if suggestions else "Describe main subjects and actions",
+                f"Add: {suggestions[0]}" if suggestions else "Describe main subjects and actions",
                 "Other skills not evaluated due to low content score"
             ]
 
@@ -1241,19 +1241,19 @@ Return ONLY valid JSON."""
             mispronounced = pronunciation.get('mispronounced_words', [])
 
             recommendations = [
-                f"👍 FAIR: Partially correct ({content_score}/100)",
+                f"FAIR: Partially correct ({content_score}/100)")
                 f"Pronunciation: {pronunciation['pronunciation_score']}/100",
                 f"Intonation: {intonation_score}/100"
             ]
 
             if mispronounced:
-                recommendations.append(f"⚠️ Mispronounced: {', '.join([w['word'] for w in mispronounced[:2]])}")
+                recommendations.append(f"Mispronounced: {', '.join([w['word'] for w in mispronounced[:2]])}")
 
             if missing:
                 recommendations.append(f"Missing: {', '.join(missing[:2])}")
 
             if suggestions:
-                recommendations.append(f"✓ {suggestions[0]}")
+                recommendations.append(f"{suggestions[0]}")
 
             return {
                 'transcription': transcription,
@@ -1314,7 +1314,7 @@ Return ONLY valid JSON."""
 
             mispronounced = pronunciation.get('mispronounced_words', [])
             if mispronounced:
-                recommendations.insert(1, f"⚠️ Pronunciation: {', '.join([w['word'] for w in mispronounced[:2]])}")
+                recommendations.insert(1, f"Pronunciation: {', '.join([w['word'] for w in mispronounced[:2]])}")
 
             return {
                 'transcription': transcription,
@@ -1333,7 +1333,7 @@ Return ONLY valid JSON."""
                                        question_context: Optional[str] = None) -> Dict:
         """Part 3: Respond to Questions (Q5-7)"""
 
-        logger.info("❓ Part 3: Respond to Questions")
+        logger.info("Part 3: Respond to Questions")
 
         duration = self.get_audio_duration(audio_path)
         transcription = self.transcribe_audio_azure(audio_path)
@@ -1356,7 +1356,7 @@ Return ONLY valid JSON."""
                 },
                 'detailed_analysis': {},
                 'recommendations': [
-                    f"❌ FAIL: Too short ({word_count} words < 20 minimum)",
+                    f"FAIL: Too short ({word_count} words < 20 minimum)")
                     "Must answer all 3 questions",
                     "Need at least 60 words for good score",
                     "Speak more - give details and examples"
@@ -1385,7 +1385,7 @@ Return ONLY valid JSON."""
                 'overall': overall_score
             }
 
-            recommendations = ["❌ FAIL: Didn't answer properly", ""]
+            recommendations = ["FAIL: Didn't answer properly", ""]
 
             # Add per-question feedback
             per_question = text_analysis.get('per_question_feedback', [])
@@ -1394,7 +1394,7 @@ Return ONLY valid JSON."""
                     q_num = q.get('question_number', 0)
                     feedback = q.get('feedback', 'No feedback')
                     quality = q.get('quality', 'unknown')
-                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality == 'fair' else "❌"
+                    icon = "" if quality in ['excellent', 'good'] else "" if quality == 'fair' else ""
                     recommendations.append(f"{icon} Question {q_num}: {feedback}")
                 recommendations.append("")
 
@@ -1430,7 +1430,7 @@ Return ONLY valid JSON."""
             }
 
             recommendations = [
-                f"👍 Content incomplete ({completeness_score}/100)",
+                f"Content incomplete ({completeness_score}/100)")
                 f"Intonation: {intonation_score}/100",
                 ""
             ]
@@ -1442,7 +1442,7 @@ Return ONLY valid JSON."""
                     q_num = q.get('question_number', 0)
                     feedback = q.get('feedback', 'No feedback')
                     quality = q.get('quality', 'unknown')
-                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality in ['fair', 'weak'] else "❌"
+                    icon = "" if quality in ['excellent', 'good'] else "" if quality in ['fair', 'weak'] else ""
                     recommendations.append(f"{icon} Question {q_num}: {feedback}")
 
             return {
@@ -1500,7 +1500,7 @@ Return ONLY valid JSON."""
                     q_num = q.get('question_number', 0)
                     feedback = q.get('feedback', 'No feedback')
                     quality = q.get('quality', 'unknown')
-                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality in ['fair', 'weak'] else "❌"
+                    icon = "" if quality in ['excellent', 'good'] else "" if quality in ['fair', 'weak'] else ""
                     recommendations.insert(0, f"{icon} Question {q_num}: {feedback}")
                 recommendations.insert(0, "Per-Question Feedback:")
                 recommendations.insert(0, "")
@@ -1684,7 +1684,7 @@ Return ONLY valid JSON."""
         if not reference_info or reference_info.strip() == "":
             raise HTTPException(400, "reference_info REQUIRED")
 
-        logger.info("📋 Part 4: Respond with Information")
+        logger.info("Part 4: Respond with Information")
 
         duration = self.get_audio_duration(audio_path)
         transcription = self.transcribe_audio_azure(audio_path)
@@ -1707,7 +1707,7 @@ Return ONLY valid JSON."""
                 },
                 'detailed_analysis': {},
                 'recommendations': [
-                    f"❌ FAIL: Too short ({word_count} words < 20)",
+                    f"FAIL: Too short ({word_count} words < 20)")
                     "Need 60+ words to answer all 3 questions",
                     "Use information from the schedule provided"
                 ],
@@ -1749,7 +1749,7 @@ Return ONLY valid JSON."""
             correction = accuracy_analysis.get('correction', '')
 
             recommendations = [
-                "❌ FAIL: Major factual errors - cannot pass",
+                "FAIL: Major factual errors - cannot pass",
                 f"Factual errors: {error_count}",
                 "Score: 0 - MUST use EXACT schedule information",
                 ""
@@ -1762,7 +1762,7 @@ Return ONLY valid JSON."""
                     q_num = q.get('question_number', 0)
                     feedback = q.get('feedback', 'No feedback')
                     quality = q.get('quality', 'unknown')
-                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality in ['fair', 'weak'] else "❌"
+                    icon = "" if quality in ['excellent', 'good'] else "" if quality in ['fair', 'weak'] else ""
                     recommendations.append(f"{icon} Question {q_num}: {feedback}")
                 recommendations.append("")
 
@@ -1776,7 +1776,7 @@ Return ONLY valid JSON."""
                         recommendations.append(f"  Should be: {should}")
 
             if correction:
-                recommendations.append(f"✓ Correct answer: {correction}")
+                recommendations.append(f"Correct answer: {correction}")
 
             recommendations.extend([
                 "",
@@ -1812,7 +1812,7 @@ Return ONLY valid JSON."""
             incorrect = accuracy_analysis.get('incorrect_facts', [])
 
             recommendations = [
-                f"👍 FAIR: Information accuracy needs improvement ({accuracy_score}/100)",
+                f"FAIR: Information accuracy needs improvement ({accuracy_score}/100)")
                 f"Factual errors: {error_count}",
                 ""
             ]
@@ -1824,7 +1824,7 @@ Return ONLY valid JSON."""
                     q_num = q.get('question_number', 0)
                     feedback = q.get('feedback', 'No feedback')
                     quality = q.get('quality', 'unknown')
-                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality in ['fair', 'weak'] else "❌"
+                    icon = "" if quality in ['excellent', 'good'] else "" if quality in ['fair', 'weak'] else ""
                     recommendations.append(f"{icon} Question {q_num}: {feedback}")
                 recommendations.append("")
 
@@ -1833,7 +1833,7 @@ Return ONLY valid JSON."""
                     if isinstance(fact, dict):
                         said = fact.get('student_said', '')
                         should = fact.get('should_be', '')
-                        recommendations.append(f"X Wrong: {said} → ✓ Correct: {should}")
+                        recommendations.append(f"Wrong: {said} -> Correct: {should}")
 
             recommendations.extend([
                 f"Pronunciation: {pronunciation['pronunciation_score']}/100",
@@ -1872,7 +1872,7 @@ Return ONLY valid JSON."""
                     q_num = q.get('question_number', 0)
                     feedback = q.get('feedback', 'No feedback')
                     quality = q.get('quality', 'unknown')
-                    icon = "✅" if quality in ['excellent', 'good'] else "⚠️" if quality in ['fair', 'weak'] else "❌"
+                    icon = "" if quality in ['excellent', 'good'] else "" if quality in ['fair', 'weak'] else ""
                     recommendations.append(f"{icon} Question {q_num}: {feedback}")
                 recommendations.append("")
 
@@ -1886,9 +1886,9 @@ Return ONLY valid JSON."""
                     recommendations.append(f"Grammar: {grammar_score}/100")
                     for err in grammar_errors[:1]:
                         if isinstance(err, dict):
-                            recommendations.append(f"  X '{err.get('wrong')}' → ✓ '{err.get('correct')}'")
+                            recommendations.append(f"  '{err.get('wrong')}' -> '{err.get('correct')}'")
             if overall_score >= 85:
-                recommendations.append("✅ Excellent! Accurate use of information")
+                recommendations.append("Excellent! Accurate use of information")
 
             scores['overall'] = overall_score
 
@@ -2044,7 +2044,7 @@ Return ONLY JSON."""
                                      question_context: Optional[str] = None) -> Dict:
         """Part 5: Express Opinion (Q11)"""
 
-        logger.info("💭 Part 5: Express Opinion")
+        logger.info("Part 5: Express Opinion")
 
         duration = self.get_audio_duration(audio_path)
         transcription = self.transcribe_audio_azure(audio_path)
@@ -2069,7 +2069,7 @@ Return ONLY JSON."""
                 },
                 'detailed_analysis': {},
                 'recommendations': [
-                    f"❌ FAIL: Too short ({word_count} words < 30 minimum)",
+                    f"FAIL: Too short ({word_count} words < 30 minimum)")
                     "Need 60+ words for complete answer",
                     "Must: State opinion → Give reasons → Provide examples",
                     "Example: 'I prefer X because Y. For instance, when I...'"
@@ -2104,10 +2104,10 @@ Return ONLY JSON."""
             suggestion = relevance_analysis.get('suggestion', '')
 
             recommendations = [
-                f"❌ FAIL: Completely off-topic ({relevance_score}/100)",
+                f"FAIL: Completely off-topic ({relevance_score}/100)")
                 "You did NOT address the question",
                 f"Issue: {issues}" if issues not in ['none', 'N/A'] else "",
-                f"✓ {suggestion}" if suggestion else "Read the question carefully",
+                f"{suggestion}" if suggestion else "Read the question carefully",
                 "Score: 0"
             ]
 
@@ -2158,8 +2158,8 @@ Return ONLY JSON."""
 
                 opinion_analysis = text_analysis.get('opinion_clarity', {})
                 recommendations = [
-                    f"⚠️ POOR: No clear opinion ({opinion_clarity}/100)",
-                    f"✓ {opinion_analysis.get('suggestion', 'State clearly: I agree/disagree or I prefer A/B')}",
+                    f"POOR: No clear opinion ({opinion_clarity}/100)")
+                    f"{opinion_analysis.get('suggestion', 'State clearly: I agree/disagree or I prefer A/B')}",
                     f"Pronunciation: {pronunciation['pronunciation_score']}/100",
                     f"Grammar: {grammar_score}/100"
                 ]
@@ -2179,9 +2179,9 @@ Return ONLY JSON."""
 
                 reasoning_analysis = text_analysis.get('reasoning_quality', {})
                 recommendations = [
-                    f"👍 FAIR: Weak reasoning ({reasoning_score}/100)",
+                    f"FAIR: Weak reasoning ({reasoning_score}/100)")
                     f"Opinion: {text_analysis.get('opinion_clarity', {}).get('opinion_stated', 'stated')}",
-                    f"✓ {reasoning_analysis.get('suggestion', 'Provide specific examples')}",
+                    f"{reasoning_analysis.get('suggestion', 'Provide specific examples')}",
                     f"Pronunciation: {pronunciation['pronunciation_score']}/100",
                     f"Grammar: {grammar_score}/100"
                 ]
@@ -2203,28 +2203,28 @@ Return ONLY JSON."""
 
                 if grammar_score < 80:
                     grammar_analysis = text_analysis.get('grammar', {})
-                    recommendations.append(f"📝 Grammar: {grammar_score}/100")
+                    recommendations.append(f"Grammar: {grammar_score}/100")
                     errors = grammar_analysis.get('errors', [])
                     if errors:
                         for err in errors[:2]:
                             if isinstance(err, dict):
-                                recommendations.append(f"  X '{err.get('wrong')}' → ✓ '{err.get('correct')}'")
+                                recommendations.append(f"  '{err.get('wrong')}' -> '{err.get('correct')}'")
 
                     corrected = grammar_analysis.get('corrected_text', '')
                     if corrected:
-                        recommendations.append(f"  ✓ Corrected: \"{corrected}\"")
+                        recommendations.append(f"  Corrected: \"{corrected}\"")
 
                 if vocabulary_score < 80:
                     vocab_analysis = text_analysis.get('vocabulary', {})
-                    recommendations.append(f"📚 Vocabulary: {vocabulary_score}/100")
+                    recommendations.append(f"Vocabulary: {vocabulary_score}/100")
                     weak = vocab_analysis.get('weak_words', [])
                     if weak:
                         for w in weak[:1]:
                             if isinstance(w, dict):
-                                recommendations.append(f"  X '{w.get('word')}' → ✓ '{w.get('better')}'")
+                                recommendations.append(f"  '{w.get('word')}' -> '{w.get('better')}'")
 
                 if overall_score >= 85:
-                    recommendations.append("✅ Excellent performance!")
+                    recommendations.append("Excellent performance!")
 
             scores['overall'] = overall_score
 
@@ -2404,15 +2404,15 @@ Return ONLY JSON."""
         overall = scores.get('overall', 0)
 
         if overall >= 90:
-            recommendations.append("🌟 EXCELLENT PERFORMANCE!")
+            recommendations.append("EXCELLENT PERFORMANCE!")
         elif overall >= 80:
-            recommendations.append("✅ GOOD JOB! Minor improvements needed.")
+            recommendations.append("GOOD JOB! Minor improvements needed.")
         elif overall >= 70:
-            recommendations.append("👍 FAIR PERFORMANCE. Focus on key areas below.")
+            recommendations.append("FAIR PERFORMANCE. Focus on key areas below.")
         elif overall >= 60:
-            recommendations.append("⚠️ NEEDS IMPROVEMENT. Practice areas below.")
+            recommendations.append("NEEDS IMPROVEMENT. Practice areas below.")
         else:
-            recommendations.append("❌ SIGNIFICANT WORK NEEDED. Focus on fundamentals.")
+            recommendations.append("SIGNIFICANT WORK NEEDED. Focus on fundamentals.")
 
         recommendations.append("")
 
@@ -2421,7 +2421,7 @@ Return ONLY JSON."""
         grammar_score = scores.get('grammar', 0)
 
         if grammar_score < 85:
-            recommendations.append(f"📝 GRAMMAR ({grammar_score}/100):")
+            recommendations.append(f"GRAMMAR ({grammar_score}/100):")
             errors = grammar_analysis.get('errors', [])
 
             if errors:
@@ -2433,10 +2433,10 @@ Return ONLY JSON."""
                         rule = err.get('rule', '')
                         source = err.get('source', 'AI')
 
-                        recommendations.append(f"   {i}. [{source}] ❌ \"{wrong}\"")
-                        recommendations.append(f"      ✅ \"{correct}\"")
+                        recommendations.append(f"   {i}. [{source}] \"{wrong}\"")
+                        recommendations.append(f"      \"{correct}\"")
                         if rule:
-                            recommendations.append(f"      📖 {rule}")
+                            recommendations.append(f"      {rule}")
                         recommendations.append("")
 
                 if len(errors) > 5:
@@ -2448,7 +2448,7 @@ Return ONLY JSON."""
         vocab_score = scores.get('vocabulary', 0)
 
         if vocab_score < 85:
-            recommendations.append(f"📚 VOCABULARY ({vocab_score}/100):")
+            recommendations.append(f"VOCABULARY ({vocab_score}/100):")
 
             weak = vocab_analysis.get('weak_words', [])
             if weak:
@@ -2473,7 +2473,7 @@ Return ONLY JSON."""
 # Initialize service
 try:
     assessment_service = TOEICSpeakingAssessmentUltimate()
-    logger.info("✅ ULTIMATE v6.0.0 ready")
+    logger.info("ULTIMATE v6.0.0 ready")
 except Exception as e:
     logger.error(f"Initialization failed: {e}")
     raise
@@ -2536,7 +2536,7 @@ async def assess_speaking(
     - question_context: For other question types
     """
 
-    logger.info(f"📩 Received assessment request: {question_type}")
+    logger.info(f"Received assessment request: {question_type}")
 
     # Validate question type
     try:
@@ -2554,7 +2554,7 @@ async def assess_speaking(
         audio_path = os.path.join(temp_dir, f"audio_{datetime.now().timestamp()}.wav")
         with open(audio_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
-        logger.info(f"✅ Audio saved: {audio_path}")
+        logger.info(f"Audio saved: {audio_path}")
 
         # Format question_context for question groups (Part 3/4)
         # If passage and questions are provided, combine them into question_context
@@ -2567,9 +2567,9 @@ async def assess_speaking(
                     for q in questions_list
                 ])
                 question_context = f"PASSAGE:\n{passage}\n\nQUESTIONS:\n{formatted_questions}"
-                logger.info(f"📝 Formatted question_context from passage and questions")
+                logger.info(f"Formatted question_context from passage and questions")
             except Exception as e:
-                logger.warning(f"⚠️ Failed to format question_context: {e}")
+                logger.warning(f"Failed to format question_context: {e}")
                 # Fallback to passage only
                 question_context = passage if passage else None
 
@@ -2585,7 +2585,7 @@ async def assess_speaking(
                 image_path = os.path.join(temp_dir, f"image_{datetime.now().timestamp()}.jpg")
                 with open(image_path, "wb") as buffer:
                     shutil.copyfileobj(picture.file, buffer)
-                logger.info(f"✅ Image saved: {image_path}")
+                logger.info(f"Image saved: {image_path}")
 
             result = await assessment_service.assess_describe_picture(
                 audio_path, image_path, expected_content
@@ -2611,13 +2611,13 @@ async def assess_speaking(
         else:
             raise HTTPException(400, f"Unsupported question type: {question_type}")
 
-        logger.info(f"✅ Assessment complete: {result.get('overall_score', 0)}/100")
+        logger.info(f"Assessment complete: {result.get('overall_score', 0)}/100")
         return result
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"❌ Assessment failed: {e}")
+        logger.error(f"Assessment failed: {e}")
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(500, f"Assessment failed: {str(e)}")
@@ -2631,7 +2631,7 @@ async def assess_speaking(
                 os.remove(image_path)
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
-            logger.info("🧹 Temp files cleaned")
+            logger.info("Temp files cleaned")
         except Exception as e:
             logger.warning(f"Cleanup warning: {e}")
 

@@ -18,7 +18,7 @@ const { Text } = Typography;
 const nav = [
   { to: "/practice-lr", label: "Luyện tập Listening & Reading" },
   { to: "/practice-sw", label: "Luyện tập Speaking & Writing" },
-  { to: "/test-list", label: "Bài thi" },
+  { to: "/test-list", label: "Bài thi mô phỏng" },
   { to: "/flashcard", label: "Flashcard" },
 ];
 

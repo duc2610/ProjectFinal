@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Table, Space, Tag, Row, Col, Statistic, Alert, Drawer, Divider } from "antd";
+import { Modal, Form, Input, InputNumber, Select, Button, message, Tabs, Table, Space, Tag, Row, Col, Statistic, Alert, Drawer, Divider, Collapse } from "antd";
 import { PlusOutlined, DeleteOutlined, CheckCircleOutlined, EyeOutlined } from "@ant-design/icons";
 import { createTestFromBank, getTestById, updateTestFromBank, createTestFromBankRandom } from "@services/testsService";
 import { getQuestionById, getQuestions, buildQuestionListParams } from "@services/questionsService";
@@ -175,6 +175,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
 
                 setSelectedSkill(skillVal);
                 setIsEditingPublished(normalizedVisibility === "Published");
+                setSelectionMode("manual"); // Luôn dùng manual mode khi edit
                 form.setFieldsValue({
                     title: titleVal,
                     description: descVal,
@@ -275,8 +276,8 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
         try {
             const values = await form.validateFields();
 
-            // Xử lý mode Random
-            if (selectionMode === "random") {
+            // Xử lý mode Random (chỉ áp dụng khi tạo mới, không áp dụng khi edit)
+            if (selectionMode === "random" && !editingId) {
                 if (!questionRanges || questionRanges.length === 0) {
                     message.warning("Vui lòng thêm ít nhất 1 cấu hình part!");
                     return;
@@ -581,15 +582,17 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
 
                 {selectedSkill && (
                     <>
-                        <Tabs
-                            activeKey={selectionMode}
-                            onChange={setSelectionMode}
-                            items={[
-                                { key: "manual", label: "Chọn thủ công" },
-                                { key: "random", label: "Chọn ngẫu nhiên" },
-                            ]}
-                            style={{ marginBottom: 16 }}
-                        />
+                        {!editingId && (
+                            <Tabs
+                                activeKey={selectionMode}
+                                onChange={setSelectionMode}
+                                items={[
+                                    { key: "manual", label: "Chọn thủ công" },
+                                    { key: "random", label: "Chọn ngẫu nhiên" },
+                                ]}
+                                style={{ marginBottom: 16 }}
+                            />
+                        )}
 
                         {selectionMode === "manual" ? (
                             <>
@@ -1015,12 +1018,34 @@ function QuestionSelector({
                     <div style={{ textAlign: "center", padding: 40, color: "#999" }}>
                         Chưa có câu hỏi nào được chọn
                     </div>
-                ) : (
-                    <div style={{ maxHeight: 500, overflowY: "auto" }}>
-                        {selectedSingleQuestions.map((qid, index) => {
+                ) : (() => {
+                    // Nhóm câu hỏi theo Part
+                    const questionsByPart = {};
+                    selectedSingleQuestions.forEach((qid, index) => {
+                        const detail = questionDetails[qid] || {};
+                        const partName = detail.partName || "Không xác định";
+                        if (!questionsByPart[partName]) {
+                            questionsByPart[partName] = [];
+                        }
+                        questionsByPart[partName].push({ qid, index });
+                    });
+
+                    const collapseItems = Object.keys(questionsByPart).map((partName) => ({
+                        key: partName,
+                        label: (
+                            <span>
+                                <Tag color="green">{partName}</Tag>
+                                <span style={{ marginLeft: 8 }}>
+                                    ({questionsByPart[partName].length} câu hỏi)
+                                </span>
+                            </span>
+                        ),
+                        children: (
+                            <div>
+                                {questionsByPart[partName].map(({ qid, index: originalIndex }, idx) => {
                             const detail = questionDetails[qid] || {};
                             const content = detail.content || "";
-                            const partName = detail.partName || "";
+                            const questionPartName = detail.partName || "";
                             const questionTypeName = detail.questionTypeName || "";
                             const options = detail.options || [];
                             const imageUrl = detail.imageUrl || "";
@@ -1029,7 +1054,7 @@ function QuestionSelector({
                             
                             return (
                             <div 
-                                key={`single-${qid}-${index}`}
+                                key={`single-${qid}-${originalIndex}`}
                                 style={{ 
                                         padding: 16,
                                         marginBottom: 12,
@@ -1041,11 +1066,11 @@ function QuestionSelector({
                                     <div style={{ marginBottom: 12 }}>
                                         <Space style={{ marginBottom: 8 }}>
                                     <Tag color="blue">ID: {qid}</Tag>
-                                            {partName && <Tag color="green">{partName}</Tag>}
+                                            {questionPartName && <Tag color="green">{questionPartName}</Tag>}
                                             {questionTypeName && <Tag>{questionTypeName}</Tag>}
                                         </Space>
                                         <div style={{ marginTop: 8 }}>
-                                            <strong>Câu hỏi #{index + 1}:</strong>
+                                            <strong>Câu hỏi #{originalIndex + 1}:</strong>
                                             {content && content.trim() ? (
                                                 <div style={{ 
                                                     marginTop: 8, 
@@ -1062,7 +1087,7 @@ function QuestionSelector({
                                                 <div style={{ marginTop: 8 }}>
                                                     {/* Kiểm tra partId từ partName để xác định có phải part 1, 2, 6 không */}
                                                     {(() => {
-                                                        const partIdMatch = partName?.match(/Part\s*(\d+)/i);
+                                                        const partIdMatch = questionPartName?.match(/Part\s*(\d+)/i);
                                                         const partId = partIdMatch ? Number(partIdMatch[1]) : null;
                                                         const isContentOptional = partId && [1, 2, 6].includes(partId);
                                                         
@@ -1226,9 +1251,19 @@ function QuestionSelector({
                             </div>
                                 </div>
                             );
-                        })}
-                    </div>
-                )}
+                                })}
+                            </div>
+                        ),
+                    }));
+
+                    return (
+                        <Collapse
+                            items={collapseItems}
+                            defaultActiveKey={Object.keys(questionsByPart)}
+                            style={{ maxHeight: 500, overflowY: "auto" }}
+                        />
+                    );
+                })()}
             </Tabs.TabPane>
 
             {supportsGroupQuestions && (
@@ -1249,24 +1284,46 @@ function QuestionSelector({
                     <div style={{ textAlign: "center", padding: 40, color: "#999" }}>
                         Chưa có nhóm câu hỏi nào được chọn
                     </div>
-                ) : (
-                    <div style={{ maxHeight: 600, overflowY: "auto" }}>
-                        {selectedGroupQuestions.map((gid, index) => {
+                ) : (() => {
+                    // Nhóm câu hỏi theo Part
+                    const groupsByPart = {};
+                    selectedGroupQuestions.forEach((gid, index) => {
+                        const detail = groupDetails[gid] || {};
+                        const partName = detail.partName || "Không xác định";
+                        if (!groupsByPart[partName]) {
+                            groupsByPart[partName] = [];
+                        }
+                        groupsByPart[partName].push({ gid, index });
+                    });
+
+                    const collapseItems = Object.keys(groupsByPart).map((partName) => ({
+                        key: partName,
+                        label: (
+                            <span>
+                                <Tag color="blue">{partName}</Tag>
+                                <span style={{ marginLeft: 8 }}>
+                                    ({groupsByPart[partName].length} nhóm câu hỏi)
+                                </span>
+                            </span>
+                        ),
+                        children: (
+                            <div>
+                                {groupsByPart[partName].map(({ gid, index: originalIndex }, idx) => {
                             const detail = groupDetails[gid] || {};
                             const passage = detail.passage || "";
-                            const partName = detail.partName || "";
+                            const groupPartName = detail.partName || "";
                             const imageUrl = detail.imageUrl || "";
                             const audioUrl = detail.audioUrl || "";
                             const questions = detail.questions || [];
                             
                             // Kiểm tra partId từ partName để xác định có phải part 3, 4 không (không có passage)
-                            const partIdMatch = partName?.match(/Part\s*(\d+)/i);
+                            const partIdMatch = groupPartName?.match(/Part\s*(\d+)/i);
                             const partId = partIdMatch ? Number(partIdMatch[1]) : null;
                             const isPassageOptional = partId && [3, 4].includes(partId);
                             
                             return (
                             <div 
-                                key={`group-${gid}-${index}`}
+                                key={`group-${gid}-${originalIndex}`}
                                 style={{ 
                                         padding: 16,
                                         marginBottom: 12,
@@ -1278,10 +1335,10 @@ function QuestionSelector({
                                     <div style={{ marginBottom: 12 }}>
                                         <Space style={{ marginBottom: 8 }}>
                                     <Tag color="green">Group ID: {gid}</Tag>
-                                            {partName && <Tag color="blue">{partName}</Tag>}
+                                            {groupPartName && <Tag color="blue">{groupPartName}</Tag>}
                                         </Space>
                                         <div style={{ marginTop: 8 }}>
-                                            <strong>Nhóm câu hỏi #{index + 1}</strong>
+                                            <strong>Nhóm câu hỏi #{originalIndex + 1}</strong>
                                             {passage && passage.trim() ? (
                                                 <div style={{ 
                                                     marginTop: 8, 
@@ -1301,7 +1358,7 @@ function QuestionSelector({
                                                 <div style={{ marginTop: 8 }}>
                                                     {(() => {
                                                         // Nếu đã load xong (có partName) nhưng không có passage
-                                                        if (partName) {
+                                                        if (groupPartName) {
                                                             if (isPassageOptional) {
                                                                 // Part 3, 4 không có passage là bình thường
                                                                 const info = [];
@@ -1521,9 +1578,19 @@ function QuestionSelector({
                             </div>
                                 </div>
                             );
-                        })}
-                    </div>
-                )}
+                                })}
+                            </div>
+                        ),
+                    }));
+
+                    return (
+                        <Collapse
+                            items={collapseItems}
+                            defaultActiveKey={Object.keys(groupsByPart)}
+                            style={{ maxHeight: 600, overflowY: "auto" }}
+                        />
+                    );
+                })()}
             </Tabs.TabPane>
             )}
         </Tabs>
@@ -1693,22 +1760,9 @@ function RandomQuestionSelector({
                 description="Cấu hình số lượng câu hỏi ngẫu nhiên cho từng part. Part 3, 4, 6, 7 (L&R) và Part 13, 14 (Speaking) chỉ có thể chọn nhóm câu hỏi, các part khác chỉ có thể chọn câu hỏi đơn."
             />
 
-            {!readOnly && (
-                <div style={{ marginBottom: 16 }}>
-                    <Button 
-                        type="dashed" 
-                        icon={<PlusOutlined />} 
-                        onClick={handleAddRange}
-                        block
-                    >
-                        Thêm cấu hình Part
-                    </Button>
-                </div>
-            )}
-
             {questionRanges.length === 0 ? (
                 <div style={{ textAlign: "center", padding: 40, color: "#999" }}>
-                    Chưa có cấu hình part nào. Nhấn "Thêm cấu hình Part" để bắt đầu.
+                    Chưa có cấu hình part nào. Nhấn "Thêm Part" để bắt đầu.
                 </div>
             ) : (
                 <div style={{ maxHeight: 500, overflowY: "auto" }}>
@@ -1851,7 +1905,21 @@ function RandomQuestionSelector({
                     </Space>
                 </div>
             )}
+
+            {!readOnly && (
+                <div style={{ marginTop: 16 }}>
+                    <Button 
+                        type="dashed" 
+                        icon={<PlusOutlined />} 
+                        onClick={handleAddRange}
+                        block
+                    >
+                        Thêm Part
+                    </Button>
+                </div>
+            )}
         </>
     );
 }
+
 

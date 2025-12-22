@@ -121,7 +121,7 @@ class GeminiAnalyzer:
             self.sentence_cache = {}
             self.email_cache = {}
             self.essay_cache = {}
-            logger.info("✅ Gemini AI initialized - v8.0.0 BEST OF BOTH")
+            logger.info("Gemini AI initialized - v8.0.0 BEST OF BOTH")
         except Exception as e:
             logger.error(f"Gemini init failed: {e}")
             self.text_model = None
@@ -359,9 +359,7 @@ CRITICAL RULES:
 2. Count overused words EXACTLY (4+ times = overused)
 3. Check OFF-TOPIC first, then other criteria
 
-╔═══════════════════════════════════════════════════════════════╗
-║  STEP 1: OFF-TOPIC CHECK (CHECK THIS FIRST!)                 ║
-╚═══════════════════════════════════════════════════════════════╝
+STEP 1: OFF-TOPIC CHECK (CHECK THIS FIRST!)
 
 Question: "If someone asked you the PROMPT question, would this ESSAY be a good answer?"
 
@@ -372,9 +370,7 @@ SCORING:
 - If SOMEWHAT → Score 30-60 (partially relevant)
 - If NO → Score 0-20 (off-topic, cannot evaluate other criteria)
 
-╔═══════════════════════════════════════════════════════════════╗
-║  STEP 2: DETAILED EVALUATION (only if Step 1 ≥ 60)           ║
-╚═══════════════════════════════════════════════════════════════╝
+STEP 2: DETAILED EVALUATION (only if Step 1 >= 60)
 
 1. OPINION SUPPORT:
    - Clear opinion statement?
@@ -474,7 +470,7 @@ class TOEICWritingAssessment:
                 'scores': ScoreBreakdown(word_count=word_count, overall=0),
                 'detailed_analysis': DetailedAnalysis(),
                 'recommendations': [
-                    f"❌ FAIL: Too short ({word_count} words < 5 minimum)",
+                    f"FAIL: Too short ({word_count} words < 5 minimum)",
                     "",
                     "What you need:",
                     "• Write at least one complete sentence",
@@ -508,7 +504,7 @@ class TOEICWritingAssessment:
                     matched_points=analysis['relevance'].get('matched_elements', [])
                 ),
                 'recommendations': [
-                    "❌ FAIL: Sentence doesn't describe the picture",
+                    "FAIL: Sentence doesn't describe the picture",
                     "",
                     "What the picture shows:",
                     f"  {picture_description[:200]}",
@@ -536,9 +532,9 @@ class TOEICWritingAssessment:
         
         # Score summary
         if overall >= 90:
-            recommendations.append("✅ Excellent work!")
+            recommendations.append("Excellent work!")
         elif overall >= 75:
-            recommendations.append(f"✅ Good job! (Overall: {overall}/100)")
+            recommendations.append(f"Good job! (Overall: {overall}/100)")
         else:
             recommendations.append(f"Score: {overall}/100")
 
@@ -546,16 +542,16 @@ class TOEICWritingAssessment:
 
         # Grammar feedback with examples
         if grammar_overall < 85 and grammar_errors:
-            recommendations.append(f"📝 Grammar: {grammar_overall}/100")
+            recommendations.append(f"Grammar: {grammar_overall}/100")
             for i, err in enumerate(grammar_errors[:3], 1):
-                recommendations.append(f"  {i}. ✗ '{err.wrong}' → ✓ '{err.correct}'")
+                recommendations.append(f"  {i}. '{err.wrong}' -> '{err.correct}'")
                 if err.rule:
                     recommendations.append(f"     Rule: {err.rule}")
             recommendations.append("")
 
         # Vocabulary feedback with examples
         if vocabulary_overall < 85 and vocab_issues:
-            recommendations.append(f"📚 Vocabulary: {vocabulary_overall}/100")
+            recommendations.append(f"Vocabulary: {vocabulary_overall}/100")
             for i, issue in enumerate(vocab_issues[:2], 1):
                 recommendations.append(f"  {i}. '{issue.word}' → '{issue.better}'")
                 if issue.example:
@@ -572,7 +568,7 @@ class TOEICWritingAssessment:
 
         # Positive reinforcement
         if grammar_overall >= 85 and vocabulary_overall >= 85:
-            recommendations.append("💡 Great sentence structure and word choice!")
+            recommendations.append("Great sentence structure and word choice!")
 
         return {
             'scores': ScoreBreakdown(
@@ -604,7 +600,7 @@ class TOEICWritingAssessment:
                 'scores': ScoreBreakdown(word_count=word_count, overall=0),
                 'detailed_analysis': DetailedAnalysis(),
                 'recommendations': [
-                    f"❌ FAIL: Too short ({word_count} words < 10 minimum)",
+                    f"FAIL: Too short ({word_count} words < 10 minimum)",
                     "",
                     "What you need:",
                     "• Answer ALL questions in the request",
@@ -638,10 +634,10 @@ class TOEICWritingAssessment:
                     missing_points=analysis.get('relevance', {}).get('missing_points', [])
                 ),
                 'recommendations': [
-                    "❌ FAIL: Response doesn't address the request",
+                    "FAIL: Response doesn't address the request",
                     "",
                     "Missing points:",
-                ] + [f"  ✗ {point}" for point in analysis.get('relevance', {}).get('missing_points', [])[:4]] + [
+                ] + [f"  - {point}" for point in analysis.get('relevance', {}).get('missing_points', [])[:4]] + [
                     "",
                     "How to fix:",
                     "1. Read the request carefully",
@@ -669,9 +665,9 @@ class TOEICWritingAssessment:
         
         # Score summary
         if overall >= 90:
-            recommendations.append("✅ Excellent response! All points addressed clearly")
+            recommendations.append("Excellent response! All points addressed clearly")
         elif overall >= 75:
-            recommendations.append(f"✅ Good response! (Overall: {overall}/100)")
+            recommendations.append(f"Good response! (Overall: {overall}/100)")
         else:
             recommendations.append(f"Score: {overall}/100")
 
@@ -689,7 +685,7 @@ class TOEICWritingAssessment:
 
         # Sentence variety feedback
         if sentence_variety < 80:
-            recommendations.append(f"📐 Sentence variety: {sentence_variety}/100")
+            recommendations.append(f"Sentence variety: {sentence_variety}/100")
             complex_count = analysis.get('sentence_variety', {}).get('complex', 0)
             if complex_count == 0:
                 recommendations.append("  Try adding:")
@@ -699,16 +695,16 @@ class TOEICWritingAssessment:
 
         # Grammar feedback with examples
         if grammar_score < 85 and grammar_errors:
-            recommendations.append(f"📝 Grammar: {grammar_score}/100")
+            recommendations.append(f"Grammar: {grammar_score}/100")
             for i, err in enumerate(grammar_errors[:3], 1):
-                recommendations.append(f"  {i}. ✗ '{err.wrong}' → ✓ '{err.correct}'")
+                recommendations.append(f"  {i}. '{err.wrong}' -> '{err.correct}'")
                 if err.rule:
                     recommendations.append(f"     Rule: {err.rule}")
             recommendations.append("")
 
         # Vocabulary feedback with examples
         if vocabulary_score < 85 and vocab_issues:
-            recommendations.append(f"📚 Vocabulary: {vocabulary_score}/100")
+            recommendations.append(f"Vocabulary: {vocabulary_score}/100")
             for i, issue in enumerate(vocab_issues[:2], 1):
                 recommendations.append(f"  {i}. '{issue.word}' → '{issue.better}'")
                 if issue.example:
@@ -720,7 +716,7 @@ class TOEICWritingAssessment:
         if isinstance(vocab_data, dict):
             overused = vocab_data.get('overused', [])
             if overused:
-                recommendations.append("⚠️  Overused words:")
+                recommendations.append("Overused words:")
                 for item in overused[:2]:
                     if isinstance(item, dict):
                         word = item.get('word', '')
@@ -732,9 +728,9 @@ class TOEICWritingAssessment:
 
         # Length feedback
         if word_count < 25:
-            recommendations.append(f"💡 Length note: {word_count} words - could add more detail (recommended: 25-50)")
+            recommendations.append(f"Length note: {word_count} words - could add more detail (recommended: 25-50)")
         elif word_count > 50:
-            recommendations.append(f"💡 Length note: {word_count} words - content complete! (For time efficiency, 25-50 words recommended)")
+            recommendations.append(f"Length note: {word_count} words - content complete! (For time efficiency, 25-50 words recommended)")
 
         return {
             'scores': ScoreBreakdown(
@@ -770,7 +766,7 @@ class TOEICWritingAssessment:
                     missing_points=[f"Word count: {word_count} < 150 minimum"]
                 ),
                 'recommendations': [
-                    f"❌ FAIL: Too short ({word_count} words < 150 minimum)",
+                    f"FAIL: Too short ({word_count} words < 150 minimum)",
                     "",
                     "Essay structure needed:",
                     "  1. Introduction (state your opinion)",
@@ -796,9 +792,9 @@ class TOEICWritingAssessment:
         vocabulary_score = analysis.get('vocabulary', {}).get('score', 50)
         organization_score = analysis.get('organization', {}).get('score', 50)
 
-        # ═══════════════════════════════════════════════════════════════════
+        #
         # OFF-TOPIC CHECK (V7.1.0 FEATURE)
-        # ═══════════════════════════════════════════════════════════════════
+        #
         if relevance_to_prompt < 30:
             relevance_data = analysis.get('relevance_to_prompt', {})
 
@@ -810,10 +806,10 @@ class TOEICWritingAssessment:
                 ),
                 'detailed_analysis': DetailedAnalysis(
                     missing_points=[
-                        "❌ ESSAY IS OFF-TOPIC",
+                        "ESSAY IS OFF-TOPIC",
                         "",
-                        f"📋 Prompt asks: {relevance_data.get('prompt_asks_about', 'unknown')}",
-                        f"✍️  Your essay: {relevance_data.get('essay_is_about', 'unknown')}",
+                        f"Prompt asks: {relevance_data.get('prompt_asks_about', 'unknown')}",
+                        f"Your essay: {relevance_data.get('essay_is_about', 'unknown')}",
                         "",
                         f"Does essay answer prompt? {relevance_data.get('does_essay_answer_prompt', 'NO').upper()}",
                         "",
@@ -822,26 +818,26 @@ class TOEICWritingAssessment:
                     ]
                 ),
                 'recommendations': [
-                    "❌ FAIL: ESSAY IS OFF-TOPIC (Score: 0/100)",
-                    "═" * 60,
+                    "FAIL: ESSAY IS OFF-TOPIC (Score: 0/100)",
+                    "=" * 60,
                     "",
-                    f"📋 Prompt asks about: {relevance_data.get('prompt_asks_about', 'unknown')}",
-                    f"✍️  Your essay is about: {relevance_data.get('essay_is_about', 'unknown')}",
+                    f"Prompt asks about: {relevance_data.get('prompt_asks_about', 'unknown')}",
+                    f"Your essay is about: {relevance_data.get('essay_is_about', 'unknown')}",
                     "",
                     f"Does essay answer the prompt? {relevance_data.get('does_essay_answer_prompt', 'NO').upper()}",
                     "",
-                    "═" * 60,
+                    "=" * 60,
                     "Why this is off-topic:",
                     f"  {relevance_data.get('explanation', 'Essay discusses something different')}",
                     "",
-                    "═" * 60,
+                    "=" * 60,
                     "How to fix:",
                     "  1. Read the prompt question very carefully",
                     "  2. Make sure your ENTIRE essay answers that specific question",
                     "  3. Don't write about related but different topics",
                     "  4. Stay focused on what the prompt asks throughout",
                     "",
-                    "⚠️  OFF-TOPIC = 0 POINTS, no matter how well written!",
+                    "OFF-TOPIC = 0 POINTS, no matter how well written!",
                     "",
                     "Note: Cannot evaluate grammar, vocabulary, or organization",
                     "until topic relevance is fixed."
@@ -849,9 +845,9 @@ class TOEICWritingAssessment:
                 'overall_score': 0
             }
 
-        # ═══════════════════════════════════════════════════════════════════
+        #
         # NO CLEAR OPINION
-        # ═══════════════════════════════════════════════════════════════════
+        #
         if opinion_support < 30:
             opinion_data = analysis.get('opinion_support', {})
             missing_issues = opinion_data.get('missing_issues', [])
@@ -867,8 +863,8 @@ class TOEICWritingAssessment:
                     opinion_support_issues=missing_issues
                 ),
                 'recommendations': [
-                    "❌ FAIL: Opinion not properly supported",
-                    f"(Essay is on-topic ✅ but lacks opinion structure)",
+                    "FAIL: Opinion not properly supported",
+                    f"(Essay is on-topic but lacks opinion structure)",
                     "",
                     "What's missing:",
                 ] + [f"  • {issue}" for issue in missing_issues[:4]] + [
@@ -888,9 +884,9 @@ class TOEICWritingAssessment:
                 'overall_score': 0
             }
 
-        # ═══════════════════════════════════════════════════════════════════
+        #
         # WEAK OPINION SUPPORT
-        # ═══════════════════════════════════════════════════════════════════
+        #
         if opinion_support < 60:
             overall = int(
                 relevance_to_prompt * 0.25 +
@@ -903,9 +899,9 @@ class TOEICWritingAssessment:
             missing_issues = analysis.get('opinion_support', {}).get('missing_issues', [])
 
             recommendations = [
-                f"⚠️  FAIR: Weak opinion support (Overall: {overall}/100)",
-                f"✅ Essay is on-topic (Relevance: {relevance_to_prompt}/100)",
-                f"⚠️  Opinion support weak: {opinion_support}/100",
+                f"FAIR: Weak opinion support (Overall: {overall}/100)",
+                f"Essay is on-topic (Relevance: {relevance_to_prompt}/100)",
+                f"Opinion support weak: {opinion_support}/100",
                 ""
             ]
 
@@ -916,13 +912,13 @@ class TOEICWritingAssessment:
                 recommendations.append("")
 
             if word_count < 200:
-                recommendations.append(f"💡 Length: {word_count} words - aim for 150-200 for better development")
+                recommendations.append(f"Length: {word_count} words - aim for 150-200 for better development")
                 recommendations.append("")
 
             if grammar_score < 70 and grammar_errors:
-                recommendations.append(f"📝 Grammar: {grammar_score}/100")
+                recommendations.append(f"Grammar: {grammar_score}/100")
                 for i, err in enumerate(grammar_errors[:2], 1):
-                    recommendations.append(f"  {i}. ✗ '{err.wrong}' → ✓ '{err.correct}'")
+                    recommendations.append(f"  {i}. '{err.wrong}' -> '{err.correct}'")
                     if err.rule:
                         recommendations.append(f"     Rule: {err.rule}")
 
@@ -943,9 +939,9 @@ class TOEICWritingAssessment:
                 'overall_score': overall
             }
 
-        # ═══════════════════════════════════════════════════════════════════
+        #
         # GOOD TO EXCELLENT ESSAY
-        # ═══════════════════════════════════════════════════════════════════
+        #
         overall = int(
             relevance_to_prompt * 0.10 +
             opinion_support * 0.40 +
@@ -963,9 +959,9 @@ class TOEICWritingAssessment:
         
         # Score summary
         if opinion_support >= 90 and grammar_score >= 85 and vocabulary_score >= 80:
-            recommendations.append("✅ Excellent essay! Strong opinion with detailed support")
+            recommendations.append("Excellent essay! Strong opinion with detailed support")
         elif opinion_support >= 80:
-            recommendations.append(f"✅ Strong essay! (Overall: {overall}/100)")
+            recommendations.append(f"Strong essay! (Overall: {overall}/100)")
         else:
             recommendations.append(f"Good essay - can improve (Overall: {overall}/100)")
 
@@ -973,23 +969,23 @@ class TOEICWritingAssessment:
 
         # Opinion support feedback
         if opinion_support < 85 and missing_issues:
-            recommendations.append(f"💭 Opinion support: {opinion_support}/100")
+            recommendations.append(f"Opinion support: {opinion_support}/100")
             for i, issue in enumerate(missing_issues[:3], 1):
                 recommendations.append(f"  {i}. {issue}")
             recommendations.append("")
 
         # Grammar feedback with examples
         if grammar_score < 90 and grammar_errors:
-            recommendations.append(f"📝 Grammar: {grammar_score}/100")
+            recommendations.append(f"Grammar: {grammar_score}/100")
             for i, err in enumerate(grammar_errors[:3], 1):
-                recommendations.append(f"  {i}. ✗ '{err.wrong}' → ✓ '{err.correct}'")
+                recommendations.append(f"  {i}. '{err.wrong}' -> '{err.correct}'")
                 if err.rule:
                     recommendations.append(f"     Rule: {err.rule}")
             recommendations.append("")
 
         # Vocabulary feedback with examples
         if vocabulary_score < 90 and vocab_issues:
-            recommendations.append(f"📚 Vocabulary: {vocabulary_score}/100")
+            recommendations.append(f"Vocabulary: {vocabulary_score}/100")
             for i, issue in enumerate(vocab_issues[:2], 1):
                 recommendations.append(f"  {i}. '{issue.word}' → '{issue.better}'")
                 if issue.example:
@@ -1001,7 +997,7 @@ class TOEICWritingAssessment:
         if isinstance(vocab_data, dict):
             overused = vocab_data.get('overused', [])
             if overused:
-                recommendations.append("⚠️  Overused words:")
+                recommendations.append("Overused words:")
                 for item in overused[:2]:
                     if isinstance(item, dict):
                         word = item.get('word', '')
@@ -1013,7 +1009,7 @@ class TOEICWritingAssessment:
 
         # Organization feedback
         if organization_score < 90:
-            recommendations.append(f"📐 Organization: {organization_score}/100")
+            recommendations.append(f"Organization: {organization_score}/100")
             org_data = analysis.get('organization', {})
             if isinstance(org_data, dict):
                 missing_trans = org_data.get('missing_transitions', [])
@@ -1023,9 +1019,9 @@ class TOEICWritingAssessment:
 
         # Length feedback
         if word_count < 250:
-            recommendations.append(f"💡 Length: {word_count} words - aim for 300+ for comprehensive development")
+            recommendations.append(f"Length: {word_count} words - aim for 300+ for comprehensive development")
         elif word_count >= 350:
-            recommendations.append(f"💡 Length: {word_count} words - excellent detail and development!")
+            recommendations.append(f"Length: {word_count} words - excellent detail and development!")
 
         return {
             'scores': ScoreBreakdown(
@@ -1047,9 +1043,9 @@ class TOEICWritingAssessment:
             'overall_score': overall
         }
 
-    # ═══════════════════════════════════════════════════════════════════
+    #
     # HELPER METHODS
-    # ═══════════════════════════════════════════════════════════════════
+    #
 
     def _parse_grammar_breakdown(self, breakdown) -> List[GrammarError]:
         """Parse grammar errors from breakdown structure"""
@@ -1156,7 +1152,7 @@ class TOEICWritingAssessment:
 
 try:
     assessment_service = TOEICWritingAssessment(GEMINI_API_KEY)
-    logger.info("✅ Service initialized - v8.0.0 BEST OF BOTH")
+    logger.info("Service initialized - v8.0.0 BEST OF BOTH")
     logger.info("   Features:")
     logger.info("   • Off-topic detection (from V7.1.0)")
     logger.info("   • Detailed recommendations with examples (from V2.0.0)")
@@ -1164,7 +1160,7 @@ try:
     logger.info("   • Grammar errors with rules and corrections")
     logger.info("   • Vocabulary suggestions with usage examples")
 except Exception as e:
-    logger.error(f"❌ Init failed: {e}")
+    logger.error(f"Init failed: {e}")
     assessment_service = None
 
 
