@@ -5,9 +5,9 @@ import RoutesRoot from "./app/routes";
 export default function App() {
   return (
     <ConfigProvider locale={viVN}>
-      <div className="app">
-        <RoutesRoot />
-      </div>
+    <div className="app">
+      <RoutesRoot />
+    </div>
     </ConfigProvider>
   );
 }

@@ -1356,7 +1356,7 @@ Return ONLY valid JSON."""
                 },
                 'detailed_analysis': {},
                 'recommendations': [
-                    f"FAIL: Too short ({word_count} words < 20 minimum)")
+                    f"FAIL: Too short ({word_count} words < 20 minimum)",
                     "Must answer all 3 questions",
                     "Need at least 60 words for good score",
                     "Speak more - give details and examples"
@@ -1430,7 +1430,7 @@ Return ONLY valid JSON."""
             }
 
             recommendations = [
-                f"Content incomplete ({completeness_score}/100)")
+                f"Content incomplete ({completeness_score}/100)",
                 f"Intonation: {intonation_score}/100",
                 ""
             ]
@@ -1707,7 +1707,7 @@ Return ONLY valid JSON."""
                 },
                 'detailed_analysis': {},
                 'recommendations': [
-                    f"FAIL: Too short ({word_count} words < 20)")
+                    f"FAIL: Too short ({word_count} words < 20)",
                     "Need 60+ words to answer all 3 questions",
                     "Use information from the schedule provided"
                 ],
@@ -1812,7 +1812,7 @@ Return ONLY valid JSON."""
             incorrect = accuracy_analysis.get('incorrect_facts', [])
 
             recommendations = [
-                f"FAIR: Information accuracy needs improvement ({accuracy_score}/100)")
+                f"FAIR: Information accuracy needs improvement ({accuracy_score}/100)",
                 f"Factual errors: {error_count}",
                 ""
             ]
@@ -2069,7 +2069,7 @@ Return ONLY JSON."""
                 },
                 'detailed_analysis': {},
                 'recommendations': [
-                    f"FAIL: Too short ({word_count} words < 30 minimum)")
+                    f"FAIL: Too short ({word_count} words < 30 minimum)",
                     "Need 60+ words for complete answer",
                     "Must: State opinion → Give reasons → Provide examples",
                     "Example: 'I prefer X because Y. For instance, when I...'"
@@ -2104,7 +2104,7 @@ Return ONLY JSON."""
             suggestion = relevance_analysis.get('suggestion', '')
 
             recommendations = [
-                f"FAIL: Completely off-topic ({relevance_score}/100)")
+                f"FAIL: Completely off-topic ({relevance_score}/100)",
                 "You did NOT address the question",
                 f"Issue: {issues}" if issues not in ['none', 'N/A'] else "",
                 f"{suggestion}" if suggestion else "Read the question carefully",
@@ -2158,7 +2158,7 @@ Return ONLY JSON."""
 
                 opinion_analysis = text_analysis.get('opinion_clarity', {})
                 recommendations = [
-                    f"POOR: No clear opinion ({opinion_clarity}/100)")
+                    f"POOR: No clear opinion ({opinion_clarity}/100)",
                     f"{opinion_analysis.get('suggestion', 'State clearly: I agree/disagree or I prefer A/B')}",
                     f"Pronunciation: {pronunciation['pronunciation_score']}/100",
                     f"Grammar: {grammar_score}/100"
@@ -2179,7 +2179,7 @@ Return ONLY JSON."""
 
                 reasoning_analysis = text_analysis.get('reasoning_quality', {})
                 recommendations = [
-                    f"FAIR: Weak reasoning ({reasoning_score}/100)")
+                    f"FAIR: Weak reasoning ({reasoning_score}/100)",
                     f"Opinion: {text_analysis.get('opinion_clarity', {}).get('opinion_stated', 'stated')}",
                     f"{reasoning_analysis.get('suggestion', 'Provide specific examples')}",
                     f"Pronunciation: {pronunciation['pronunciation_score']}/100",

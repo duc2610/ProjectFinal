@@ -1882,6 +1882,19 @@ function RandomQuestionSelector({
                 </div>
             )}
 
+            {!readOnly && (
+                <div style={{ marginTop: 16 }}>
+                    <Button 
+                        type="dashed" 
+                        icon={<PlusOutlined />} 
+                        onClick={handleAddRange}
+                        block
+                    >
+                        Thêm Part
+                    </Button>
+                </div>
+            )}
+
             {questionRanges.length > 0 && (
                 <div style={{ 
                     marginTop: 16, 
@@ -1903,19 +1916,6 @@ function RandomQuestionSelector({
                             {questionRanges.reduce((sum, r) => sum + Number(r.groupQuestionCount || 0), 0)}
                         </div>
                     </Space>
-                </div>
-            )}
-
-            {!readOnly && (
-                <div style={{ marginTop: 16 }}>
-                    <Button 
-                        type="dashed" 
-                        icon={<PlusOutlined />} 
-                        onClick={handleAddRange}
-                        block
-                    >
-                        Thêm Part
-                    </Button>
                 </div>
             )}
         </>
