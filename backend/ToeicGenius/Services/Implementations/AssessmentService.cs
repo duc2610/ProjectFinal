@@ -449,7 +449,15 @@ namespace ToeicGenius.Services.Implementations
                 {
                     // Send passage/context
                     if (!string.IsNullOrEmpty(groupSnapshot.Passage))
+                    {
                         content.Add(new StringContent(groupSnapshot.Passage), "passage");
+                        
+                        // For respond_with_info, also send passage as question_context (required by Python API)
+                        if (taskType == "respond_with_info")
+                        {
+                            content.Add(new StringContent(groupSnapshot.Passage), "question_context");
+                        }
+                    }
 
                     // Send all questions as JSON array with order index
                     var questionsJson = JsonSerializer.Serialize(

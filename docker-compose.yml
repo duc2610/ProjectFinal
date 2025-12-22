@@ -42,11 +42,14 @@ services:
       - speaking-api
     ports:
       - "7100:8080"
+    env_file:
+      - ./backend/.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      # Ghi đè DB_CONNECTION_STRING trong backend/.env để dùng SQL Server cài trên máy
+      # Đọc DB_CONNECTION_STRING từ backend/.env, nếu không có thì fallback về SQL Server local
       - ConnectionStrings__MyCnn=${DB_CONNECTION_STRING:-Server=toeic-sql,1433;Database=ToeicGeniusV2;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;}
+      - DbProvider=${DB_PROVIDER:-}
       - PythonApiSettings__WritingApiUrl=http://writing-api:8002
       - PythonApiSettings__SpeakingApiUrl=http://speaking-api:8001
       - Jwt__Issuer=${JWT_ISSUER:-Capstone_SEP490_G22}
