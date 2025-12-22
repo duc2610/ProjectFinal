@@ -47,24 +47,12 @@ import {
 } from "@services/questionGroupService";
 import { getPartsBySkill } from "@services/partsService";
 import { getQuestionTypesByPart } from "@services/questionTypesService";
-
-const QUESTION_SKILLS = [
-  { value: 3, label: "Nghe" },
-  { value: 4, label: "Đọc" },
-  { value: 1, label: "Nói" },
-  { value: 2, label: "Viết" },
-];
-
-const skillNameToId = (s) => {
-  const t = String(s ?? "").toLowerCase();
-  if (t.startsWith("l")) return 3;
-  if (t.startsWith("r")) return 4;
-  if (t.startsWith("s")) return 1;
-  if (t.startsWith("w")) return 2;
-  return undefined;
-};
-const inferSkillFromPartName = (partName) =>
-  skillNameToId(String(partName ?? "").split("-")[0]);
+import {
+  QUESTION_SKILLS_LIST,
+  skillNameToId,
+  inferSkillFromPartName,
+  skillIdToLabel,
+} from "@constants/questionSkills";
 
 const toNum = (v) => {
   if (v === undefined || v === null || v === "") return undefined;
@@ -519,7 +507,7 @@ export default function QuanLyNganHangCauHoi() {
                 placeholder="Chọn kỹ năng"
               >
                 <Select.Option value="all">Tất cả kỹ năng</Select.Option>
-                {QUESTION_SKILLS.map((skill) => (
+                {QUESTION_SKILLS_LIST.map((skill) => (
                   <Select.Option key={skill.value} value={skill.value}>
                     {skill.label}
                   </Select.Option>
@@ -627,14 +615,8 @@ export default function QuanLyNganHangCauHoi() {
               key: "questionInfo",
               width: 300,
               render: (_, record) => {
-                const skillName = record.__skillName || "";
-                const skillMap = {
-                  "Listening": "Nghe",
-                  "Reading": "Đọc",
-                  "Speaking": "Nói",
-                  "Writing": "Viết",
-                };
-                const skillLabel = skillMap[skillName] || skillName || "-";
+                const skillId = record.__skillId;
+                const skillLabel = skillId ? skillIdToLabel(skillId) : (record.__skillName || "-");
                 const typeName = record.__questionTypeName;
                 const isGroup = record.isGroupQuestion;
                 
