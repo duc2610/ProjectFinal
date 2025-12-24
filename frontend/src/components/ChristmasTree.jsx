@@ -10,7 +10,7 @@ export default function ChristmasTree() {
   const pathname = location.pathname;
 
   // Chỉ hiển thị ở trang Home và TestList
-  const shouldShow = pathname === "/" || pathname === "/test-list";
+  const shouldShow = pathname === "/" || pathname === "/test-list" || pathname === "/practice-lr" || pathname === "/practice-sw";
 
   if (!shouldShow) {
     return null;

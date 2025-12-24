@@ -1167,25 +1167,37 @@ export default function ExamScreen() {
               // Nếu answerValue là Blob thì upload lên
               else if (answerValue instanceof Blob) {
                 try {
-                  // Upload audio file
+                  // Upload audio file với timeout
                   const audioFile = new File([answerValue], `speaking_${testQuestionId}_${subQuestionIndex}.webm`, {
                     type: "audio/webm",
                   });
-                  audioFileUrl = await uploadFile(audioFile, "audio");
+                  
+                  // Thử upload với timeout 30 giây
+                  const uploadPromise = uploadFile(audioFile, "audio");
+                  const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error("Upload timeout")), 30000)
+                  );
+                  
+                  audioFileUrl = await Promise.race([uploadPromise, timeoutPromise]);
                 } catch (error) {
-                  message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}`);
+                  console.error(`Upload audio failed for question ${testQuestionId}:`, error);
+                  message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}. Câu này sẽ bị bỏ qua.`);
                   audioFileUrl = null;
                 }
               }
               
-              // Chỉ thêm vào swAnswers nếu có audioFileUrl hoặc đã cố gắng upload
-              if (audioFileUrl !== null || answerValue instanceof Blob || (typeof answerValue === "string" && answerValue.startsWith("http"))) {
+              // QUAN TRỌNG: Chỉ thêm vào swAnswers nếu có audioFileUrl hợp lệ (không null)
+              // Backend sẽ throw exception nếu audioFileUrl là null/empty cho speaking part
+              if (audioFileUrl !== null && audioFileUrl !== undefined && audioFileUrl.trim() !== "") {
                 swAnswers.push({
                   testQuestionId: testQuestionId,
                   partType: partType,
                   answerText: null,
                   audioFileUrl: audioFileUrl,
                 });
+              } else if (answerValue instanceof Blob) {
+                // Nếu upload thất bại, log để debug nhưng không push vào swAnswers
+                console.warn(`Skipping question ${testQuestionId} - upload failed`);
               }
             }
           }
@@ -1231,6 +1243,11 @@ export default function ExamScreen() {
       // Submit S&W nếu có (dùng CÙNG testResultId ban đầu, hoặc từ history nếu tiếp tục test)
       let swResult = null;
       if (swAnswers.length > 0) {
+        // Log để debug: số lượng câu sẽ gửi
+        console.log(`[Submit] Sending ${swAnswers.length} S&W answers to backend:`, 
+          swAnswers.map(a => ({ testQuestionId: a.testQuestionId, partType: a.partType, hasAudio: !!a.audioFileUrl }))
+        );
+        
         const swPayload = {
           testResultId: finalTestResultId, // Dùng CÙNG testResultId ban đầu (từ history nếu tiếp tục test)
           testType: testTypeForSW, // "Simulator" hoặc "Practice" (case-sensitive)
@@ -1239,6 +1256,16 @@ export default function ExamScreen() {
         };
         swResult = await submitAssessmentBulk(swPayload);
         // KHÔNG cập nhật testResultId từ response - luôn dùng testResultId ban đầu hoặc từ history
+      } else {
+        // Log nếu không có câu nào để gửi
+        const speakingAnswers = Object.entries(finalAnswers).filter(([key, value]) => {
+          const testQuestionId = parseInt(key.split('_')[0]);
+          const q = questions.find(q => q.testQuestionId === testQuestionId);
+          return q && q.partId >= 11 && q.partId <= 15;
+        });
+        if (speakingAnswers.length > 0) {
+          console.warn(`[Submit] Có ${speakingAnswers.length} câu speaking nhưng không có câu nào được thêm vào swAnswers. Có thể do upload thất bại.`);
+        }
       }
 
       // Kiểm tra lại nếu không có câu nào được trả lời (sau khi format)
