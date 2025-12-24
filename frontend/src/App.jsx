@@ -3,7 +3,7 @@ import { ConfigProvider } from "antd";
 import viVN from "antd/locale/vi_VN";
 import RoutesRoot from "./app/routes";
 import SnowfallWrapper from "./components/SnowfallWrapper";
-import ChristmasDecorations from "./components/ChristmasDecorations";
+import ChristmasTree from "./components/ChristmasTree";
 
 export default function App() {
   return (
@@ -11,7 +11,7 @@ export default function App() {
       <div className="app">
         <RoutesRoot />
         <SnowfallWrapper />
-        <ChristmasDecorations />
+        <ChristmasTree />
       </div>
     </ConfigProvider>
   );
