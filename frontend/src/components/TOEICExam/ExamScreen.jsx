@@ -11,6 +11,7 @@ import { translateErrorMessage } from "@utils/translateError";
 import { useNavigate } from "react-router-dom";
 import { SaveOutlined } from "@ant-design/icons";
 import { useAuth } from "@shared/hooks/useAuth";
+import { saveAudioBlob, getAudioBlob, deleteAudioBlob, clearAllAudioBlobs, openDB } from "@utils/audioStorage";
 
 const { Header, Content } = Layout;
 const { Text } = Typography;
@@ -1025,6 +1026,105 @@ export default function ExamScreen() {
     return partTypeMap[partId] || null;
   };
 
+  // Hàm retry upload các audio Blob đã lưu trong IndexedDB
+  const retryPendingAudioUploads = useCallback(async () => {
+    if (!navigator.onLine) return;
+    
+    try {
+      // Lấy tất cả keys từ IndexedDB
+      const db = await openDB();
+      const transaction = db.transaction(["audioBlobs"], "readonly");
+      const store = transaction.objectStore("audioBlobs");
+      const keysRequest = store.getAllKeys();
+      
+      const keys = await new Promise((resolve, reject) => {
+        keysRequest.onsuccess = () => resolve(keysRequest.result);
+        keysRequest.onerror = () => reject(keysRequest.error);
+      });
+      
+      if (keys.length === 0) return;
+      
+      console.log(`[Retry] Found ${keys.length} pending audio uploads, retrying...`);
+      message.info(`Đang thử lại upload ${keys.length} audio chưa hoàn thành...`);
+      
+      let successCount = 0;
+      let failCount = 0;
+      
+      // Retry từng Blob
+      for (const key of keys) {
+        try {
+          const blob = await getAudioBlob(key);
+          if (!blob) continue;
+          
+          // Parse key để lấy testQuestionId và subQuestionIndex
+          let testQuestionId, subQuestionIndex;
+          if (key.startsWith("group_")) {
+            testQuestionId = parseInt(key.replace("group_", ""));
+            subQuestionIndex = 0;
+          } else {
+            const parts = key.split("_");
+            testQuestionId = parseInt(parts[0]);
+            subQuestionIndex = parseInt(parts[1]) || 0;
+          }
+          
+          // Tìm question để xác định partType
+          const q = questions.find(q => {
+            if (key.startsWith("group_")) {
+              return q.type === "speaking_group" && q.testQuestionId === testQuestionId;
+            }
+            return q.testQuestionId === testQuestionId && 
+              (q.subQuestionIndex === subQuestionIndex || (subQuestionIndex === 0 && !q.subQuestionIndex));
+          });
+          
+          if (!q) {
+            // Nếu không tìm thấy question, xóa Blob
+            await deleteAudioBlob(key);
+            continue;
+          }
+          
+          // Upload Blob
+          const audioFile = new File([blob], `speaking_${testQuestionId}_${subQuestionIndex}.webm`, {
+            type: "audio/webm",
+          });
+          
+          const audioUrl = await uploadFile(audioFile, "audio");
+          
+          // Cập nhật answers với URL mới
+          const answerKey = key.startsWith("group_") 
+            ? String(testQuestionId) 
+            : `${testQuestionId}_${subQuestionIndex}`;
+          
+          setAnswers(prev => ({
+            ...prev,
+            [answerKey]: audioUrl
+          }));
+          
+          // Xóa Blob khỏi IndexedDB sau khi upload thành công
+          await deleteAudioBlob(key);
+          successCount++;
+          
+          console.log(`[Retry] Successfully uploaded audio for key: ${key}`);
+        } catch (error) {
+          console.error(`[Retry] Failed to upload audio for key ${key}:`, error);
+          failCount++;
+          
+          // Nếu lỗi không phải do mạng, xóa Blob (không retry nữa)
+          if (error.code !== 'ERR_NETWORK' && !error.message.includes('Network') && !error.message.includes('timeout')) {
+            await deleteAudioBlob(key);
+          }
+        }
+      }
+      
+      if (successCount > 0) {
+        message.success(`Đã upload thành công ${successCount} audio. ${failCount > 0 ? `${failCount} audio còn lại sẽ thử lại sau.` : ''}`);
+      } else if (failCount > 0) {
+        message.warning(`Không thể upload ${failCount} audio. Sẽ thử lại khi kết nối ổn định hơn.`);
+      }
+    } catch (error) {
+      console.error("[Retry] Error retrying audio uploads:", error);
+    }
+  }, [questions]);
+
   // ExamScreen.jsx
   const handleSubmit = async (auto = false, answersToSubmit = null) => {
     // Nếu có answersToSubmit (khi mất mạng), dùng nó, nếu không dùng answers hiện tại
@@ -1137,11 +1237,57 @@ export default function ExamScreen() {
           if (isSpeakingGroup) {
             // speaking_group: Theo API doc, chỉ gửi 1 entry với testQuestionId của group
             // Backend sẽ xử lý và trả về 1 score cho cả group
-            const audioUrl = typeof answerValue === "string" && answerValue.startsWith("http") 
-              ? answerValue 
-              : null;
-            // Chỉ lưu nếu đã upload (có URL)
-            if (audioUrl) {
+            let audioUrl = null;
+            
+            // Nếu answerValue là URL (string) thì dùng trực tiếp
+            if (typeof answerValue === "string" && answerValue.startsWith("http")) {
+              audioUrl = answerValue;
+            } 
+              // Nếu answerValue là Blob thì upload lên
+              else if (answerValue instanceof Blob) {
+                try {
+                  // Upload audio file với timeout
+                  const audioFile = new File([answerValue], `speaking_group_${q.testQuestionId}.webm`, {
+                    type: "audio/webm",
+                  });
+                  
+                  // Thử upload với timeout 30 giây
+                  const uploadPromise = uploadFile(audioFile, "audio");
+                  const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error("Upload timeout")), 30000)
+                  );
+                  
+                  audioUrl = await Promise.race([uploadPromise, timeoutPromise]);
+                  
+                  // Nếu upload thành công, xóa Blob khỏi IndexedDB (nếu có)
+                  try {
+                    await deleteAudioBlob(`group_${q.testQuestionId}`);
+                  } catch (e) {
+                    // Ignore error khi xóa
+                  }
+                } catch (error) {
+                  console.error(`Upload audio failed for speaking group ${q.testQuestionId}:`, error);
+                  
+                  // Nếu lỗi do mất mạng, lưu Blob vào IndexedDB để retry sau
+                  const isNetworkError = !navigator.onLine || error.code === 'ERR_NETWORK' || error.message.includes('Network') || error.message.includes('timeout');
+                  if (isNetworkError) {
+                    try {
+                      await saveAudioBlob(`group_${q.testQuestionId}`, answerValue);
+                      console.log(`[Retry] Saved audio blob for speaking group ${q.testQuestionId} to IndexedDB`);
+                      message.warning(`Mất mạng khi upload audio cho nhóm câu ${q.globalIndex || q.testQuestionId}. Sẽ tự động thử lại khi kết nối lại.`);
+                    } catch (saveError) {
+                      console.error(`Failed to save audio blob to IndexedDB:`, saveError);
+                      message.warning(`Không thể upload audio cho nhóm câu ${q.globalIndex || q.testQuestionId}. Nhóm này sẽ bị bỏ qua.`);
+                    }
+                  } else {
+                    message.warning(`Không thể upload audio cho nhóm câu ${q.globalIndex || q.testQuestionId}. Nhóm này sẽ bị bỏ qua.`);
+                  }
+                  audioUrl = null;
+                }
+              }
+            
+            // Chỉ lưu nếu đã upload thành công (có URL hợp lệ)
+            if (audioUrl !== null && audioUrl !== undefined && audioUrl.trim() !== "") {
               const partType = getPartType(q.partId);
               if (partType) {
                 // q.testQuestionId chính là testQuestionId của group (từ backend)
@@ -1153,6 +1299,9 @@ export default function ExamScreen() {
                   audioFileUrl: audioUrl,
                 });
               }
+            } else if (answerValue instanceof Blob) {
+              // Nếu upload thất bại, log để debug nhưng không push vào swAnswers
+              console.warn(`Skipping speaking group ${q.testQuestionId} - upload failed`);
             }
           } else {
             // Câu đơn hoặc group thường: format như bình thường
@@ -1179,9 +1328,30 @@ export default function ExamScreen() {
                   );
                   
                   audioFileUrl = await Promise.race([uploadPromise, timeoutPromise]);
+                  
+                  // Nếu upload thành công, xóa Blob khỏi IndexedDB (nếu có)
+                  try {
+                    await deleteAudioBlob(`${testQuestionId}_${subQuestionIndex}`);
+                  } catch (e) {
+                    // Ignore error khi xóa
+                  }
                 } catch (error) {
                   console.error(`Upload audio failed for question ${testQuestionId}:`, error);
-                  message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}. Câu này sẽ bị bỏ qua.`);
+                  
+                  // Nếu lỗi do mất mạng, lưu Blob vào IndexedDB để retry sau
+                  const isNetworkError = !navigator.onLine || error.code === 'ERR_NETWORK' || error.message.includes('Network') || error.message.includes('timeout');
+                  if (isNetworkError) {
+                    try {
+                      await saveAudioBlob(`${testQuestionId}_${subQuestionIndex}`, answerValue);
+                      console.log(`[Retry] Saved audio blob for question ${testQuestionId} to IndexedDB`);
+                      message.warning(`Mất mạng khi upload audio cho câu ${q.globalIndex || testQuestionId}. Sẽ tự động thử lại khi kết nối lại.`);
+                    } catch (saveError) {
+                      console.error(`Failed to save audio blob to IndexedDB:`, saveError);
+                      message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}. Câu này sẽ bị bỏ qua.`);
+                    }
+                  } else {
+                    message.warning(`Không thể upload audio cho câu ${q.globalIndex || testQuestionId}. Câu này sẽ bị bỏ qua.`);
+                  }
                   audioFileUrl = null;
                 }
               }
@@ -1298,6 +1468,13 @@ export default function ExamScreen() {
         // Error saving result meta to sessionStorage
       }
 
+      // Xóa tất cả audio Blob trong IndexedDB sau khi submit thành công
+      try {
+        await clearAllAudioBlobs();
+        console.log("[Submit] Cleared all audio blobs from IndexedDB after successful submission");
+      } catch (error) {
+        console.error("[Submit] Error clearing audio blobs:", error);
+      }
 
       setTimeout(() => {
         setShowSubmitModal(false);
@@ -1360,6 +1537,7 @@ export default function ExamScreen() {
           lastOnlineState = true;
           setIsOnline(true);
           setShowOfflineModal(false);
+          
           // Nếu có offlineAnswers, thử lưu lại
           const savedOfflineAnswers = offlineAnswersRef.current;
           if (savedOfflineAnswers) {
@@ -1370,6 +1548,9 @@ export default function ExamScreen() {
               handleSaveProgress(savedOfflineAnswers);
             }, 1000);
           }
+          
+          // Tự động retry upload các audio Blob đã lưu trong IndexedDB
+          retryPendingAudioUploads();
         } else {
           // Từ online chuyển sang offline
           lastOnlineState = false;
@@ -1400,6 +1581,9 @@ export default function ExamScreen() {
           handleSaveProgress(savedOfflineAnswers);
         }, 1000);
       }
+      
+      // Tự động retry upload các audio Blob đã lưu trong IndexedDB
+      retryPendingAudioUploads();
     };
 
     const handleOffline = () => {
