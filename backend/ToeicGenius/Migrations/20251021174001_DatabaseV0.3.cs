@@ -347,7 +347,7 @@ namespace ToeicGenius.Migrations
                     StartTime = table.Column<DateTime>(nullable: true),
                     Duration = table.Column<int>(nullable: false),
                     Status = table.Column<string>(nullable: true),
-                    TotalScore = table.Column<decimal>(, precision: 5, scale: 2nullable: false),
+                    TotalScore = table.Column<decimal>(precision: 5, scale: 2, nullable: false),
                     TestMode = table.Column<string>(nullable: true),
                     CreatedAt = table.Column<DateTime>(nullable: false),
                     UpdatedAt = table.Column<DateTime>(nullable: true)
@@ -422,7 +422,7 @@ namespace ToeicGenius.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserTestId = table.Column<int>(nullable: false),
                     Skill = table.Column<string>(nullable: true),
-                    Score = table.Column<decimal>(, precision: 5, scale: 2nullable: false)
+                    Score = table.Column<decimal>(precision: 5, scale: 2, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -477,7 +477,7 @@ namespace ToeicGenius.Migrations
                     FeedbackId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     UserAnswerId = table.Column<int>(nullable: false),
-                    Score = table.Column<decimal>(, precision: 5, scale: 2nullable: false),
+                    Score = table.Column<decimal>(precision: 5, scale: 2, nullable: false),
                     Content = table.Column<string>(nullable: true),
                     AIScorer = table.Column<string>(nullable: true),
                     CreatedAt = table.Column<DateTime>(nullable: false),
