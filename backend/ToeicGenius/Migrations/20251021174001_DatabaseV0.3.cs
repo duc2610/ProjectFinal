@@ -1,5 +1,7 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations.Operations.Builders;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -18,7 +20,9 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     PartId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PartNumber = table.Column<int>(nullable: false),
                     Skill = table.Column<int>(nullable: false),
                     Name = table.Column<string>(nullable: true),
@@ -34,7 +38,9 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     Id = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     RoleName = table.Column<string>(maxLength: 50, nullable: false),
                     Description = table.Column<string>(maxLength: 200, nullable: true)
                 },
@@ -83,7 +89,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     QuestionGroupId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PartId = table.Column<int>(nullable: false),
                     AudioUrl = table.Column<string>(nullable: true),
                     ImageUrl = table.Column<string>(nullable: true),
@@ -108,7 +115,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     QuestionTypeId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     TypeName = table.Column<string>(nullable: false),
                     PartId = table.Column<int>(nullable: false),
                     Description = table.Column<string>(nullable: true)
@@ -129,7 +137,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     SetId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Title = table.Column<string>(nullable: false),
                     Description = table.Column<string>(nullable: true),
                     IsPublic = table.Column<bool>(nullable: false),
@@ -179,7 +188,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     TestId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     TestType = table.Column<int>(maxLength: 50, nullable: false),
                     TestSkill = table.Column<int>(nullable: false),
                     Title = table.Column<string>(nullable: false),
@@ -245,7 +255,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     QuestionId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     QuestionTypeId = table.Column<int>(nullable: false),
                     QuestionGroupId = table.Column<int>(nullable: true),
                     PartId = table.Column<int>(nullable: false),
@@ -284,7 +295,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     CardId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SetId = table.Column<int>(nullable: false),
                     FrontText = table.Column<string>(nullable: true),
                     BackText = table.Column<string>(nullable: true),
@@ -307,7 +319,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     TestQuestionId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     TestId = table.Column<int>(nullable: false),
                     OrderInTest = table.Column<int>(nullable: false),
                     PartId = table.Column<int>(nullable: true),
@@ -341,7 +354,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     UserTestId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserId = table.Column<Guid>(nullable: false),
                     TestId = table.Column<int>(nullable: false),
                     StartTime = table.Column<DateTime>(nullable: true),
@@ -374,7 +388,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     OptionId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     QuestionId = table.Column<int>(nullable: false),
                     Label = table.Column<string>(nullable: true),
                     Content = table.Column<string>(nullable: true),
@@ -399,7 +414,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     ProgressId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     FlashcardId = table.Column<int>(nullable: false),
                     Status = table.Column<string>(nullable: true)
                 },
@@ -419,7 +435,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     UserTestResultId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserTestId = table.Column<int>(nullable: false),
                     Skill = table.Column<string>(nullable: true),
                     Score = table.Column<decimal>(precision: 5, scale: 2, nullable: false)
@@ -440,7 +457,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     UserAnswerId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserTestId = table.Column<int>(nullable: false),
                     QuestionId = table.Column<int>(nullable: false),
                     AnswerAudioUrl = table.Column<string>(nullable: true),
@@ -475,7 +493,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     FeedbackId = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                        .Annotation("SqlServer:Identity", "1, 1")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserAnswerId = table.Column<int>(nullable: false),
                     Score = table.Column<decimal>(precision: 5, scale: 2, nullable: false),
                     Content = table.Column<string>(nullable: true),
