@@ -1,6 +1,5 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
-using Microsoft.EntityFrameworkCore.Migrations.Operations.Builders;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
@@ -188,7 +187,7 @@ namespace ToeicGenius.Migrations
                     TestId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    TestType = table.Column<int>(maxLength: 50, nullable: false),
+                    TestType = table.Column<int>(nullable: false),
                     TestSkill = table.Column<int>(nullable: false),
                     Title = table.Column<string>(nullable: false),
                     Description = table.Column<string>(nullable: true),
@@ -391,7 +390,8 @@ namespace ToeicGenius.Migrations
                     QuestionId = table.Column<int>(nullable: false),
                     Label = table.Column<string>(nullable: true),
                     Content = table.Column<string>(nullable: true),
-                    IsCorrect = table.Column<bool>(nullable: false),
+                    IsCorrect = table.Column<bool>(nullable: false)
+                        .Annotation("Npgsql:ColumnType", "boolean"),
                     Status = table.Column<int>(nullable: false),
                     CreatedAt = table.Column<DateTime>(nullable: false),
                     UpdatedAt = table.Column<DateTime>(nullable: true)
