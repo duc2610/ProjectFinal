@@ -17,12 +17,12 @@ namespace ToeicGenius.Migrations
                 name: "Parts",
                 columns: table => new
                 {
-                    PartId = table.Column<int>(type: "int", nullable: false)
+                    PartId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    PartNumber = table.Column<int>(type: "int", nullable: false),
-                    Skill = table.Column<int>(type: "int", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    PartNumber = table.Column<int>(nullable: false),
+                    Skill = table.Column<int>(nullable: false),
+                    Name = table.Column<string>(nullable: true),
+                    Description = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -33,10 +33,10 @@ namespace ToeicGenius.Migrations
                 name: "Roles",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    RoleName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                    RoleName = table.Column<string>(maxLength: 50, nullable: false),
+                    Description = table.Column<string>(maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -47,13 +47,13 @@ namespace ToeicGenius.Migrations
                 name: "UserOtps",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    OtpCodeHash = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Type = table.Column<int>(type: "int", nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    UsedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<Guid>(nullable: false),
+                    Email = table.Column<string>(maxLength: 200, nullable: false),
+                    OtpCodeHash = table.Column<string>(maxLength: 200, nullable: false),
+                    Type = table.Column<int>(nullable: false),
+                    ExpiresAt = table.Column<DateTime>(nullable: false),
+                    CreatedAt = table.Column<DateTime>(nullable: true),
+                    UsedAt = table.Column<DateTime>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -64,14 +64,14 @@ namespace ToeicGenius.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    GoogleId = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    FullName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<Guid>(nullable: false),
+                    Email = table.Column<string>(maxLength: 200, nullable: false),
+                    PasswordHash = table.Column<string>(maxLength: 200, nullable: true),
+                    GoogleId = table.Column<string>(maxLength: 200, nullable: true),
+                    FullName = table.Column<string>(maxLength: 100, nullable: false),
+                    Status = table.Column<int>(nullable: false),
+                    CreatedAt = table.Column<DateTime>(nullable: false),
+                    UpdatedAt = table.Column<DateTime>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -82,15 +82,15 @@ namespace ToeicGenius.Migrations
                 name: "QuestionGroups",
                 columns: table => new
                 {
-                    QuestionGroupId = table.Column<int>(type: "int", nullable: false)
+                    QuestionGroupId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    PartId = table.Column<int>(type: "int", nullable: false),
-                    AudioUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    PassageContent = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Status = table.Column<int>(type: "int", nullable: false)
+                    PartId = table.Column<int>(nullable: false),
+                    AudioUrl = table.Column<string>(nullable: true),
+                    ImageUrl = table.Column<string>(nullable: true),
+                    PassageContent = table.Column<string>(nullable: true),
+                    CreatedAt = table.Column<DateTime>(nullable: false),
+                    UpdatedAt = table.Column<DateTime>(nullable: true),
+                    Status = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -107,11 +107,11 @@ namespace ToeicGenius.Migrations
                 name: "QuestionTypes",
                 columns: table => new
                 {
-                    QuestionTypeId = table.Column<int>(type: "int", nullable: false)
+                    QuestionTypeId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    TypeName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PartId = table.Column<int>(type: "int", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    TypeName = table.Column<string>(nullable: false),
+                    PartId = table.Column<int>(nullable: false),
+                    Description = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -128,15 +128,15 @@ namespace ToeicGenius.Migrations
                 name: "FlashcardSets",
                 columns: table => new
                 {
-                    SetId = table.Column<int>(type: "int", nullable: false)
+                    SetId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsPublic = table.Column<bool>(type: "bit", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Title = table.Column<string>(nullable: false),
+                    Description = table.Column<string>(nullable: true),
+                    IsPublic = table.Column<bool>(nullable: false),
+                    UserId = table.Column<Guid>(nullable: false),
+                    CreatedAt = table.Column<DateTime>(nullable: false),
+                    UpdatedAt = table.Column<DateTime>(nullable: true),
+                    Status = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -153,15 +153,15 @@ namespace ToeicGenius.Migrations
                 name: "RefreshTokens",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Token = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
-                    CreatedByIp = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    RevokeAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    RevokeByIp = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    ReplacedByToken = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
+                    Id = table.Column<Guid>(nullable: false),
+                    UserId = table.Column<Guid>(nullable: false),
+                    Token = table.Column<string>(maxLength: 200, nullable: false),
+                    ExpiresAt = table.Column<DateTime>(nullable: false),
+                    CreatedAt = table.Column<DateTime>(nullable: false),
+                    CreatedByIp = table.Column<string>(maxLength: 50, nullable: true),
+                    RevokeAt = table.Column<DateTime>(nullable: true),
+                    RevokeByIp = table.Column<string>(maxLength: 50, nullable: true),
+                    ReplacedByToken = table.Column<string>(maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -178,22 +178,22 @@ namespace ToeicGenius.Migrations
                 name: "Tests",
                 columns: table => new
                 {
-                    TestId = table.Column<int>(type: "int", nullable: false)
+                    TestId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    TestType = table.Column<int>(type: "int", maxLength: 50, nullable: false),
-                    TestSkill = table.Column<int>(type: "int", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    AudioUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Duration = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    Version = table.Column<int>(type: "int", nullable: false),
-                    ParentTestId = table.Column<int>(type: "int", nullable: true),
-                    QuantityQuestion = table.Column<int>(type: "int", nullable: false),
-                    CreatedById = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
-                    PartId = table.Column<int>(type: "int", nullable: true)
+                    TestType = table.Column<int>(maxLength: 50, nullable: false),
+                    TestSkill = table.Column<int>(nullable: false),
+                    Title = table.Column<string>(nullable: false),
+                    Description = table.Column<string>(nullable: true),
+                    AudioUrl = table.Column<string>(nullable: true),
+                    Duration = table.Column<int>(nullable: false),
+                    CreatedAt = table.Column<DateTime>(nullable: false),
+                    UpdatedAt = table.Column<DateTime>(nullable: true),
+                    Status = table.Column<int>(nullable: false),
+                    Version = table.Column<int>(nullable: false),
+                    ParentTestId = table.Column<int>(nullable: true),
+                    QuantityQuestion = table.Column<int>(nullable: false),
+                    CreatedById = table.Column<Guid>(nullable: true),
+                    PartId = table.Column<int>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -220,8 +220,8 @@ namespace ToeicGenius.Migrations
                 name: "UserRoles",
                 columns: table => new
                 {
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RoleId = table.Column<int>(type: "int", nullable: false)
+                    UserId = table.Column<Guid>(nullable: false),
+                    RoleId = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -244,18 +244,18 @@ namespace ToeicGenius.Migrations
                 name: "Questions",
                 columns: table => new
                 {
-                    QuestionId = table.Column<int>(type: "int", nullable: false)
+                    QuestionId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    QuestionTypeId = table.Column<int>(type: "int", nullable: false),
-                    QuestionGroupId = table.Column<int>(type: "int", nullable: true),
-                    PartId = table.Column<int>(type: "int", nullable: false),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    AudioUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Explanation = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Status = table.Column<int>(type: "int", nullable: false)
+                    QuestionTypeId = table.Column<int>(nullable: false),
+                    QuestionGroupId = table.Column<int>(nullable: true),
+                    PartId = table.Column<int>(nullable: false),
+                    Content = table.Column<string>(nullable: true),
+                    AudioUrl = table.Column<string>(nullable: true),
+                    ImageUrl = table.Column<string>(nullable: true),
+                    Explanation = table.Column<string>(nullable: true),
+                    CreatedAt = table.Column<DateTime>(nullable: false),
+                    UpdatedAt = table.Column<DateTime>(nullable: true),
+                    Status = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -283,13 +283,13 @@ namespace ToeicGenius.Migrations
                 name: "Flashcards",
                 columns: table => new
                 {
-                    CardId = table.Column<int>(type: "int", nullable: false)
+                    CardId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    SetId = table.Column<int>(type: "int", nullable: false),
-                    FrontText = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    BackText = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    AudioUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    MediaUrl = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    SetId = table.Column<int>(nullable: false),
+                    FrontText = table.Column<string>(nullable: true),
+                    BackText = table.Column<string>(nullable: true),
+                    AudioUrl = table.Column<string>(nullable: true),
+                    MediaUrl = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -306,18 +306,18 @@ namespace ToeicGenius.Migrations
                 name: "TestQuestions",
                 columns: table => new
                 {
-                    TestQuestionId = table.Column<int>(type: "int", nullable: false)
+                    TestQuestionId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    TestId = table.Column<int>(type: "int", nullable: false),
-                    OrderInTest = table.Column<int>(type: "int", nullable: false),
-                    PartId = table.Column<int>(type: "int", nullable: true),
-                    SourceType = table.Column<int>(type: "int", nullable: false),
-                    IsQuestionGroup = table.Column<bool>(type: "bit", nullable: false),
-                    SnapshotJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Version = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    TestId = table.Column<int>(nullable: false),
+                    OrderInTest = table.Column<int>(nullable: false),
+                    PartId = table.Column<int>(nullable: true),
+                    SourceType = table.Column<int>(nullable: false),
+                    IsQuestionGroup = table.Column<bool>(nullable: false),
+                    SnapshotJson = table.Column<string>(nullable: false),
+                    Version = table.Column<int>(nullable: false),
+                    Status = table.Column<int>(nullable: false),
+                    CreatedAt = table.Column<DateTime>(nullable: false),
+                    UpdatedAt = table.Column<DateTime>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -340,17 +340,17 @@ namespace ToeicGenius.Migrations
                 name: "UserTests",
                 columns: table => new
                 {
-                    UserTestId = table.Column<int>(type: "int", nullable: false)
+                    UserTestId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TestId = table.Column<int>(type: "int", nullable: false),
-                    StartTime = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Duration = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    TotalScore = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    TestMode = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    UserId = table.Column<Guid>(nullable: false),
+                    TestId = table.Column<int>(nullable: false),
+                    StartTime = table.Column<DateTime>(nullable: true),
+                    Duration = table.Column<int>(nullable: false),
+                    Status = table.Column<string>(nullable: true),
+                    TotalScore = table.Column<decimal>(, precision: 5, scale: 2nullable: false),
+                    TestMode = table.Column<string>(nullable: true),
+                    CreatedAt = table.Column<DateTime>(nullable: false),
+                    UpdatedAt = table.Column<DateTime>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -373,15 +373,15 @@ namespace ToeicGenius.Migrations
                 name: "Options",
                 columns: table => new
                 {
-                    OptionId = table.Column<int>(type: "int", nullable: false)
+                    OptionId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    QuestionId = table.Column<int>(type: "int", nullable: false),
-                    Label = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    IsCorrect = table.Column<bool>(type: "bit", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    QuestionId = table.Column<int>(nullable: false),
+                    Label = table.Column<string>(nullable: true),
+                    Content = table.Column<string>(nullable: true),
+                    IsCorrect = table.Column<bool>(nullable: false),
+                    Status = table.Column<int>(nullable: false),
+                    CreatedAt = table.Column<DateTime>(nullable: false),
+                    UpdatedAt = table.Column<DateTime>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -398,10 +398,10 @@ namespace ToeicGenius.Migrations
                 name: "FlashcardProgresses",
                 columns: table => new
                 {
-                    ProgressId = table.Column<int>(type: "int", nullable: false)
+                    ProgressId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    FlashcardId = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    FlashcardId = table.Column<int>(nullable: false),
+                    Status = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -418,11 +418,11 @@ namespace ToeicGenius.Migrations
                 name: "UserTestSkillScores",
                 columns: table => new
                 {
-                    UserTestResultId = table.Column<int>(type: "int", nullable: false)
+                    UserTestResultId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserTestId = table.Column<int>(type: "int", nullable: false),
-                    Skill = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Score = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false)
+                    UserTestId = table.Column<int>(nullable: false),
+                    Skill = table.Column<string>(nullable: true),
+                    Score = table.Column<decimal>(, precision: 5, scale: 2nullable: false)
                 },
                 constraints: table =>
                 {
@@ -439,14 +439,14 @@ namespace ToeicGenius.Migrations
                 name: "UserAnswers",
                 columns: table => new
                 {
-                    UserAnswerId = table.Column<int>(type: "int", nullable: false)
+                    UserAnswerId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserTestId = table.Column<int>(type: "int", nullable: false),
-                    QuestionId = table.Column<int>(type: "int", nullable: false),
-                    AnswerAudioUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    OptionId = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    UserTestId = table.Column<int>(nullable: false),
+                    QuestionId = table.Column<int>(nullable: false),
+                    AnswerAudioUrl = table.Column<string>(nullable: true),
+                    OptionId = table.Column<int>(nullable: true),
+                    CreatedAt = table.Column<DateTime>(nullable: false),
+                    UpdatedAt = table.Column<DateTime>(nullable: true)
                 },
                 constraints: table =>
                 {
@@ -474,14 +474,14 @@ namespace ToeicGenius.Migrations
                 name: "AIFeedbacks",
                 columns: table => new
                 {
-                    FeedbackId = table.Column<int>(type: "int", nullable: false)
+                    FeedbackId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    UserAnswerId = table.Column<int>(type: "int", nullable: false),
-                    Score = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    AIScorer = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    UserAnswerId = table.Column<int>(nullable: false),
+                    Score = table.Column<decimal>(, precision: 5, scale: 2nullable: false),
+                    Content = table.Column<string>(nullable: true),
+                    AIScorer = table.Column<string>(nullable: true),
+                    CreatedAt = table.Column<DateTime>(nullable: false),
+                    UpdatedAt = table.Column<DateTime>(nullable: true)
                 },
                 constraints: table =>
                 {
