@@ -21,7 +21,6 @@ namespace ToeicGenius.Migrations
                 {
                     PartId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1")
-                        .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PartNumber = table.Column<int>(nullable: false),
                     Skill = table.Column<int>(nullable: false),
@@ -38,7 +37,6 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     Id = table.Column<int>(nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     RoleName = table.Column<string>(maxLength: 50, nullable: false),
