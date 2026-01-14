@@ -24,10 +24,8 @@ namespace ToeicGenius.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PartNumber = table.Column<int>(nullable: false),
                     Skill = table.Column<int>(nullable: false),
-                    Name = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    Description = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text")
+                    Name = table.Column<string>(type: "text", nullable: true),
+                    Description = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -41,10 +39,8 @@ namespace ToeicGenius.Migrations
                     Id = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    RoleName = table.Column<string>(maxLength: 50, nullable: false)
-                        .Annotation("Npgsql:ColumnType", "varchar(50)"),
-                    Description = table.Column<string>(maxLength: 200, nullable: true)
-                        .Annotation("Npgsql:ColumnType", "varchar(200)")
+                    RoleName = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -56,10 +52,8 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(nullable: false),
-                    Email = table.Column<string>(maxLength: 200, nullable: false)
-                        .Annotation("Npgsql:ColumnType", "varchar(200)"),
-                    OtpCodeHash = table.Column<string>(maxLength: 200, nullable: false)
-                        .Annotation("Npgsql:ColumnType", "varchar(200)"),
+                    Email = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    OtpCodeHash = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     Type = table.Column<int>(nullable: false),
                     ExpiresAt = table.Column<DateTime>(nullable: false),
                     CreatedAt = table.Column<DateTime>(nullable: true),
@@ -75,14 +69,10 @@ namespace ToeicGenius.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(nullable: false),
-                    Email = table.Column<string>(maxLength: 200, nullable: false)
-                        .Annotation("Npgsql:ColumnType", "varchar(200)"),
-                    PasswordHash = table.Column<string>(maxLength: 200, nullable: true)
-                        .Annotation("Npgsql:ColumnType", "varchar(200)"),
-                    GoogleId = table.Column<string>(maxLength: 200, nullable: true)
-                        .Annotation("Npgsql:ColumnType", "varchar(200)"),
-                    FullName = table.Column<string>(maxLength: 100, nullable: false)
-                        .Annotation("Npgsql:ColumnType", "varchar(100)"),
+                    Email = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    PasswordHash = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true),
+                    GoogleId = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true),
+                    FullName = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
                     Status = table.Column<int>(nullable: false),
                     CreatedAt = table.Column<DateTime>(nullable: false),
                     UpdatedAt = table.Column<DateTime>(nullable: true)
@@ -100,12 +90,9 @@ namespace ToeicGenius.Migrations
                         .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PartId = table.Column<int>(nullable: false),
-                    AudioUrl = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    ImageUrl = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    PassageContent = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
+                    AudioUrl = table.Column<string>(type: "text", nullable: true),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    PassageContent = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(nullable: false),
                     UpdatedAt = table.Column<DateTime>(nullable: true),
                     Status = table.Column<int>(nullable: false)
@@ -128,11 +115,9 @@ namespace ToeicGenius.Migrations
                     QuestionTypeId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    TypeName = table.Column<string>(nullable: false)
-                        .Annotation("Npgsql:ColumnType", "text"),
+                    TypeName = table.Column<string>(type: "text", nullable: false),
                     PartId = table.Column<int>(nullable: false),
-                    Description = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text")
+                    Description = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -152,16 +137,13 @@ namespace ToeicGenius.Migrations
                     SetId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Title = table.Column<string>(nullable: false)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    Description = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
                     IsPublic = table.Column<bool>(nullable: false),
                     UserId = table.Column<Guid>(nullable: false),
                     CreatedAt = table.Column<DateTime>(nullable: false),
                     UpdatedAt = table.Column<DateTime>(nullable: true),
-                    Status = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text")
+                    Status = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -180,17 +162,13 @@ namespace ToeicGenius.Migrations
                 {
                     Id = table.Column<Guid>(nullable: false),
                     UserId = table.Column<Guid>(nullable: false),
-                    Token = table.Column<string>(maxLength: 200, nullable: false)
-                        .Annotation("Npgsql:ColumnType", "varchar(200)"),
+                    Token = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     ExpiresAt = table.Column<DateTime>(nullable: false),
                     CreatedAt = table.Column<DateTime>(nullable: false),
-                    CreatedByIp = table.Column<string>(maxLength: 50, nullable: true)
-                        .Annotation("Npgsql:ColumnType", "varchar(50)"),
+                    CreatedByIp = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true),
                     RevokeAt = table.Column<DateTime>(nullable: true),
-                    RevokeByIp = table.Column<string>(maxLength: 50, nullable: true)
-                        .Annotation("Npgsql:ColumnType", "varchar(50)"),
-                    ReplacedByToken = table.Column<string>(maxLength: 200, nullable: true)
-                        .Annotation("Npgsql:ColumnType", "varchar(200)")
+                    RevokeByIp = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true),
+                    ReplacedByToken = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -212,12 +190,9 @@ namespace ToeicGenius.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     TestType = table.Column<int>(nullable: false),
                     TestSkill = table.Column<int>(nullable: false),
-                    Title = table.Column<string>(nullable: false)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    Description = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    AudioUrl = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    Description = table.Column<string>(type: "text", nullable: true),
+                    AudioUrl = table.Column<string>(type: "text", nullable: true),
                     Duration = table.Column<int>(nullable: false),
                     CreatedAt = table.Column<DateTime>(nullable: false),
                     UpdatedAt = table.Column<DateTime>(nullable: true),
@@ -283,14 +258,10 @@ namespace ToeicGenius.Migrations
                     QuestionTypeId = table.Column<int>(nullable: false),
                     QuestionGroupId = table.Column<int>(nullable: true),
                     PartId = table.Column<int>(nullable: false),
-                    Content = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    AudioUrl = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    ImageUrl = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    Explanation = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
+                    Content = table.Column<string>(type: "text", nullable: true),
+                    AudioUrl = table.Column<string>(type: "text", nullable: true),
+                    ImageUrl = table.Column<string>(type: "text", nullable: true),
+                    Explanation = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(nullable: false),
                     UpdatedAt = table.Column<DateTime>(nullable: true),
                     Status = table.Column<int>(nullable: false)
@@ -325,14 +296,10 @@ namespace ToeicGenius.Migrations
                         .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     SetId = table.Column<int>(nullable: false),
-                    FrontText = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    BackText = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    AudioUrl = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    MediaUrl = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text")
+                    FrontText = table.Column<string>(type: "text", nullable: true),
+                    BackText = table.Column<string>(type: "text", nullable: true),
+                    AudioUrl = table.Column<string>(type: "text", nullable: true),
+                    MediaUrl = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -357,8 +324,7 @@ namespace ToeicGenius.Migrations
                     PartId = table.Column<int>(nullable: true),
                     SourceType = table.Column<int>(nullable: false),
                     IsQuestionGroup = table.Column<bool>(nullable: false),
-                    SnapshotJson = table.Column<string>(nullable: false)
-                        .Annotation("Npgsql:ColumnType", "text"),
+                    SnapshotJson = table.Column<string>(type: "text", nullable: false),
                     Version = table.Column<int>(nullable: false),
                     Status = table.Column<int>(nullable: false),
                     CreatedAt = table.Column<DateTime>(nullable: false),
@@ -392,11 +358,9 @@ namespace ToeicGenius.Migrations
                     TestId = table.Column<int>(nullable: false),
                     StartTime = table.Column<DateTime>(nullable: true),
                     Duration = table.Column<int>(nullable: false),
-                    Status = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
+                    Status = table.Column<string>(type: "text", nullable: true),
                     TotalScore = table.Column<decimal>(precision: 5, scale: 2, nullable: false),
-                    TestMode = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
+                    TestMode = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(nullable: false),
                     UpdatedAt = table.Column<DateTime>(nullable: true)
                 },
@@ -425,12 +389,9 @@ namespace ToeicGenius.Migrations
                         .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     QuestionId = table.Column<int>(nullable: false),
-                    Label = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    Content = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    IsCorrect = table.Column<bool>(type: "boolean", nullable: false)
-                        .Annotation("Npgsql:ColumnType", "boolean"),
+                    Label = table.Column<string>(type: "text", nullable: true),
+                    Content = table.Column<string>(type: "text", nullable: true),
+                    IsCorrect = table.Column<bool>(type: "boolean", nullable: false),
                     Status = table.Column<int>(nullable: false),
                     CreatedAt = table.Column<DateTime>(nullable: false),
                     UpdatedAt = table.Column<DateTime>(nullable: true)
@@ -454,8 +415,7 @@ namespace ToeicGenius.Migrations
                         .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     FlashcardId = table.Column<int>(nullable: false),
-                    Status = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text")
+                    Status = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -476,8 +436,7 @@ namespace ToeicGenius.Migrations
                         .Annotation("SqlServer:Identity", "1, 1")
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserTestId = table.Column<int>(nullable: false),
-                    Skill = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
+                    Skill = table.Column<string>(type: "text", nullable: true),
                     Score = table.Column<decimal>(precision: 5, scale: 2, nullable: false)
                 },
                 constraints: table =>
@@ -500,8 +459,7 @@ namespace ToeicGenius.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserTestId = table.Column<int>(nullable: false),
                     QuestionId = table.Column<int>(nullable: false),
-                    AnswerAudioUrl = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
+                    AnswerAudioUrl = table.Column<string>(type: "text", nullable: true),
                     OptionId = table.Column<int>(nullable: true),
                     CreatedAt = table.Column<DateTime>(nullable: false),
                     UpdatedAt = table.Column<DateTime>(nullable: true)
@@ -537,10 +495,8 @@ namespace ToeicGenius.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     UserAnswerId = table.Column<int>(nullable: false),
                     Score = table.Column<decimal>(precision: 5, scale: 2, nullable: false),
-                    Content = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
-                    AIScorer = table.Column<string>(nullable: true)
-                        .Annotation("Npgsql:ColumnType", "text"),
+                    Content = table.Column<string>(type: "text", nullable: true),
+                    AIScorer = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(nullable: false),
                     UpdatedAt = table.Column<DateTime>(nullable: true)
                 },
