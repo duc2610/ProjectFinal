@@ -390,7 +390,7 @@ namespace ToeicGenius.Migrations
                     QuestionId = table.Column<int>(nullable: false),
                     Label = table.Column<string>(nullable: true),
                     Content = table.Column<string>(nullable: true),
-                    IsCorrect = table.Column<bool>(nullable: false)
+                    IsCorrect = table.Column<bool>(type: "boolean", nullable: false)
                         .Annotation("Npgsql:ColumnType", "boolean"),
                     Status = table.Column<int>(nullable: false),
                     CreatedAt = table.Column<DateTime>(nullable: false),
