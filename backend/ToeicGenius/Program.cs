@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.IdentityModel.Tokens;
 using System.Linq;
 using System.Text;
@@ -214,6 +215,16 @@ using (var scope = app.Services.CreateScope())
                 // Kiểm tra assembly chứa migrations
                 var migrationsAssembly = postgresContext.GetType().Assembly;
                 logger.LogInformation($"Migrations assembly: {migrationsAssembly.FullName}");
+                
+                // Kiểm tra tất cả types trong assembly có chứa Migration không
+                var migrationTypes = migrationsAssembly.GetTypes()
+                    .Where(t => t.IsSubclassOf(typeof(Migration)) && !t.IsAbstract)
+                    .ToList();
+                logger.LogInformation($"Migration types found in assembly: {migrationTypes.Count}");
+                foreach (var migrationType in migrationTypes)
+                {
+                    logger.LogInformation($"  - {migrationType.FullName}");
+                }
                 
                 // Kiểm tra tất cả migrations có sẵn
                 var allMigrations = postgresContext.Database.GetMigrations().ToList();
