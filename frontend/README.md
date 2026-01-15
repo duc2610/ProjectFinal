@@ -22,7 +22,7 @@
 
 [ ] Manage users
 
-### 📄 Notes
+### Notes
 
 ## TTS V0.2 (29/09/2025 - 03/10/2025)
 
@@ -31,7 +31,7 @@
 - [x] Manage Single Question
 - [x] Manage Group Question (for L&R: Part 3,4,6,7)
 
-### 📄 Notes
+### Notes
 
 - Branch: `tts-v0.2`
 - Status: Completed
@@ -47,7 +47,7 @@
 
 [ ] Manage users
 
-### 📄 Notes
+### Notes
 
 ## TTS V0.3 (29/09/2025 - 03/10/2025)
 
@@ -56,7 +56,7 @@
 - [x] Manage Single Question
 - [x] Manage Group Question (for L&R: Part 3,4,6,7)
 
-### 📄 Notes
+### Notes
 
 - Branch: `tts-v0.2`
 - Status: Completed
@@ -80,7 +80,7 @@
 - [ ] Take test (Examinee)
 - [ ] View Result
 - [ ] Scoring: Speaking-Writing(AI) and Listening & Reading test(MCQ)
-### 📄 Notes
+### Notes
 - Branch: `tts-v0.3`
 - Status: In Progress
 
@@ -104,6 +104,6 @@
 - [ ] Test History
 - [ ] Test Result Details
 - [ ] Scoring: Speaking-Writing(AI) and Listening & Reading test(MCQ)
-### 📄 Notes
+### Notes
 - Branch: `tts-v0.4`
 - Status: In Progress 

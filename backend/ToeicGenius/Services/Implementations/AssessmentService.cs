@@ -517,7 +517,7 @@ namespace ToeicGenius.Services.Implementations
                     );
                     content.Add(new StringContent(questionsJson), "questions");
 
-                    _logger.LogInformation("🔗 Group Questions - Passage length: {Length}, Questions count: {Count}",
+                    _logger.LogInformation("Group Questions - Passage length: {Length}, Questions count: {Count}",
                         groupSnapshot.Passage?.Length ?? 0, groupSnapshot.QuestionSnapshots.Count);
                 }
             }
@@ -549,7 +549,7 @@ namespace ToeicGenius.Services.Implementations
                 }
             }
 
-            _logger.LogInformation("🚀 Calling Python: {Url}/assess (speaking from url)", _speakingApiUrl);
+            _logger.LogInformation("Calling Python: {Url}/assess (speaking from url)", _speakingApiUrl);
 
             var response = await _speakingHttpClient.PostAsync($"{_speakingApiUrl}/assess", content);
 
@@ -594,7 +594,7 @@ namespace ToeicGenius.Services.Implementations
         {
             try
             {
-                _logger.LogInformation("📝 Writing Sentence - User: {UserId}, TestQuestionId: {TestQuestionId}",
+                _logger.LogInformation("Writing Sentence - User: {UserId}, TestQuestionId: {TestQuestionId}",
                     userId, request.TestQuestionId);
 
                 var (testQuestion, snapshot) = await GetTestQuestionSnapshotAsync(request.TestQuestionId);
@@ -602,7 +602,7 @@ namespace ToeicGenius.Services.Implementations
                 if (string.IsNullOrEmpty(snapshot.ImageUrl))
                     throw new Exception($"TestQuestion {request.TestQuestionId} missing image");
 
-                _logger.LogInformation("📝 Found TestQuestion - Id: {TestQuestionId}, HasImage: {HasImage}",
+                _logger.LogInformation("Found TestQuestion - Id: {TestQuestionId}, HasImage: {HasImage}",
                     testQuestion.TestQuestionId, !string.IsNullOrEmpty(snapshot.ImageUrl));
 
                 var (testResult, userAnswer) = await CreateWritingUserAnswerAsync(userId, request.TestQuestionId, request.Text, request.TestResultId);
@@ -617,7 +617,7 @@ namespace ToeicGenius.Services.Implementations
                 imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
                 content.Add(imageContent, "image", "question_image.jpg");
 
-                _logger.LogInformation("🚀 Calling Python: {Url}/assess/sentence", _writingApiUrl);
+                _logger.LogInformation("Calling Python: {Url}/assess/sentence", _writingApiUrl);
 
                 var response = await _writingHttpClient.PostAsync($"{_writingApiUrl}/assess/sentence", content);
 
@@ -650,14 +650,14 @@ namespace ToeicGenius.Services.Implementations
 
                 await _feedbackRepository.CreateAsync(feedback);
 
-                _logger.LogInformation("✅ Completed - FeedbackId: {Id}, Score: {Score}",
+                _logger.LogInformation("Completed - FeedbackId: {Id}, Score: {Score}",
                     feedback.FeedbackId, feedback.Score);
 
                 return MapToResponseDto(feedback);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error Writing Sentence TestQuestionId: {TestQuestionId} - Inner: {Inner}",
+                _logger.LogError(ex, "Error Writing Sentence TestQuestionId: {TestQuestionId} - Inner: {Inner}",
                     request.TestQuestionId, ex.InnerException?.Message ?? "None");
                 throw;
             }
@@ -669,12 +669,12 @@ namespace ToeicGenius.Services.Implementations
         {
             try
             {
-                _logger.LogInformation("📧 Writing Email - User: {UserId}, TestQuestionId: {TestQuestionId}",
+                _logger.LogInformation("Writing Email - User: {UserId}, TestQuestionId: {TestQuestionId}",
                     userId, request.TestQuestionId);
 
                 var (testQuestion, snapshot) = await GetTestQuestionSnapshotAsync(request.TestQuestionId);
 
-                _logger.LogInformation("📝 Found TestQuestion - Id: {TestQuestionId}, Content: {HasContent}",
+                _logger.LogInformation("Found TestQuestion - Id: {TestQuestionId}, Content: {HasContent}",
                     testQuestion.TestQuestionId, !string.IsNullOrEmpty(snapshot.Content));
 
                 var (testResult, userAnswer) = await CreateWritingUserAnswerAsync(userId, request.TestQuestionId, request.Text, request.TestResultId);
@@ -690,7 +690,7 @@ namespace ToeicGenius.Services.Implementations
                 var jsonContent = JsonSerializer.Serialize(pythonRequest, _jsonOptions);
                 var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                _logger.LogInformation("🚀 Calling Python: {Url}/assess", _writingApiUrl);
+                _logger.LogInformation("Calling Python: {Url}/assess", _writingApiUrl);
 
                 var response = await _writingHttpClient.PostAsync($"{_writingApiUrl}/assess", content);
 
@@ -722,14 +722,14 @@ namespace ToeicGenius.Services.Implementations
 
                 await _feedbackRepository.CreateAsync(feedback);
 
-                _logger.LogInformation("✅ Completed - FeedbackId: {Id}, Score: {Score}",
+                _logger.LogInformation("Completed - FeedbackId: {Id}, Score: {Score}",
                     feedback.FeedbackId, feedback.Score);
 
                 return MapToResponseDto(feedback);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error Writing Email TestQuestionId: {TestQuestionId} - Inner: {Inner}",
+                _logger.LogError(ex, "Error Writing Email TestQuestionId: {TestQuestionId} - Inner: {Inner}",
                     request.TestQuestionId, ex.InnerException?.Message ?? "None");
                 throw;
             }
@@ -741,12 +741,12 @@ namespace ToeicGenius.Services.Implementations
         {
             try
             {
-                _logger.LogInformation("📄 Writing Essay - User: {UserId}, TestQuestionId: {TestQuestionId}",
+                _logger.LogInformation("Writing Essay - User: {UserId}, TestQuestionId: {TestQuestionId}",
                     userId, request.TestQuestionId);
 
                 var (testQuestion, snapshot) = await GetTestQuestionSnapshotAsync(request.TestQuestionId);
 
-                _logger.LogInformation("📝 Found TestQuestion - Id: {TestQuestionId}, Content: {HasContent}",
+                _logger.LogInformation("Found TestQuestion - Id: {TestQuestionId}, Content: {HasContent}",
                     testQuestion.TestQuestionId, !string.IsNullOrEmpty(snapshot.Content));
 
                 var (testResult, userAnswer) = await CreateWritingUserAnswerAsync(userId, request.TestQuestionId, request.Text, request.TestResultId);
@@ -762,7 +762,7 @@ namespace ToeicGenius.Services.Implementations
                 var jsonContent = JsonSerializer.Serialize(pythonRequest, _jsonOptions);
                 var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                _logger.LogInformation("🚀 Calling Python: {Url}/assess", _writingApiUrl);
+                _logger.LogInformation("Calling Python: {Url}/assess", _writingApiUrl);
 
                 var response = await _writingHttpClient.PostAsync($"{_writingApiUrl}/assess", content);
 
@@ -794,14 +794,14 @@ namespace ToeicGenius.Services.Implementations
 
                 await _feedbackRepository.CreateAsync(feedback);
 
-                _logger.LogInformation("✅ Completed - FeedbackId: {Id}, Score: {Score}",
+                _logger.LogInformation("Completed - FeedbackId: {Id}, Score: {Score}",
                     feedback.FeedbackId, feedback.Score);
 
                 return MapToResponseDto(feedback);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error Writing Essay TestQuestionId: {TestQuestionId} - Inner: {Inner}",
+                _logger.LogError(ex, "Error Writing Essay TestQuestionId: {TestQuestionId} - Inner: {Inner}",
                     request.TestQuestionId, ex.InnerException?.Message ?? "None");
                 throw;
             }
@@ -818,12 +818,12 @@ namespace ToeicGenius.Services.Implementations
         {
             try
             {
-                _logger.LogInformation("🎤 Speaking {TaskType} - User: {UserId}, TestQuestionId: {TestQuestionId}",
+                _logger.LogInformation("Speaking {TaskType} - User: {UserId}, TestQuestionId: {TestQuestionId}",
                     taskType, userId, request.TestQuestionId);
 
                 var (testQuestion, snapshot) = await GetTestQuestionSnapshotAsync(request.TestQuestionId);
 
-                _logger.LogInformation("📝 Found TestQuestion - Id: {TestQuestionId}, Content: {HasContent}",
+                _logger.LogInformation("Found TestQuestion - Id: {TestQuestionId}, Content: {HasContent}",
                     testQuestion.TestQuestionId, !string.IsNullOrEmpty(snapshot.Content));
 
                 // Upload audio file
@@ -863,7 +863,7 @@ namespace ToeicGenius.Services.Implementations
                     content.Add(imageContent, "picture", "question_image.jpg");
                 }
 
-                _logger.LogInformation("🚀 Calling Python: {Url}/assess", _speakingApiUrl);
+                _logger.LogInformation("Calling Python: {Url}/assess", _speakingApiUrl);
 
                 var response = await _speakingHttpClient.PostAsync($"{_speakingApiUrl}/assess", content);
 
@@ -898,14 +898,14 @@ namespace ToeicGenius.Services.Implementations
 
                 await _feedbackRepository.CreateAsync(feedback);
 
-                _logger.LogInformation("✅ Completed - FeedbackId: {Id}, Score: {Score}",
+                _logger.LogInformation("Completed - FeedbackId: {Id}, Score: {Score}",
                     feedback.FeedbackId, feedback.Score);
 
                 return MapToResponseDto(feedback);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error Speaking {TaskType} TestQuestionId: {TestQuestionId} - Inner: {Inner}",
+                _logger.LogError(ex, "Error Speaking {TaskType} TestQuestionId: {TestQuestionId} - Inner: {Inner}",
                     taskType, request.TestQuestionId, ex.InnerException?.Message ?? "None");
                 throw;
             }
@@ -1001,13 +1001,13 @@ namespace ToeicGenius.Services.Implementations
                 if (testResult.Status == TestResultStatus.Graded)
                     throw new Exception(ErrorMessages.TestAlreadySubmitted);
 
-                _logger.LogInformation("💾 Using provided TestResult: {TestResultId}", testResult.TestResultId);
+                _logger.LogInformation("Using provided TestResult: {TestResultId}", testResult.TestResultId);
             }
             else
             {
                 // Backward compatible: use GetOrCreateActiveTestAsync
                 testResult = await _uow.UserTests.GetOrCreateActiveTestAsync(userId);
-                _logger.LogInformation("💾 Using or created TestResult: {TestResultId}", testResult.TestResultId);
+                _logger.LogInformation("Using or created TestResult: {TestResultId}", testResult.TestResultId);
             }
 
             var testQuestionExists = await _testQuestionRepository.GetByIdAsync(testQuestionId);
@@ -1027,7 +1027,7 @@ namespace ToeicGenius.Services.Implementations
             await _uow.UserAnswers.AddAsync(userAnswer);
             await _uow.SaveChangesAsync();
 
-            _logger.LogInformation("💾 Created Writing UserAnswer: {UserAnswerId} for TestResult: {TestResultId}",
+            _logger.LogInformation("Created Writing UserAnswer: {UserAnswerId} for TestResult: {TestResultId}",
                 userAnswer.UserAnswerId, testResult.TestResultId);
 
             return (testResult, userAnswer);
@@ -1052,7 +1052,7 @@ namespace ToeicGenius.Services.Implementations
                 if (testResult.Status == TestResultStatus.Graded)
                     throw new Exception(ErrorMessages.TestAlreadySubmitted);
 
-                _logger.LogInformation("💾 Using provided TestResult: {TestResultId}", testResult.TestResultId);
+                _logger.LogInformation("Using provided TestResult: {TestResultId}", testResult.TestResultId);
             }
             else
             {
@@ -1062,11 +1062,11 @@ namespace ToeicGenius.Services.Implementations
                 if (testResult.TestResultId == 0)
                 {
                     await _uow.SaveChangesAsync();
-                    _logger.LogInformation("💾 Saved new TestResult: {TestResultId}", testResult.TestResultId);
+                    _logger.LogInformation("Saved new TestResult: {TestResultId}", testResult.TestResultId);
                 }
                 else
                 {
-                    _logger.LogInformation("💾 Using or created TestResult: {TestResultId}", testResult.TestResultId);
+                    _logger.LogInformation("Using or created TestResult: {TestResultId}", testResult.TestResultId);
                 }
             }
 
@@ -1087,7 +1087,7 @@ namespace ToeicGenius.Services.Implementations
             await _uow.UserAnswers.AddAsync(userAnswer);
             await _uow.SaveChangesAsync();
 
-            _logger.LogInformation("💾 Created Speaking UserAnswer: {UserAnswerId} with Audio for TestResult: {TestResultId}",
+            _logger.LogInformation("Created Speaking UserAnswer: {UserAnswerId} with Audio for TestResult: {TestResultId}",
                 userAnswer.UserAnswerId, testResult.TestResultId);
 
             return (testResult, userAnswer);

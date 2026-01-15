@@ -2252,7 +2252,7 @@ export default function ManualTestForm({ open, onClose, onSuccess, editingId = n
                         padding: 40,
                         color: "#999"
                     }}>
-                        👆 Vui lòng chọn kỹ năng để bắt đầu tạo bài thi
+                        Vui lòng chọn kỹ năng để bắt đầu tạo bài thi
                     </div>
                 )}
             </Form>

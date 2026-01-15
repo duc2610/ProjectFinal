@@ -336,10 +336,10 @@ export default function QuestionBankSelectorModal({
                     // Part 1, 2, 6 không có content: hiển thị thông tin khác
                     const info = [];
                     if (record.hasAudio) {
-                        info.push(<Tag key="audio" color="green" style={{ fontSize: 11 }}>🔊 Audio</Tag>);
+                        info.push(<Tag key="audio" color="green" style={{ fontSize: 11 }}>Audio</Tag>);
                     }
                     if (record.hasImage) {
-                        info.push(<Tag key="image" color="orange" style={{ fontSize: 11 }}>🖼️ Ảnh</Tag>);
+                        info.push(<Tag key="image" color="orange" style={{ fontSize: 11 }}>Ảnh</Tag>);
                     }
                     if (record.optionsCount > 0) {
                         info.push(<Tag key="options" color="blue" style={{ fontSize: 11 }}>{record.optionsCount} đáp án</Tag>);

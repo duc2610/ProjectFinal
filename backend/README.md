@@ -22,7 +22,7 @@
 - [x] Ban/Unban user
 - [x] Statistic user
 - [x] Get user list, user detail
-### 📄 Notes
+### Notes
 - Branch: `tts-v0.2`
 - Status: Completed
 
@@ -33,7 +33,7 @@
 ### Features
 - [x] Manage Single Question 
 - [x] Manage Group Question (for L&R: Part 3,4,6,7)
-### 📄 Notes
+### Notes
 - Branch: `tts-v0.2`
 - Status: Completed
 ---
@@ -45,7 +45,7 @@
 - [x] Take test (Examinee)
 - [x] View Result
 - [x] Scoring: Speaking-Writing(AI) and Listening & Reading test(MCQ)
-### 📄 Notes
+### Notes
 - Branch: `tts-v0.3`
 - Status: Completed
 
@@ -58,7 +58,7 @@
 - [x] Test List for Examinee
 - [x] Statistic Result For Examinee
 - [x] Import Excel for create L&R test
-### 📄 Notes
+### Notes
 - Branch: `tts-v0.4`
 - Status: Completed 
 
@@ -67,6 +67,6 @@
 
 ### Features
 - [ ] Manage Flashcard (for examinee) - DucHM
-### 📄 Notes
+### Notes
 - Branch: `tts-v0.5`
 - Status: In Progress 

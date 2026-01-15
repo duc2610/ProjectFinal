@@ -178,7 +178,7 @@ namespace ToeicGenius.Services.Implementations
 			if (string.IsNullOrWhiteSpace(originalName))
 				return "file";
 
-			// 1️.Bỏ dấu tiếng Việt
+			// 1. Bỏ dấu tiếng Việt
 			string normalized = originalName.Normalize(NormalizationForm.FormD);
 			var sb = new StringBuilder();
 			foreach (char c in normalized)
@@ -189,13 +189,13 @@ namespace ToeicGenius.Services.Implementations
 			}
 			string noAccent = sb.ToString().Normalize(NormalizationForm.FormC);
 
-			// 2️.Chuyển thành chữ thường
+			// 2. Chuyển thành chữ thường
 			string lower = noAccent.ToLowerInvariant();
 
-			// 3️.Thay khoảng trắng và ký tự đặc biệt bằng dấu '-'
+			// 3. Thay khoảng trắng và ký tự đặc biệt bằng dấu '-'
 			string safe = Regex.Replace(lower, @"[^a-z0-9\-_.]", "-");
 
-			// 4️.Xóa trùng dấu '-'
+			// 4. Xóa trùng dấu '-'
 			safe = Regex.Replace(safe, "-{2,}", "-").Trim('-');
 
 			return safe;

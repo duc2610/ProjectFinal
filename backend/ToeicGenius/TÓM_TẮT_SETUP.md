@@ -1,34 +1,34 @@
-# ✅ Tóm Tắt Setup: Migration Tự Động Nhận Diện Database
+# Tóm Tắt Setup: Migration Tự Động Nhận Diện Database
 
-## 🎯 Đã Hoàn Thành
+## Đã Hoàn Thành
 
-### 1. ✅ Tạo 2 DbContext Riêng
+### 1. Tạo 2 DbContext Riêng
 - `ToeicGeniusDbContextSqlServer` - Cho SQL Server (local)
 - `ToeicGeniusDbContextPostgres` - Cho PostgreSQL (Render)
 
-### 2. ✅ Tạo DesignTimeFactory Cho Mỗi Provider
+### 2. Tạo DesignTimeFactory Cho Mỗi Provider
 - `DesignTimeDbContextFactorySqlServer.cs` - Để tạo migration SQL Server
 - `DesignTimeDbContextFactoryPostgres.cs` - Để tạo migration PostgreSQL
 
-### 3. ✅ Tạo Thư Mục Migrations Riêng
+### 3. Tạo Thư Mục Migrations Riêng
 - `Migrations/SqlServer/` - Chứa migrations cho SQL Server
 - `Migrations/Postgres/` - Chứa migrations cho PostgreSQL
 
-### 4. ✅ Cập Nhật Program.cs
+### 4. Cập Nhật Program.cs
 - Tự động nhận diện provider từ connection string
 - Đăng ký đúng DbContext dựa trên provider
 - Tự động chạy migration khi deploy
 
-### 5. ✅ Tạo Scripts Helper
+### 5. Tạo Scripts Helper
 - `scripts/create-migration.ps1` - PowerShell script
 - `scripts/create-migration.sh` - Bash script
 
-### 6. ✅ Tạo Tài Liệu Hướng Dẫn
+### 6. Tạo Tài Liệu Hướng Dẫn
 - `MIGRATION_GUIDE.md` - Hướng dẫn chi tiết
 - `QUICK_START.md` - Quick start guide
 - `README_MIGRATIONS.md` - Giải thích cách hoạt động
 
-## 🚀 Cách Sử Dụng
+## Cách Sử Dụng
 
 ### Tạo Migration Mới
 
@@ -60,7 +60,7 @@ dotnet ef database update -c ToeicGeniusDbContextSqlServer
 dotnet ef database update -c ToeicGeniusDbContextPostgres
 ```
 
-## 🔧 Cấu Hình
+## Cấu Hình
 
 ### Local (SQL Server)
 **appsettings.json:**
@@ -78,30 +78,30 @@ dotnet ef database update -c ToeicGeniusDbContextPostgres
 ConnectionStrings__MyCnn=postgresql://user:password@host:port/database
 ```
 
-## 📝 Lưu Ý Quan Trọng
+## Lưu Ý Quan Trọng
 
 1. **Luôn tạo migration cho cả 2 provider** khi có thay đổi schema
 2. **Đặt tên migration giống nhau** (chỉ khác suffix `_SqlServer` và `_Postgres`)
 3. **Commit cả 2 migration files** vào Git
 4. **Không chỉnh sửa migration cũ** đã chạy trên production
 
-## 📚 Tài Liệu Tham Khảo
+## Tài Liệu Tham Khảo
 
 - `MIGRATION_GUIDE.md` - Hướng dẫn chi tiết đầy đủ
 - `QUICK_START.md` - Quick start guide
 - `README_MIGRATIONS.md` - Giải thích cách hoạt động
 
-## ✅ Kiểm Tra
+## Kiểm Tra
 
 Sau khi setup, kiểm tra:
-1. ✅ Có thể tạo migration cho SQL Server
-2. ✅ Có thể tạo migration cho PostgreSQL
-3. ✅ Local chạy được với SQL Server
-4. ✅ Render deploy được với PostgreSQL
+1. Có thể tạo migration cho SQL Server
+2. Có thể tạo migration cho PostgreSQL
+3. Local chạy được với SQL Server
+4. Render deploy được với PostgreSQL
 
-## 🎉 Hoàn Thành!
+## Hoàn Thành!
 
 Bây giờ bạn có thể:
-- ✅ Tạo migration riêng cho từng provider
-- ✅ Tự động nhận diện database khi deploy
-- ✅ Không cần chỉnh tay migration files
+- Tạo migration riêng cho từng provider
+- Tự động nhận diện database khi deploy
+- Không cần chỉnh tay migration files

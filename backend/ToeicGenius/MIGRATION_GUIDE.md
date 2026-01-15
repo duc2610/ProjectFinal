@@ -1,13 +1,13 @@
 # Hướng Dẫn Migration Tự Động Nhận Diện Database Provider
 
-## 📋 Tổng Quan
+## Tổng Quan
 
 Hệ thống này tự động nhận diện database provider (SQL Server hoặc PostgreSQL) và chạy migration phù hợp:
 - **Local (SQL Server)**: Tạo migrations trong `Migrations/SqlServer` → Chạy với SQL Server
 - **Production/Render (PostgreSQL)**: Tạo migrations trong `Migrations/Postgres` → Chạy với PostgreSQL
 - **Program.cs**: Tự động nhận diện provider từ connection string và chạy migration đúng
 
-## ⚠️ Lưu Ý Quan Trọng
+## Lưu Ý Quan Trọng
 
 **Khi chạy `dotnet ef database update` hoặc khi deploy:**
 - EF Core sẽ tự động tìm migrations dựa trên **provider hiện tại** trong connection string
@@ -15,7 +15,7 @@ Hệ thống này tự động nhận diện database provider (SQL Server hoặ
 - Nếu connection string là SQL Server → Tìm migrations trong `Migrations/SqlServer`
 - **Bạn cần đảm bảo tạo migration cho cả 2 provider** khi có thay đổi schema
 
-## 🏗️ Cấu Trúc
+## Cấu Trúc
 
 ```
 backend/ToeicGenius/
@@ -30,7 +30,7 @@ backend/ToeicGenius/
 └── Program.cs              # Tự động nhận diện provider
 ```
 
-## 🔧 Cấu Hình
+## Cấu Hình
 
 ### 1. Local Development (SQL Server)
 
@@ -52,7 +52,7 @@ ConnectionStrings__MyCnn=postgresql://user:password@host:port/database
 DB_PROVIDER=postgres  // Hoặc không cần, sẽ tự động nhận diện từ connection string
 ```
 
-## 📝 Tạo Migration Mới
+## Tạo Migration Mới
 
 ### Tạo Migration cho SQL Server (Local)
 
@@ -89,7 +89,7 @@ dotnet ef migrations add AddNewTable_Postgres `
   -o Migrations/Postgres
 ```
 
-## 🚀 Chạy Migration
+## Chạy Migration
 
 ### Local (SQL Server)
 
@@ -112,7 +112,7 @@ dotnet ef database update `
   --project backend/ToeicGenius/ToeicGenius.csproj
 ```
 
-## 🔄 Quy Trình Làm Việc
+## Quy Trình Làm Việc
 
 ### Khi thêm tính năng mới:
 
@@ -131,7 +131,7 @@ dotnet ef database update `
 5. **Commit cả 2 migration files** vào Git
 6. **Deploy lên Render** → Tự động chạy migration PostgreSQL
 
-## ⚠️ Lưu Ý Quan Trọng
+## Lưu Ý Quan Trọng
 
 1. **Luôn tạo migration cho cả 2 provider** khi có thay đổi schema
 2. **Đặt tên migration giống nhau** (chỉ khác suffix `_SqlServer` và `_Postgres`)
@@ -141,7 +141,7 @@ dotnet ef database update `
 4. **Không chỉnh sửa migration cũ** đã chạy trên production
 5. **Nếu cần rollback**, tạo migration mới để revert thay vì xóa migration cũ
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Lỗi: "Unable to create an object of type 'ToeicGeniusDbContext'"
 
@@ -167,7 +167,7 @@ dotnet ef database update `
 - SQL Server: `Server=...;Database=...;...`
 - PostgreSQL: `Host=...;Database=...;...` hoặc `postgresql://...`
 
-## 📚 Tài Liệu Tham Khảo
+## Tài Liệu Tham Khảo
 
 - [EF Core Migrations](https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/)
 - [Multiple Providers](https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/providers)

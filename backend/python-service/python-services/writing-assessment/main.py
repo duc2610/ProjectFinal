@@ -560,7 +560,7 @@ class TOEICWritingAssessment:
 
         # Relevance feedback
         if relevance_score < 90:
-            recommendations.append(f"🎯 Relevance: {relevance_score}/100")
+            recommendations.append(f"Relevance: {relevance_score}/100")
             missing = analysis['relevance'].get('missing_elements', [])
             if missing:
                 recommendations.append(f"  Consider adding: {', '.join(missing[:2])}")
@@ -675,7 +675,7 @@ class TOEICWritingAssessment:
 
         # Relevance feedback
         if relevance_score < 90:
-            recommendations.append(f"🎯 Relevance: {relevance_score}/100")
+            recommendations.append(f"Relevance: {relevance_score}/100")
             missing = analysis.get('relevance', {}).get('missing_points', [])
             if missing:
                 recommendations.append("  Missing points:")

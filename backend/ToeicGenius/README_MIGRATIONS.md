@@ -1,13 +1,13 @@
-# 📖 Hướng Dẫn Chi Tiết: Migration Tự Động Nhận Diện Database
+# Hướng Dẫn Chi Tiết: Migration Tự Động Nhận Diện Database
 
-## 🎯 Mục Đích
+## Mục Đích
 
 Hệ thống này cho phép bạn:
-- ✅ **Local**: Dùng SQL Server với migrations riêng
-- ✅ **Render (Production)**: Dùng PostgreSQL với migrations riêng  
-- ✅ **Tự động nhận diện**: Không cần chỉnh tay code khi deploy
+- **Local**: Dùng SQL Server với migrations riêng
+- **Render (Production)**: Dùng PostgreSQL với migrations riêng  
+- **Tự động nhận diện**: Không cần chỉnh tay code khi deploy
 
-## 📁 Cấu Trúc Files Đã Tạo
+## Cấu Trúc Files Đã Tạo
 
 ```
 backend/ToeicGenius/
@@ -31,7 +31,7 @@ backend/ToeicGenius/
 └── README_MIGRATIONS.md                             # ← File này
 ```
 
-## 🔧 Cách Hoạt Động
+## Cách Hoạt Động
 
 ### 1. Tự Động Nhận Diện Provider
 
@@ -65,11 +65,11 @@ Khi deploy lên Render:
 2. Tự động chạy `context.Database.Migrate()`
 3. EF Core sẽ tìm migrations trong namespace `ToeicGenius.Migrations` (mặc định)
 
-**⚠️ Vấn đề**: EF Core sẽ tìm migrations trong namespace mặc định `ToeicGenius.Migrations`, không phải `ToeicGenius.Migrations.Postgres`.
+**Vấn đề**: EF Core sẽ tìm migrations trong namespace mặc định `ToeicGenius.Migrations`, không phải `ToeicGenius.Migrations.Postgres`.
 
-**✅ Giải pháp**: Cần cấu hình migrations assembly hoặc dùng cách khác (xem phần dưới).
+**Giải pháp**: Cần cấu hình migrations assembly hoặc dùng cách khác (xem phần dưới).
 
-## 🔄 Quy Trình Làm Việc Thực Tế
+## Quy Trình Làm Việc Thực Tế
 
 ### Bước 1: Thay Đổi Model/Entity
 
@@ -114,7 +114,7 @@ Render sẽ tự động:
 2. Nhận diện PostgreSQL từ connection string
 3. Chạy migrations trong `Migrations/Postgres`
 
-## ⚠️ Lưu Ý Quan Trọng
+## Lưu Ý Quan Trọng
 
 ### Vấn Đề Hiện Tại
 
@@ -168,18 +168,18 @@ if (usePostgres)
 
 Giữ nguyên cách hiện tại: 1 migration file với code tự động nhận diện provider (dùng `migrationBuilder.ActiveProvider`).
 
-## 🎯 Khuyến Nghị
+## Khuyến Nghị
 
 **Nếu bạn muốn đơn giản nhất:**
-- ✅ Dùng **PostgreSQL ở cả local và production**
-- ✅ Chỉ cần 1 bộ migrations
-- ✅ Không cần chỉnh tay migration files
+- Dùng **PostgreSQL ở cả local và production**
+- Chỉ cần 1 bộ migrations
+- Không cần chỉnh tay migration files
 
 **Nếu bạn muốn dùng SQL Server ở local:**
-- ✅ Dùng **Cách 1** (2 DbContext riêng và đăng ký đúng)
-- ✅ Hoặc **Cách 3** (1 migration file với code tự động nhận diện)
+- Dùng **Cách 1** (2 DbContext riêng và đăng ký đúng)
+- Hoặc **Cách 3** (1 migration file với code tự động nhận diện)
 
-## 📞 Hỗ Trợ
+## Hỗ Trợ
 
 Nếu gặp vấn đề, kiểm tra:
 1. Connection string đúng format

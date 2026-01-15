@@ -14,7 +14,7 @@ Development Team: SEP490_G22 - FPT University
 - **Frontend**: ReactJs
 - **Version Control**: Github
 
-## 📝 Quy chuẩn Commit Message
+## Quy chuẩn Commit Message
 
 ### Format chuẩn
 ```

@@ -1104,11 +1104,11 @@ Return ONLY valid JSON."""
 
         # Final encouragement
         if overall >= 85:
-            recommendations.append("💪 Excellent work! Keep it up!")
+            recommendations.append("Excellent work! Keep it up!")
         elif overall >= 70:
-            recommendations.append("💪 Good progress! Focus on areas above.")
+            recommendations.append("Good progress! Focus on areas above.")
         else:
-            recommendations.append("💪 Keep practicing! Improvement takes time.")
+            recommendations.append("Keep practicing! Improvement takes time.")
 
         return recommendations
 
@@ -2463,9 +2463,9 @@ Return ONLY JSON."""
 
         # Final encouragement
         if overall >= 70:
-            recommendations.append("💪 Keep practicing! You're making progress.")
+            recommendations.append("Keep practicing! You're making progress.")
         else:
-            recommendations.append("💪 Focus on fundamentals. Practice daily!")
+            recommendations.append("Focus on fundamentals. Practice daily!")
 
         return recommendations[:15]
 

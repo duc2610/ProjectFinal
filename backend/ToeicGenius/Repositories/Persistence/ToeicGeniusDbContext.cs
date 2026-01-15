@@ -490,51 +490,7 @@ namespace ToeicGenius.Repositories.Persistence
 		/// </summary>
 		public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
 		{
-			var providerName = Database.ProviderName ?? string.Empty;
-			var isPostgres = providerName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase);
-
-			if (isPostgres)
-			{
-				// Ensure all DateTime values are UTC for PostgreSQL
-				var entries = ChangeTracker.Entries()
-					.Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
-					.ToList();
-
-				foreach (var entry in entries)
-				{
-					foreach (var property in entry.Properties)
-					{
-						if (property.Metadata.ClrType == typeof(DateTime) || property.Metadata.ClrType == typeof(DateTime?))
-						{
-							if (property.CurrentValue is DateTime dateTime)
-							{
-								// Convert to UTC if not already UTC
-								if (dateTime.Kind != DateTimeKind.Utc)
-								{
-									property.CurrentValue = dateTime.Kind == DateTimeKind.Unspecified
-										? DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
-										: dateTime.ToUniversalTime();
-								}
-							}
-							else
-							{
-								var nullableDateTime = property.CurrentValue as DateTime?;
-								if (nullableDateTime.HasValue)
-								{
-									var dt = nullableDateTime.Value;
-									if (dt.Kind != DateTimeKind.Utc)
-									{
-										property.CurrentValue = dt.Kind == DateTimeKind.Unspecified
-											? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
-											: dt.ToUniversalTime();
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-
+			ConvertDateTimesToUtc();
 			return await base.SaveChangesAsync(cancellationToken);
 		}
 
@@ -543,52 +499,66 @@ namespace ToeicGenius.Repositories.Persistence
 		/// </summary>
 		public override int SaveChanges()
 		{
+			ConvertDateTimesToUtc();
+			return base.SaveChanges();
+		}
+
+		/// <summary>
+		/// Converts all DateTime values to UTC for PostgreSQL compatibility
+		/// PostgreSQL requires DateTime with Kind=UTC for 'timestamp with time zone' columns
+		/// </summary>
+		private void ConvertDateTimesToUtc()
+		{
 			var providerName = Database.ProviderName ?? string.Empty;
 			var isPostgres = providerName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase);
 
-			if (isPostgres)
-			{
-				// Ensure all DateTime values are UTC for PostgreSQL
-				var entries = ChangeTracker.Entries()
-					.Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
-					.ToList();
+			if (!isPostgres)
+				return;
 
-				foreach (var entry in entries)
+			// Process all entries that are being added or modified
+			var entries = ChangeTracker.Entries()
+				.Where(e => e.State == EntityState.Added || e.State == EntityState.Modified || e.State == EntityState.Deleted)
+				.ToList();
+
+			foreach (var entry in entries)
+			{
+				if (entry.Entity == null)
+					continue;
+
+				foreach (var property in entry.Properties)
 				{
-					foreach (var property in entry.Properties)
+					// Check if property is DateTime or DateTime?
+					var clrType = property.Metadata.ClrType;
+					if (clrType != typeof(DateTime) && clrType != typeof(DateTime?))
+						continue;
+
+					// Handle non-nullable DateTime
+					if (property.CurrentValue is DateTime dateTime)
 					{
-						if (property.Metadata.ClrType == typeof(DateTime) || property.Metadata.ClrType == typeof(DateTime?))
+						if (dateTime.Kind != DateTimeKind.Utc)
 						{
-							if (property.CurrentValue is DateTime dateTime)
+							property.CurrentValue = dateTime.Kind == DateTimeKind.Unspecified
+								? DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+								: dateTime.ToUniversalTime();
+						}
+					}
+					// Handle nullable DateTime
+					else if (property.CurrentValue != null)
+					{
+						var nullableDateTime = property.CurrentValue as DateTime?;
+						if (nullableDateTime.HasValue)
+						{
+							var dt = nullableDateTime.Value;
+							if (dt.Kind != DateTimeKind.Utc)
 							{
-								// Convert to UTC if not already UTC
-								if (dateTime.Kind != DateTimeKind.Utc)
-								{
-									property.CurrentValue = dateTime.Kind == DateTimeKind.Unspecified
-										? DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
-										: dateTime.ToUniversalTime();
-								}
-							}
-							else
-							{
-								var nullableDateTime = property.CurrentValue as DateTime?;
-								if (nullableDateTime.HasValue)
-								{
-									var dt = nullableDateTime.Value;
-									if (dt.Kind != DateTimeKind.Utc)
-									{
-										property.CurrentValue = dt.Kind == DateTimeKind.Unspecified
-											? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
-											: dt.ToUniversalTime();
-									}
-								}
+								property.CurrentValue = dt.Kind == DateTimeKind.Unspecified
+									? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+									: dt.ToUniversalTime();
 							}
 						}
 					}
 				}
 			}
-
-			return base.SaveChanges();
 		}
 	}
 }

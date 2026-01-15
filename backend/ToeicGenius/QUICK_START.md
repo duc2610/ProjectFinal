@@ -1,13 +1,13 @@
-# 🚀 Quick Start - Migration Tự Động Nhận Diện Database
+# Quick Start - Migration Tự Động Nhận Diện Database
 
-## ✅ Đã Setup Sẵn
+## Đã Setup Sẵn
 
-1. ✅ 2 DbContext riêng: `ToeicGeniusDbContextSqlServer` và `ToeicGeniusDbContextPostgres`
-2. ✅ 2 DesignTimeFactory để tạo migration đúng provider
-3. ✅ 2 thư mục migrations: `Migrations/SqlServer` và `Migrations/Postgres`
-4. ✅ Program.cs tự động nhận diện provider từ connection string
+1. 2 DbContext riêng: `ToeicGeniusDbContextSqlServer` và `ToeicGeniusDbContextPostgres`
+2. 2 DesignTimeFactory để tạo migration đúng provider
+3. 2 thư mục migrations: `Migrations/SqlServer` và `Migrations/Postgres`
+4. Program.cs tự động nhận diện provider từ connection string
 
-## 📝 Cách Sử Dụng
+## Cách Sử Dụng
 
 ### 1. Tạo Migration Mới (Cả 2 Provider)
 
@@ -64,7 +64,7 @@ dotnet ef database update `
   --project backend/ToeicGenius/ToeicGenius.csproj
 ```
 
-## 🔍 Kiểm Tra Provider Hiện Tại
+## Kiểm Tra Provider Hiện Tại
 
 **Trong code (Program.cs):**
 ```csharp
@@ -75,6 +75,6 @@ var dbProvider = context.Database.IsSqlServer() ? "SQL Server" : "PostgreSQL";
 - SQL Server: `Server=...;Database=...;...`
 - PostgreSQL: `Host=...;Database=...;...` hoặc `postgresql://...`
 
-## 📚 Xem Chi Tiết
+## Xem Chi Tiết
 
 Xem file `MIGRATION_GUIDE.md` để biết thêm chi tiết.

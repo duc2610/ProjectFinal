@@ -1353,7 +1353,7 @@ namespace ToeicGenius.Services.Implementations
 			var partIds = testQuestions.Select(q => q.PartId).Distinct().ToList();
 			var partSkillMap = await _uow.Parts.GetSkillMapByIdsAsync(partIds);
 
-			// 1️.Xử lý & chấm bài
+			// 1. Xử lý & chấm bài
 			var (userAnswers, stats) = ProcessUserAnswers(request, testQuestions, partSkillMap, isSimulator, testResult);
 
 			// 2.Tính kết quả cuối cùng

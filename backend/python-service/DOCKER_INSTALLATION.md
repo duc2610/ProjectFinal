@@ -18,8 +18,8 @@ Docker Desktop yêu cầu:
 
 1. **Chạy file installer** vừa tải về
 2. **Chọn các tùy chọn:**
-   - ✅ Use WSL 2 instead of Hyper-V (khuyến nghị)
-   - ✅ Add shortcut to desktop (tùy chọn)
+   - Use WSL 2 instead of Hyper-V (khuyến nghị)
+   - Add shortcut to desktop (tùy chọn)
 3. Click **"Ok"** để bắt đầu cài đặt
 4. **Chờ quá trình cài đặt hoàn tất** (có thể mất 5-10 phút)
 5. Click **"Close and restart"** để khởi động lại máy

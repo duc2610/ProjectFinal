@@ -1550,7 +1550,7 @@ namespace ToeicGenius.Tests.UnitTests
 			testRepoMock.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(existing);
 			testRepoMock.Setup(r => r.GetNextVersionAsync(1)).ReturnsAsync(2);
 
-			// 🔥 Mock AddAsync: clone test + gán TestId + Version
+			// Mock AddAsync: clone test + gán TestId + Version
 			Test? addedTest = null;
 			testRepoMock.Setup(r => r.AddAsync(It.IsAny<Test>()))
 				.Callback<Test>(t =>
@@ -1563,7 +1563,7 @@ namespace ToeicGenius.Tests.UnitTests
 				})
 				.ReturnsAsync((Test t) => t);
 
-			// 🔥 Mock AddRangeAsync để capture câu hỏi clone
+			// Mock AddRangeAsync để capture câu hỏi clone
 			var addedQuestions = new List<TestQuestion>();
 			uowMock.Setup(u => u.TestQuestions.AddRangeAsync(It.IsAny<IEnumerable<TestQuestion>>()))
 				.Callback<IEnumerable<TestQuestion>>(items => addedQuestions.AddRange(items))

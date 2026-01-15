@@ -675,7 +675,7 @@ export default function FromBankTestForm({ open, onClose, onSuccess, editingId =
                         padding: 40, 
                         color: "#999" 
                     }}>
-                        👆 Vui lòng chọn kỹ năng để bắt đầu chọn câu hỏi
+                        Vui lòng chọn kỹ năng để bắt đầu chọn câu hỏi
                     </div>
                 )}
             </Form>
@@ -1094,10 +1094,10 @@ function QuestionSelector({
                                                         if (isContentOptional) {
                                                             const info = [];
                                                             if (detail.audioUrl) {
-                                                                info.push(<Tag key="audio" color="green" style={{ fontSize: 11 }}>🔊 Audio</Tag>);
+                                                                info.push(<Tag key="audio" color="green" style={{ fontSize: 11 }}>Audio</Tag>);
                                                             }
                                                             if (imageUrl) {
-                                                                info.push(<Tag key="image" color="orange" style={{ fontSize: 11 }}>🖼️ Ảnh</Tag>);
+                                                                info.push(<Tag key="image" color="orange" style={{ fontSize: 11 }}>Ảnh</Tag>);
                                                             }
                                                             if (hasOptions) {
                                                                 info.push(<Tag key="options" color="blue" style={{ fontSize: 11 }}>{options.length} đáp án</Tag>);
@@ -1363,10 +1363,10 @@ function QuestionSelector({
                                                                 // Part 3, 4 không có passage là bình thường
                                                                 const info = [];
                                                                 if (audioUrl) {
-                                                                    info.push(<Tag key="audio" color="green" style={{ fontSize: 11 }}>🔊 Audio</Tag>);
+                                                                    info.push(<Tag key="audio" color="green" style={{ fontSize: 11 }}>Audio</Tag>);
                                                                 }
                                                                 if (imageUrl) {
-                                                                    info.push(<Tag key="image" color="orange" style={{ fontSize: 11 }}>🖼️ Ảnh</Tag>);
+                                                                    info.push(<Tag key="image" color="orange" style={{ fontSize: 11 }}>Ảnh</Tag>);
                                                                 }
                                                                 if (questions.length > 0) {
                                                                     info.push(<Tag key="questions" color="blue" style={{ fontSize: 11 }}>{questions.length} câu hỏi</Tag>);

@@ -1,6 +1,6 @@
 # Hướng dẫn đầy đủ - Dự án ToeicGenius với Docker
 
-## 📑 Mục lục
+## Mục lục
 
 1. [Giới thiệu](#giới-thiệu)
 2. [Cài đặt Docker](#cài-đặt-docker)
@@ -15,16 +15,16 @@
 
 ---
 
-## 🎯 Giới thiệu
+## Giới thiệu
 
 ### Yêu cầu duy nhất: Docker
 
 Với Docker, bạn **KHÔNG CẦN** cài đặt:
-- ❌ .NET SDK
-- ❌ Node.js
-- ❌ SQL Server
-- ❌ Python
-- ❌ Bất kỳ phần mềm nào khác
+- .NET SDK
+- Node.js
+- SQL Server
+- Python
+- Bất kỳ phần mềm nào khác
 
 **Tất cả đã được đóng gói sẵn trong Docker containers!**
 
@@ -37,7 +37,7 @@ Với Docker, bạn **KHÔNG CẦN** cài đặt:
 
 ---
 
-## 📦 Cài đặt Docker
+## Cài đặt Docker
 
 ### Windows:
 
@@ -114,7 +114,7 @@ docker compose version
 
 ---
 
-## 📁 Cấu trúc dự án
+## Cấu trúc dự án
 
 ### Cấu trúc thư mục:
 
@@ -147,7 +147,7 @@ ProjectFinal/
 
 ---
 
-## 🚀 Chạy dự án lần đầu
+## Chạy dự án lần đầu
 
 ### Bước 1: Di chuyển vào thư mục root
 
@@ -177,7 +177,7 @@ VITE_API_BASE_URL=http://localhost:7100/
 VITE_GOOGLE_CLIENT_ID=your-google-client-id
 ```
 
-**⚠️ QUAN TRỌNG về `VITE_API_BASE_URL`:**
+**QUAN TRỌNG về `VITE_API_BASE_URL`:**
 - **PHẢI dùng HTTP**: `http://localhost:7100/` (không phải `https://`)
 - Backend trong Docker chỉ chạy HTTP, không hỗ trợ HTTPS
 - Nếu dùng `https://localhost:7100/`, frontend sẽ gặp lỗi `ERR_SSL_PROTOCOL_ERROR`
@@ -248,11 +248,11 @@ toeic-speaking-api    Up (healthy)
 
 ---
 
-## 🗄️ Quản lý Database
+## Quản lý Database
 
 ### Database được xử lý tự động
 
-✅ **Những gì đã được cấu hình:**
+**Những gì đã được cấu hình:**
 1. SQL Server tự động chạy trong Docker container
 2. Database được tạo tự động khi backend khởi động (nếu chưa có)
 3. Dữ liệu được lưu vĩnh viễn trong Docker volume (không bị mất khi restart)
@@ -288,7 +288,7 @@ Bạn có thể linh hoạt chọn cách lưu database theo nhu cầu:
 **Phương án C – Chạy backend ngoài Docker (dotnet run)**
 - File `backend/ToeicGenius/appsettings.Development.json` đã đặt sẵn connection string đến `ToeicGeniusV2` trên máy (`Server=localhost;...`). Có thể sửa trực tiếp file này nếu bạn muốn thông số khác khi chạy thuần .NET.
 
-> 💡 Quy tắc nhớ nhanh: Không khai báo `DB_CONNECTION_STRING` ⇒ backend dùng database trong Docker volume. Khai báo biến này trong `backend/.env` ⇒ backend kết nối SQL Server mà bạn chỉ định (local/on-prem).
+> Quy tắc nhớ nhanh: Không khai báo `DB_CONNECTION_STRING` ⇒ backend dùng database trong Docker volume. Khai báo biến này trong `backend/.env` ⇒ backend kết nối SQL Server mà bạn chỉ định (local/on-prem).
 
 ### Checklist chuyển đổi nhanh giữa 2 chế độ
 
@@ -325,14 +325,14 @@ Bạn có thể linh hoạt chọn cách lưu database theo nhu cầu:
 Dữ liệu được lưu trong Docker volume tên `sql_data`
 
 **Dữ liệu không bị mất khi:**
-- ✅ Restart containers: `docker-compose restart`
-- ✅ Rebuild images: `docker-compose up -d --build`
-- ✅ Restart máy tính
-- ✅ Update code
+- Restart containers: `docker-compose restart`
+- Rebuild images: `docker-compose up -d --build`
+- Restart máy tính
+- Update code
 
 **Dữ liệu CHỈ bị mất khi:**
-- ⚠️ Xóa volume: `docker-compose down -v`
-- ⚠️ Xóa container và volume thủ công
+- Xóa volume: `docker-compose down -v`
+- Xóa container và volume thủ công
 
 ### Default Accounts
 
@@ -394,14 +394,14 @@ docker-compose up -d
 
 ---
 
-## 🔄 Cập nhật code
+## Cập nhật code
 
-### ⚠️ QUAN TRỌNG: Khi sửa code, bạn PHẢI rebuild!
+### QUAN TRỌNG: Khi sửa code, bạn PHẢI rebuild!
 
 **Khi sửa code Backend (C#) hoặc Frontend (React/JavaScript):**
-- ✅ Code mới **KHÔNG** tự động cập nhật trong container đang chạy
-- ✅ **PHẢI rebuild** để tạo image mới với code mới
-- ✅ Sau đó restart container để chạy image mới
+- Code mới **KHÔNG** tự động cập nhật trong container đang chạy
+- **PHẢI rebuild** để tạo image mới với code mới
+- Sau đó restart container để chạy image mới
 
 **Khi chỉ sửa biến môi trường (`.env`):**
 - Backend: Chỉ cần **restart** (không cần rebuild)
@@ -409,21 +409,21 @@ docker-compose up -d
 
 ### Khi nào cần thay đổi file Docker?
 
-**❌ KHÔNG CẦN thay đổi Dockerfile/docker-compose.yml khi:**
-- ✅ Cập nhật code trong backend (C#)
-- ✅ Cập nhật code trong frontend (React/JavaScript)
-- ✅ Thay đổi logic, thêm tính năng mới
-- ✅ Sửa bug, refactor code
-- ✅ Cập nhật dependencies (package.json, .csproj)
+**KHÔNG CẦN thay đổi Dockerfile/docker-compose.yml khi:**
+- Cập nhật code trong backend (C#)
+- Cập nhật code trong frontend (React/JavaScript)
+- Thay đổi logic, thêm tính năng mới
+- Sửa bug, refactor code
+- Cập nhật dependencies (package.json, .csproj)
 
-**⚠️ CẦN thay đổi Dockerfile/docker-compose.yml khi:**
-- 🔧 Thay đổi cấu trúc thư mục (di chuyển file/folder)
-- 🔧 Thêm/xóa services mới
-- 🔧 Thay đổi port
-- 🔧 Thay đổi biến môi trường mới
-- 🔧 Thay đổi database connection string format
-- 🔧 Thêm volume mới
-- 🔧 Thay đổi network configuration
+**CẦN thay đổi Dockerfile/docker-compose.yml khi:**
+- Thay đổi cấu trúc thư mục (di chuyển file/folder)
+- Thêm/xóa services mới
+- Thay đổi port
+- Thay đổi biến môi trường mới
+- Thay đổi database connection string format
+- Thêm volume mới
+- Thay đổi network configuration
 
 ### Quy trình cập nhật code
 
@@ -476,7 +476,7 @@ docker-compose restart frontend
 **Khi nào dùng:**
 - Khi chỉ thay đổi biến môi trường trong `backend/.env` hoặc `frontend/.env`
 - Khi chỉ cần reload configuration
-- ⚠️ **Lưu ý**: Code mới sẽ KHÔNG được áp dụng nếu không rebuild!
+- **Lưu ý**: Code mới sẽ KHÔNG được áp dụng nếu không rebuild!
 
 ### Kiểm tra code mới đã được áp dụng
 
@@ -568,9 +568,9 @@ docker-compose restart api
 
 **4.2. Thay đổi biến môi trường Frontend (`frontend/.env`):**
 
-⚠️ **QUAN TRỌNG**: Khi thay đổi `frontend/.env`, bạn **PHẢI REBUILD** frontend vì Vite "bake" các biến môi trường vào build tại thời điểm build.
+**QUAN TRỌNG**: Khi thay đổi `frontend/.env`, bạn **PHẢI REBUILD** frontend vì Vite "bake" các biến môi trường vào build tại thời điểm build.
 
-**⚠️ LƯU Ý ĐẶC BIỆT về `VITE_API_BASE_URL`:**
+**LƯU Ý ĐẶC BIỆT về `VITE_API_BASE_URL`:**
 - **PHẢI dùng HTTP**: Đảm bảo `VITE_API_BASE_URL=http://localhost:7100/` (không phải `https://`)
 - Backend trong Docker chỉ chạy HTTP, không hỗ trợ HTTPS
 - Nếu file `.env` có `https://localhost:7100/`, frontend sẽ gặp lỗi `ERR_SSL_PROTOCOL_ERROR` khi gọi API
@@ -615,7 +615,7 @@ docker-compose up -d frontend
 
 ---
 
-## 🔧 Quản lý và xử lý lỗi
+## Quản lý và xử lý lỗi
 
 ### Xem logs
 
@@ -713,7 +713,7 @@ docker-compose restart sqlserver
 
 **Lỗi: "ERR_SSL_PROTOCOL_ERROR" hoặc "net::ERR_SSL_PROTOCOL_ERROR"**
 
-⚠️ **Nguyên nhân**: File `frontend/.env` đang dùng `https://` thay vì `http://`
+**Nguyên nhân**: File `frontend/.env` đang dùng `https://` thay vì `http://`
 
 **Cách xử lý:**
 1. Mở file `frontend/.env`
@@ -775,14 +775,14 @@ docker exec toeic-backend ping -c 3 speaking-api
 
 ### Dọn dẹp Docker để giải phóng dung lượng
 
-**⚠️ Vấn đề: Dung lượng tăng mỗi lần rebuild**
+**Vấn đề: Dung lượng tăng mỗi lần rebuild**
 
 **Nguyên nhân:**
 - Mỗi lần rebuild, Docker tạo ra các layers mới
 - Build cache và images cũ vẫn được giữ lại
 - Dẫn đến dung lượng ổ cứng tăng dần theo thời gian
 
-**⚠️ QUAN TRỌNG trên Windows:**
+**QUAN TRỌNG trên Windows:**
 - Docker Desktop lưu tất cả dữ liệu trong file VHDX của WSL2
 - Khi xóa images/cache trong Docker, file VHDX **KHÔNG tự động thu nhỏ**
 - Dung lượng ổ C: **KHÔNG giảm ngay** sau khi dọn dẹp
@@ -803,27 +803,27 @@ docker system df
 Script sẽ hiển thị menu với 3 lựa chọn:
 
 **1. Dọn dẹp an toàn (Mặc định - Khuyến nghị)**
-- ✅ Xóa build cache
-- ✅ Xóa images/containers/networks không sử dụng
-- ✅ **GIỮ LẠI** images/containers/volumes đang chạy
-- ⚠️ **CHƯA giải phóng dung lượng ổ C:** trên Windows (cần compact VHDX)
+- Xóa build cache
+- Xóa images/containers/networks không sử dụng
+- **GIỮ LẠI** images/containers/volumes đang chạy
+- **CHƯA giải phóng dung lượng ổ C:** trên Windows (cần compact VHDX)
 
 **2. Dọn dẹp toàn bộ (Cẩn thận)**
-- ✅ Xóa tất cả build cache
-- ✅ Xóa tất cả images không đang chạy
-- ✅ Xóa tất cả containers không đang chạy
-- ✅ Xóa tất cả volumes không đang chạy
-- ✅ Xóa tất cả networks không sử dụng
-- ⚠️ **Cần xác nhận** trước khi thực hiện
-- ⚠️ **CHƯA giải phóng dung lượng ổ C:** trên Windows (cần compact VHDX)
+- Xóa tất cả build cache
+- Xóa tất cả images không đang chạy
+- Xóa tất cả containers không đang chạy
+- Xóa tất cả volumes không đang chạy
+- Xóa tất cả networks không sử dụng
+- **Cần xác nhận** trước khi thực hiện
+- **CHƯA giải phóng dung lượng ổ C:** trên Windows (cần compact VHDX)
 
 **3. Dọn dẹp + Compact VHDX (Windows - Giải phóng dung lượng ổ C:)**
-- ✅ Tất cả tính năng của "Dọn dẹp toàn bộ"
-- ✅ Tự động shutdown WSL2
-- ✅ Tự động compact VHDX file (nếu có Hyper-V)
-- ✅ **Giải phóng dung lượng ổ C: thực sự**
-- ⚠️ **Cần xác nhận** trước khi thực hiện
-- ⚠️ Có thể mất 5-10 phút để compact VHDX
+- Tất cả tính năng của "Dọn dẹp toàn bộ"
+- Tự động shutdown WSL2
+- Tự động compact VHDX file (nếu có Hyper-V)
+- **Giải phóng dung lượng ổ C: thực sự**
+- **Cần xác nhận** trước khi thực hiện
+- Có thể mất 5-10 phút để compact VHDX
 
 **Sử dụng với tham số (không cần menu):**
 ```powershell
@@ -901,7 +901,7 @@ Optimize-VHD -Path "$env:LOCALAPPDATA\Docker\wsl\data\ext4.vhdx" -Mode Full
 
 ---
 
-## 📋 Các lệnh thường dùng
+## Các lệnh thường dùng
 
 ### Quản lý containers
 
@@ -1056,7 +1056,7 @@ docker-compose logs -f api
 
 ---
 
-## 📝 Tóm tắt nhanh
+## Tóm tắt nhanh
 
 ### Cài đặt và chạy lần đầu:
 
@@ -1137,7 +1137,7 @@ Trước khi báo lỗi, hãy kiểm tra:
 
 ---
 
-## 📞 Hỗ trợ
+## Hỗ trợ
 
 Nếu gặp vấn đề, vui lòng cung cấp:
 1. Output của `docker-compose ps`
@@ -1151,11 +1151,11 @@ Nếu gặp vấn đề, vui lòng cung cấp:
 
 **Chỉ cần Docker, không cần cài đặt gì khác!**
 
-- ✅ SQL Server tự động chạy trong Docker
-- ✅ Database được tạo tự động
-- ✅ Migrations chạy tự động
-- ✅ Dữ liệu được lưu vĩnh viễn
-- ✅ Code mới chỉ cần rebuild, không cần sửa Docker files
+- SQL Server tự động chạy trong Docker
+- Database được tạo tự động
+- Migrations chạy tự động
+- Dữ liệu được lưu vĩnh viễn
+- Code mới chỉ cần rebuild, không cần sửa Docker files
 
-**Chúc bạn sử dụng thành công!** 🚀
+**Chúc bạn sử dụng thành công!**
 
