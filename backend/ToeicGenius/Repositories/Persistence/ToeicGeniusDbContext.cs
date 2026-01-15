@@ -14,7 +14,7 @@ namespace ToeicGenius.Repositories.Persistence
 	public class ToeicGeniusDbContext : DbContext
 	{
 		private readonly IConfiguration _configuration;
-		public ToeicGeniusDbContext(DbContextOptions<ToeicGeniusDbContext> options, IConfiguration configuration) : base(options)
+		public ToeicGeniusDbContext(DbContextOptions options, IConfiguration configuration) : base(options)
 		{
 			_configuration = configuration;
 		}

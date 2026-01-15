@@ -6,10 +6,10 @@ namespace ToeicGenius.Repositories.Persistence
     /// DbContext for SQL Server - used for local development
     /// </summary>
     public class ToeicGeniusDbContextSqlServer : ToeicGeniusDbContext
-    {
-        public ToeicGeniusDbContextSqlServer(DbContextOptions<ToeicGeniusDbContext> options, IConfiguration configuration)
-            : base(options, configuration)
-        {
-        }
-    }
+	{
+		public ToeicGeniusDbContextSqlServer(DbContextOptions<ToeicGeniusDbContextSqlServer> options, IConfiguration configuration)
+			: base(options, configuration)
+		{
+		}
+	}
 }

@@ -6,10 +6,10 @@ namespace ToeicGenius.Repositories.Persistence
     /// DbContext for PostgreSQL - used for production (Render)
     /// </summary>
     public class ToeicGeniusDbContextPostgres : ToeicGeniusDbContext
-    {
-        public ToeicGeniusDbContextPostgres(DbContextOptions<ToeicGeniusDbContext> options, IConfiguration configuration)
-            : base(options, configuration)
-        {
-        }
-    }
+	{
+		public ToeicGeniusDbContextPostgres(DbContextOptions<ToeicGeniusDbContextPostgres> options, IConfiguration configuration)
+			: base(options, configuration)
+		{
+		}
+	}
 }

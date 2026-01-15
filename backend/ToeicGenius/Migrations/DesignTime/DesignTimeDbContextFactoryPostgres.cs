@@ -27,7 +27,7 @@ namespace ToeicGenius.Migrations.DesignTime
                 ?? throw new InvalidOperationException("Missing connection string 'MyCnn'. Set ConnectionStrings:MyCnn (or ConnectionStrings__MyCnn).");
 
             // Force PostgreSQL provider
-            var optionsBuilder = new DbContextOptionsBuilder<ToeicGeniusDbContext>();
+            var optionsBuilder = new DbContextOptionsBuilder<ToeicGeniusDbContextPostgres>();
             optionsBuilder.UseNpgsql(connStr);
 
             return new ToeicGeniusDbContextPostgres(optionsBuilder.Options, configuration);
