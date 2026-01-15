@@ -207,10 +207,28 @@ using (var scope = app.Services.CreateScope())
             // Đang dùng PostgreSQL
             if (postgresContext.Database.CanConnect())
             {
-                logger.LogInformation("Database connection successful (PostgreSQL). Checking for pending migrations...");
+                logger.LogInformation("Database connection successful (PostgreSQL). Checking migrations...");
+                
+                // Kiểm tra tất cả migrations có sẵn
+                var allMigrations = postgresContext.Database.GetMigrations().ToList();
+                logger.LogInformation($"Total migrations available: {allMigrations.Count}");
+                if (allMigrations.Any())
+                {
+                    logger.LogInformation($"Available migrations: {string.Join(", ", allMigrations)}");
+                }
+                
+                // Kiểm tra migrations đã được apply
+                var appliedMigrations = postgresContext.Database.GetAppliedMigrations().ToList();
+                logger.LogInformation($"Applied migrations: {appliedMigrations.Count}");
+                if (appliedMigrations.Any())
+                {
+                    logger.LogInformation($"Applied migrations: {string.Join(", ", appliedMigrations)}");
+                }
                 
                 // Kiểm tra migrations pending
                 var pendingMigrations = postgresContext.Database.GetPendingMigrations().ToList();
+                logger.LogInformation($"Pending migrations: {pendingMigrations.Count}");
+                
                 if (pendingMigrations.Any())
                 {
                     logger.LogInformation($"Found {pendingMigrations.Count} pending migration(s): {string.Join(", ", pendingMigrations)}");
@@ -220,7 +238,17 @@ using (var scope = app.Services.CreateScope())
                 }
                 else
                 {
-                    logger.LogInformation("No pending migrations. Database is up to date.");
+                    // Nếu có migrations nhưng chưa được apply, force apply
+                    if (allMigrations.Any() && appliedMigrations.Count == 0)
+                    {
+                        logger.LogWarning("Migrations exist but none have been applied. Attempting to apply all migrations...");
+                        postgresContext.Database.Migrate();
+                        logger.LogInformation("PostgreSQL migrations applied successfully.");
+                    }
+                    else
+                    {
+                        logger.LogInformation("No pending migrations. Database is up to date.");
+                    }
                 }
             }
             else
