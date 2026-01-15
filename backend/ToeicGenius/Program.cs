@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
 using ToeicGenius.Configurations;
@@ -51,7 +52,7 @@ if (usePostgres)
     // Đăng ký PostgreSQL context
     builder.Services.AddDbContext<ToeicGeniusDbContextPostgres>(options =>
     {
-        options.UseNpgsql(connStr);
+        options.UseNpgsql(connStr, x => x.MigrationsAssembly("ToeicGenius"));
     });
     
     // Đăng ký base context cho các service khác (dùng PostgreSQL context)
@@ -64,7 +65,7 @@ else
     // Đăng ký SQL Server context
     builder.Services.AddDbContext<ToeicGeniusDbContextSqlServer>(options =>
     {
-        options.UseSqlServer(connStr);
+        options.UseSqlServer(connStr, x => x.MigrationsAssembly("ToeicGenius"));
     });
     
     // Đăng ký base context cho các service khác (dùng SQL Server context)
@@ -206,9 +207,21 @@ using (var scope = app.Services.CreateScope())
             // Đang dùng PostgreSQL
             if (postgresContext.Database.CanConnect())
             {
-                logger.LogInformation("Database connection successful (PostgreSQL). Applying pending migrations from Migrations/Postgres...");
-                postgresContext.Database.Migrate();
-                logger.LogInformation("PostgreSQL migrations applied successfully.");
+                logger.LogInformation("Database connection successful (PostgreSQL). Checking for pending migrations...");
+                
+                // Kiểm tra migrations pending
+                var pendingMigrations = postgresContext.Database.GetPendingMigrations().ToList();
+                if (pendingMigrations.Any())
+                {
+                    logger.LogInformation($"Found {pendingMigrations.Count} pending migration(s): {string.Join(", ", pendingMigrations)}");
+                    logger.LogInformation("Applying migrations...");
+                    postgresContext.Database.Migrate();
+                    logger.LogInformation("PostgreSQL migrations applied successfully.");
+                }
+                else
+                {
+                    logger.LogInformation("No pending migrations. Database is up to date.");
+                }
             }
             else
             {
@@ -221,9 +234,21 @@ using (var scope = app.Services.CreateScope())
             var sqlServerContext = services.GetRequiredService<ToeicGeniusDbContextSqlServer>();
             if (sqlServerContext.Database.CanConnect())
             {
-                logger.LogInformation("Database connection successful (SQL Server). Applying pending migrations from Migrations/SqlServer...");
-                sqlServerContext.Database.Migrate();
-                logger.LogInformation("SQL Server migrations applied successfully.");
+                logger.LogInformation("Database connection successful (SQL Server). Checking for pending migrations...");
+                
+                // Kiểm tra migrations pending
+                var pendingMigrations = sqlServerContext.Database.GetPendingMigrations().ToList();
+                if (pendingMigrations.Any())
+                {
+                    logger.LogInformation($"Found {pendingMigrations.Count} pending migration(s): {string.Join(", ", pendingMigrations)}");
+                    logger.LogInformation("Applying migrations...");
+                    sqlServerContext.Database.Migrate();
+                    logger.LogInformation("SQL Server migrations applied successfully.");
+                }
+                else
+                {
+                    logger.LogInformation("No pending migrations. Database is up to date.");
+                }
             }
             else
             {
