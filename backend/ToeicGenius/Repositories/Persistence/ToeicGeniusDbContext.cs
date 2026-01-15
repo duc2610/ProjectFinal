@@ -516,8 +516,9 @@ namespace ToeicGenius.Repositories.Persistence
 										: dateTime.ToUniversalTime();
 								}
 							}
-							else if (property.CurrentValue is DateTime? nullableDateTime)
+							else
 							{
+								var nullableDateTime = property.CurrentValue as DateTime?;
 								if (nullableDateTime.HasValue)
 								{
 									var dt = nullableDateTime.Value;
@@ -568,8 +569,9 @@ namespace ToeicGenius.Repositories.Persistence
 										: dateTime.ToUniversalTime();
 								}
 							}
-							else if (property.CurrentValue is DateTime? nullableDateTime)
+							else
 							{
+								var nullableDateTime = property.CurrentValue as DateTime?;
 								if (nullableDateTime.HasValue)
 								{
 									var dt = nullableDateTime.Value;
