@@ -516,14 +516,17 @@ namespace ToeicGenius.Repositories.Persistence
 										: dateTime.ToUniversalTime();
 								}
 							}
-							else if (property.CurrentValue is DateTime? nullableDateTime && nullableDateTime.HasValue)
+							else if (property.CurrentValue is DateTime? nullableDateTime)
 							{
-								var dt = nullableDateTime.Value;
-								if (dt.Kind != DateTimeKind.Utc)
+								if (nullableDateTime.HasValue)
 								{
-									property.CurrentValue = dt.Kind == DateTimeKind.Unspecified
-										? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
-										: dt.ToUniversalTime();
+									var dt = nullableDateTime.Value;
+									if (dt.Kind != DateTimeKind.Utc)
+									{
+										property.CurrentValue = dt.Kind == DateTimeKind.Unspecified
+											? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+											: dt.ToUniversalTime();
+									}
 								}
 							}
 						}
@@ -565,14 +568,17 @@ namespace ToeicGenius.Repositories.Persistence
 										: dateTime.ToUniversalTime();
 								}
 							}
-							else if (property.CurrentValue is DateTime? nullableDateTime && nullableDateTime.HasValue)
+							else if (property.CurrentValue is DateTime? nullableDateTime)
 							{
-								var dt = nullableDateTime.Value;
-								if (dt.Kind != DateTimeKind.Utc)
+								if (nullableDateTime.HasValue)
 								{
-									property.CurrentValue = dt.Kind == DateTimeKind.Unspecified
-										? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
-										: dt.ToUniversalTime();
+									var dt = nullableDateTime.Value;
+									if (dt.Kind != DateTimeKind.Utc)
+									{
+										property.CurrentValue = dt.Kind == DateTimeKind.Unspecified
+											? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+											: dt.ToUniversalTime();
+									}
 								}
 							}
 						}
