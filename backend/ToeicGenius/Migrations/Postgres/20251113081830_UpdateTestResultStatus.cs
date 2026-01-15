@@ -11,15 +11,39 @@ namespace ToeicGenius.Migrations.Postgres
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<int>(
-                name: "Status",
-                table: "TestResults",
-                type: "int",
-                nullable: false,
-                defaultValue: 0,
-                oldClrType: typeof(string),
-                oldType: "text",
-                oldNullable: true);
+            // PostgreSQL requires explicit USING clause to convert text to integer
+            // Handle both cases: column might already be integer (if migration partially applied) or still text
+            migrationBuilder.Sql(@"
+                -- Check if column is already integer type
+                DO $$
+                BEGIN
+                    -- First, update any NULL values
+                    UPDATE ""TestResults"" SET ""Status"" = '0' WHERE ""Status"" IS NULL;
+                    
+                    -- Check current column type and convert if needed
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name = 'TestResults' 
+                        AND column_name = 'Status' 
+                        AND data_type = 'text'
+                    ) THEN
+                        -- Column is still text, convert to integer
+                        ALTER TABLE ""TestResults"" 
+                        ALTER COLUMN ""Status"" TYPE integer 
+                        USING CASE 
+                            WHEN ""Status"" = '0' OR ""Status"" = 'InProgress' THEN 0
+                            WHEN ""Status"" = '1' OR ""Status"" = 'Completed' THEN 1
+                            WHEN ""Status"" = '2' OR ""Status"" = 'Submitted' THEN 2
+                            ELSE 0
+                        END;
+                    END IF;
+                    
+                    -- Set NOT NULL and DEFAULT (safe to run multiple times)
+                    ALTER TABLE ""TestResults"" 
+                    ALTER COLUMN ""Status"" SET NOT NULL,
+                    ALTER COLUMN ""Status"" SET DEFAULT 0;
+                END $$;
+            ");
 
             migrationBuilder.UpdateData(
                 table: "Options",
@@ -361,13 +385,22 @@ namespace ToeicGenius.Migrations.Postgres
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<string>(
-                name: "Status",
-                table: "TestResults",
-                type: "text",
-                nullable: true,
-                oldClrType: typeof(int),
-                oldType: "integer");
+            // Convert integer back to text
+            migrationBuilder.Sql(@"
+                ALTER TABLE ""TestResults"" 
+                ALTER COLUMN ""Status"" TYPE text 
+                USING CASE 
+                    WHEN ""Status"" = 0 THEN 'InProgress'
+                    WHEN ""Status"" = 1 THEN 'Completed'
+                    WHEN ""Status"" = 2 THEN 'Submitted'
+                    ELSE 'InProgress'
+                END;
+                
+                -- Remove NOT NULL and DEFAULT
+                ALTER TABLE ""TestResults"" 
+                ALTER COLUMN ""Status"" DROP NOT NULL,
+                ALTER COLUMN ""Status"" DROP DEFAULT;
+            ");
 
             migrationBuilder.UpdateData(
                 table: "Options",
