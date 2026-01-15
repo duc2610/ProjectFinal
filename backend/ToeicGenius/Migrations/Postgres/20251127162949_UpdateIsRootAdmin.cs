@@ -333,26 +333,26 @@ namespace ToeicGenius.Migrations.Postgres
                 column: "CreatedAt",
                 value: new DateTime(2025, 11, 27, 23, 29, 47, 292, DateTimeKind.Utc).AddTicks(4141));
 
-            migrationBuilder.UpdateData(
-                table: "Users",
-                keyColumn: "Id",
-                keyValue: new Guid("11111111-1111-1111-1111-111111111111"),
-                columns: new[] { "CreatedAt", "IsRoot", "PasswordHash" },
-                values: new object[] { new DateTime(2025, 11, 27, 23, 29, 47, 410, DateTimeKind.Utc).AddTicks(8703), true, "$2a$11$/Ywch/DGmPnlaS/ocmCegenJS/R3nbx1ESlg/A76dAQiiEgcefgga" });
-
-            migrationBuilder.UpdateData(
-                table: "Users",
-                keyColumn: "Id",
-                keyValue: new Guid("22222222-2222-2222-2222-222222222222"),
-                columns: new[] { "CreatedAt", "IsRoot", "PasswordHash" },
-                values: new object[] { new DateTime(2025, 11, 27, 23, 29, 47, 528, DateTimeKind.Utc).AddTicks(404), false, "$2a$11$NoVsxKuJ5guuGTo/a4gPqOhXTXGw2CpQuulzdLrpXT2smUcZT2VZ6" });
-
-            migrationBuilder.UpdateData(
-                table: "Users",
-                keyColumn: "Id",
-                keyValue: new Guid("33333333-3333-3333-3333-333333333333"),
-                columns: new[] { "CreatedAt", "IsRoot", "PasswordHash" },
-                values: new object[] { new DateTime(2025, 11, 27, 23, 29, 47, 644, DateTimeKind.Utc).AddTicks(4456), false, "$2a$11$YUTZaX0o1Hu.PmbDcwk8rePVn5NqVD4IDqCsK0JCNVOkoA8OarmxG" });
+            // Use raw SQL for boolean updates in PostgreSQL
+            migrationBuilder.Sql(@"
+                UPDATE ""Users"" 
+                SET ""CreatedAt"" = TIMESTAMP '2025-11-27 23:29:47.4108703', 
+                    ""IsRoot"" = true, 
+                    ""PasswordHash"" = '$2a$11$/Ywch/DGmPnlaS/ocmCegenJS/R3nbx1ESlg/A76dAQiiEgcefgga'
+                WHERE ""Id"" = '11111111-1111-1111-1111-111111111111';
+                
+                UPDATE ""Users"" 
+                SET ""CreatedAt"" = TIMESTAMP '2025-11-27 23:29:47.5280404', 
+                    ""IsRoot"" = false, 
+                    ""PasswordHash"" = '$2a$11$NoVsxKuJ5guuGTo/a4gPqOhXTXGw2CpQuulzdLrpXT2smUcZT2VZ6'
+                WHERE ""Id"" = '22222222-2222-2222-2222-222222222222';
+                
+                UPDATE ""Users"" 
+                SET ""CreatedAt"" = TIMESTAMP '2025-11-27 23:29:47.6444456', 
+                    ""IsRoot"" = false, 
+                    ""PasswordHash"" = '$2a$11$YUTZaX0o1Hu.PmbDcwk8rePVn5NqVD4IDqCsK0JCNVOkoA8OarmxG'
+                WHERE ""Id"" = '33333333-3333-3333-3333-333333333333';
+            ");
         }
 
         /// <inheritdoc />
