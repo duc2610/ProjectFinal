@@ -252,6 +252,146 @@ namespace ToeicGenius.Repositories.Persistence
 				.Property(fs => fs.CreatedAt)
 				.HasDefaultValueSql(isSqlServer ? "SYSUTCDATETIME()" : "timezone('utc', now())");
 
+			// ========== VALUE CONVERTERS FOR DATETIME COLUMNS ==========
+			// Ensure all DateTime values are properly handled as UTC, even with PostgreSQL's 'timestamp with time zone'
+			// This converter ensures kind consistency and prevents PostgreSQL errors with Unspecified DateTimeKind
+			
+			var utcConverter = new ValueConverter<DateTime, DateTime>(
+				v => v.Kind == DateTimeKind.Utc ? v : (v.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(v, DateTimeKind.Utc) : v.ToUniversalTime()),
+				v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc));
+
+			var nullableUtcConverter = new ValueConverter<DateTime?, DateTime?>(
+				v => v.HasValue 
+					? (v.Value.Kind == DateTimeKind.Utc ? v.Value : (v.Value.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(v.Value, DateTimeKind.Utc) : v.Value.ToUniversalTime()))
+					: null,
+				v => v.HasValue 
+					? (v.Value.Kind == DateTimeKind.Utc ? v.Value : DateTime.SpecifyKind(v.Value, DateTimeKind.Utc))
+					: null);
+
+			// User DateTime columns
+			modelBuilder.Entity<User>()
+				.Property(u => u.CreatedAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<User>()
+				.Property(u => u.UpdatedAt)
+				.HasConversion(nullableUtcConverter);
+
+			// RefreshToken DateTime columns
+			modelBuilder.Entity<RefreshToken>()
+				.Property(rt => rt.CreatedAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<RefreshToken>()
+				.Property(rt => rt.ExpiresAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<RefreshToken>()
+				.Property(rt => rt.RevokeAt)
+				.HasConversion(nullableUtcConverter);
+
+			// FlashcardSet DateTime columns
+			modelBuilder.Entity<FlashcardSet>()
+				.Property(fs => fs.CreatedAt)
+				.HasConversion(utcConverter);
+
+			// Flashcard DateTime columns
+			modelBuilder.Entity<Flashcard>()
+				.Property(f => f.CreatedAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<FlashcardProgress>()
+				.Property(fp => fp.CreatedAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<FlashcardProgress>()
+				.Property(fp => fp.UpdatedAt)
+				.HasConversion(nullableUtcConverter);
+
+			modelBuilder.Entity<FlashcardProgress>()
+				.Property(fp => fp.LastReviewedAt)
+				.HasConversion(nullableUtcConverter);
+
+			modelBuilder.Entity<FlashcardProgress>()
+				.Property(fp => fp.NextReviewAt)
+				.HasConversion(nullableUtcConverter);
+
+			// Question DateTime columns
+			modelBuilder.Entity<Question>()
+				.Property(q => q.CreatedAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<Question>()
+				.Property(q => q.UpdatedAt)
+				.HasConversion(nullableUtcConverter);
+
+			// QuestionGroup DateTime columns
+			modelBuilder.Entity<QuestionGroup>()
+				.Property(qg => qg.CreatedAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<QuestionGroup>()
+				.Property(qg => qg.UpdatedAt)
+				.HasConversion(nullableUtcConverter);
+
+			// Test DateTime columns
+			modelBuilder.Entity<Test>()
+				.Property(t => t.CreatedAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<Test>()
+				.Property(t => t.UpdatedAt)
+				.HasConversion(nullableUtcConverter);
+
+			// TestResult DateTime columns
+			modelBuilder.Entity<TestResult>()
+				.Property(tr => tr.CreatedAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<TestResult>()
+				.Property(tr => tr.UpdatedAt)
+				.HasConversion(nullableUtcConverter);
+
+			// UserAnswer DateTime columns
+			modelBuilder.Entity<UserAnswer>()
+				.Property(ua => ua.CreatedAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<UserAnswer>()
+				.Property(ua => ua.UpdatedAt)
+				.HasConversion(nullableUtcConverter);
+
+			// AIFeedback DateTime columns
+			modelBuilder.Entity<AIFeedback>()
+				.Property(af => af.CreatedAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<AIFeedback>()
+				.Property(af => af.UpdatedAt)
+				.HasConversion(nullableUtcConverter);
+
+			// UserOtp DateTime columns
+			modelBuilder.Entity<UserOtp>()
+				.Property(uo => uo.CreatedAt)
+				.HasConversion(nullableUtcConverter);
+
+			modelBuilder.Entity<UserOtp>()
+				.Property(uo => uo.ExpiresAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<UserOtp>()
+				.Property(uo => uo.UsedAt)
+				.HasConversion(nullableUtcConverter);
+
+			// QuestionReport DateTime columns
+			modelBuilder.Entity<QuestionReport>()
+				.Property(qr => qr.CreatedAt)
+				.HasConversion(utcConverter);
+
+			modelBuilder.Entity<QuestionReport>()
+				.Property(qr => qr.ReviewedAt)
+				.HasConversion(nullableUtcConverter);
+
 			// Seed Roles
 			modelBuilder.Entity<Role>().HasData(
 				new Role { Id = 1, RoleName = "Admin" },

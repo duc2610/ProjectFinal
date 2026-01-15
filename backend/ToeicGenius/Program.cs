@@ -30,25 +30,25 @@ builder.Services.AddControllers(options =>
     });
 
 // DB Context - Tự động nhận diện provider và đăng ký đúng DbContext
-var connStr = builder.Configuration.GetConnectionString("MyCnn");
-if (string.IsNullOrWhiteSpace(connStr))
-{
-    connStr = builder.Configuration["ConnectionStrings__MyCnn"];
-}
+    var connStr = builder.Configuration.GetConnectionString("MyCnn");
+    if (string.IsNullOrWhiteSpace(connStr))
+    {
+        connStr = builder.Configuration["ConnectionStrings__MyCnn"];
+    }
 
-if (string.IsNullOrWhiteSpace(connStr))
-{
-    throw new InvalidOperationException("Missing database connection string. Set ConnectionStrings:MyCnn (or ConnectionStrings__MyCnn).");
-}
+    if (string.IsNullOrWhiteSpace(connStr))
+    {
+        throw new InvalidOperationException("Missing database connection string. Set ConnectionStrings:MyCnn (or ConnectionStrings__MyCnn).");
+    }
 
-var dbProvider = builder.Configuration["DbProvider"] ?? builder.Configuration["DB_PROVIDER"];
-var usePostgres =
-    string.Equals(dbProvider, "postgres", StringComparison.OrdinalIgnoreCase) ||
+    var dbProvider = builder.Configuration["DbProvider"] ?? builder.Configuration["DB_PROVIDER"];
+    var usePostgres =
+        string.Equals(dbProvider, "postgres", StringComparison.OrdinalIgnoreCase) ||
     connStr.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
     connStr.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase);
 
-if (usePostgres)
-{
+    if (usePostgres)
+    {
     // PostgreSQL - Production (Render)
     // Đăng ký PostgreSQL context với migrations từ Migrations.Postgres
     builder.Services.AddDbContext<ToeicGeniusDbContextPostgres>(options =>
@@ -63,9 +63,9 @@ if (usePostgres)
     // Đăng ký base context cho các service khác (dùng PostgreSQL context)
     builder.Services.AddScoped<ToeicGeniusDbContext>(sp => 
         sp.GetRequiredService<ToeicGeniusDbContextPostgres>());
-}
-else
-{
+    }
+    else
+    {
     // SQL Server - Local Development
     // Đăng ký SQL Server context với migrations từ Migrations.SqlServer
     builder.Services.AddDbContext<ToeicGeniusDbContextSqlServer>(options =>
@@ -75,7 +75,7 @@ else
             x.MigrationsAssembly("ToeicGenius");
             x.MigrationsHistoryTable("__EFMigrationsHistory", "dbo");
         });
-    });
+});
     
     // Đăng ký base context cho các service khác (dùng SQL Server context)
     builder.Services.AddScoped<ToeicGeniusDbContext>(sp => 
