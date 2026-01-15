@@ -27,34 +27,50 @@ builder.Services.AddControllers(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-// DB Context
-builder.Services.AddDbContext<ToeicGeniusDbContext>(options =>
+// DB Context - Tự động nhận diện provider và đăng ký đúng DbContext
+var connStr = builder.Configuration.GetConnectionString("MyCnn");
+if (string.IsNullOrWhiteSpace(connStr))
 {
-    var connStr = builder.Configuration.GetConnectionString("MyCnn");
-    if (string.IsNullOrWhiteSpace(connStr))
-    {
-        connStr = builder.Configuration["ConnectionStrings__MyCnn"];
-    }
+    connStr = builder.Configuration["ConnectionStrings__MyCnn"];
+}
 
-    if (string.IsNullOrWhiteSpace(connStr))
-    {
-        throw new InvalidOperationException("Missing database connection string. Set ConnectionStrings:MyCnn (or ConnectionStrings__MyCnn).");
-    }
+if (string.IsNullOrWhiteSpace(connStr))
+{
+    throw new InvalidOperationException("Missing database connection string. Set ConnectionStrings:MyCnn (or ConnectionStrings__MyCnn).");
+}
 
-    var dbProvider = builder.Configuration["DbProvider"] ?? builder.Configuration["DB_PROVIDER"];
-    var usePostgres =
-        string.Equals(dbProvider, "postgres", StringComparison.OrdinalIgnoreCase) ||
-        connStr.Contains("Host=", StringComparison.OrdinalIgnoreCase);
+var dbProvider = builder.Configuration["DbProvider"] ?? builder.Configuration["DB_PROVIDER"];
+var usePostgres =
+    string.Equals(dbProvider, "postgres", StringComparison.OrdinalIgnoreCase) ||
+    connStr.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
+    connStr.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase);
 
-    if (usePostgres)
+if (usePostgres)
+{
+    // PostgreSQL - Production (Render)
+    // Đăng ký PostgreSQL context
+    builder.Services.AddDbContext<ToeicGeniusDbContextPostgres>(options =>
     {
         options.UseNpgsql(connStr);
-    }
-    else
+    });
+    
+    // Đăng ký base context cho các service khác (dùng PostgreSQL context)
+    builder.Services.AddScoped<ToeicGeniusDbContext>(sp => 
+        sp.GetRequiredService<ToeicGeniusDbContextPostgres>());
+}
+else
+{
+    // SQL Server - Local Development
+    // Đăng ký SQL Server context
+    builder.Services.AddDbContext<ToeicGeniusDbContextSqlServer>(options =>
     {
         options.UseSqlServer(connStr);
-    }
-});
+    });
+    
+    // Đăng ký base context cho các service khác (dùng SQL Server context)
+    builder.Services.AddScoped<ToeicGeniusDbContext>(sp => 
+        sp.GetRequiredService<ToeicGeniusDbContextSqlServer>());
+}
 
 builder.Services.AddEndpointsApiExplorer();
 
@@ -180,18 +196,39 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        var context = services.GetRequiredService<ToeicGeniusDbContext>();
         var logger = services.GetRequiredService<ILogger<Program>>();
         
-        // Check if database can be connected
-        if (context.Database.CanConnect())
+        // Tự động chọn đúng DbContext dựa trên provider đã đăng ký
+        // Thử lấy PostgreSQL context trước, nếu không có thì dùng SQL Server
+        var postgresContext = services.GetService<ToeicGeniusDbContextPostgres>();
+        if (postgresContext != null)
         {
-            // Database exists - apply pending migrations
-            // Migrate() is safe: only applies new migrations, doesn't affect existing data
-            var dbProvider = context.Database.IsSqlServer() ? "SQL Server" : "PostgreSQL";
-            logger.LogInformation($"Database connection successful ({dbProvider}). Applying pending migrations...");
-            context.Database.Migrate();
-            logger.LogInformation("Database migrations applied successfully.");
+            // Đang dùng PostgreSQL
+            if (postgresContext.Database.CanConnect())
+            {
+                logger.LogInformation("Database connection successful (PostgreSQL). Applying pending migrations from Migrations/Postgres...");
+                postgresContext.Database.Migrate();
+                logger.LogInformation("PostgreSQL migrations applied successfully.");
+            }
+            else
+            {
+                logger.LogWarning("PostgreSQL database connection failed. Please check connection string.");
+            }
+        }
+        else
+        {
+            // Đang dùng SQL Server
+            var sqlServerContext = services.GetRequiredService<ToeicGeniusDbContextSqlServer>();
+            if (sqlServerContext.Database.CanConnect())
+            {
+                logger.LogInformation("Database connection successful (SQL Server). Applying pending migrations from Migrations/SqlServer...");
+                sqlServerContext.Database.Migrate();
+                logger.LogInformation("SQL Server migrations applied successfully.");
+            }
+            else
+            {
+                logger.LogWarning("SQL Server database connection failed. Please check connection string.");
+            }
         }
         else
         {
