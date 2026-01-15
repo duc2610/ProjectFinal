@@ -230,11 +230,6 @@ using (var scope = app.Services.CreateScope())
                 logger.LogWarning("SQL Server database connection failed. Please check connection string.");
             }
         }
-        else
-        {
-            // Database doesn't exist - this shouldn't happen in production
-            logger.LogWarning("Database connection failed. Please check connection string.");
-        }
     }
     catch (Exception ex)
     {
