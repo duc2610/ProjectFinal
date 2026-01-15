@@ -50,28 +50,18 @@ var usePostgres =
 if (usePostgres)
 {
     // PostgreSQL - Production (Render)
-    // Đăng ký PostgreSQL context
-    builder.Services.AddDbContext<ToeicGeniusDbContextPostgres>(options =>
+    builder.Services.AddDbContext<ToeicGeniusDbContext>(options =>
     {
-        options.UseNpgsql(connStr, x => x.MigrationsAssembly("ToeicGenius"));
+        options.UseNpgsql(connStr);
     });
-    
-    // Đăng ký base context cho các service khác (dùng PostgreSQL context)
-    builder.Services.AddScoped<ToeicGeniusDbContext>(sp => 
-        sp.GetRequiredService<ToeicGeniusDbContextPostgres>());
 }
 else
 {
     // SQL Server - Local Development
-    // Đăng ký SQL Server context
-    builder.Services.AddDbContext<ToeicGeniusDbContextSqlServer>(options =>
+    builder.Services.AddDbContext<ToeicGeniusDbContext>(options =>
     {
-        options.UseSqlServer(connStr, x => x.MigrationsAssembly("ToeicGenius"));
+        options.UseSqlServer(connStr);
     });
-    
-    // Đăng ký base context cho các service khác (dùng SQL Server context)
-    builder.Services.AddScoped<ToeicGeniusDbContext>(sp => 
-        sp.GetRequiredService<ToeicGeniusDbContextSqlServer>());
 }
 
 builder.Services.AddEndpointsApiExplorer();
