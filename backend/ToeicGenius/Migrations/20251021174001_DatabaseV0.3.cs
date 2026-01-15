@@ -646,69 +646,73 @@ namespace ToeicGenius.Migrations
                 });
 
             // Insert data for Options table - handle boolean type correctly for both PostgreSQL and SQL Server
-            // PostgreSQL: Use raw SQL with boolean type (true/false)
-            migrationBuilder.Sql(@"
-                INSERT INTO ""Options"" (""OptionId"", ""Content"", ""CreatedAt"", ""IsCorrect"", ""Label"", ""QuestionId"", ""Status"", ""UpdatedAt"")
-                VALUES
-                    (1, 'Paris', TIMESTAMP '2025-10-21 17:40:00.8415026', true, 'A', 1, 1, NULL),
-                    (2, 'London', TIMESTAMP '2025-10-21 17:40:00.8415027', false, 'B', 1, 1, NULL),
-                    (3, 'Berlin', TIMESTAMP '2025-10-21 17:40:00.8415028', false, 'C', 1, 1, NULL),
-                    (4, 'Madrid', TIMESTAMP '2025-10-21 17:40:00.8415029', false, 'D', 1, 1, NULL),
-                    (5, 'At home', TIMESTAMP '2025-10-21 17:40:00.8415030', true, 'A', 2, 1, NULL),
-                    (6, 'At work', TIMESTAMP '2025-10-21 17:40:00.8415031', false, 'B', 2, 1, NULL),
-                    (7, 'At school', TIMESTAMP '2025-10-21 17:40:00.8415032', false, 'C', 2, 1, NULL),
-                    (8, '8 AM', TIMESTAMP '2025-10-21 17:40:00.8415033', true, 'A', 3, 1, NULL),
-                    (9, '9 AM', TIMESTAMP '2025-10-21 17:40:00.8415034', false, 'B', 3, 1, NULL),
-                    (10, '10 AM', TIMESTAMP '2025-10-21 17:40:00.8415035', false, 'C', 3, 1, NULL),
-                    (11, 'Red', TIMESTAMP '2025-10-21 17:40:00.8415036', true, 'A', 4, 1, NULL),
-                    (12, 'Green', TIMESTAMP '2025-10-21 17:40:00.8415037', false, 'B', 4, 1, NULL),
-                    (13, 'Blue', TIMESTAMP '2025-10-21 17:40:00.8415037', false, 'C', 4, 1, NULL),
-                    (14, 'Yellow', TIMESTAMP '2025-10-21 17:40:00.8415038', false, 'D', 4, 1, NULL),
-                    (15, 'She goes to school.', TIMESTAMP '2025-10-21 17:40:00.8415039', true, 'A', 5, 1, NULL),
-                    (16, 'She go to school.', TIMESTAMP '2025-10-21 17:40:00.8415040', false, 'B', 5, 1, NULL),
-                    (17, 'She going to school.', TIMESTAMP '2025-10-21 17:40:00.8415041', false, 'C', 5, 1, NULL),
-                    (18, 'She gone to school.', TIMESTAMP '2025-10-21 17:40:00.8415042', false, 'D', 5, 1, NULL),
-                    (19, 'Option A', TIMESTAMP '2025-10-21 17:40:00.8415044', true, 'A', 11, 1, NULL),
-                    (20, 'Option B', TIMESTAMP '2025-10-21 17:40:00.8415045', false, 'B', 11, 1, NULL),
-                    (21, 'Option C', TIMESTAMP '2025-10-21 17:40:00.8415046', false, 'C', 11, 1, NULL),
-                    (22, 'Option D', TIMESTAMP '2025-10-21 17:40:00.8415046', false, 'D', 11, 1, NULL)
-                ON CONFLICT (""OptionId"") DO NOTHING;
-            ", suppressTransaction: false);
-
-            // SQL Server: Use raw SQL with bit type (0/1 for boolean)
-            // This SQL will fail on PostgreSQL (syntax error) but work on SQL Server
-            migrationBuilder.Sql(@"
-                IF @@VERSION LIKE '%Microsoft SQL Server%'
-                BEGIN
-                    IF NOT EXISTS (SELECT 1 FROM [Options] WHERE [OptionId] = 1)
+            if (migrationBuilder.ActiveProvider.Contains("Npgsql"))
+            {
+                // PostgreSQL: Use raw SQL with boolean type (true/false)
+                migrationBuilder.Sql(@"
+                    INSERT INTO ""Options"" (""OptionId"", ""Content"", ""CreatedAt"", ""IsCorrect"", ""Label"", ""QuestionId"", ""Status"", ""UpdatedAt"")
+                    VALUES
+                        (1, 'Paris', TIMESTAMP '2025-10-21 17:40:00.8415026', true, 'A', 1, 1, NULL),
+                        (2, 'London', TIMESTAMP '2025-10-21 17:40:00.8415027', false, 'B', 1, 1, NULL),
+                        (3, 'Berlin', TIMESTAMP '2025-10-21 17:40:00.8415028', false, 'C', 1, 1, NULL),
+                        (4, 'Madrid', TIMESTAMP '2025-10-21 17:40:00.8415029', false, 'D', 1, 1, NULL),
+                        (5, 'At home', TIMESTAMP '2025-10-21 17:40:00.8415030', true, 'A', 2, 1, NULL),
+                        (6, 'At work', TIMESTAMP '2025-10-21 17:40:00.8415031', false, 'B', 2, 1, NULL),
+                        (7, 'At school', TIMESTAMP '2025-10-21 17:40:00.8415032', false, 'C', 2, 1, NULL),
+                        (8, '8 AM', TIMESTAMP '2025-10-21 17:40:00.8415033', true, 'A', 3, 1, NULL),
+                        (9, '9 AM', TIMESTAMP '2025-10-21 17:40:00.8415034', false, 'B', 3, 1, NULL),
+                        (10, '10 AM', TIMESTAMP '2025-10-21 17:40:00.8415035', false, 'C', 3, 1, NULL),
+                        (11, 'Red', TIMESTAMP '2025-10-21 17:40:00.8415036', true, 'A', 4, 1, NULL),
+                        (12, 'Green', TIMESTAMP '2025-10-21 17:40:00.8415037', false, 'B', 4, 1, NULL),
+                        (13, 'Blue', TIMESTAMP '2025-10-21 17:40:00.8415037', false, 'C', 4, 1, NULL),
+                        (14, 'Yellow', TIMESTAMP '2025-10-21 17:40:00.8415038', false, 'D', 4, 1, NULL),
+                        (15, 'She goes to school.', TIMESTAMP '2025-10-21 17:40:00.8415039', true, 'A', 5, 1, NULL),
+                        (16, 'She go to school.', TIMESTAMP '2025-10-21 17:40:00.8415040', false, 'B', 5, 1, NULL),
+                        (17, 'She going to school.', TIMESTAMP '2025-10-21 17:40:00.8415041', false, 'C', 5, 1, NULL),
+                        (18, 'She gone to school.', TIMESTAMP '2025-10-21 17:40:00.8415042', false, 'D', 5, 1, NULL),
+                        (19, 'Option A', TIMESTAMP '2025-10-21 17:40:00.8415044', true, 'A', 11, 1, NULL),
+                        (20, 'Option B', TIMESTAMP '2025-10-21 17:40:00.8415045', false, 'B', 11, 1, NULL),
+                        (21, 'Option C', TIMESTAMP '2025-10-21 17:40:00.8415046', false, 'C', 11, 1, NULL),
+                        (22, 'Option D', TIMESTAMP '2025-10-21 17:40:00.8415046', false, 'D', 11, 1, NULL)
+                    ON CONFLICT (""OptionId"") DO NOTHING;
+                ", suppressTransaction: false);
+            }
+            else if (migrationBuilder.ActiveProvider.Contains("SqlServer"))
+            {
+                // SQL Server: Use raw SQL with bit type (0/1 for boolean)
+                migrationBuilder.Sql(@"
+                    IF @@VERSION LIKE '%Microsoft SQL Server%'
                     BEGIN
-                        INSERT INTO [Options] ([OptionId], [Content], [CreatedAt], [IsCorrect], [Label], [QuestionId], [Status], [UpdatedAt])
-                        VALUES
-                            (1, 'Paris', '2025-10-21 17:40:00.8415026', 1, 'A', 1, 1, NULL),
-                            (2, 'London', '2025-10-21 17:40:00.8415027', 0, 'B', 1, 1, NULL),
-                            (3, 'Berlin', '2025-10-21 17:40:00.8415028', 0, 'C', 1, 1, NULL),
-                            (4, 'Madrid', '2025-10-21 17:40:00.8415029', 0, 'D', 1, 1, NULL),
-                            (5, 'At home', '2025-10-21 17:40:00.8415030', 1, 'A', 2, 1, NULL),
-                            (6, 'At work', '2025-10-21 17:40:00.8415031', 0, 'B', 2, 1, NULL),
-                            (7, 'At school', '2025-10-21 17:40:00.8415032', 0, 'C', 2, 1, NULL),
-                            (8, '8 AM', '2025-10-21 17:40:00.8415033', 1, 'A', 3, 1, NULL),
-                            (9, '9 AM', '2025-10-21 17:40:00.8415034', 0, 'B', 3, 1, NULL),
-                            (10, '10 AM', '2025-10-21 17:40:00.8415035', 0, 'C', 3, 1, NULL),
-                            (11, 'Red', '2025-10-21 17:40:00.8415036', 1, 'A', 4, 1, NULL),
-                            (12, 'Green', '2025-10-21 17:40:00.8415037', 0, 'B', 4, 1, NULL),
-                            (13, 'Blue', '2025-10-21 17:40:00.8415037', 0, 'C', 4, 1, NULL),
-                            (14, 'Yellow', '2025-10-21 17:40:00.8415038', 0, 'D', 4, 1, NULL),
-                            (15, 'She goes to school.', '2025-10-21 17:40:00.8415039', 1, 'A', 5, 1, NULL),
-                            (16, 'She go to school.', '2025-10-21 17:40:00.8415040', 0, 'B', 5, 1, NULL),
-                            (17, 'She going to school.', '2025-10-21 17:40:00.8415041', 0, 'C', 5, 1, NULL),
-                            (18, 'She gone to school.', '2025-10-21 17:40:00.8415042', 0, 'D', 5, 1, NULL),
-                            (19, 'Option A', '2025-10-21 17:40:00.8415044', 1, 'A', 11, 1, NULL),
-                            (20, 'Option B', '2025-10-21 17:40:00.8415045', 0, 'B', 11, 1, NULL),
-                            (21, 'Option C', '2025-10-21 17:40:00.8415046', 0, 'C', 11, 1, NULL),
-                            (22, 'Option D', '2025-10-21 17:40:00.8415046', 0, 'D', 11, 1, NULL);
+                        IF NOT EXISTS (SELECT 1 FROM [Options] WHERE [OptionId] = 1)
+                        BEGIN
+                            INSERT INTO [Options] ([OptionId], [Content], [CreatedAt], [IsCorrect], [Label], [QuestionId], [Status], [UpdatedAt])
+                            VALUES
+                                (1, 'Paris', '2025-10-21 17:40:00.8415026', 1, 'A', 1, 1, NULL),
+                                (2, 'London', '2025-10-21 17:40:00.8415027', 0, 'B', 1, 1, NULL),
+                                (3, 'Berlin', '2025-10-21 17:40:00.8415028', 0, 'C', 1, 1, NULL),
+                                (4, 'Madrid', '2025-10-21 17:40:00.8415029', 0, 'D', 1, 1, NULL),
+                                (5, 'At home', '2025-10-21 17:40:00.8415030', 1, 'A', 2, 1, NULL),
+                                (6, 'At work', '2025-10-21 17:40:00.8415031', 0, 'B', 2, 1, NULL),
+                                (7, 'At school', '2025-10-21 17:40:00.8415032', 0, 'C', 2, 1, NULL),
+                                (8, '8 AM', '2025-10-21 17:40:00.8415033', 1, 'A', 3, 1, NULL),
+                                (9, '9 AM', '2025-10-21 17:40:00.8415034', 0, 'B', 3, 1, NULL),
+                                (10, '10 AM', '2025-10-21 17:40:00.8415035', 0, 'C', 3, 1, NULL),
+                                (11, 'Red', '2025-10-21 17:40:00.8415036', 1, 'A', 4, 1, NULL),
+                                (12, 'Green', '2025-10-21 17:40:00.8415037', 0, 'B', 4, 1, NULL),
+                                (13, 'Blue', '2025-10-21 17:40:00.8415037', 0, 'C', 4, 1, NULL),
+                                (14, 'Yellow', '2025-10-21 17:40:00.8415038', 0, 'D', 4, 1, NULL),
+                                (15, 'She goes to school.', '2025-10-21 17:40:00.8415039', 1, 'A', 5, 1, NULL),
+                                (16, 'She go to school.', '2025-10-21 17:40:00.8415040', 0, 'B', 5, 1, NULL),
+                                (17, 'She going to school.', '2025-10-21 17:40:00.8415041', 0, 'C', 5, 1, NULL),
+                                (18, 'She gone to school.', '2025-10-21 17:40:00.8415042', 0, 'D', 5, 1, NULL),
+                                (19, 'Option A', '2025-10-21 17:40:00.8415044', 1, 'A', 11, 1, NULL),
+                                (20, 'Option B', '2025-10-21 17:40:00.8415045', 0, 'B', 11, 1, NULL),
+                                (21, 'Option C', '2025-10-21 17:40:00.8415046', 0, 'C', 11, 1, NULL),
+                                (22, 'Option D', '2025-10-21 17:40:00.8415046', 0, 'D', 11, 1, NULL);
+                        END
                     END
-                END
-            ", suppressTransaction: false);
+                ", suppressTransaction: false);
+            }
 
             migrationBuilder.CreateIndex(
                 name: "IX_AIFeedbacks_UserAnswerId",
