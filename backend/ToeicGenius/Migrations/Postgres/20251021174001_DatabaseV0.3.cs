@@ -569,44 +569,44 @@ namespace ToeicGenius.Migrations.Postgres
                 columns: new[] { "QuestionTypeId", "Description", "PartId", "TypeName" },
                 values: new object[,]
                 {
-                    { 1, "MCQ", 1, "[P1] Tranh t? ngu?i (Hành d?ng/Tr?ng thái)" },
-                    { 2, "MCQ", 1, "[P1] Tranh t? v?t/Phong c?nh (V? trí/Tr?ng thái tinh)" },
+                    { 1, "MCQ", 1, "[P1] Tranh t? ngu?i (Hï¿½nh d?ng/Tr?ng thï¿½i)" },
+                    { 2, "MCQ", 1, "[P1] Tranh t? v?t/Phong c?nh (V? trï¿½/Tr?ng thï¿½i tinh)" },
                     { 3, "MCQ", 1, "[P1] Tranh t? v?t dang du?c th?c hi?n (B? d?ng ti?p di?n)" },
-                    { 4, "MCQ", 2, "[P2] Câu h?i W/H (Who, What, When, Where, Why, How)" },
-                    { 5, "MCQ", 2, "[P2] Câu h?i YES/NO" },
-                    { 6, "MCQ", 2, "[P2] Câu h?i l?a ch?n (OR Question)" },
-                    { 7, "MCQ", 2, "[P2] Câu h?i duôi / Xác nh?n (Tag/Negative Questions)" },
-                    { 8, "MCQ", 2, "[P2] Câu yêu c?u, d? ngh?, g?i ý (Request/Suggestion)" },
-                    { 9, "MCQ", 2, "[P2] Câu tr?n thu?t (Statement/Response)" },
-                    { 10, "MCQ", 3, "[P3] H?i v? ý chính/M?c dích h?i tho?i (Purpose/Gist)" },
-                    { 11, "MCQ", 3, "[P3] H?i chi ti?t thông tin du?c d? c?p (Detail)" },
-                    { 12, "MCQ", 3, "[P3] H?i v? hành d?ng ti?p theo (Action/Do-next)" },
-                    { 13, "MCQ", 3, "[P3] H?i suy lu?n/Ý d?nh/Thái d? (Inference/Attitude)" },
-                    { 14, "MCQ", 3, "[P3] H?i d?a vào Hình/B?ng d? li?u (Graphic Question)" },
-                    { 15, "MCQ", 4, "[P4] H?i n?i dung chính/Ch? d? bài nói (Main Topic)" },
-                    { 16, "MCQ", 4, "[P4] H?i chi ti?t thông tin du?c d? c?p (Detail)" },
-                    { 17, "MCQ", 4, "[P4] H?i suy lu?n/Hàm ý (Inference/Imply)" },
-                    { 18, "MCQ", 4, "[P4] H?i hành d?ng ngu?i nghe nên làm (Listener Action)" },
-                    { 19, "MCQ", 4, "[P4] H?i d?a vào Hình/B?ng d? li?u (Graphic Question)" },
-                    { 20, "MCQ", 5, "[P5] Ng? pháp (Thì, Câu di?u ki?n, Liên t?, Gi?i t?,...) " },
+                    { 4, "MCQ", 2, "[P2] Cï¿½u h?i W/H (Who, What, When, Where, Why, How)" },
+                    { 5, "MCQ", 2, "[P2] Cï¿½u h?i YES/NO" },
+                    { 6, "MCQ", 2, "[P2] Cï¿½u h?i l?a ch?n (OR Question)" },
+                    { 7, "MCQ", 2, "[P2] Cï¿½u h?i duï¿½i / Xï¿½c nh?n (Tag/Negative Questions)" },
+                    { 8, "MCQ", 2, "[P2] Cï¿½u yï¿½u c?u, d? ngh?, g?i ï¿½ (Request/Suggestion)" },
+                    { 9, "MCQ", 2, "[P2] Cï¿½u tr?n thu?t (Statement/Response)" },
+                    { 10, "MCQ", 3, "[P3] H?i v? ï¿½ chï¿½nh/M?c dï¿½ch h?i tho?i (Purpose/Gist)" },
+                    { 11, "MCQ", 3, "[P3] H?i chi ti?t thï¿½ng tin du?c d? c?p (Detail)" },
+                    { 12, "MCQ", 3, "[P3] H?i v? hï¿½nh d?ng ti?p theo (Action/Do-next)" },
+                    { 13, "MCQ", 3, "[P3] H?i suy lu?n/ï¿½ d?nh/Thï¿½i d? (Inference/Attitude)" },
+                    { 14, "MCQ", 3, "[P3] H?i d?a vï¿½o Hï¿½nh/B?ng d? li?u (Graphic Question)" },
+                    { 15, "MCQ", 4, "[P4] H?i n?i dung chï¿½nh/Ch? d? bï¿½i nï¿½i (Main Topic)" },
+                    { 16, "MCQ", 4, "[P4] H?i chi ti?t thï¿½ng tin du?c d? c?p (Detail)" },
+                    { 17, "MCQ", 4, "[P4] H?i suy lu?n/Hï¿½m ï¿½ (Inference/Imply)" },
+                    { 18, "MCQ", 4, "[P4] H?i hï¿½nh d?ng ngu?i nghe nï¿½n lï¿½m (Listener Action)" },
+                    { 19, "MCQ", 4, "[P4] H?i d?a vï¿½o Hï¿½nh/B?ng d? li?u (Graphic Question)" },
+                    { 20, "MCQ", 5, "[P5] Ng? phï¿½p (Thï¿½, Cï¿½u di?u ki?n, Liï¿½n t?, Gi?i t?,...) " },
                     { 21, "MCQ", 5, "[P5] T? lo?i (N, V, Adj, Adv)" },
                     { 22, "MCQ", 5, "[P5] T? v?ng (Nghia c?a t?)" },
-                    { 23, "MCQ", 6, "[P6] Hoàn thành câu/T? lo?i/T? v?ng trong do?n van" },
-                    { 24, "MCQ", 6, "[P6] Ch?n câu phù h?p d? di?n vào ch? tr?ng" },
-                    { 25, "MCQ", 7, "[P7] H?i v? ý chính/M?c dích (Main Idea/Purpose)" },
-                    { 26, "MCQ", 7, "[P7] Tìm thông tin chi ti?t (Specific Detail)" },
-                    { 27, "MCQ", 7, "[P7] Suy lu?n/Thông tin không d? c?p (Inference/NOT TRUE)" },
-                    { 28, "MCQ", 7, "[P7] Tìm t? d?ng nghia (Synonym/Meaning)" },
-                    { 29, "MCQ", 7, "[P7] Thêm câu vào ch? tr?ng (Sentence Insertion - Ch? trong Multi-Passage)" },
-                    { 30, "MCQ", 7, "[P7] Liên k?t thông tin gi?a các do?n (Connecting Information)" },
-                    { 31, "ShortAnswer", 11, "[Speaking] Ð?c to do?n van (Read a text aloud)" },
-                    { 32, "ShortAnswer", 12, "[Speaking] Mô t? tranh (Describe a picture)" },
-                    { 33, "ShortAnswer", 13, "[Speaking] Tr? l?i câu h?i cá nhân (Respond to questions Q5-7)" },
-                    { 34, "ShortAnswer", 14, "[Speaking] Tr? l?i d?a vào b?ng/l?ch (Respond to questions Q8-10)" },
-                    { 35, "ShortAnswer", 15, "[Speaking] Bày t? ý ki?n cá nhân (Express an opinion Q11)" },
-                    { 36, "Essay", 8, "[Writing] Vi?t câu d?a vào tranh (Write a sentence Q1-5)" },
-                    { 37, "Essay", 9, "[Writing] Vi?t thu tr? l?i yêu c?u (Respond to a written request Q6-7)" },
-                    { 38, "Essay", 10, "[Writing] Vi?t lu?n nêu ý ki?n cá nhân (Write an opinion essay Q8)" }
+                    { 23, "MCQ", 6, "[P6] Hoï¿½n thï¿½nh cï¿½u/T? lo?i/T? v?ng trong do?n van" },
+                    { 24, "MCQ", 6, "[P6] Ch?n cï¿½u phï¿½ h?p d? di?n vï¿½o ch? tr?ng" },
+                    { 25, "MCQ", 7, "[P7] H?i v? ï¿½ chï¿½nh/M?c dï¿½ch (Main Idea/Purpose)" },
+                    { 26, "MCQ", 7, "[P7] Tï¿½m thï¿½ng tin chi ti?t (Specific Detail)" },
+                    { 27, "MCQ", 7, "[P7] Suy lu?n/Thï¿½ng tin khï¿½ng d? c?p (Inference/NOT TRUE)" },
+                    { 28, "MCQ", 7, "[P7] Tï¿½m t? d?ng nghia (Synonym/Meaning)" },
+                    { 29, "MCQ", 7, "[P7] Thï¿½m cï¿½u vï¿½o ch? tr?ng (Sentence Insertion - Ch? trong Multi-Passage)" },
+                    { 30, "MCQ", 7, "[P7] Liï¿½n k?t thï¿½ng tin gi?a cï¿½c do?n (Connecting Information)" },
+                    { 31, "ShortAnswer", 11, "[Speaking] ï¿½?c to do?n van (Read a text aloud)" },
+                    { 32, "ShortAnswer", 12, "[Speaking] Mï¿½ t? tranh (Describe a picture)" },
+                    { 33, "ShortAnswer", 13, "[Speaking] Tr? l?i cï¿½u h?i cï¿½ nhï¿½n (Respond to questions Q5-7)" },
+                    { 34, "ShortAnswer", 14, "[Speaking] Tr? l?i d?a vï¿½o b?ng/l?ch (Respond to questions Q8-10)" },
+                    { 35, "ShortAnswer", 15, "[Speaking] Bï¿½y t? ï¿½ ki?n cï¿½ nhï¿½n (Express an opinion Q11)" },
+                    { 36, "Essay", 8, "[Writing] Vi?t cï¿½u d?a vï¿½o tranh (Write a sentence Q1-5)" },
+                    { 37, "Essay", 9, "[Writing] Vi?t thu tr? l?i yï¿½u c?u (Respond to a written request Q6-7)" },
+                    { 38, "Essay", 10, "[Writing] Vi?t lu?n nï¿½u ï¿½ ki?n cï¿½ nhï¿½n (Write an opinion essay Q8)" }
                 });
 
             migrationBuilder.InsertData(
@@ -712,6 +712,10 @@ namespace ToeicGenius.Migrations.Postgres
                         END
                     END
                 ", suppressTransaction: false);
+            }
+            else
+            {
+                throw new NotSupportedException($"Unsupported database provider: {migrationBuilder.ActiveProvider}. Only PostgreSQL (Npgsql) and SQL Server are supported.");
             }
 
             migrationBuilder.CreateIndex(

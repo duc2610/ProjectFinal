@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
+using System.Linq;
 using System.Text.Json;
 using ToeicGenius.Domains.DTOs.Requests.Question;
 using ToeicGenius.Domains.DTOs.Responses.Question;
@@ -481,6 +482,105 @@ namespace ToeicGenius.Repositories.Persistence
 				new { UserId = creatorId, RoleId = 3 },
 				new { UserId = examineeId, RoleId = 2 }
 			);
+		}
+
+		/// <summary>
+		/// Override SaveChangesAsync to ensure all DateTime values are UTC before saving to PostgreSQL
+		/// PostgreSQL requires DateTime with Kind=UTC for 'timestamp with time zone' columns
+		/// </summary>
+		public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+		{
+			var providerName = Database.ProviderName ?? string.Empty;
+			var isPostgres = providerName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase);
+
+			if (isPostgres)
+			{
+				// Ensure all DateTime values are UTC for PostgreSQL
+				var entries = ChangeTracker.Entries()
+					.Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+					.ToList();
+
+				foreach (var entry in entries)
+				{
+					foreach (var property in entry.Properties)
+					{
+						if (property.Metadata.ClrType == typeof(DateTime) || property.Metadata.ClrType == typeof(DateTime?))
+						{
+							if (property.CurrentValue is DateTime dateTime)
+							{
+								// Convert to UTC if not already UTC
+								if (dateTime.Kind != DateTimeKind.Utc)
+								{
+									property.CurrentValue = dateTime.Kind == DateTimeKind.Unspecified
+										? DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+										: dateTime.ToUniversalTime();
+								}
+							}
+							else if (property.CurrentValue is DateTime? nullableDateTime && nullableDateTime.HasValue)
+							{
+								var dt = nullableDateTime.Value;
+								if (dt.Kind != DateTimeKind.Utc)
+								{
+									property.CurrentValue = dt.Kind == DateTimeKind.Unspecified
+										? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+										: dt.ToUniversalTime();
+								}
+							}
+						}
+					}
+				}
+			}
+
+			return await base.SaveChangesAsync(cancellationToken);
+		}
+
+		/// <summary>
+		/// Override SaveChanges to ensure all DateTime values are UTC before saving to PostgreSQL
+		/// </summary>
+		public override int SaveChanges()
+		{
+			var providerName = Database.ProviderName ?? string.Empty;
+			var isPostgres = providerName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase);
+
+			if (isPostgres)
+			{
+				// Ensure all DateTime values are UTC for PostgreSQL
+				var entries = ChangeTracker.Entries()
+					.Where(e => e.State == EntityState.Added || e.State == EntityState.Modified)
+					.ToList();
+
+				foreach (var entry in entries)
+				{
+					foreach (var property in entry.Properties)
+					{
+						if (property.Metadata.ClrType == typeof(DateTime) || property.Metadata.ClrType == typeof(DateTime?))
+						{
+							if (property.CurrentValue is DateTime dateTime)
+							{
+								// Convert to UTC if not already UTC
+								if (dateTime.Kind != DateTimeKind.Utc)
+								{
+									property.CurrentValue = dateTime.Kind == DateTimeKind.Unspecified
+										? DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+										: dateTime.ToUniversalTime();
+								}
+							}
+							else if (property.CurrentValue is DateTime? nullableDateTime && nullableDateTime.HasValue)
+							{
+								var dt = nullableDateTime.Value;
+								if (dt.Kind != DateTimeKind.Utc)
+								{
+									property.CurrentValue = dt.Kind == DateTimeKind.Unspecified
+										? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+										: dt.ToUniversalTime();
+								}
+							}
+						}
+					}
+				}
+			}
+
+			return base.SaveChanges();
 		}
 	}
 }

@@ -1,3 +1,4 @@
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace ToeicGenius.Migrations
@@ -53,12 +54,47 @@ namespace ToeicGenius.Migrations
         /// <summary>
         /// Executes SQL only if the active provider matches the specified provider
         /// </summary>
-        public static void ExecuteIfProvider(MigrationBuilder migrationBuilder, string providerName, string sql)
+        public static void ExecuteIfProvider(MigrationBuilder migrationBuilder, string providerName, string sql, bool suppressTransaction = false)
         {
             var provider = migrationBuilder.ActiveProvider ?? "";
             if (provider.Contains(providerName))
             {
-                migrationBuilder.Sql(sql, suppressTransaction: false);
+                migrationBuilder.Sql(sql, suppressTransaction);
+            }
+        }
+
+        /// <summary>
+        /// Executes SQL only if the active provider is PostgreSQL
+        /// </summary>
+        public static void ExecuteIfPostgres(MigrationBuilder migrationBuilder, string sql, bool suppressTransaction = false)
+        {
+            if (IsPostgreSQL(migrationBuilder))
+            {
+                migrationBuilder.Sql(sql, suppressTransaction);
+            }
+        }
+
+        /// <summary>
+        /// Executes SQL only if the active provider is SQL Server
+        /// </summary>
+        public static void ExecuteIfSqlServer(MigrationBuilder migrationBuilder, string sql, bool suppressTransaction = false)
+        {
+            if (IsSqlServer(migrationBuilder))
+            {
+                migrationBuilder.Sql(sql, suppressTransaction);
+            }
+        }
+
+        /// <summary>
+        /// Validates that the active provider is either PostgreSQL or SQL Server
+        /// Throws NotSupportedException if provider is not supported
+        /// </summary>
+        public static void ValidateProvider(MigrationBuilder migrationBuilder)
+        {
+            var provider = migrationBuilder.ActiveProvider ?? "";
+            if (!provider.Contains("Npgsql") && !provider.Contains("SqlServer"))
+            {
+                throw new NotSupportedException($"Unsupported database provider: {provider}. Only PostgreSQL (Npgsql) and SQL Server are supported.");
             }
         }
 

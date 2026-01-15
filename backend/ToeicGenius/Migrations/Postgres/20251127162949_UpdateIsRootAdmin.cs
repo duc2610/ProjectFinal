@@ -333,26 +333,57 @@ namespace ToeicGenius.Migrations.Postgres
                 column: "CreatedAt",
                 value: new DateTime(2025, 11, 27, 23, 29, 47, 292, DateTimeKind.Utc).AddTicks(4141));
 
-            // Use raw SQL for boolean updates in PostgreSQL
-            migrationBuilder.Sql(@"
-                UPDATE ""Users"" 
-                SET ""CreatedAt"" = TIMESTAMP '2025-11-27 23:29:47.4108703', 
-                    ""IsRoot"" = true, 
-                    ""PasswordHash"" = '$2a$11$/Ywch/DGmPnlaS/ocmCegenJS/R3nbx1ESlg/A76dAQiiEgcefgga'
-                WHERE ""Id"" = '11111111-1111-1111-1111-111111111111';
-                
-                UPDATE ""Users"" 
-                SET ""CreatedAt"" = TIMESTAMP '2025-11-27 23:29:47.5280404', 
-                    ""IsRoot"" = false, 
-                    ""PasswordHash"" = '$2a$11$NoVsxKuJ5guuGTo/a4gPqOhXTXGw2CpQuulzdLrpXT2smUcZT2VZ6'
-                WHERE ""Id"" = '22222222-2222-2222-2222-222222222222';
-                
-                UPDATE ""Users"" 
-                SET ""CreatedAt"" = TIMESTAMP '2025-11-27 23:29:47.6444456', 
-                    ""IsRoot"" = false, 
-                    ""PasswordHash"" = '$2a$11$YUTZaX0o1Hu.PmbDcwk8rePVn5NqVD4IDqCsK0JCNVOkoA8OarmxG'
-                WHERE ""Id"" = '33333333-3333-3333-3333-333333333333';
-            ");
+            // Use raw SQL for boolean updates - handle both PostgreSQL and SQL Server
+            if (migrationBuilder.ActiveProvider.Contains("Npgsql"))
+            {
+                // PostgreSQL: Use boolean type (true/false)
+                migrationBuilder.Sql(@"
+                    UPDATE ""Users"" 
+                    SET ""CreatedAt"" = TIMESTAMP '2025-11-27 23:29:47.4108703', 
+                        ""IsRoot"" = true, 
+                        ""PasswordHash"" = '$2a$11$/Ywch/DGmPnlaS/ocmCegenJS/R3nbx1ESlg/A76dAQiiEgcefgga'
+                    WHERE ""Id"" = '11111111-1111-1111-1111-111111111111';
+                    
+                    UPDATE ""Users"" 
+                    SET ""CreatedAt"" = TIMESTAMP '2025-11-27 23:29:47.5280404', 
+                        ""IsRoot"" = false, 
+                        ""PasswordHash"" = '$2a$11$NoVsxKuJ5guuGTo/a4gPqOhXTXGw2CpQuulzdLrpXT2smUcZT2VZ6'
+                    WHERE ""Id"" = '22222222-2222-2222-2222-222222222222';
+                    
+                    UPDATE ""Users"" 
+                    SET ""CreatedAt"" = TIMESTAMP '2025-11-27 23:29:47.6444456', 
+                        ""IsRoot"" = false, 
+                        ""PasswordHash"" = '$2a$11$YUTZaX0o1Hu.PmbDcwk8rePVn5NqVD4IDqCsK0JCNVOkoA8OarmxG'
+                    WHERE ""Id"" = '33333333-3333-3333-3333-333333333333';
+                ");
+            }
+            else if (migrationBuilder.ActiveProvider.Contains("SqlServer"))
+            {
+                // SQL Server: Use bit type (1/0)
+                migrationBuilder.Sql(@"
+                    UPDATE [Users] 
+                    SET [CreatedAt] = '2025-11-27 23:29:47.4108703', 
+                        [IsRoot] = 1, 
+                        [PasswordHash] = '$2a$11$/Ywch/DGmPnlaS/ocmCegenJS/R3nbx1ESlg/A76dAQiiEgcefgga'
+                    WHERE [Id] = '11111111-1111-1111-1111-111111111111';
+                    
+                    UPDATE [Users] 
+                    SET [CreatedAt] = '2025-11-27 23:29:47.5280404', 
+                        [IsRoot] = 0, 
+                        [PasswordHash] = '$2a$11$NoVsxKuJ5guuGTo/a4gPqOhXTXGw2CpQuulzdLrpXT2smUcZT2VZ6'
+                    WHERE [Id] = '22222222-2222-2222-2222-222222222222';
+                    
+                    UPDATE [Users] 
+                    SET [CreatedAt] = '2025-11-27 23:29:47.6444456', 
+                        [IsRoot] = 0, 
+                        [PasswordHash] = '$2a$11$YUTZaX0o1Hu.PmbDcwk8rePVn5NqVD4IDqCsK0JCNVOkoA8OarmxG'
+                    WHERE [Id] = '33333333-3333-3333-3333-333333333333';
+                ");
+            }
+            else
+            {
+                throw new NotSupportedException($"Unsupported database provider: {migrationBuilder.ActiveProvider}. Only PostgreSQL (Npgsql) and SQL Server are supported.");
+            }
         }
 
         /// <inheritdoc />
