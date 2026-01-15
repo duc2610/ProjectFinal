@@ -201,130 +201,51 @@ using (var scope = app.Services.CreateScope())
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogInformation("=== Starting database migration check ===");
         
-        // Tự động chọn đúng DbContext dựa trên provider đã đăng ký
-        // Thử lấy PostgreSQL context trước, nếu không có thì dùng SQL Server
-        var postgresContext = services.GetService<ToeicGeniusDbContextPostgres>();
-        logger.LogInformation($"PostgreSQL context found: {postgresContext != null}");
-        if (postgresContext != null)
+        // Dùng base ToeicGeniusDbContext để apply migrations
+        // Migrations được tạo với [DbContext(typeof(ToeicGeniusDbContext))]
+        var dbContext = services.GetRequiredService<ToeicGeniusDbContext>();
+        var providerName = dbContext.Database.ProviderName ?? "Unknown";
+        logger.LogInformation($"Database provider: {providerName}");
+        
+        if (dbContext.Database.CanConnect())
         {
-            // Đang dùng PostgreSQL
-            if (postgresContext.Database.CanConnect())
+            logger.LogInformation("Database connection successful. Checking migrations...");
+            
+            // Kiểm tra tất cả migrations có sẵn
+            var allMigrations = dbContext.Database.GetMigrations().ToList();
+            logger.LogInformation($"Total migrations available: {allMigrations.Count}");
+            if (allMigrations.Any())
             {
-                logger.LogInformation("Database connection successful (PostgreSQL). Checking migrations...");
-                
-                // Kiểm tra assembly chứa migrations
-                var migrationsAssembly = postgresContext.GetType().Assembly;
-                logger.LogInformation($"Migrations assembly: {migrationsAssembly.FullName}");
-                
-                // Kiểm tra tất cả types trong assembly có chứa Migration không
-                var migrationTypes = migrationsAssembly.GetTypes()
-                    .Where(t => t.IsSubclassOf(typeof(Migration)) && !t.IsAbstract)
-                    .ToList();
-                logger.LogInformation($"Migration types found in assembly: {migrationTypes.Count}");
-                foreach (var migrationType in migrationTypes)
-                {
-                    logger.LogInformation($"  - {migrationType.FullName}");
-                }
-                
-                // Kiểm tra tất cả migrations có sẵn
-                var allMigrations = postgresContext.Database.GetMigrations().ToList();
-                logger.LogInformation($"Total migrations available: {allMigrations.Count}");
-                if (allMigrations.Any())
-                {
-                    logger.LogInformation($"Available migrations: {string.Join(", ", allMigrations)}");
-                }
-                
-                // Kiểm tra migrations đã được apply
-                var appliedMigrations = postgresContext.Database.GetAppliedMigrations().ToList();
-                logger.LogInformation($"Applied migrations: {appliedMigrations.Count}");
-                if (appliedMigrations.Any())
-                {
-                    logger.LogInformation($"Applied migrations: {string.Join(", ", appliedMigrations)}");
-                }
-                
-                // Kiểm tra migrations pending
-                var pendingMigrations = postgresContext.Database.GetPendingMigrations().ToList();
-                logger.LogInformation($"Pending migrations: {pendingMigrations.Count}");
-                
-                if (pendingMigrations.Any())
-                {
-                    logger.LogInformation($"Found {pendingMigrations.Count} pending migration(s): {string.Join(", ", pendingMigrations)}");
-                    logger.LogInformation("Applying migrations...");
-                    postgresContext.Database.Migrate();
-                    logger.LogInformation("PostgreSQL migrations applied successfully.");
-                }
-                else
-                {
-                    // Nếu có migrations nhưng chưa được apply, force apply
-                    if (allMigrations.Any() && appliedMigrations.Count == 0)
-                    {
-                        logger.LogWarning("Migrations exist but none have been applied. Attempting to apply all migrations...");
-                        postgresContext.Database.Migrate();
-                        logger.LogInformation("PostgreSQL migrations applied successfully.");
-                    }
-                    else if (allMigrations.Count == 0)
-                    {
-                        logger.LogError("=== CRITICAL: No migrations found! ===");
-                        logger.LogError("This means EF Core cannot find any migration files.");
-                        logger.LogError("Please check that migrations are compiled into the assembly.");
-                    }
-                    else
-                    {
-                        logger.LogInformation("No pending migrations. Database is up to date.");
-                        // Double-check: nếu không có bảng nào (trừ __EFMigrationsHistory), có thể migrations chưa được apply
-                        try
-                        {
-                            var tableCount = postgresContext.Database.SqlQueryRaw<int>(@"
-                                SELECT COUNT(*) FROM information_schema.tables 
-                                WHERE table_schema = 'public' AND table_name != '__EFMigrationsHistory'
-                            ").FirstOrDefault();
-                            logger.LogInformation($"Number of tables in database (excluding __EFMigrationsHistory): {tableCount}");
-                            
-                            if (tableCount == 0 && allMigrations.Any())
-                            {
-                                logger.LogWarning("No tables found but migrations exist. Force applying migrations...");
-                                postgresContext.Database.Migrate();
-                                logger.LogInformation("PostgreSQL migrations applied successfully after force check.");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.LogWarning(ex, "Could not check table count, but continuing...");
-                        }
-                    }
-                }
+                logger.LogInformation($"Available migrations: {string.Join(", ", allMigrations)}");
+            }
+            
+            // Kiểm tra migrations đã được apply
+            var appliedMigrations = dbContext.Database.GetAppliedMigrations().ToList();
+            logger.LogInformation($"Applied migrations: {appliedMigrations.Count}");
+            
+            // Kiểm tra migrations pending
+            var pendingMigrations = dbContext.Database.GetPendingMigrations().ToList();
+            logger.LogInformation($"Pending migrations: {pendingMigrations.Count}");
+            
+            if (pendingMigrations.Any())
+            {
+                logger.LogInformation($"Found {pendingMigrations.Count} pending migration(s): {string.Join(", ", pendingMigrations)}");
+                logger.LogInformation("Applying migrations...");
+                dbContext.Database.Migrate();
+                logger.LogInformation("Migrations applied successfully.");
+            }
+            else if (allMigrations.Count == 0)
+            {
+                logger.LogError("=== CRITICAL: No migrations found! ===");
             }
             else
             {
-                logger.LogWarning("PostgreSQL database connection failed. Please check connection string.");
+                logger.LogInformation("No pending migrations. Database is up to date.");
             }
         }
         else
         {
-            // Đang dùng SQL Server
-            var sqlServerContext = services.GetRequiredService<ToeicGeniusDbContextSqlServer>();
-            if (sqlServerContext.Database.CanConnect())
-            {
-                logger.LogInformation("Database connection successful (SQL Server). Checking for pending migrations...");
-                
-                // Kiểm tra migrations pending
-                var pendingMigrations = sqlServerContext.Database.GetPendingMigrations().ToList();
-                if (pendingMigrations.Any())
-                {
-                    logger.LogInformation($"Found {pendingMigrations.Count} pending migration(s): {string.Join(", ", pendingMigrations)}");
-                    logger.LogInformation("Applying migrations...");
-                    sqlServerContext.Database.Migrate();
-                    logger.LogInformation("SQL Server migrations applied successfully.");
-                }
-                else
-                {
-                    logger.LogInformation("No pending migrations. Database is up to date.");
-                }
-            }
-            else
-            {
-                logger.LogWarning("SQL Server database connection failed. Please check connection string.");
-            }
+            logger.LogWarning("Database connection failed. Please check connection string.");
         }
     }
     catch (Exception ex)
