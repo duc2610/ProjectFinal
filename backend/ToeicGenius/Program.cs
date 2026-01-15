@@ -1,4 +1,4 @@
-﻿using Amazon.Extensions.NETCore.Setup;
+using Amazon.Extensions.NETCore.Setup;
 using Amazon.Runtime;
 using Amazon;
 using Amazon.S3;
@@ -50,18 +50,36 @@ var usePostgres =
 if (usePostgres)
 {
     // PostgreSQL - Production (Render)
-    builder.Services.AddDbContext<ToeicGeniusDbContext>(options =>
+    // Đăng ký PostgreSQL context với migrations từ Migrations.Postgres
+    builder.Services.AddDbContext<ToeicGeniusDbContextPostgres>(options =>
     {
-        options.UseNpgsql(connStr);
+        options.UseNpgsql(connStr, x => 
+        {
+            x.MigrationsAssembly("ToeicGenius");
+            x.MigrationsHistoryTable("__EFMigrationsHistory", "public");
+        });
     });
+    
+    // Đăng ký base context cho các service khác (dùng PostgreSQL context)
+    builder.Services.AddScoped<ToeicGeniusDbContext>(sp => 
+        sp.GetRequiredService<ToeicGeniusDbContextPostgres>());
 }
 else
 {
     // SQL Server - Local Development
-    builder.Services.AddDbContext<ToeicGeniusDbContext>(options =>
+    // Đăng ký SQL Server context với migrations từ Migrations.SqlServer
+    builder.Services.AddDbContext<ToeicGeniusDbContextSqlServer>(options =>
     {
-        options.UseSqlServer(connStr);
+        options.UseSqlServer(connStr, x => 
+        {
+            x.MigrationsAssembly("ToeicGenius");
+            x.MigrationsHistoryTable("__EFMigrationsHistory", "dbo");
+        });
     });
+    
+    // Đăng ký base context cho các service khác (dùng SQL Server context)
+    builder.Services.AddScoped<ToeicGeniusDbContext>(sp => 
+        sp.GetRequiredService<ToeicGeniusDbContextSqlServer>());
 }
 
 builder.Services.AddEndpointsApiExplorer();
@@ -191,19 +209,33 @@ using (var scope = app.Services.CreateScope())
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogInformation("=== Starting database migration check ===");
         
-        // Dùng base ToeicGeniusDbContext để apply migrations
-        // Migrations được tạo với [DbContext(typeof(ToeicGeniusDbContext))]
-        var dbContext = services.GetRequiredService<ToeicGeniusDbContext>();
+        // Lấy đúng derived context để EF Core tìm đúng migrations
+        // Postgres: ToeicGeniusDbContextPostgres -> Migrations.Postgres
+        // SQL Server: ToeicGeniusDbContextSqlServer -> Migrations.SqlServer
+        ToeicGeniusDbContext dbContext;
+        if (usePostgres)
+        {
+            dbContext = services.GetRequiredService<ToeicGeniusDbContextPostgres>();
+            logger.LogInformation("Using PostgreSQL context (Migrations.Postgres)");
+        }
+        else
+        {
+            dbContext = services.GetRequiredService<ToeicGeniusDbContextSqlServer>();
+            logger.LogInformation("Using SQL Server context (Migrations.SqlServer)");
+        }
+        
         var providerName = dbContext.Database.ProviderName ?? "Unknown";
         logger.LogInformation($"Database provider: {providerName}");
+        logger.LogInformation($"Context type: {dbContext.GetType().Name}");
         
         if (dbContext.Database.CanConnect())
         {
             logger.LogInformation("Database connection successful. Checking migrations...");
             
             // Kiểm tra tất cả migrations có sẵn
+            // EF Core tự động filter migrations dựa trên [DbContext] attribute
             var allMigrations = dbContext.Database.GetMigrations().ToList();
-            logger.LogInformation($"Total migrations available: {allMigrations.Count}");
+            logger.LogInformation($"Total migrations available for {dbContext.GetType().Name}: {allMigrations.Count}");
             if (allMigrations.Any())
             {
                 logger.LogInformation($"Available migrations: {string.Join(", ", allMigrations)}");
