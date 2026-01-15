@@ -198,10 +198,12 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("=== Starting database migration check ===");
         
         // Tự động chọn đúng DbContext dựa trên provider đã đăng ký
         // Thử lấy PostgreSQL context trước, nếu không có thì dùng SQL Server
         var postgresContext = services.GetService<ToeicGeniusDbContextPostgres>();
+        logger.LogInformation($"PostgreSQL context found: {postgresContext != null}");
         if (postgresContext != null)
         {
             // Đang dùng PostgreSQL
@@ -245,9 +247,35 @@ using (var scope = app.Services.CreateScope())
                         postgresContext.Database.Migrate();
                         logger.LogInformation("PostgreSQL migrations applied successfully.");
                     }
+                    else if (allMigrations.Count == 0)
+                    {
+                        logger.LogError("=== CRITICAL: No migrations found! ===");
+                        logger.LogError("This means EF Core cannot find any migration files.");
+                        logger.LogError("Please check that migrations are compiled into the assembly.");
+                    }
                     else
                     {
                         logger.LogInformation("No pending migrations. Database is up to date.");
+                        // Double-check: nếu không có bảng nào (trừ __EFMigrationsHistory), có thể migrations chưa được apply
+                        try
+                        {
+                            var tableCount = postgresContext.Database.SqlQueryRaw<int>(@"
+                                SELECT COUNT(*) FROM information_schema.tables 
+                                WHERE table_schema = 'public' AND table_name != '__EFMigrationsHistory'
+                            ").FirstOrDefault();
+                            logger.LogInformation($"Number of tables in database (excluding __EFMigrationsHistory): {tableCount}");
+                            
+                            if (tableCount == 0 && allMigrations.Any())
+                            {
+                                logger.LogWarning("No tables found but migrations exist. Force applying migrations...");
+                                postgresContext.Database.Migrate();
+                                logger.LogInformation("PostgreSQL migrations applied successfully after force check.");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            logger.LogWarning(ex, "Could not check table count, but continuing...");
+                        }
                     }
                 }
             }
@@ -287,7 +315,11 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "=== ERROR in database migration check ===");
         logger.LogError(ex, "An error occurred while migrating the database. Application will continue, but database operations may fail.");
+        logger.LogError(ex, $"Exception type: {ex.GetType().Name}");
+        logger.LogError(ex, $"Exception message: {ex.Message}");
+        logger.LogError(ex, $"Stack trace: {ex.StackTrace}");
         // Don't throw - allow app to start even if migration fails
         // This is important for production where database might be managed separately
     }
