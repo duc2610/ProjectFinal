@@ -211,6 +211,10 @@ using (var scope = app.Services.CreateScope())
             {
                 logger.LogInformation("Database connection successful (PostgreSQL). Checking migrations...");
                 
+                // Kiểm tra assembly chứa migrations
+                var migrationsAssembly = postgresContext.GetType().Assembly;
+                logger.LogInformation($"Migrations assembly: {migrationsAssembly.FullName}");
+                
                 // Kiểm tra tất cả migrations có sẵn
                 var allMigrations = postgresContext.Database.GetMigrations().ToList();
                 logger.LogInformation($"Total migrations available: {allMigrations.Count}");
