@@ -36,13 +36,13 @@ namespace ToeicGenius.Controllers
         }
 
         /// <summary>
-        /// _logger.LogInformation("[HEALTH CHECK] Ping request received at {Timestamp}", DateTime.UtcNow);
-            Simple ping endpoint
+        /// Simple ping endpoint
         /// </summary>
         [HttpGet("ping")]
         [AllowAnonymous]
         public IActionResult Ping()
         {
+            _logger.LogInformation("[HEALTH CHECK] Ping request received at {Timestamp}", DateTime.UtcNow);
             return Ok(new
             {
                 message = "pong",
