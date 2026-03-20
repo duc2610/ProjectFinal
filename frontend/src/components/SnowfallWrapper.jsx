@@ -10,19 +10,21 @@ export default function SnowfallWrapper() {
   const location = useLocation();
   const pathname = location.pathname;
 
-  // Kiểm tra nếu đang ở trang admin hoặc test-creator thì không hiển thị
-  const isAdminOrCreatorPage =
-    pathname.startsWith("/admin") || pathname.startsWith("/test-creator");
+  // Kiểm tra nếu đang ở trang admin, test-creator hoặc exam thì không hiển thị
+  const isAdminOrCreatorOrExamPage =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/test-creator") ||
+    pathname.startsWith("/exam");
 
-  // Nếu là trang admin/creator thì không hiển thị snowfall
-  if (isAdminOrCreatorPage) {
+  // Nếu là trang admin/creator/exam thì không hiển thị snowfall
+  if (isAdminOrCreatorOrExamPage) {
     return null;
   }
 
   return (
     <Snowfall
       // Số lượng bông tuyết
-      snowflakeCount={50}
+      snowflakeCount={25}
       // Tốc độ rơi
       speed={[0.5, 3]}
       // Kích thước bông tuyết
