@@ -22,7 +22,7 @@ export default function SnowfallWrapper() {
   return (
     <Snowfall
       // Số lượng bông tuyết
-      snowflakeCount={100}
+      snowflakeCount={50}
       // Tốc độ rơi
       speed={[0.5, 3]}
       // Kích thước bông tuyết
