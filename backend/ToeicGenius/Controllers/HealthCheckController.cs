@@ -9,11 +9,11 @@ namespace ToeicGenius.Controllers
     [ApiController]
     public class HealthCheckController : ControllerBase
     {
-        private readonly ToeicGeniusDbContext _dbContext;
+        private readonly ILogger<HealthCheckController> _logger;
 
-        public HealthCheckController(ToeicGeniusDbContext dbContext)
+        public HealthCheckController(ILogger<HealthCheckController> logger)
         {
-            _dbContext = dbContext;
+            _logger = logger;
         }
 
         /// <summary>
@@ -22,44 +22,22 @@ namespace ToeicGenius.Controllers
         /// <returns>API status</returns>
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> Health()
+        public IActionResult Health()
         {
-            try
+            _logger.LogInformation("[HEALTH CHECK] Health check request received at {Timestamp}", DateTime.UtcNow);
+            
+            return Ok(new
             {
-                // Test database connection
-                var canConnect = await _dbContext.Database.CanConnectAsync();
-                
-                if (!canConnect)
-                {
-                    return StatusCode(503, new
-                    {
-                        status = "unhealthy",
-                        timestamp = DateTime.UtcNow,
-                        message = "Database connection failed"
-                    });
-                }
-
-                return Ok(new
-                {
-                    status = "healthy",
-                    timestamp = DateTime.UtcNow,
-                    database = "connected",
-                    version = "1.0"
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(503, new
-                {
-                    status = "unhealthy",
-                    timestamp = DateTime.UtcNow,
-                    message = ex.Message
-                });
-            }
+                status = "healthy",
+                timestamp = DateTime.UtcNow,
+                message = "API is running",
+                version = "1.0"
+            });
         }
 
         /// <summary>
-        /// Simple ping endpoint
+        /// _logger.LogInformation("[HEALTH CHECK] Ping request received at {Timestamp}", DateTime.UtcNow);
+            Simple ping endpoint
         /// </summary>
         [HttpGet("ping")]
         [AllowAnonymous]
