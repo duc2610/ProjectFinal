@@ -1273,7 +1273,7 @@ async def assess_writing(request: AssessmentRequest):
         raise HTTPException(500, str(e))
 
 
-@app.get("/health")
+@app.api_route("/health", methods=["GET", "HEAD"])
 async def health():
     return {
         "status": "healthy",
