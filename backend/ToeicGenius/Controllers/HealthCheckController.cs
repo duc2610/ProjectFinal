@@ -18,21 +18,25 @@ namespace ToeicGenius.Controllers
 
         /// <summary>
         /// Health check endpoint - returns API status
+        /// Supports both GET and HEAD methods
         /// </summary>
         /// <returns>API status</returns>
         [HttpGet]
+        [HttpHead]
         [AllowAnonymous]
         public IActionResult Health()
         {
             _logger.LogInformation("[HEALTH CHECK] Health check request received at {Timestamp}", DateTime.UtcNow);
             
-            return Ok(new
+            var response = new
             {
                 status = "healthy",
                 timestamp = DateTime.UtcNow,
                 message = "API is running",
                 version = "1.0"
-            });
+            };
+
+            return Ok(response);
         }
 
         /// <summary>

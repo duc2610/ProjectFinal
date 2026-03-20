@@ -1273,7 +1273,21 @@ async def assess_writing(request: AssessmentRequest):
         raise HTTPException(500, str(e))
 
 
-@app.api_route("/health", methods=["GET", "HEAD"])
+@app.get("/health")
+async def health():
+    return {
+        "status": "healthy",
+        "gemini_available": assessment_service is not None,
+        "version": "8.0.0-BEST-OF-BOTH",
+        "features": {
+            "off_topic_detection": True,
+            "detailed_recommendations": True,
+            "grammar_error_examples": True,
+            "vocabulary_suggestions": True,
+            "structured_feedback": True
+        }
+    }
+@app.head("/health")
 async def health():
     return {
         "status": "healthy",

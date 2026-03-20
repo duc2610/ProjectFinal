@@ -2498,7 +2498,18 @@ async def root():
     }
 
 
-@app.api_route("/health", methods=["GET", "HEAD"])
+@app.get("/health")
+async def health():
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "services": {
+            "gemini": assessment_service.gemini_text_model is not None,
+            "azure_speech": True,
+            "languagetool": assessment_service.grammar_checker.available
+        }
+    }
+@app.head("/health")
 async def health():
     return {
         "status": "healthy",
